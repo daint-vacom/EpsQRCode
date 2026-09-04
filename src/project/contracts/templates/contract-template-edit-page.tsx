@@ -5,7 +5,6 @@ import { Save } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useNumberFormat } from '@/providers/number-format-provider';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import {
 import { PageLoading } from '@/components/ui/loading';
 import { PageHeader } from '@/components/ui/page-header';
 import { loadActiveCurrencies } from '../../api/currencies.api';
-import { toCurrencyOptions } from '../../model/currency';
+import { CURRENT_CURRENCY_CODE, toCurrencyOptions } from '../../model/currency';
 import {
   createContractTemplate,
   loadContractTemplateDetail,
@@ -67,7 +66,6 @@ export function ContractTemplateEditPage() {
   const { id } = useParams<{ id: string }>();
   const { userId } = useUser();
   const { tenantId } = useTenant();
-  const { currencyCode: defaultCurrencyCode } = useNumberFormat();
   const isEditMode = Boolean(id);
   const returnTo =
     isEditMode &&
@@ -104,7 +102,7 @@ export function ContractTemplateEditPage() {
       mappedIdRef.current = null;
       form.reset({
         ...contractTemplateDefaultValues,
-        currencyCode: defaultCurrencyCode,
+        currencyCode: CURRENT_CURRENCY_CODE,
       });
       setFeeLines([createDefaultContractFeeLine(todayIso())]);
       return;
@@ -117,7 +115,7 @@ export function ContractTemplateEditPage() {
       lines.length > 0 ? lines : [createDefaultContractFeeLine(todayIso())],
     );
     mappedIdRef.current = id ?? null;
-  }, [defaultCurrencyCode, detailQuery.data, form, id, isEditMode]);
+  }, [detailQuery.data, form, id, isEditMode]);
 
   const saveMutation = useMutation({
     mutationFn: async ({

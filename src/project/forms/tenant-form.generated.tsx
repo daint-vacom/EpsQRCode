@@ -357,7 +357,11 @@ export function TenantSettingsForm({
             render={({ field }) => (
               <FormItem className="md:col-span-6">
                 <FormLabel>Đơn vị tiền tệ mặc định</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />

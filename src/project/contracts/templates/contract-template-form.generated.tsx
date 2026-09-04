@@ -135,7 +135,11 @@ export function ContractTemplateForm({
             render={({ field }) => (
               <FormItem className="md:col-span-6">
                 <FormLabel>Đơn vị tiền tệ</FormLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />

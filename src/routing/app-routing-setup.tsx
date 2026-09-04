@@ -49,6 +49,7 @@ import { ContractTemplateEditPage } from '@/project/contracts/templates/contract
 import { ContractTemplatesPage } from '@/project/contracts/templates/contract-templates-page';
 import { CustomerDetailPage } from '@/project/customers/pages/customer-detail-page';
 import { CustomersPage } from '@/project/customers/pages/customers-page';
+import { DashboardPage } from '@/project/dashboard/pages/dashboard-page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
@@ -222,7 +223,7 @@ export function AppRoutingSetup() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<ProjectMainLayout />}>
-          <Route path="/" element={<ProjectMockPage />} />
+          <Route path="/" element={<DashboardPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
           <Route path={ROUTES.PROJECT.CUSTOMERS} element={<CustomersPage />} />
           <Route path={ROUTES.PROJECT.CONTRACTS} element={<ContractsPage />} />
