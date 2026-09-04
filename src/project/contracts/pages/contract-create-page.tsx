@@ -15,7 +15,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
-import { useNumberFormat } from '@/providers/number-format-provider';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
@@ -55,7 +54,7 @@ import {
 } from '@/components/ui/tooltip';
 import { loadActiveCurrencies } from '../../api/currencies.api';
 import { EmployeeIdentity } from '../../employees/components/employee-identity';
-import { toCurrencyOptions } from '../../model/currency';
+import { CURRENT_CURRENCY_CODE, toCurrencyOptions } from '../../model/currency';
 import { loadContractTemplateDetail } from '../api/contract-templates.api';
 import {
   activateContract,
@@ -181,7 +180,6 @@ export function ContractCreatePage() {
   const [searchParams] = useSearchParams();
   const { userId } = useUser();
   const { tenantId, isPending: isTenantPending } = useTenant();
-  const { currencyCode: defaultCurrencyCode } = useNumberFormat();
   const editingContractId = searchParams.get('edit');
   const templateId = searchParams.get('templateId');
   const isEditMode = Boolean(editingContractId);
@@ -319,7 +317,7 @@ export function ContractCreatePage() {
     mappedEditIdRef.current = null;
     form.reset({
       ...contractDefaultValues,
-      currencyCode: defaultCurrencyCode,
+      currencyCode: CURRENT_CURRENCY_CODE,
     });
     setSelectedCustomer(undefined);
     setFeeLines([
@@ -332,7 +330,7 @@ export function ContractCreatePage() {
     setRemovedAttachmentIds([]);
     setStep(1);
     setMaxStep(1);
-  }, [defaultCurrencyCode, editingContractId, form, templateId]);
+  }, [editingContractId, form, templateId]);
 
   useEffect(() => {
     const template = templateQuery.data;
@@ -370,7 +368,7 @@ export function ContractCreatePage() {
       ...contractDefaultValues,
       contractCode: `${template.code}-${startDate.replaceAll('-', '')}`,
       name: template.name,
-      currencyCode: template.currencyCode,
+      currencyCode: CURRENT_CURRENCY_CODE,
       autoRenew: template.autoRenewDefault,
       note: template.note,
       responsibleEmployeeIds: workspaceQuery.data?.defaultResponsibleEmployeeId

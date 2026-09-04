@@ -30,7 +30,7 @@ export function ContractCurrencyField({
         name="currencyCode"
         render={({ field }) => (
           <FormItem variant="compact">
-            <Select value={field.value} onValueChange={field.onChange}>
+            <Select value={field.value} onValueChange={field.onChange} disabled>
               <FormControl>
                 <SelectTrigger size="sm">
                   <SelectValue />

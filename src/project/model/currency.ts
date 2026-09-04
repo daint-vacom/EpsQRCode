@@ -1,3 +1,6 @@
+/** Currency currently enabled by the active business requirements. */
+export const CURRENT_CURRENCY_CODE = 'VND';
+
 export interface Currency {
   code: string;
   nameVi: string;
