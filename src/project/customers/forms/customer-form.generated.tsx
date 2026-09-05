@@ -169,7 +169,7 @@ export function CustomerForm({
     <Form {...form}>
       <form
         id={id}
-        className="h-full min-h-0"
+        className="min-h-0 lg:h-full"
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
@@ -638,7 +638,7 @@ export function CustomerFormDialog({
             <DialogTitle>{title ?? 'Thêm khách hàng'}</DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-hidden px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:overflow-hidden">
             <CustomerForm
               form={form}
               onSubmit={onSubmit}

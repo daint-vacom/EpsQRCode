@@ -62,6 +62,20 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 - Edit dialogs reset values when the selected record changes; create dialogs preserve their draft
   across close/reopen and reset only through an explicit new-task action.
 
+### Responsive dialog scrolling
+
+- A dialog with a fixed or maximum height must use a flex shell: header and footer are `shrink-0`,
+  while the body is `min-h-0 flex-1`.
+- When a form is split into columns on desktop but stacks on mobile, the dialog body owns the
+  vertical scroll on mobile (`overflow-y-auto`). Switch back to `overflow-hidden` only at the
+  desktop breakpoint when each column intentionally owns its own scroll region.
+- Do not apply `h-full` or an ancestor `overflow-hidden` unconditionally to a stacked mobile form;
+  they can clip the lower tab panel and prevent its content from scrolling. Use `lg:h-full` and
+  `lg:overflow-hidden` for desktop-only constraints.
+- For tabbed forms, verify every tab with enough content to exceed the small viewport, including
+  the tab below the primary information section. A visible tab is not sufficient if its panel is
+  trapped by an ancestor's overflow constraint.
+
 Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Control APIs:
 [`components/forms.md`](./components/forms.md).
 
