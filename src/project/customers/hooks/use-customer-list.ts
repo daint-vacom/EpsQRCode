@@ -12,10 +12,28 @@ import {
   CUSTOMER_LIST_INITIAL_FILTERS,
   CUSTOMER_STATUSES,
   type BusinessType,
+  type CustomerListFieldFilters,
   type CustomerListFilters,
   type CustomerListParams,
   type CustomerStatus,
 } from '../model/customer';
+
+function parseCustomFieldFilters(value: unknown): Record<string, string> {
+  if (typeof value !== 'string') return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
 
 export function useCustomerList() {
   const tenantState = useTenant();
@@ -26,12 +44,19 @@ export function useCustomerList() {
 
   const queryParams = buildListQueryParams(listState, {
     filters: {
-      customerSearch: { omit: [''] },
+      customerCode: { omit: [''] },
+      name: { omit: [''] },
       businessTypes: {
         param: 'businessTypes',
         serialize: (value) => (value.length > 0 ? value.join(',') : undefined),
       },
+      businessRegistrationCode: { omit: [''] },
+      countryCode: { omit: [''] },
+      region: { omit: [''] },
       contactSearch: { omit: [''] },
+      phone: { omit: [''] },
+      email: { omit: [''] },
+      addressDetail: { omit: [''] },
       statuses: {
         param: 'statuses',
         serialize: (value) => (value.length > 0 ? value.join(',') : undefined),
@@ -39,6 +64,18 @@ export function useCustomerList() {
       tagIds: {
         param: 'tagIds',
         serialize: (value) => (value.length > 0 ? value.join(',') : undefined),
+      },
+      note: { omit: [''] },
+      customFields: {
+        param: 'customFields',
+        serialize: (value) => {
+          const nonEmpty = Object.fromEntries(
+            Object.entries(value).filter(([, item]) => item.trim()),
+          );
+          return Object.keys(nonEmpty).length > 0
+            ? JSON.stringify(nonEmpty)
+            : undefined;
+        },
       },
     },
   });
@@ -48,10 +85,34 @@ export function useCustomerList() {
     pageSize: queryParams.pageSize,
     search:
       typeof queryParams.search === 'string' ? queryParams.search : undefined,
-    customerSearch:
-      typeof queryParams.customerSearch === 'string'
-        ? queryParams.customerSearch
-        : undefined,
+    fieldFilters: {
+      customerCode:
+        typeof queryParams.customerCode === 'string'
+          ? queryParams.customerCode
+          : '',
+      name: typeof queryParams.name === 'string' ? queryParams.name : '',
+      businessRegistrationCode:
+        typeof queryParams.businessRegistrationCode === 'string'
+          ? queryParams.businessRegistrationCode
+          : '',
+      countryCode:
+        typeof queryParams.countryCode === 'string'
+          ? queryParams.countryCode
+          : '',
+      region: typeof queryParams.region === 'string' ? queryParams.region : '',
+      contactSearch:
+        typeof queryParams.contactSearch === 'string'
+          ? queryParams.contactSearch
+          : '',
+      phone: typeof queryParams.phone === 'string' ? queryParams.phone : '',
+      email: typeof queryParams.email === 'string' ? queryParams.email : '',
+      addressDetail:
+        typeof queryParams.addressDetail === 'string'
+          ? queryParams.addressDetail
+          : '',
+      note: typeof queryParams.note === 'string' ? queryParams.note : '',
+      customFields: parseCustomFieldFilters(queryParams.customFields),
+    } satisfies CustomerListFieldFilters,
     businessTypes:
       typeof queryParams.businessTypes === 'string'
         ? queryParams.businessTypes
@@ -59,10 +120,6 @@ export function useCustomerList() {
             .filter((value): value is BusinessType =>
               BUSINESS_TYPES.includes(value as BusinessType),
             )
-        : undefined,
-    contactSearch:
-      typeof queryParams.contactSearch === 'string'
-        ? queryParams.contactSearch
         : undefined,
     statuses:
       typeof queryParams.statuses === 'string'

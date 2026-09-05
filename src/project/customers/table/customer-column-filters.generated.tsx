@@ -14,6 +14,7 @@ export interface TextColumnFilterProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  ariaLabel?: string;
 }
 
 export interface BusinessTypeColumnFilterProps {
@@ -42,6 +43,7 @@ export function CustomerTextColumnFilter({
   onChange,
   disabled = false,
   className,
+  ariaLabel = 'Tìm theo tên hoặc mã khách hàng',
 }: TextColumnFilterProps) {
   return (
     <SearchInput
@@ -49,7 +51,7 @@ export function CustomerTextColumnFilter({
       onSearch={onChange}
       debounceMs={300}
       placeholder={''}
-      aria-label={'Tìm theo tên hoặc mã khách hàng'}
+      aria-label={ariaLabel}
       variant="sm"
       className={cn('min-w-0 w-full shrink-0 bg-background', className)}
       disabled={disabled}

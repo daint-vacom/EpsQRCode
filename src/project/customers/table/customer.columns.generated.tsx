@@ -5,6 +5,7 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
+import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
@@ -15,8 +16,17 @@ import {
   DataGridActionButton,
   type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
+import { OptionSelect } from '@/components/ui/option-select';
 import { CustomerCell } from '../components/customer-cell';
-import { BUSINESS_TYPE_LABELS, type Customer } from '../model/customer';
+import {
+  CustomerCustomFieldColumnFilter,
+  getCustomerCustomFieldDisplayValue,
+} from '../components/customer-custom-field-filter';
+import {
+  BUSINESS_TYPE_LABELS,
+  CUSTOMER_COUNTRY_OPTIONS,
+  type Customer,
+} from '../model/customer';
 import {
   CustomerBusinessTypeColumnFilter,
   CustomerContactColumnFilter,
@@ -42,17 +52,48 @@ const statusBadgeConfig: StatusBadgeConfig<string> = {
 export interface UseCustomerColumnsParams {
   onEdit: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
+  customFields: CustomField[];
   tagIds: string[];
   onTagIdsChange: (value: string[]) => void;
   tagsByCustomerId: Record<string, TagSelectOption[]>;
-  customerSearch: string;
-  onCustomerSearchChange: (value: string) => void;
+  name: string;
+  onNameChange: (value: string) => void;
   businessTypes: string[];
   onBusinessTypesChange: (value: string[]) => void;
+  businessRegistrationCode: string;
+  onBusinessRegistrationCodeChange: (value: string) => void;
+  countryCode: string;
+  onCountryCodeChange: (value: string) => void;
+  region: string;
+  onRegionChange: (value: string) => void;
   contactSearch: string;
   onContactSearchChange: (value: string) => void;
+  phone: string;
+  onPhoneChange: (value: string) => void;
+  email: string;
+  onEmailChange: (value: string) => void;
+  addressDetail: string;
+  onAddressDetailChange: (value: string) => void;
   statuses: string[];
   onStatusesChange: (value: string[]) => void;
+  note: string;
+  onNoteChange: (value: string) => void;
+  customFieldValues: Record<string, string>;
+  onCustomFieldChange: (key: string, value: string) => void;
+}
+
+function textFilter(
+  value: string,
+  onChange: (value: string) => void,
+  ariaLabel: string,
+) {
+  return (
+    <CustomerTextColumnFilter
+      value={value}
+      onChange={onChange}
+      ariaLabel={ariaLabel}
+    />
+  );
 }
 
 export function useCustomerColumns(
@@ -60,16 +101,41 @@ export function useCustomerColumns(
 ): ColumnDef<Customer>[] {
   return useMemo(() => {
     const col = createColumnHelpers<Customer>();
+    const customColumns = params.customFields
+      .filter((field) => field.isActive)
+      .map((field) =>
+        col.custom({
+          id: `customField:${field.key}`,
+          header: field.label,
+          headerFilter: (
+            <CustomerCustomFieldColumnFilter
+              field={field}
+              value={params.customFieldValues[field.key] ?? ''}
+              onChange={(value) => params.onCustomFieldChange(field.key, value)}
+            />
+          ),
+          headerClassName: 'min-w-[180px]',
+          visibility: false,
+          enableSorting: false,
+          cell: (row) => (
+            <span className="text-sm text-foreground">
+              {getCustomerCustomFieldDisplayValue(
+                field,
+                row.customFields[field.key] ?? '',
+              )}
+            </span>
+          ),
+        }),
+      );
 
     return [
       col.custom({
         id: 'name',
         header: 'Khách hàng',
-        headerFilter: (
-          <CustomerTextColumnFilter
-            value={params.customerSearch}
-            onChange={params.onCustomerSearchChange}
-          />
+        headerFilter: textFilter(
+          params.name,
+          params.onNameChange,
+          'Tìm theo tên khách hàng',
         ),
         headerClassName: 'min-w-[240px]',
         enableSorting: false,
@@ -84,7 +150,7 @@ export function useCustomerColumns(
             onChange={params.onBusinessTypesChange}
           />
         ),
-        headerClassName: 'min-w-[160px]',
+        headerClassName: 'min-w-[170px]',
         enableSorting: false,
         cell: (row) => (
           <span className="text-sm text-foreground">
@@ -144,6 +210,112 @@ export function useCustomerColumns(
         headerClassName: 'min-w-[170px]',
         enableSorting: false,
       }),
+      col.text({
+        id: 'businessRegistrationCode',
+        header: 'Mã số đăng ký',
+        get: (row) => row.businessRegistrationCode,
+        headerFilter: textFilter(
+          params.businessRegistrationCode,
+          params.onBusinessRegistrationCodeChange,
+          'Tìm theo mã số đăng ký',
+        ),
+        headerClassName: 'min-w-[170px]',
+        enableSorting: false,
+      }),
+      col.custom({
+        id: 'countryCode',
+        header: 'Quốc gia',
+        headerFilter: (
+          <OptionSelect
+            value={params.countryCode}
+            onChange={params.onCountryCodeChange}
+            options={CUSTOMER_COUNTRY_OPTIONS}
+            placeholder="Tất cả"
+            searchable
+            canDeselect
+            ariaLabel="Lọc theo quốc gia"
+            size="sm"
+            className="min-w-0 bg-background"
+          />
+        ),
+        headerClassName: 'min-w-[160px]',
+        enableSorting: false,
+        cell: (row) => (
+          <span className="text-sm text-foreground">{row.countryCode}</span>
+        ),
+      }),
+      col.custom({
+        id: 'region',
+        header: 'Khu vực',
+        headerFilter: textFilter(
+          params.region,
+          params.onRegionChange,
+          'Tìm theo mã hoặc tên khu vực',
+        ),
+        headerClassName: 'min-w-[180px]',
+        enableSorting: false,
+        cell: (row) => (
+          <div className="min-w-0">
+            <div className="truncate text-sm text-foreground">
+              {row.regionName || 'Chưa có khu vực'}
+            </div>
+            {row.regionCode ? (
+              <div className="truncate text-xs text-muted-foreground">
+                {row.regionCode}
+              </div>
+            ) : null}
+          </div>
+        ),
+      }),
+      col.text({
+        id: 'phone',
+        header: 'Số điện thoại',
+        get: (row) => row.phone,
+        headerFilter: textFilter(
+          params.phone,
+          params.onPhoneChange,
+          'Tìm theo số điện thoại',
+        ),
+        headerClassName: 'min-w-[170px]',
+        enableSorting: false,
+      }),
+      col.text({
+        id: 'email',
+        header: 'Email',
+        get: (row) => row.email,
+        headerFilter: textFilter(
+          params.email,
+          params.onEmailChange,
+          'Tìm theo email',
+        ),
+        headerClassName: 'min-w-[220px]',
+        enableSorting: false,
+      }),
+      col.text({
+        id: 'addressDetail',
+        header: 'Địa chỉ chi tiết',
+        get: (row) => row.addressDetail,
+        headerFilter: textFilter(
+          params.addressDetail,
+          params.onAddressDetailChange,
+          'Tìm theo địa chỉ',
+        ),
+        headerClassName: 'min-w-[240px]',
+        enableSorting: false,
+      }),
+      col.text({
+        id: 'note',
+        header: 'Ghi chú',
+        get: (row) => row.note,
+        headerFilter: textFilter(
+          params.note,
+          params.onNoteChange,
+          'Tìm theo ghi chú',
+        ),
+        headerClassName: 'min-w-[220px]',
+        enableSorting: false,
+      }),
+      ...customColumns,
       col.actions({
         id: 'actions',
         header: '',

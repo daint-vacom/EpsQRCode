@@ -10,10 +10,17 @@ const spec: FormSpec = {
   fields: [
     {
       kind: 'text',
-      name: 'customerSearch',
-      label: 'Khách hàng',
+      name: 'customerCode',
+      label: 'Mã khách hàng',
       width: 'full',
-      placeholder: 'Tìm theo tên hoặc mã khách hàng',
+      placeholder: 'Tìm theo mã khách hàng',
+    },
+    {
+      kind: 'text',
+      name: 'name',
+      label: 'Tên khách hàng',
+      width: 'full',
+      placeholder: 'Tìm theo tên khách hàng',
     },
     {
       kind: 'multiselect',
@@ -29,10 +36,52 @@ const spec: FormSpec = {
     },
     {
       kind: 'text',
+      name: 'businessRegistrationCode',
+      label: 'Mã số đăng ký',
+      width: 'full',
+      placeholder: 'Tìm theo mã số đăng ký',
+    },
+    {
+      kind: 'text',
+      name: 'countryCode',
+      label: 'Quốc gia',
+      width: 'full',
+      placeholder: 'Nhập mã quốc gia',
+    },
+    {
+      kind: 'text',
+      name: 'region',
+      label: 'Khu vực',
+      width: 'full',
+      placeholder: 'Tìm theo mã hoặc tên khu vực',
+    },
+    {
+      kind: 'text',
       name: 'contactSearch',
       label: 'Liên hệ',
       width: 'full',
       placeholder: 'Tìm theo số điện thoại hoặc email',
+    },
+    {
+      kind: 'text',
+      name: 'phone',
+      label: 'Số điện thoại',
+      width: 'full',
+      placeholder: 'Tìm theo số điện thoại',
+    },
+    {
+      kind: 'text',
+      name: 'email',
+      label: 'Email',
+      width: 'full',
+      placeholder: 'Tìm theo email',
+    },
+    {
+      kind: 'text',
+      name: 'addressDetail',
+      label: 'Địa chỉ chi tiết',
+      width: 'full',
+      placeholder: 'Tìm theo địa chỉ',
     },
     {
       kind: 'tagSelect',
@@ -55,6 +104,13 @@ const spec: FormSpec = {
         { value: 'active', label: 'Đang hoạt động' },
         { value: 'inactive', label: 'Ngừng hoạt động' },
       ],
+    },
+    {
+      kind: 'text',
+      name: 'note',
+      label: 'Ghi chú',
+      width: 'full',
+      placeholder: 'Tìm theo ghi chú',
     },
   ],
 };

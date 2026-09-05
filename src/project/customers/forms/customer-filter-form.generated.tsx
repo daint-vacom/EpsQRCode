@@ -8,6 +8,7 @@
  * bypassed builder.
  */
 import { useState, type KeyboardEvent } from 'react';
+import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { TagSelect } from '@/project/tags/components/tag-select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -31,6 +32,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
+import { CustomerCustomFieldFilterFields } from '../components/customer-custom-field-filter';
 import {
   CustomerBusinessTypeSelect,
   CustomerStatusSelect,
@@ -41,11 +43,20 @@ import {
 } from '../model/customer';
 
 export const customerFilterDefaultValues: CustomerFilterFormValues = {
-  customerSearch: '',
+  customerCode: '',
+  name: '',
   businessTypes: [],
+  businessRegistrationCode: '',
+  countryCode: '',
+  region: '',
   contactSearch: '',
+  phone: '',
+  email: '',
+  addressDetail: '',
   tagIds: [],
   statuses: [],
+  note: '',
+  customFields: {},
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
@@ -73,12 +84,14 @@ interface CustomerFilterFormProps {
   form: UseFormReturn<CustomerFilterFormValues>;
   onSubmit: (values: CustomerFilterFormValues) => void;
   id?: string;
+  customFields?: CustomField[];
 }
 
 export function CustomerFilterForm({
   form,
   onSubmit,
   id = 'customerFilter-form',
+  customFields = [],
 }: CustomerFilterFormProps) {
   return (
     <Form {...form}>
@@ -86,13 +99,31 @@ export function CustomerFilterForm({
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
           <FormField
             control={form.control}
-            name="customerSearch"
+            name="customerCode"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Khách hàng</FormLabel>
+                <FormLabel>Mã khách hàng</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Tìm theo tên hoặc mã khách hàng"
+                    placeholder="Tìm theo mã khách hàng"
+                    variant="md"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="md:col-span-12">
+                <FormLabel>Tên khách hàng</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Tìm theo tên khách hàng"
                     variant="md"
                     {...field}
                   />
@@ -124,13 +155,13 @@ export function CustomerFilterForm({
 
           <FormField
             control={form.control}
-            name="contactSearch"
+            name="businessRegistrationCode"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Liên hệ</FormLabel>
+                <FormLabel>Mã số đăng ký</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Tìm theo số điện thoại hoặc email"
+                    placeholder="Tìm theo mã số đăng ký"
                     variant="md"
                     {...field}
                   />
@@ -139,6 +170,54 @@ export function CustomerFilterForm({
               </FormItem>
             )}
           />
+
+          {(
+            [
+              'countryCode',
+              'region',
+              'contactSearch',
+              'phone',
+              'email',
+              'addressDetail',
+            ] as const
+          ).map((fieldName) => {
+            const labels = {
+              countryCode: 'Quốc gia',
+              region: 'Khu vực',
+              contactSearch: 'Liên hệ',
+              phone: 'Số điện thoại',
+              email: 'Email',
+              addressDetail: 'Địa chỉ chi tiết',
+            };
+            const placeholders = {
+              countryCode: 'Nhập mã quốc gia',
+              region: 'Tìm theo mã hoặc tên khu vực',
+              contactSearch: 'Tìm theo số điện thoại hoặc email',
+              phone: 'Tìm theo số điện thoại',
+              email: 'Tìm theo email',
+              addressDetail: 'Tìm theo địa chỉ',
+            };
+            return (
+              <FormField
+                key={fieldName}
+                control={form.control}
+                name={fieldName}
+                render={({ field }) => (
+                  <FormItem className="md:col-span-12">
+                    <FormLabel>{labels[fieldName]}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={placeholders[fieldName]}
+                        variant="md"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            );
+          })}
 
           <FormField
             control={form.control}
@@ -158,6 +237,29 @@ export function CustomerFilterForm({
                 <FormMessage />
               </FormItem>
             )}
+          />
+
+          <FormField
+            control={form.control}
+            name="note"
+            render={({ field }) => (
+              <FormItem className="md:col-span-12">
+                <FormLabel>Ghi chú</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Tìm theo ghi chú"
+                    variant="md"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <CustomerCustomFieldFilterFields
+            form={form}
+            customFields={customFields}
           />
 
           <FormField

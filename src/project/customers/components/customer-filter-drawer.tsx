@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { Button } from '@/components/ui/button';
 import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
 import {
@@ -19,6 +20,7 @@ interface CustomerFilterDrawerProps {
   canSaveToView?: boolean;
   saveDisabled?: boolean;
   isSaving?: boolean;
+  customFields?: CustomField[];
 }
 
 export function CustomerFilterDrawer({
@@ -29,6 +31,7 @@ export function CustomerFilterDrawer({
   canSaveToView = true,
   saveDisabled = false,
   isSaving = false,
+  customFields = [],
 }: CustomerFilterDrawerProps) {
   const [open, setOpen] = useState(false);
   const form = useCustomerFilterForm({ defaultValues: filters });
@@ -86,6 +89,7 @@ export function CustomerFilterDrawer({
         form={form}
         onSubmit={handleSubmit}
         id="customer-filter-form"
+        customFields={customFields}
       />
     </DataGridFilterDrawer>
   );

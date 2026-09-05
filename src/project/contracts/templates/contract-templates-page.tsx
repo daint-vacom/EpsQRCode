@@ -5,6 +5,7 @@ import {
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
 import { SavedViewsToolbar } from '@/project/saved-views/components/saved-views-toolbar';
+import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
@@ -25,10 +26,6 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
-import {
-  usePersistedColumnOrder,
-  usePersistedColumnVisibility,
-} from '@/components/ui/data-grid-columns';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -199,11 +196,17 @@ export function ContractTemplatesPage() {
       setFilter('updatedTo', value.to ?? '');
     },
   });
-  const { columnVisibility, onColumnVisibilityChange } =
-    usePersistedColumnVisibility('project.contractTemplates.columnVisibility');
-  const { columnOrder, onColumnOrderChange } = usePersistedColumnOrder(
-    'project.contractTemplates.columnOrder',
-  );
+  const {
+    columnVisibility,
+    onColumnVisibilityChange,
+    columnOrder,
+    onColumnOrderChange,
+    applySavedViewTableState,
+    resetSavedViewTableState,
+  } = useSavedViewTableState<ContractTemplateListFilters>({
+    visibilityStorageKey: 'project.contractTemplates.columnVisibility',
+    orderStorageKey: 'project.contractTemplates.columnOrder',
+  });
   const currentViewConfig = useMemo<ContractTemplateSavedViewConfig>(
     () => ({ version: 1, keyword, filters, columnVisibility, columnOrder }),
     [columnOrder, columnVisibility, filters, keyword],
@@ -224,6 +227,7 @@ export function ContractTemplatesPage() {
     if (!viewId) {
       savedViewState.setActiveViewId(null);
       resetAll();
+      resetSavedViewTableState();
       return;
     }
     const view = savedViewState.savedViews.find((item) => item.id === viewId);
@@ -236,8 +240,7 @@ export function ContractTemplatesPage() {
       statuses: [...config.filters.statuses],
       tagIds: [...config.filters.tagIds],
     });
-    onColumnVisibilityChange(config.columnVisibility);
-    onColumnOrderChange(config.columnOrder);
+    applySavedViewTableState(config);
   }
 
   function openCreateSavedView() {

@@ -82,49 +82,98 @@ export interface CustomerRow {
   address_detail: string;
   status: CustomerStatus;
   note: string;
+  created_at?: string;
+  updated_at?: string;
+  custom_fields?: Record<string, unknown> | null;
+}
+
+export interface CustomerListFieldFilters {
+  customerCode: string;
+  name: string;
+  businessRegistrationCode: string;
+  countryCode: string;
+  region: string;
+  contactSearch: string;
+  phone: string;
+  email: string;
+  addressDetail: string;
+  note: string;
+  customFields: Record<string, string>;
 }
 
 export interface CustomerListParams {
   page: number;
   pageSize: number;
   search?: string;
-  customerSearch?: string;
   businessTypes?: BusinessType[];
-  contactSearch?: string;
   statuses?: CustomerStatus[];
   tagIds?: string[];
+  fieldFilters?: Partial<CustomerListFieldFilters>;
 }
 
 export interface CustomerListFilters {
-  customerSearch: string;
+  customerCode: string;
+  name: string;
   businessTypes: BusinessType[];
+  businessRegistrationCode: string;
+  countryCode: string;
+  region: string;
   contactSearch: string;
+  phone: string;
+  email: string;
+  addressDetail: string;
   statuses: CustomerStatus[];
   tagIds: string[];
+  note: string;
+  customFields: Record<string, string>;
 }
 
 export const customerFilterFormSchema = z.object({
-  customerSearch: z
+  customerCode: z
     .string()
     .trim()
-    .max(100, 'Từ khóa khách hàng không được quá 100 ký tự.'),
+    .max(100, 'Mã khách hàng không được quá 100 ký tự.'),
+  name: z.string().trim().max(100, 'Tên khách hàng không được quá 100 ký tự.'),
   businessTypes: z.array(z.enum(BUSINESS_TYPES)),
+  businessRegistrationCode: z
+    .string()
+    .trim()
+    .max(100, 'Mã số đăng ký không được quá 100 ký tự.'),
+  countryCode: z.string().trim().max(10, 'Mã quốc gia không hợp lệ.'),
+  region: z.string().trim().max(100, 'Khu vực không được quá 100 ký tự.'),
   contactSearch: z
     .string()
     .trim()
-    .max(100, 'Từ khóa liên hệ không được quá 100 ký tự.'),
+    .max(100, 'Liên hệ không được quá 100 ký tự.'),
+  phone: z.string().trim().max(100, 'Số điện thoại không được quá 100 ký tự.'),
+  email: z.string().trim().max(100, 'Email không được quá 100 ký tự.'),
+  addressDetail: z
+    .string()
+    .trim()
+    .max(200, 'Địa chỉ không được quá 200 ký tự.'),
   tagIds: z.array(z.string()),
   statuses: z.array(z.enum(CUSTOMER_STATUSES)),
+  note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
+  customFields: z.record(z.string(), z.string()),
 });
 
 export type CustomerFilterFormValues = z.infer<typeof customerFilterFormSchema>;
 
 export const CUSTOMER_LIST_INITIAL_FILTERS: CustomerListFilters = {
-  customerSearch: '',
+  customerCode: '',
+  name: '',
   businessTypes: [],
+  businessRegistrationCode: '',
+  countryCode: '',
+  region: '',
   contactSearch: '',
+  phone: '',
+  email: '',
+  addressDetail: '',
   statuses: [],
   tagIds: [],
+  note: '',
+  customFields: {},
 };
 
 export interface CustomerListResult {
@@ -170,8 +219,19 @@ export function mapCustomerRow(row: CustomerRow): Customer {
     addressDetail: row.address_detail,
     status: row.status,
     note: row.note,
-    customFields: {},
+    customFields: normalizeCustomFieldValues(row.custom_fields),
   };
+}
+
+export function normalizeCustomFieldValues(
+  data: Record<string, unknown> | null | undefined,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(data ?? {}).map(([key, value]) => [
+      key,
+      value == null ? '' : String(value),
+    ]),
+  );
 }
 
 export function mapCustomerToFormValues(

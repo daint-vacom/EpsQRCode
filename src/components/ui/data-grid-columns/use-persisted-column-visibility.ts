@@ -26,7 +26,13 @@ export function usePersistedColumnVisibility(
   onColumnVisibilityChange: OnChangeFn<VisibilityState>;
 } {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    () => getStorageItem<VisibilityState>(storageKey) ?? defaults,
+    () => {
+      const stored = getStorageItem<VisibilityState>(storageKey);
+      if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return defaults;
+      }
+      return { ...defaults, ...stored };
+    },
   );
 
   const onColumnVisibilityChange = useCallback<OnChangeFn<VisibilityState>>(

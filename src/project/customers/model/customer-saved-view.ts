@@ -39,6 +39,15 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
+function stringRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+}
+
 function booleanRecord(value: unknown): VisibilityState {
   if (!isRecord(value)) return {};
   return Object.fromEntries(
@@ -57,19 +66,42 @@ export function normalizeCustomerSavedViewConfig(
     keyword: typeof source.keyword === 'string' ? source.keyword : '',
     filters: {
       ...CUSTOMER_LIST_INITIAL_FILTERS,
-      customerSearch:
-        typeof rawFilters.customerSearch === 'string'
-          ? rawFilters.customerSearch
-          : '',
+      customerCode:
+        typeof rawFilters.customerCode === 'string'
+          ? rawFilters.customerCode
+          : typeof rawFilters.customerSearch === 'string'
+            ? rawFilters.customerSearch
+            : '',
+      name:
+        typeof rawFilters.name === 'string'
+          ? rawFilters.name
+          : typeof rawFilters.customerSearch === 'string'
+            ? rawFilters.customerSearch
+            : '',
       businessTypes: stringArray(rawFilters.businessTypes).filter(
         (item): item is CustomerListFilters['businessTypes'][number] =>
           BUSINESS_TYPES.includes(
             item as CustomerListFilters['businessTypes'][number],
           ),
       ),
+      businessRegistrationCode:
+        typeof rawFilters.businessRegistrationCode === 'string'
+          ? rawFilters.businessRegistrationCode
+          : '',
+      countryCode:
+        typeof rawFilters.countryCode === 'string'
+          ? rawFilters.countryCode
+          : '',
+      region: typeof rawFilters.region === 'string' ? rawFilters.region : '',
       contactSearch:
         typeof rawFilters.contactSearch === 'string'
           ? rawFilters.contactSearch
+          : '',
+      phone: typeof rawFilters.phone === 'string' ? rawFilters.phone : '',
+      email: typeof rawFilters.email === 'string' ? rawFilters.email : '',
+      addressDetail:
+        typeof rawFilters.addressDetail === 'string'
+          ? rawFilters.addressDetail
           : '',
       statuses: stringArray(rawFilters.statuses).filter(
         (item): item is CustomerListFilters['statuses'][number] =>
@@ -78,6 +110,8 @@ export function normalizeCustomerSavedViewConfig(
           ),
       ),
       tagIds: stringArray(rawFilters.tagIds),
+      note: typeof rawFilters.note === 'string' ? rawFilters.note : '',
+      customFields: stringRecord(rawFilters.customFields),
     },
     columnVisibility: booleanRecord(source.columnVisibility),
     columnOrder: stringArray(source.columnOrder) as ColumnOrderState,

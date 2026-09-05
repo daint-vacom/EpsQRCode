@@ -6,6 +6,7 @@ import {
   loadTenantSavedViews,
   updateTenantSavedView,
 } from '@/project/saved-views/api/saved-views.api';
+import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { Plus, RefreshCw, TriangleAlert } from 'lucide-react';
@@ -24,10 +25,6 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
-import {
-  usePersistedColumnOrder,
-  usePersistedColumnVisibility,
-} from '@/components/ui/data-grid-columns';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -96,6 +93,16 @@ const customerStatItems = [
     className: '!bg-muted !text-muted-foreground',
   },
 ] satisfies readonly StatusStatItem<'active' | 'inactive'>[];
+
+const customerDefaultColumnVisibility = {
+  businessRegistrationCode: false,
+  countryCode: false,
+  region: false,
+  phone: false,
+  email: false,
+  addressDetail: false,
+  note: false,
+};
 
 export function CustomersPage() {
   const { tenantId } = useTenant();
@@ -194,11 +201,48 @@ export function CustomersPage() {
     form,
   ]);
 
-  const { columnVisibility, onColumnVisibilityChange } =
-    usePersistedColumnVisibility('project.customers.columnVisibility');
-  const { columnOrder, onColumnOrderChange } = usePersistedColumnOrder(
-    'project.customers.columnOrder',
+  const customerTableDefaultColumnVisibility = useMemo(
+    () => ({
+      ...customerDefaultColumnVisibility,
+      ...Object.fromEntries(
+        (customerCustomFieldsQuery.data ?? [])
+          .filter((field) => field.isActive)
+          .map((field) => [`customField:${field.key}`, false]),
+      ),
+    }),
+    [customerCustomFieldsQuery.data],
   );
+
+  const {
+    columnVisibility,
+    onColumnVisibilityChange,
+    columnOrder,
+    onColumnOrderChange,
+    applySavedViewTableState,
+    resetSavedViewTableState,
+  } = useSavedViewTableState<CustomerListFilters>({
+    visibilityStorageKey: 'project.customers.columnVisibility',
+    orderStorageKey: 'project.customers.columnOrder',
+    defaultColumnVisibility: customerTableDefaultColumnVisibility,
+  });
+
+  useEffect(() => {
+    const customFields = customerCustomFieldsQuery.data ?? [];
+    if (customFields.length === 0) return;
+
+    onColumnVisibilityChange((current) => {
+      const next = { ...current };
+      let changed = false;
+      for (const field of customFields) {
+        if (!field.isActive) continue;
+        const id = `customField:${field.key}`;
+        if (id in next) continue;
+        next[id] = false;
+        changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [customerCustomFieldsQuery.data, onColumnVisibilityChange]);
 
   const currentViewConfig = useMemo<CustomerSavedViewConfig>(
     () => ({
@@ -243,6 +287,9 @@ export function CustomersPage() {
     if (!viewId) {
       setActiveViewId(null);
       resetAll();
+      resetSavedViewTableState({
+        columnVisibility: customerTableDefaultColumnVisibility,
+      });
       return;
     }
 
@@ -257,9 +304,9 @@ export function CustomersPage() {
       businessTypes: [...config.filters.businessTypes],
       statuses: [...config.filters.statuses],
       tagIds: [...config.filters.tagIds],
+      customFields: { ...config.filters.customFields },
     });
-    onColumnVisibilityChange(config.columnVisibility);
-    onColumnOrderChange(config.columnOrder);
+    applySavedViewTableState(config);
   }
 
   function openCreateSavedView() {
@@ -324,6 +371,9 @@ export function CustomersPage() {
       if (activeViewId === view.id) {
         setActiveViewId(null);
         resetAll();
+        resetSavedViewTableState({
+          columnVisibility: customerTableDefaultColumnVisibility,
+        });
       }
       setDeletingView(null);
       await invalidateSavedViews();
@@ -448,19 +498,41 @@ export function CustomersPage() {
   const columns = useCustomerColumns({
     onEdit: openEdit,
     onDelete: setDeletingCustomer,
+    customFields: customerCustomFieldsQuery.data ?? [],
     tagIds: filters.tagIds,
     onTagIdsChange: (value) => setFilter('tagIds', value),
     tagsByCustomerId: customerTagsByCustomerId,
-    customerSearch: filters.customerSearch,
-    onCustomerSearchChange: (value) => setFilter('customerSearch', value),
+    name: filters.name,
+    onNameChange: (value) => setFilter('name', value),
     businessTypes: filters.businessTypes,
     onBusinessTypesChange: (value) =>
       setFilter('businessTypes', value as typeof filters.businessTypes),
+    businessRegistrationCode: filters.businessRegistrationCode,
+    onBusinessRegistrationCodeChange: (value) =>
+      setFilter('businessRegistrationCode', value),
+    countryCode: filters.countryCode,
+    onCountryCodeChange: (value) => setFilter('countryCode', value),
+    region: filters.region,
+    onRegionChange: (value) => setFilter('region', value),
     contactSearch: filters.contactSearch,
     onContactSearchChange: (value) => setFilter('contactSearch', value),
+    phone: filters.phone,
+    onPhoneChange: (value) => setFilter('phone', value),
+    email: filters.email,
+    onEmailChange: (value) => setFilter('email', value),
+    addressDetail: filters.addressDetail,
+    onAddressDetailChange: (value) => setFilter('addressDetail', value),
     statuses: filters.statuses,
     onStatusesChange: (value) =>
       setFilter('statuses', value as typeof filters.statuses),
+    note: filters.note,
+    onNoteChange: (value) => setFilter('note', value),
+    customFieldValues: filters.customFields,
+    onCustomFieldChange: (key, value) =>
+      setFilter('customFields', {
+        ...filters.customFields,
+        [key]: value,
+      }),
   });
   const table = useReactTable({
     data: customers,
@@ -582,18 +654,11 @@ export function CustomersPage() {
                 </Button>
                 <CustomerFilterDrawer
                   filters={filters}
+                  customFields={customerCustomFieldsQuery.data ?? []}
                   onApply={(values: CustomerFilterFormValues) =>
                     setFilters(values)
                   }
-                  onReset={() =>
-                    setFilters({
-                      customerSearch: '',
-                      businessTypes: [],
-                      contactSearch: '',
-                      tagIds: [],
-                      statuses: [],
-                    })
-                  }
+                  onReset={() => resetAll()}
                   onSaveToView={
                     canManageSavedViews
                       ? (values) =>

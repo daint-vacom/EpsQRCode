@@ -15,7 +15,7 @@ import type {
   CustomerRow,
   CustomerStatus,
 } from '../model/customer';
-import { mapCustomerRow } from '../model/customer';
+import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
 
 interface TenantMembershipRow {
   tenant_id: string;
@@ -47,17 +47,6 @@ function queryParams(params: Record<string, string>) {
 
 function numberValue(value: number | string | null | undefined) {
   return value == null ? 0 : typeof value === 'number' ? value : Number(value);
-}
-
-function normalizeCustomFieldValues(
-  data: Record<string, unknown> | null | undefined,
-) {
-  return Object.fromEntries(
-    Object.entries(data ?? {}).map(([key, value]) => [
-      key,
-      value == null ? '' : String(value),
-    ]),
-  );
 }
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -183,11 +172,10 @@ export async function loadCustomerList(
         p_page: params.page,
         p_page_size: params.pageSize,
         p_search: params.search?.trim() || null,
-        p_customer_search: params.customerSearch?.trim() || null,
         p_business_types: params.businessTypes ?? [],
-        p_contact_search: params.contactSearch?.trim() || null,
         p_statuses: params.statuses ?? [],
         p_tag_ids: params.tagIds ?? [],
+        p_field_filters: params.fieldFilters ?? {},
       },
       { signal },
     ),
