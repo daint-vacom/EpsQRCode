@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   getCoreRowModel,
   useReactTable,
@@ -21,6 +21,12 @@ const columns: ColumnDef<TestRow>[] = [
   { accessorKey: 'email', header: 'Email', meta: { headerTitle: 'Email' } },
   { id: 'actions', header: 'Thao tác', enableHiding: false },
 ];
+
+const customColumn: ColumnDef<TestRow> = {
+  id: 'customField:education',
+  header: 'Học vấn',
+  meta: { headerTitle: 'Học vấn' },
+};
 
 function TestColumnVisibility({
   mode = 'popover',
@@ -50,6 +56,28 @@ function TestColumnVisibility({
           .map((column) => column.id)
           .join(',')}
       </output>
+    </>
+  );
+}
+
+function DynamicTestColumnVisibility() {
+  const [hasCustomColumn, setHasCustomColumn] = useState(false);
+  const dynamicColumns = useMemo(
+    () => (hasCustomColumn ? [...columns, customColumn] : columns),
+    [hasCustomColumn],
+  );
+  const table = useReactTable({
+    data: [{ name: 'Nguyễn Văn A', email: 'a@example.com' }],
+    columns: dynamicColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <>
+      <button type="button" onClick={() => setHasCustomColumn(true)}>
+        Tải trường bổ sung
+      </button>
+      <DataGridColumnVisibility table={table} />
     </>
   );
 }
@@ -161,5 +189,19 @@ describe('DataGridColumnVisibility', () => {
     const items = screen.getAllByRole('button', { name: /^Sắp xếp cột/ });
     expect(items[0]).toHaveAccessibleName('Sắp xếp cột Tên');
     expect(items[1]).toHaveAccessibleName('Sắp xếp cột Email');
+  });
+
+  it('refreshes the picker when table columns are loaded asynchronously', async () => {
+    const user = userEvent.setup();
+    render(<DynamicTestColumnVisibility />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Tải trường bổ sung' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Hiển thị cột' }));
+
+    expect(
+      screen.getByRole('menuitemcheckbox', { name: 'Học vấn' }),
+    ).toBeInTheDocument();
   });
 });
