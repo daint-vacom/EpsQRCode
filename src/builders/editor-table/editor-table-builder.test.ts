@@ -244,6 +244,28 @@ describe('buildEditorTableModule', () => {
     );
   });
 
+  it('supports a custom add variant and application shortcut', () => {
+    const withShortcut = buildEditorTableModule({
+      ...orderItemsSpec,
+      toolbar: {
+        title: 'Trường bổ sung',
+        addLabel: 'Thêm trường',
+        addVariant: 'ghost',
+        addShortcut: 'Alt + N',
+      },
+    });
+
+    expect(withShortcut).toContain(
+      "import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';",
+    );
+    expect(withShortcut).toContain(
+      "<ShortcutTooltip label='Thêm trường' shortcut='Alt + N'>",
+    );
+    expect(withShortcut).toContain(
+      '<Button type="button" variant="ghost" data-shortcut-action="create" onClick={handleAddRow}>',
+    );
+  });
+
   it('renders editable-cell errors and warnings in tooltips', () => {
     const withWarning = buildEditorTableModule({
       ...orderItemsSpec,

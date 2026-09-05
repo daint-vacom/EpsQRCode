@@ -53,6 +53,13 @@ action column is pinned to the right so it remains visible during horizontal
 scroll. Set `actions.duplicate`, `actions.insert`, or `actions.delete` to
 `false` when an editor needs only a subset of those actions.
 
+The optional toolbar add button uses the primary variant by default. Set
+`toolbar.addVariant` for a different button treatment, and set
+`toolbar.addShortcut` when the shared application shortcut should activate the
+button. The shortcut is emitted through `data-shortcut-action="create"` and a
+`ShortcutTooltip`, so `Alt + N` follows the same convention as other create
+actions.
+
 Set `reorder.enabled` to add a pinned drag-handle column. The generated table
 uses `useFieldArray.move` and supports pointer plus keyboard sorting; the page
 still owns the submit mutation so it can persist the resulting array order in a

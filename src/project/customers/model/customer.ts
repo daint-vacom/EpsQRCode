@@ -42,6 +42,7 @@ export const customerFormSchema = z.object({
   addressDetail: z.string().trim(),
   status: z.enum(CUSTOMER_STATUSES),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
+  customFields: z.record(z.string(), z.string()),
 });
 
 export type CustomerFormValues = z.infer<typeof customerFormSchema>;
@@ -62,6 +63,7 @@ export interface Customer {
   addressDetail: string;
   status: CustomerStatus;
   note: string;
+  customFields: Record<string, string>;
 }
 
 export interface CustomerRow {
@@ -148,6 +150,7 @@ export const emptyCustomerForm: CustomerFormValues = {
   addressDetail: '',
   status: 'active',
   note: '',
+  customFields: {},
 };
 
 export function mapCustomerRow(row: CustomerRow): Customer {
@@ -167,6 +170,7 @@ export function mapCustomerRow(row: CustomerRow): Customer {
     addressDetail: row.address_detail,
     status: row.status,
     note: row.note,
+    customFields: {},
   };
 }
 
@@ -187,5 +191,6 @@ export function mapCustomerToFormValues(
     addressDetail: customer.addressDetail,
     status: customer.status,
     note: customer.note,
+    customFields: customer.customFields,
   };
 }

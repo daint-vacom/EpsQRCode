@@ -30,6 +30,9 @@ const dialogContentVariants = cva(
           'left-[50%] top-[50%] max-w-lg translate-x-[-50%] translate-y-[-50%] w-full',
         fullscreen: 'inset-5',
       },
+      size: {
+        large: 'max-w-7xl',
+      },
     },
     defaultVariants: {
       variant: 'default',
@@ -83,11 +86,13 @@ function DialogContent({
   showCloseButton = true,
   overlay = true,
   variant,
+  size,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> &
   VariantProps<typeof dialogContentVariants> & {
     showCloseButton?: boolean;
     overlay?: boolean;
+    size?: 'large';
   }) {
   const [contentContainer, setContentContainer] =
     React.useState<HTMLElement | null>(null);
@@ -99,7 +104,7 @@ function DialogContent({
         <DialogPrimitive.Content
           ref={setContentContainer}
           data-slot="dialog-content"
-          className={cn(dialogContentVariants({ variant }), className)}
+          className={cn(dialogContentVariants({ variant, size }), className)}
           {...props}
         >
           {children}

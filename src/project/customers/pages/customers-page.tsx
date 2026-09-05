@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ROUTES } from '@/constants/routes';
 import {
   createTenantSavedView,
   deleteTenantSavedView,
@@ -37,7 +38,10 @@ import { StatusStats, type StatusStatItem } from '@/components/ui/status-stats';
 import {
   createCustomer,
   deleteCustomer,
+  loadCustomerCustomFields,
+  loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
+  saveCustomerCustomFieldValues,
   updateCustomer,
   uploadCustomerImage,
 } from '../api/customers.api';
@@ -152,6 +156,43 @@ export function CustomersPage() {
     queryKey: ['project', 'customers', 'regions'],
     queryFn: loadCustomerRegionOptions,
   });
+
+  const customerCustomFieldsQuery = useQuery({
+    queryKey: ['project', 'customers', 'custom-fields', tenantId],
+    queryFn: () => loadCustomerCustomFields(tenantId!),
+    enabled: Boolean(tenantId),
+    staleTime: 60 * 1000,
+  });
+
+  const customerCustomDataQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'custom-data',
+      tenantId,
+      editingCustomer?.id,
+    ],
+    queryFn: () =>
+      loadCustomerCustomFieldValues(tenantId!, editingCustomer!.id),
+    enabled: Boolean(tenantId && dialogOpen && editingCustomer),
+  });
+
+  useEffect(() => {
+    if (!dialogOpen || !editingCustomer || customerCustomDataQuery.isLoading) {
+      return;
+    }
+
+    form.reset({
+      ...mapCustomerToFormValues(editingCustomer),
+      customFields: customerCustomDataQuery.data ?? {},
+    });
+  }, [
+    customerCustomDataQuery.data,
+    customerCustomDataQuery.isLoading,
+    dialogOpen,
+    editingCustomer,
+    form,
+  ]);
 
   const { columnVisibility, onColumnVisibilityChange } =
     usePersistedColumnVisibility('project.customers.columnVisibility');
@@ -305,6 +346,7 @@ export function CustomersPage() {
     mutationFn: async (values: CustomerFormValues) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
+      let savedCustomer: Customer;
       if (editingCustomer) {
         const imageUrl = customerImageFile
           ? await uploadCustomerImage(
@@ -314,20 +356,33 @@ export function CustomersPage() {
             )
           : values.imageUrl;
 
-        return updateCustomer(editingCustomer.id, { ...values, imageUrl });
+        savedCustomer = await updateCustomer(editingCustomer.id, {
+          ...values,
+          imageUrl,
+        });
+      } else {
+        savedCustomer = await createCustomer(tenantId, values);
+
+        if (customerImageFile) {
+          const imageUrl = await uploadCustomerImage(
+            tenantId,
+            savedCustomer.id,
+            customerImageFile,
+          );
+          savedCustomer = await updateCustomer(savedCustomer.id, {
+            ...values,
+            imageUrl,
+          });
+        }
       }
 
-      const createdCustomer = await createCustomer(tenantId, values);
-      if (customerImageFile) {
-        const imageUrl = await uploadCustomerImage(
-          tenantId,
-          createdCustomer.id,
-          customerImageFile,
-        );
-        return updateCustomer(createdCustomer.id, { ...values, imageUrl });
-      }
+      await saveCustomerCustomFieldValues(
+        tenantId,
+        savedCustomer.id,
+        values.customFields,
+      );
 
-      return createdCustomer;
+      return savedCustomer;
     },
     onSuccess: async () => {
       toast.success(
@@ -365,6 +420,30 @@ export function CustomersPage() {
     },
     [form],
   );
+
+  function handleCustomerSubmit(values: CustomerFormValues) {
+    const missingField = (customerCustomFieldsQuery.data ?? [])
+      .filter((customField) => customField.isActive && customField.isRequired)
+      .find((customField) => !values.customFields[customField.key]?.trim());
+
+    if (missingField) {
+      form.setError(`customFields.${missingField.key}` as never, {
+        type: 'required',
+        message: `Vui lòng nhập ${missingField.label}.`,
+      });
+      return;
+    }
+
+    saveMutation.mutate(values);
+  }
+
+  function openCustomerCustomFieldConfiguration() {
+    window.open(
+      `${ROUTES.PROJECT.DATA_CONFIGURATION}?entity=customer`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }
 
   const columns = useCustomerColumns({
     onEdit: openEdit,
@@ -558,9 +637,15 @@ export function CustomersPage() {
         onOpenChange={setDialogOpen}
         mode={editingCustomer ? 'edit' : 'create'}
         form={form}
-        onSubmit={(values) => saveMutation.mutate(values)}
+        onSubmit={handleCustomerSubmit}
         onImageUrlFileChange={setCustomerImageFile}
         regionCodeOptions={customerRegionQuery.data ?? []}
+        customFields={customerCustomFieldsQuery.data ?? []}
+        onAddCustomField={openCustomerCustomFieldConfiguration}
+        onReloadCustomFields={() => {
+          void customerCustomFieldsQuery.refetch();
+        }}
+        isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
         title={editingCustomer ? 'Sửa khách hàng' : 'Thêm khách hàng'}
       />

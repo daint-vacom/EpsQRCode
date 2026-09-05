@@ -14,6 +14,8 @@ const spec: EditorTableSpec = {
     title: 'Trường bổ sung',
     titleProp: 'toolbarTitle',
     addLabel: 'Thêm trường',
+    addVariant: 'outline',
+    addShortcut: 'Alt + N',
     contentPosition: 'afterAdd',
   },
   viewport: { mode: 'remaining' },

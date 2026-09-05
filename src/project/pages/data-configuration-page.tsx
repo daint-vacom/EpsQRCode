@@ -10,6 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -51,6 +52,15 @@ const ENTITY_ICONS = {
   employee: Users,
   contract: FileText,
 } satisfies Record<CustomFieldEntityType, typeof Database>;
+
+function isCustomFieldEntityType(
+  value: string | null,
+): value is CustomFieldEntityType {
+  return (
+    value !== null &&
+    CUSTOM_FIELD_ENTITY_TYPES.includes(value as CustomFieldEntityType)
+  );
+}
 
 function normalizeFieldRows(fields: CustomFieldEditorRow[]) {
   return fields.map((field) => ({
@@ -103,13 +113,18 @@ function validateFieldRows(fields: CustomFieldEditorRow[]) {
 export function DataConfigurationPage() {
   const { tenantId } = useTenant();
   const { hasPermission } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canView = hasPermission('organization:custom-field:view');
   const canCreate = hasPermission('organization:custom-field:create');
   const canUpdate = hasPermission('organization:custom-field:update');
   const canDelete = hasPermission('organization:custom-field:delete');
   const queryClient = useQueryClient();
-  const [selectedEntity, setSelectedEntity] =
-    useState<CustomFieldEntityType>('customer');
+  const [selectedEntity, setSelectedEntity] = useState<CustomFieldEntityType>(
+    () => {
+      const entity = searchParams.get('entity');
+      return isCustomFieldEntityType(entity) ? entity : 'customer';
+    },
+  );
   const [optionsIndex, setOptionsIndex] = useState<number | null>(null);
   const [optionDrafts, setOptionDrafts] = useState<CustomFieldOptionInput[]>(
     [],
@@ -267,6 +282,14 @@ export function DataConfigurationPage() {
                       return;
                     }
                     setSelectedEntity(entityType);
+                    setSearchParams(
+                      (currentParams) => {
+                        const nextParams = new URLSearchParams(currentParams);
+                        nextParams.set('entity', entityType);
+                        return nextParams;
+                      },
+                      { replace: true },
+                    );
                   }}
                 >
                   <Icon className="size-4 shrink-0 text-muted-foreground" />

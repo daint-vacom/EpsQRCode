@@ -646,6 +646,7 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const formattedNumber = hasFormattedNumberColumn(spec);
   const date = hasDateColumn(spec);
   const multiEdit = hasMultiEdit(spec);
+  const toolbarShortcut = Boolean(spec.toolbar?.addShortcut);
   const icons = [
     ...(hasRowActions(spec) && spec.actions.duplicate ? ['Copy'] : []),
     ...(hasRowActions(spec) && spec.actions.insert ? ['Plus'] : []),
@@ -658,6 +659,9 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const lines = [
     ...(spec.toolbar || spec.reorder.enabled
       ? ["import type { ReactNode } from 'react';"]
+      : []),
+    ...(toolbarShortcut
+      ? ["import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';"]
       : []),
     ...(multiEdit ? ["import { useMemo, useState } from 'react';"] : []),
     ...(icons.length > 0
@@ -785,16 +789,20 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
       : '';
   const toolbarActions = toolbar
     ? toolbar.contentPosition === 'afterAdd'
-      ? `          <Button type="button" variant="primary" onClick={handleAddRow}>
+      ? `${toolbar.addShortcut ? `          <ShortcutTooltip label=${quote(toolbar.addLabel)} shortcut=${quote(toolbar.addShortcut)}>` : ''}
+          <Button type="button" variant="${toolbar.addVariant}"${toolbar.addShortcut ? ' data-shortcut-action="create"' : ''} onClick={handleAddRow}>
             <Plus />
             ${toolbar.addLabel}
           </Button>
+          ${toolbar.addShortcut ? '        </ShortcutTooltip>' : ''}
           {toolbarContent}`
       : `          {toolbarContent}
-          <Button type="button" variant="primary" onClick={handleAddRow}>
+          ${toolbar.addShortcut ? `          <ShortcutTooltip label=${quote(toolbar.addLabel)} shortcut=${quote(toolbar.addShortcut)}>` : ''}
+          <Button type="button" variant="${toolbar.addVariant}"${toolbar.addShortcut ? ' data-shortcut-action="create"' : ''} onClick={handleAddRow}>
             <Plus />
             ${toolbar.addLabel}
-          </Button>`
+          </Button>` +
+        (toolbar.addShortcut ? '\n        </ShortcutTooltip>' : '')
     : '';
   const toolbarOpen = toolbar
     ? `    <div className="flex h-full min-h-0 min-w-0 w-full flex-col">

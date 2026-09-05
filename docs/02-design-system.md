@@ -69,6 +69,7 @@ Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Contro
 
 - One clear primary action per task region.
 - Use icon-only controls only for familiar actions and give them accessible labels or tooltips.
+- Keep buttons in the same action group at the same size; an icon-only button next to a text button with `size="sm"` must use `size="sm"` with `mode="icon"`.
 - Confirm destructive or difficult-to-reverse operations.
 - Show progress near the initiating action when practical.
 - Success feedback is concise; failure feedback explains the next useful action.

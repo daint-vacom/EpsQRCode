@@ -94,6 +94,24 @@ export const editorTableSpecSchema = z.object({
       title: z.string().min(1),
       titleProp: identifierSchema.optional(),
       addLabel: z.string().min(1).default('Thêm dòng'),
+      addVariant: z
+        .enum([
+          'primary',
+          'blue',
+          'success',
+          'info',
+          'mono',
+          'destructive',
+          'secondary',
+          'outline',
+          'dashed',
+          'ghost',
+          'dim',
+          'foreground',
+          'inverse',
+        ])
+        .default('primary'),
+      addShortcut: z.string().min(1).optional(),
       contentPosition: z.enum(['beforeAdd', 'afterAdd']).default('beforeAdd'),
     })
     .optional(),

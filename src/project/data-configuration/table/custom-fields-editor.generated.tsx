@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Switch } from '@/components/ui/switch';
 import {
   TableBody,
@@ -151,15 +152,18 @@ export function CustomFieldsEditorTable({
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {canAdd ? (
-            <Button
-              type="button"
-              variant="primary"
-              onClick={handleAddRow}
-              disabled={readOnly || !canCreate}
-            >
-              <Plus />
-              Thêm trường
-            </Button>
+            <ShortcutTooltip label="Thêm trường" shortcut="Alt + N">
+              <Button
+                type="button"
+                variant="outline"
+                data-shortcut-action="create"
+                onClick={handleAddRow}
+                disabled={readOnly || !canCreate}
+              >
+                <Plus />
+                Thêm trường
+              </Button>
+            </ShortcutTooltip>
           ) : null}
           {toolbarContent}
         </div>

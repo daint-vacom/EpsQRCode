@@ -1,3 +1,5 @@
+import { loadCustomFields } from '@/project/data-configuration/api/custom-fields.api';
+import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import {
   getPublicStorageUrl,
   TENANT_ASSETS_BUCKET,
@@ -29,6 +31,10 @@ interface CustomerListRpcResponse {
   total: number | string;
 }
 
+interface EntityCustomDataRow {
+  data: Record<string, unknown> | null;
+}
+
 export interface CustomerStatusStats {
   total: number;
   active: number;
@@ -41,6 +47,17 @@ function queryParams(params: Record<string, string>) {
 
 function numberValue(value: number | string | null | undefined) {
   return value == null ? 0 : typeof value === 'number' ? value : Number(value);
+}
+
+function normalizeCustomFieldValues(
+  data: Record<string, unknown> | null | undefined,
+) {
+  return Object.fromEntries(
+    Object.entries(data ?? {}).map(([key, value]) => [
+      key,
+      value == null ? '' : String(value),
+    ]),
+  );
 }
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -124,6 +141,12 @@ export async function loadCustomerRegionOptions() {
   );
 
   return rows.map((row) => ({ value: row.code, label: row.name }));
+}
+
+export async function loadCustomerCustomFields(
+  tenantId: string,
+): Promise<CustomField[]> {
+  return loadCustomFields(tenantId, 'customer');
 }
 
 export async function loadCustomerWorkspace(
@@ -223,6 +246,50 @@ export async function loadCustomerDetail(
   const customer = rows[0];
   if (!customer) throw new Error('Không tìm thấy khách hàng.');
   return mapCustomerRow(customer);
+}
+
+export async function loadCustomerCustomFieldValues(
+  tenantId: string,
+  customerId: string,
+): Promise<Record<string, string>> {
+  assertSupabaseConfigured();
+  const rows = await request<EntityCustomDataRow[]>(
+    supabaseApi.get(
+      '/entity_custom_data',
+      queryParams({
+        select: 'data',
+        tenant_id: `eq.${tenantId}`,
+        entity_type: 'eq.customer',
+        entity_id: `eq.${customerId}`,
+        limit: '1',
+      }),
+    ),
+  );
+
+  return normalizeCustomFieldValues(rows[0]?.data);
+}
+
+export async function saveCustomerCustomFieldValues(
+  tenantId: string,
+  customerId: string,
+  data: Record<string, string>,
+): Promise<void> {
+  assertSupabaseConfigured();
+  await supabaseApi.post(
+    '/entity_custom_data',
+    {
+      tenant_id: tenantId,
+      entity_type: 'customer',
+      entity_id: customerId,
+      data,
+    },
+    {
+      ...queryParams({ on_conflict: 'tenant_id,entity_type,entity_id' }),
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+    },
+  );
 }
 
 function toPayload(values: CustomerFormValues) {

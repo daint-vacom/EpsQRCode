@@ -26,6 +26,9 @@ ownership contract; detailed APIs live in [`docs/components/`](./components/).
 For builder-covered surfaces, start from [`src/builders/README.md`](../src/builders/README.md), not the
 component API.
 
+`DialogContent` keeps its default width when `size` is omitted. Use `size="large"` for a wider dialog
+with the shared `max-w-7xl` limit.
+
 ## Review Checklist
 
 - No reusable raw `<button>`, `<input>`, or `<table>` was introduced in a management feature.

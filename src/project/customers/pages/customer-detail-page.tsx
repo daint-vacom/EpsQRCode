@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Mail, MapPin, Pencil, Phone, Trash2 } from 'lucide-react';
+import {
+  Building2,
+  Info,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Trash2,
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
@@ -32,9 +40,15 @@ import {
   EntityDetailInformationItem,
   EntityDetailProfileCard,
 } from '@/components/layouts/entity-detail-layout';
-import { deleteCustomer, loadCustomerDetail } from '../api/customers.api';
+import {
+  deleteCustomer,
+  loadCustomerCustomFields,
+  loadCustomerCustomFieldValues,
+  loadCustomerDetail,
+} from '../api/customers.api';
 import { CustomerAvatar } from '../components/customer-avatar';
 import { CustomerContractsTable } from '../components/customer-contracts-table';
+import { CustomerDetailDialog } from '../components/customer-detail-dialog';
 import { CustomerDetailLayout } from '../components/customer-detail-layout.generated';
 import {
   CUSTOMER_DETAIL_TAB_CONTENT,
@@ -90,10 +104,12 @@ function CustomerInformationCard({
   customer,
   onEdit,
   onDelete,
+  onShowDetails,
 }: {
   customer: Customer;
   onEdit: () => void;
   onDelete: () => void;
+  onShowDetails: () => void;
 }) {
   const country = COUNTRY_OPTIONS.find(
     (option) => option.value === customer.countryCode,
@@ -103,6 +119,10 @@ function CustomerInformationCard({
     <EntityDetailInformationCard
       actions={
         <>
+          <Button type="button" variant="ghost" onClick={onShowDetails}>
+            <Info />
+            Xem chi tiết
+          </Button>
           <ShortcutTooltip label="Sửa thông tin" shortcut="Alt + E">
             <Button
               type="button"
@@ -196,6 +216,7 @@ export function CustomerDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const customerQuery = useCustomerQuery();
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const deleteMutation = useMutation({
@@ -208,6 +229,33 @@ export function CustomerDetailPage() {
       navigate(ROUTES.PROJECT.CUSTOMERS, { replace: true });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const customerCustomFieldsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'custom-fields',
+      customerQuery.data?.tenantId,
+    ],
+    queryFn: () => loadCustomerCustomFields(customerQuery.data!.tenantId),
+    enabled: Boolean(detailDialogOpen && customerQuery.data),
+    staleTime: 60 * 1000,
+  });
+  const customerCustomDataQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'custom-data',
+      customerQuery.data?.tenantId,
+      customerQuery.data?.id,
+    ],
+    queryFn: () =>
+      loadCustomerCustomFieldValues(
+        customerQuery.data!.tenantId,
+        customerQuery.data!.id,
+      ),
+    enabled: Boolean(detailDialogOpen && customerQuery.data),
   });
 
   if (customerQuery.isPending) {
@@ -253,6 +301,7 @@ export function CustomerDetailPage() {
         information={
           <CustomerInformationCard
             customer={customer}
+            onShowDetails={() => setDetailDialogOpen(true)}
             onEdit={() => setEditDialogOpen(true)}
             onDelete={() => setDeleteDialogOpen(true)}
           />
@@ -271,10 +320,28 @@ export function CustomerDetailPage() {
           />
         }
       />
+      <CustomerDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        customer={customer}
+        customFields={customerCustomFieldsQuery.data ?? []}
+        customFieldValues={customerCustomDataQuery.data ?? {}}
+        isLoading={
+          customerCustomFieldsQuery.isPending ||
+          customerCustomDataQuery.isPending
+        }
+      />
       <CustomerEditDialog
         customer={customer}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+        onAddCustomField={() => {
+          window.open(
+            `${ROUTES.PROJECT.DATA_CONFIGURATION}?entity=customer`,
+            '_blank',
+            'noopener,noreferrer',
+          );
+        }}
       />
       <ConfirmDialog
         open={deleteDialogOpen}
