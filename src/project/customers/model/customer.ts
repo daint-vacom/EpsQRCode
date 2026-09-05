@@ -17,6 +17,22 @@ export const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   organization: 'Doanh nghiệp',
 };
 
+const customerCustomFieldValuesSchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, fieldValue]) => [
+        key,
+        fieldValue == null ? '' : String(fieldValue),
+      ]),
+    );
+  },
+  z.record(z.string(), z.string()),
+);
+
 export const CUSTOMER_COUNTRY_OPTIONS = COUNTRY_OPTIONS.map(
   ({ value, label }) => ({ value, label }),
 );
@@ -42,7 +58,7 @@ export const customerFormSchema = z.object({
   addressDetail: z.string().trim(),
   status: z.enum(CUSTOMER_STATUSES),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
-  customFields: z.record(z.string(), z.string()),
+  customFields: customerCustomFieldValuesSchema,
 });
 
 export type CustomerFormValues = z.infer<typeof customerFormSchema>;
@@ -154,7 +170,7 @@ export const customerFilterFormSchema = z.object({
   tagIds: z.array(z.string()),
   statuses: z.array(z.enum(CUSTOMER_STATUSES)),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
-  customFields: z.record(z.string(), z.string()),
+  customFields: customerCustomFieldValuesSchema,
 });
 
 export type CustomerFilterFormValues = z.infer<typeof customerFilterFormSchema>;

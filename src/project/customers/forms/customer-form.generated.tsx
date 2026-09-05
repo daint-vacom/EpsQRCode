@@ -173,7 +173,7 @@ export function CustomerForm({
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
-          <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:pe-1">
+          <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
             <div className="space-y-5">
               <FormField
                 control={form.control}
@@ -227,6 +227,34 @@ export function CustomerForm({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormControl>
+                      <Input type="tel" variant="md" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" variant="md" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
 
@@ -246,6 +274,36 @@ export function CustomerForm({
               >
                 <div className="space-y-5 px-1 pb-1">
                   <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                    {mode === 'edit' && (
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Trạng thái</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {statusOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
                     <FormField
                       control={form.control}
                       name="businessType"
@@ -310,101 +368,43 @@ export function CustomerForm({
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="regionCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tỉnh/Thành phố</FormLabel>
-                          <FormControl>
-                            <VietnamRegionSelect
-                              value={field.value}
-                              onValueChange={field.onChange}
-                              options={regionCodeOptions}
-                              disabled={countryCode !== 'VN'}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="regionName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tỉnh/Bang/Khu vực</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Nhập khu vực hành chính"
-                              variant="md"
-                              disabled={countryCode === 'VN'}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {mode === 'edit' && (
+                    {countryCode === 'VN' ? (
                       <FormField
                         control={form.control}
-                        name="status"
+                        name="regionCode"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Trạng thái</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {statusOptions.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Tỉnh/Thành phố</FormLabel>
+                            <FormControl>
+                              <VietnamRegionSelect
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                options={regionCodeOptions}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="regionName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tỉnh/Bang/Khu vực</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Nhập khu vực hành chính"
+                                variant="md"
+                                {...field}
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     )}
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Số điện thoại</FormLabel>
-                          <FormControl>
-                            <Input type="tel" variant="md" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input type="email" variant="md" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <FormField
                       control={form.control}

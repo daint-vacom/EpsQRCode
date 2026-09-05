@@ -8,13 +8,17 @@ exports[`buildColumnsModule > matches the snapshot 1`] = `
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import {
   createColumnHelpers,
   type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import type { Employee } from '../model/employee';
+
+export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
+  right: ['actions'],
+};
 
 const statusBadgeConfig: StatusBadgeConfig<string> = {
   active: { label: 'Đang hoạt động', className: 'bg-admin-success-bg text-admin-success-text', dotClassName: 'bg-admin-success-dot' },

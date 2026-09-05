@@ -47,6 +47,12 @@ function pascalCase(value: string): string {
     .replace(/[^a-zA-Z0-9]/g, '');
 }
 
+function constantCase(value: string): string {
+  return pascalCase(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toUpperCase();
+}
+
 function accessor(field: string): string {
   return `(row) => row.${field}`;
 }
@@ -67,6 +73,41 @@ function emitObject(propLines: string[]): string {
 
 function optionArrayType(): string {
   return '{ value: string; label: string }[]';
+}
+
+function columnPinning(spec: TableSpec) {
+  const left = spec.columns.some((column) => column.kind === 'select')
+    ? ['select']
+    : [];
+  const right = spec.columns
+    .filter(
+      (column): column is Extract<ColumnSpec, { kind: 'actions' }> =>
+        column.kind === 'actions',
+    )
+    .map((column) => column.id ?? 'actions');
+
+  return { left, right };
+}
+
+function hasColumnPinning(spec: TableSpec) {
+  const pinning = columnPinning(spec);
+  return pinning.left.length > 0 || pinning.right.length > 0;
+}
+
+function emitColumnPinning(spec: TableSpec): string {
+  const pinning = columnPinning(spec);
+  if (pinning.left.length === 0 && pinning.right.length === 0) return '';
+
+  const lines = [
+    pinning.left.length > 0
+      ? `  left: [${pinning.left.map(quote).join(', ')}],`
+      : undefined,
+    pinning.right.length > 0
+      ? `  right: [${pinning.right.map(quote).join(', ')}],`
+      : undefined,
+  ].filter((line): line is string => Boolean(line));
+
+  return `export const ${constantCase(spec.entity)}_COLUMN_PINNING: ColumnPinningState = {\n${lines.join('\n')}\n};`;
 }
 
 const ACTION_PRESET_META = {
@@ -392,7 +433,9 @@ function emitImports(spec: TableSpec): string {
   );
 
   const lines = ["import { useMemo } from 'react';"];
-  lines.push("import type { ColumnDef } from '@tanstack/react-table';");
+  lines.push(
+    `import type { ${hasColumnPinning(spec) ? 'ColumnDef, ColumnPinningState' : 'ColumnDef'} } from '@tanstack/react-table';`,
+  );
 
   const dataGridSymbols = ['createColumnHelpers'];
   if (configuredActions.length > 0)
@@ -465,8 +508,10 @@ export function buildColumnsModule(input: TableSpec): string {
 
   const badgeConfigs = emitBadgeConfigs(spec.columns);
   const editableSelectOptions = emitEditableSelectOptions(spec.columns);
+  const columnPinningConfig = emitColumnPinning(spec);
   const groupingHelpers = emitGroupingHelpers(spec);
   const preambleParts = [
+    columnPinningConfig,
     badgeConfigs,
     editableSelectOptions,
     paramsInterface,

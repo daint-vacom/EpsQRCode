@@ -101,7 +101,7 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      headerClassName: 'w-[110px]',
+      actionCount: 2,
       cellClassName: 'text-right',
     },
   ],

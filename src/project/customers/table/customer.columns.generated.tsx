@@ -9,11 +9,12 @@ import type { CustomField } from '@/project/data-configuration/model/custom-fiel
 import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
+  getDataGridActionsColumnSize,
   type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
 import { OptionSelect } from '@/components/ui/option-select';
@@ -33,6 +34,10 @@ import {
   CustomerStatusColumnFilter,
   CustomerTextColumnFilter,
 } from './customer-column-filters.generated';
+
+export const CUSTOMER_COLUMN_PINNING: ColumnPinningState = {
+  right: ['actions'],
+};
 
 const statusBadgeConfig: StatusBadgeConfig<string> = {
   active: {
@@ -319,7 +324,7 @@ export function useCustomerColumns(
       col.actions({
         id: 'actions',
         header: '',
-        headerClassName: 'w-[110px]',
+        size: getDataGridActionsColumnSize(2),
         cellClassName: 'text-right',
         enableSorting: false,
         cell: (row) => (

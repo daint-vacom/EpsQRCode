@@ -66,6 +66,28 @@ For icon-only action columns, set `actionCount` instead of `size`; the generated
 Generated columns have sorting disabled by default; set `enableSorting: true` only after the page
 connects sorting state and its data/API behavior.
 
+### System column pinning
+
+The table builder automatically emits `<ENTITY>_COLUMN_PINNING` when a spec contains system columns:
+`select` is pinned to the left and every `actions` column is pinned to the right. Wire the generated
+constant into the page's `useReactTable` state:
+
+```tsx
+import {
+  CUSTOMER_COLUMN_PINNING,
+  useCustomerColumns,
+} from '../table/customer.columns.generated';
+
+const table = useReactTable({
+  columns,
+  state: { columnPinning: CUSTOMER_COLUMN_PINNING },
+  // ...other table state and handlers
+});
+```
+
+Keep pinning in the table spec-generated constant so future tables follow the same system-column
+convention without duplicating page-level arrays.
+
 ### Semantic action presets
 
 Use `actionPresets` when a table uses the standard row actions. The builder emits typed callbacks and

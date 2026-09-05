@@ -11,7 +11,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
   useReactTable,
-  type ColumnPinningState,
   type RowSelectionState,
 } from '@tanstack/react-table';
 import { Plus, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
@@ -59,13 +58,11 @@ import {
   type ContractSavedView,
   type ContractSavedViewConfig,
 } from '../model/contract-saved-view';
-import { useContractColumns } from '../table/contract.columns.generated';
+import {
+  CONTRACT_COLUMN_PINNING,
+  useContractColumns,
+} from '../table/contract.columns.generated';
 import { ContractFilterBar } from '../table/contract.filters.generated';
-
-const CONTRACT_COLUMN_PINNING: ColumnPinningState = {
-  left: ['select'],
-  right: ['actions'],
-};
 
 export function ContractsPage() {
   const navigate = useNavigate();

@@ -152,6 +152,23 @@ describe('buildColumnsModule', () => {
     expect(out).not.toContain('size: 3,');
   });
 
+  it('emits pinning defaults for checkbox and action columns', () => {
+    const out = buildColumnsModule({
+      entity: 'ContractTemplate',
+      modelImport: '../model/contract-template',
+      columns: [{ kind: 'select' }, { kind: 'actions', id: 'rowActions' }],
+    });
+
+    expect(out).toContain(
+      "import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';",
+    );
+    expect(out).toContain(
+      'export const CONTRACT_TEMPLATE_COLUMN_PINNING: ColumnPinningState = {',
+    );
+    expect(out).toContain("left: ['select'],");
+    expect(out).toContain("right: ['rowActions'],");
+  });
+
   it('quotes badge config keys that are not valid identifiers', () => {
     const out = buildColumnsModule({
       entity: 'Material',

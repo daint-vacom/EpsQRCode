@@ -70,7 +70,10 @@ import {
   type CustomerSavedView,
   type CustomerSavedViewConfig,
 } from '../model/customer-saved-view';
-import { useCustomerColumns } from '../table/customer.columns.generated';
+import {
+  CUSTOMER_COLUMN_PINNING,
+  useCustomerColumns,
+} from '../table/customer.columns.generated';
 import { CustomerFilterBar } from '../table/customer.filters.generated';
 
 const customerStatItems = [
@@ -538,7 +541,12 @@ export function CustomersPage() {
     data: customers,
     columns,
     getRowId: (row) => row.id,
-    state: { pagination, columnVisibility, columnOrder },
+    state: {
+      pagination,
+      columnVisibility,
+      columnOrder,
+      columnPinning: CUSTOMER_COLUMN_PINNING,
+    },
     onPaginationChange,
     onColumnVisibilityChange,
     onColumnOrderChange,

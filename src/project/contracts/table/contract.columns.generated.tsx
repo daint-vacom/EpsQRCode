@@ -5,7 +5,7 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import {
@@ -27,6 +27,11 @@ import {
   ContractOutstandingColumnFilter,
   ContractStatusColumnFilter,
 } from './contract-column-filters.generated';
+
+export const CONTRACT_COLUMN_PINNING: ColumnPinningState = {
+  left: ['select'],
+  right: ['actions'],
+};
 
 const statusBadgeConfig: StatusBadgeConfig<string> = {
   draft: {
