@@ -34,6 +34,11 @@ import {
   CardTable,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
@@ -127,6 +132,7 @@ export function CustomersPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(true);
   const form = useCustomerForm();
   const savedViewForm = useCustomerSavedViewForm();
 
@@ -613,23 +619,47 @@ export function CustomersPage() {
       title="Quản lý khách hàng"
       icon={UserRoundSearch}
       actions={
-        <ShortcutTooltip label="Thêm khách hàng" shortcut="Alt + N">
-          <Button
-            variant="primary"
-            onClick={openCreate}
-            data-shortcut-action="create"
-          >
-            <Plus />
-            Thêm khách hàng
-          </Button>
-        </ShortcutTooltip>
+        <div className="flex items-center gap-2">
+          <ShortcutTooltip label="Thêm khách hàng" shortcut="Alt + N">
+            <Button
+              variant="primary"
+              onClick={openCreate}
+              data-shortcut-action="create"
+            >
+              <Plus />
+              Thêm khách hàng
+            </Button>
+          </ShortcutTooltip>
+          <span className="h-5 w-px bg-border" aria-hidden="true" />
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              mode="icon"
+              size="md"
+              aria-label={statsOpen ? 'Thu gọn thống kê' : 'Mở rộng thống kê'}
+              aria-expanded={statsOpen}
+            >
+              <ChevronDown
+                className={`transition-transform duration-200 ${
+                  statsOpen ? 'rotate-180' : ''
+                }`}
+                aria-hidden="true"
+              />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
       }
     />
   );
 
   if (tenantQuery.isError || workspaceQuery.isError) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+      <Collapsible
+        open={statsOpen}
+        onOpenChange={setStatsOpen}
+        className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5"
+      >
         {pageHeader}
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-destructive" />
@@ -649,22 +679,28 @@ export function CustomersPage() {
             Thử lại
           </Button>
         </Card>
-      </div>
+      </Collapsible>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
+    <Collapsible
+      open={statsOpen}
+      onOpenChange={setStatsOpen}
+      className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5"
+    >
       {pageHeader}
-      <CustomerStatsCards
-        stats={customerStatsQuery.data}
-        previousMonthStats={customerPreviousMonthStatsQuery.data}
-        isLoading={customerStatsQuery.isPending}
-        activeFilters={filters.statuses}
-        onFilterChange={(status) =>
-          setFilter('statuses', status ? [status] : [])
-        }
-      />
+      <CollapsibleContent>
+        <CustomerStatsCards
+          stats={customerStatsQuery.data}
+          previousMonthStats={customerPreviousMonthStatsQuery.data}
+          isLoading={customerStatsQuery.isPending}
+          activeFilters={filters.statuses}
+          onFilterChange={(status) =>
+            setFilter('statuses', status ? [status] : [])
+          }
+        />
+      </CollapsibleContent>
       <DataGrid
         table={table}
         recordCount={total}
@@ -887,6 +923,6 @@ export function CustomersPage() {
           if (deletingView) deleteSavedViewMutation.mutate(deletingView);
         }}
       />
-    </div>
+    </Collapsible>
   );
 }
