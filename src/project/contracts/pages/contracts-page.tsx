@@ -34,6 +34,11 @@ import {
   CardTable,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
@@ -59,7 +64,9 @@ import {
   ContractFilterDrawer,
   type ContractFilterDraft,
 } from '../components/contract-filter-drawer';
+import { ContractStatsCards } from '../components/contract-stats-cards';
 import { useContractList } from '../hooks/use-contract-list';
+import { useContractStats } from '../hooks/use-contract-stats';
 import { type Contract, type ContractListFilters } from '../model/contract';
 import {
   CONTRACT_SAVED_VIEW_MANAGE_PERMISSION,
@@ -81,6 +88,7 @@ export function ContractsPage() {
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [statsOpen, setStatsOpen] = useState(true);
   const [deletingContracts, setDeletingContracts] = useState<Contract[]>([]);
   const [bulkRenewalDialogOpen, setBulkRenewalDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -109,6 +117,9 @@ export function ContractsPage() {
     paymentReminderDays,
     contractRenewalReminderDays,
   } = useContractList();
+  const contractStats = useContractStats({
+    expiringWithinDays: contractRenewalReminderDays,
+  });
   const savedViewState = useTenantSavedViews<ContractListFilters>({
     tenantId,
     userId,
@@ -287,16 +298,36 @@ export function ContractsPage() {
       title="Quản lý hợp đồng"
       icon={FileText}
       actions={
-        <ShortcutTooltip label="Thêm hợp đồng" shortcut="Alt + N">
-          <Button
-            variant="primary"
-            onClick={openCreate}
-            data-shortcut-action="create"
-          >
-            <Plus />
-            Thêm hợp đồng
-          </Button>
-        </ShortcutTooltip>
+        <div className="flex items-center gap-2">
+          <ShortcutTooltip label="Thêm hợp đồng" shortcut="Alt + N">
+            <Button
+              variant="primary"
+              onClick={openCreate}
+              data-shortcut-action="create"
+            >
+              <Plus />
+              Thêm hợp đồng
+            </Button>
+          </ShortcutTooltip>
+          <span className="h-5 w-px bg-border" aria-hidden="true" />
+          <CollapsibleTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              mode="icon"
+              size="md"
+              aria-label={statsOpen ? 'Thu gọn thống kê' : 'Mở rộng thống kê'}
+              aria-expanded={statsOpen}
+            >
+              <ChevronDown
+                className={`transition-transform duration-200 ${
+                  statsOpen ? 'rotate-180' : ''
+                }`}
+                aria-hidden="true"
+              />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
       }
     />
   );
@@ -331,7 +362,11 @@ export function ContractsPage() {
 
   if (tenantQuery.isError || workspaceQuery.isError) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+      <Collapsible
+        open={statsOpen}
+        onOpenChange={setStatsOpen}
+        className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5"
+      >
         {pageHeader}
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-destructive" />
@@ -351,13 +386,31 @@ export function ContractsPage() {
             Thử lại
           </Button>
         </Card>
-      </div>
+      </Collapsible>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+    <Collapsible
+      open={statsOpen}
+      onOpenChange={setStatsOpen}
+      className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5"
+    >
       {pageHeader}
+      <CollapsibleContent>
+        <ContractStatsCards
+          stats={contractStats.statusStats}
+          paymentPlan={contractStats.paymentPlan}
+          isLoading={
+            contractStats.statusQuery.isPending ||
+            contractStats.paymentPlanQuery.isPending
+          }
+          activeStatusFilters={filters.status}
+          onStatusFilterChange={(status) =>
+            setFilter('status', status ? [status] : [])
+          }
+        />
+      </CollapsibleContent>
       <DataGrid
         table={table}
         recordCount={total}
@@ -577,6 +630,6 @@ export function ContractsPage() {
           });
         }}
       />
-    </div>
+    </Collapsible>
   );
 }
