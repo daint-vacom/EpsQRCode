@@ -88,6 +88,7 @@ const countryCodeOptions = [
 const statusOptions = [
   { value: 'active', label: 'Đang hoạt động' },
   { value: 'inactive', label: 'Ngừng hoạt động' },
+  { value: 'uncontacted', label: 'Chưa liên hệ' },
 ];
 
 export const customerDefaultValues: CustomerFormValues = {

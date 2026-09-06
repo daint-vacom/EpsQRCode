@@ -42,11 +42,19 @@ const BUSINESS_TYPE_OPTIONS = BUSINESS_TYPES.map((value) => ({
 }));
 
 function CustomerStatusBadge({ value }: { value: CustomerStatus }) {
+  const isActive = value === 'active';
+  const isInactive = value === 'inactive';
+
   return (
     <Badge
-      appearance={value === 'active' ? 'light' : 'outline'}
-      variant={value === 'active' ? 'success' : 'outline'}
-      className="rounded-md px-2.5 py-1 text-xs"
+      appearance={isActive || isInactive ? 'light' : undefined}
+      variant={isActive ? 'success' : isInactive ? 'destructive' : 'outline'}
+      className={cn(
+        'rounded-md px-2.5 py-1 text-xs',
+        !isActive &&
+          !isInactive &&
+          'border-transparent bg-muted text-muted-foreground',
+      )}
     >
       {CUSTOMER_STATUS_LABELS[value]}
     </Badge>

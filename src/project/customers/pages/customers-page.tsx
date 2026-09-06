@@ -13,7 +13,14 @@ import {
   useReactTable,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { ChevronDown, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  PencilLine,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -36,7 +43,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
@@ -50,8 +57,10 @@ import {
   loadCustomerRegionOptions,
   saveCustomerCustomFieldValues,
   updateCustomer,
+  updateCustomerStatus,
   uploadCustomerImage,
 } from '../api/customers.api';
+import { CustomerBulkStatusDialog } from '../components/customer-bulk-status-dialog';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
 import {
@@ -70,6 +79,7 @@ import {
   type CustomerFilterFormValues,
   type CustomerFormValues,
   type CustomerListFilters,
+  type CustomerStatus,
 } from '../model/customer';
 import {
   CUSTOMER_SAVED_VIEW_MANAGE_PERMISSION,
@@ -114,6 +124,8 @@ export function CustomersPage() {
     null,
   );
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const form = useCustomerForm();
   const savedViewForm = useCustomerSavedViewForm();
 
@@ -449,6 +461,44 @@ export function CustomersPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({
+      customers: selectedCustomers,
+      status,
+    }: {
+      customers: Customer[];
+      status: CustomerStatus;
+    }) =>
+      Promise.all(
+        selectedCustomers.map((customer) =>
+          updateCustomerStatus(customer.id, status),
+        ),
+      ),
+    onSuccess: async (_, { customers: updatedCustomers }) => {
+      setBulkStatusDialogOpen(false);
+      setRowSelection({});
+      await invalidateCustomers();
+      toast.success(
+        `Đã cập nhật trạng thái cho ${updatedCustomers.length} khách hàng.`,
+      );
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (selectedCustomers: Customer[]) =>
+      Promise.all(
+        selectedCustomers.map((customer) => deleteCustomer(customer.id)),
+      ),
+    onSuccess: async (_, deletedCustomers) => {
+      setBulkDeleteDialogOpen(false);
+      setRowSelection({});
+      await invalidateCustomers();
+      toast.success(`Đã xóa ${deletedCustomers.length} khách hàng.`);
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
   function openCreate() {
     setEditingCustomer(null);
     setCustomerImageFile(null);
@@ -552,7 +602,10 @@ export function CustomersPage() {
 
   const listError = tenantQuery.error ?? workspaceQuery.error;
   const isListLoading = tenantQuery.isPending || workspaceQuery.isLoading;
-  const selectedCustomersCount = table.getSelectedRowModel().rows.length;
+  const selectedCustomers = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original);
+  const selectedCustomersCount = selectedCustomers.length;
 
   const pageHeader = (
     <PageHeader
@@ -641,9 +694,19 @@ export function CustomersPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
-                    <DropdownMenuLabel>Khách hàng đã chọn</DropdownMenuLabel>
-                    <DropdownMenuItem onSelect={() => setRowSelection({})}>
-                      Bỏ chọn tất cả
+                    <DropdownMenuItem
+                      onSelect={() => setBulkStatusDialogOpen(true)}
+                    >
+                      <PencilLine />
+                      Chỉnh sửa trạng thái
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => setBulkDeleteDialogOpen(true)}
+                    >
+                      <Trash2 />
+                      Xóa khách hàng
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -758,6 +821,28 @@ export function CustomersPage() {
           setViewDialogOpen(false);
           setEditingView(null);
           setDeletingView(editingView);
+        }}
+      />
+      <CustomerBulkStatusDialog
+        open={bulkStatusDialogOpen}
+        customerCount={selectedCustomersCount}
+        isSaving={bulkStatusMutation.isPending}
+        onOpenChange={setBulkStatusDialogOpen}
+        onConfirm={(status) =>
+          bulkStatusMutation.mutate({ customers: selectedCustomers, status })
+        }
+      />
+      <ConfirmDialog
+        open={bulkDeleteDialogOpen}
+        onOpenChange={setBulkDeleteDialogOpen}
+        title="Xóa khách hàng đã chọn?"
+        description={`Bạn có chắc muốn xóa ${selectedCustomersCount} khách hàng đã chọn? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa khách hàng"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (selectedCustomers.length > 0) {
+            bulkDeleteMutation.mutate(selectedCustomers);
+          }
         }}
       />
       <ConfirmDialog

@@ -50,8 +50,14 @@ const spec: TableSpec = {
         },
         inactive: {
           label: 'Ngừng hoạt động',
-          variant: 'outline',
-          className: 'rounded-md px-2.5 py-1 text-xs text-muted-foreground',
+          className:
+            'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
+          dotClassName: 'bg-admin-red-primary opacity-100',
+        },
+        uncontacted: {
+          label: 'Chưa liên hệ',
+          className:
+            'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
           dotClassName: 'bg-admin-neutral-400 opacity-100',
         },
       },

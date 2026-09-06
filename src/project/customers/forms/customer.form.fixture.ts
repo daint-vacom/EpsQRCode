@@ -46,6 +46,7 @@ const spec: FormSpec = {
       options: [
         { value: 'active', label: 'Đang hoạt động' },
         { value: 'inactive', label: 'Ngừng hoạt động' },
+        { value: 'uncontacted', label: 'Chưa liên hệ' },
       ],
       modes: ['edit'],
     },

@@ -13,6 +13,7 @@ import type {
   CustomerListResult,
   CustomerListRpcRow,
   CustomerRow,
+  CustomerStatus,
 } from '../model/customer';
 import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
 
@@ -352,6 +353,25 @@ export async function updateCustomer(
       ...queryParams({ id: `eq.${customerId}` }),
       headers: { Prefer: 'return=representation' },
     }),
+  );
+  if (!rows[0]) throw new Error('Không tìm thấy khách hàng để cập nhật.');
+  return mapCustomerRow(rows[0]);
+}
+
+export async function updateCustomerStatus(
+  customerId: string,
+  status: CustomerStatus,
+): Promise<Customer> {
+  assertSupabaseConfigured();
+  const rows = await request<CustomerRow[]>(
+    supabaseApi.patch(
+      '/customers',
+      { status },
+      {
+        ...queryParams({ id: `eq.${customerId}` }),
+        headers: { Prefer: 'return=representation' },
+      },
+    ),
   );
   if (!rows[0]) throw new Error('Không tìm thấy khách hàng để cập nhật.');
   return mapCustomerRow(rows[0]);

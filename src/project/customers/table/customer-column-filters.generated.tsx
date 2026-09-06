@@ -105,7 +105,7 @@ export function CustomerStatusColumnFilter({
 }: StatusColumnFilterProps) {
   return (
     <CustomerStatusSelect
-      value={value[0] as 'active' | 'inactive' | undefined}
+      value={value[0] as 'active' | 'inactive' | 'uncontacted' | undefined}
       onChange={(nextValue) => onChange(nextValue ? [nextValue] : [])}
       placeholder="Tất cả"
       size="sm"

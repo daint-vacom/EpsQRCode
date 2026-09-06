@@ -62,6 +62,13 @@ import {
 } from '../model/customer';
 
 function CustomerProfileCard({ customer }: { customer: Customer }) {
+  const statusColor =
+    customer.status === 'active'
+      ? '#16a34a'
+      : customer.status === 'inactive'
+        ? '#dc2626'
+        : '#64748b';
+
   return (
     <EntityDetailProfileCard
       avatar={
@@ -89,11 +96,7 @@ function CustomerProfileCard({ customer }: { customer: Customer }) {
           {BUSINESS_TYPE_LABELS[customer.businessType]}
         </span>
       </div>
-      <Tag
-        size="sm"
-        shape="circle"
-        color={customer.status === 'active' ? '#16a34a' : '#64748b'}
-      >
+      <Tag size="sm" shape="circle" color={statusColor}>
         {CUSTOMER_STATUS_LABELS[customer.status]}
       </Tag>
     </EntityDetailProfileCard>
