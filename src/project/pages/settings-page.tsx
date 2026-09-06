@@ -13,6 +13,7 @@ import { queryClient } from '@/lib/query-client';
 import {
   useAppSettings,
   type AppDensity,
+  type AppSidebarTheme,
   type AppTheme,
 } from '@/providers/app-settings-provider';
 import { useTenant } from '@/providers/tenant-provider';
@@ -335,6 +336,27 @@ export function ProjectSettingsPage() {
                         <SelectItem value="small">Nhỏ (90%)</SelectItem>
                         <SelectItem value="medium">Vừa (95%)</SelectItem>
                         <SelectItem value="large">Lớn (100%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingsField>
+                  <SettingsField label="Chủ đề sidebar">
+                    <Select
+                      value={appearance.sidebarTheme}
+                      onValueChange={(value) => {
+                        if (value === 'light' || value === 'dark') {
+                          saveAppearance({
+                            ...appearance,
+                            sidebarTheme: value as AppSidebarTheme,
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">Sáng</SelectItem>
+                        <SelectItem value="dark">Tối</SelectItem>
                       </SelectContent>
                     </Select>
                   </SettingsField>

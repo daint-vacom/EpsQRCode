@@ -24,6 +24,7 @@ import {
   useAppSettings,
   type AppAppearanceSettings,
   type AppDensity,
+  type AppSidebarTheme,
   type AppTheme,
 } from '@/providers/app-settings-provider';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ type SettingsValues = {
   appearance: {
     theme: AppTheme;
     density: AppDensity;
+    sidebarTheme: AppSidebarTheme;
     sidebarCollapsed: boolean;
   };
 };
@@ -113,6 +115,7 @@ const initialSettings: SettingsValues = {
   appearance: {
     theme: 'system',
     density: 'large',
+    sidebarTheme: 'dark',
     sidebarCollapsed: false,
   },
 };
@@ -145,6 +148,7 @@ function createInitialSettings(
       ...initialSettings.appearance,
       theme,
       density: appearance.density,
+      sidebarTheme: appearance.sidebarTheme,
       sidebarCollapsed: appearance.sidebarCollapsed,
     },
   };
@@ -211,6 +215,7 @@ export function SettingsPage() {
     saveAppearance({
       theme: nextAppearance.theme,
       density: nextAppearance.density,
+      sidebarTheme: nextAppearance.sidebarTheme,
       sidebarCollapsed: nextAppearance.sidebarCollapsed,
     });
     if (patch.theme !== undefined) {
@@ -753,6 +758,29 @@ export function SettingsPage() {
                         <SelectItem value="small">Nhỏ (90%)</SelectItem>
                         <SelectItem value="medium">Vừa (95%)</SelectItem>
                         <SelectItem value="large">Lớn (100%)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingsField>
+                  <SettingsField label="Chủ đề sidebar">
+                    <Select
+                      value={settings.appearance.sidebarTheme}
+                      onValueChange={(sidebarTheme) => {
+                        if (
+                          sidebarTheme === 'light' ||
+                          sidebarTheme === 'dark'
+                        ) {
+                          updateAppearance({
+                            sidebarTheme: sidebarTheme as AppSidebarTheme,
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="light">Sáng</SelectItem>
+                        <SelectItem value="dark">Tối</SelectItem>
                       </SelectContent>
                     </Select>
                   </SettingsField>

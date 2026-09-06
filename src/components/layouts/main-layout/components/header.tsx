@@ -176,6 +176,7 @@ function AccountMenuHeader({ name, email }: { name: string; email: string }) {
 
 export function Header() {
   const { isMobile, isSidebarOpen, sidebarToggle, shell } = useLayout();
+  const isDark = shell.headerVariant === 'dark';
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
@@ -228,7 +229,10 @@ export function Header() {
   return (
     <header
       className={cn(
-        'fixed end-0 start-0 top-0 z-10 flex h-(--header-height-mobile) shrink-0 items-center justify-between border-b border-border bg-card px-4 transition-[inset-inline-start] duration-200 ease-out lg:h-(--header-height) lg:px-6',
+        'fixed end-0 start-0 top-0 z-10 flex h-(--header-height-mobile) shrink-0 items-center justify-between border-b px-4 transition-[inset-inline-start] duration-200 ease-out lg:h-(--header-height) lg:px-6',
+        isDark
+          ? 'border-white/10 bg-admin-neutral-900 text-white'
+          : 'border-border bg-card',
         'lg:start-[var(--sidebar-current-width)]',
       )}
     >
@@ -241,6 +245,11 @@ export function Header() {
                 mode="icon"
                 size="sm"
                 aria-label="Mở menu"
+                className={
+                  isDark
+                    ? 'text-white/70 hover:bg-white/10 hover:text-white'
+                    : undefined
+                }
               >
                 <Menu className="size-4" />
               </Button>
@@ -266,6 +275,11 @@ export function Header() {
             size="sm"
             aria-label={isSidebarOpen ? 'Thu gọn menu' : 'Mở rộng menu'}
             onClick={sidebarToggle}
+            className={
+              isDark
+                ? 'text-white/70 hover:bg-white/10 hover:text-white'
+                : undefined
+            }
           >
             {isSidebarOpen ? (
               <PanelLeftClose className="size-4" />
@@ -276,17 +290,38 @@ export function Header() {
         )}
 
         <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold leading-tight text-foreground">
+          <h1
+            className={cn(
+              'truncate text-lg font-bold leading-tight',
+              isDark ? 'text-white' : 'text-foreground',
+            )}
+          >
             {shell.headerTitle}
           </h1>
-          <nav className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <nav
+            className={cn(
+              'mt-0.5 flex items-center gap-1.5 text-xs font-medium',
+              isDark ? 'text-white/55' : 'text-muted-foreground',
+            )}
+          >
             {breadcrumbItems.map((item, index) => (
               <Fragment key={`${item.label}-${index}`}>
                 {index > 0 && (
-                  <span className="text-muted-foreground/60">/</span>
+                  <span
+                    className={
+                      isDark ? 'text-white/35' : 'text-muted-foreground/60'
+                    }
+                  >
+                    /
+                  </span>
                 )}
                 {item.path ? (
-                  <Link to={item.path} className="hover:text-foreground">
+                  <Link
+                    to={item.path}
+                    className={
+                      isDark ? 'hover:text-white' : 'hover:text-foreground'
+                    }
+                  >
                     {item.label}
                   </Link>
                 ) : (
@@ -317,6 +352,11 @@ export function Header() {
           aria-label="Tìm kiếm"
           title="Tìm kiếm"
           onClick={focusPageSearch}
+          className={
+            isDark
+              ? 'text-white/70 hover:bg-white/10 hover:text-white'
+              : undefined
+          }
         >
           <Search className="size-4" />
         </Button>
@@ -326,7 +366,10 @@ export function Header() {
               variant="ghost"
               mode="icon"
               size="sm"
-              className="relative"
+              className={cn(
+                'relative',
+                isDark && 'text-white/70 hover:bg-white/10 hover:text-white',
+              )}
               aria-label="Mở thông báo"
             >
               <Bell className="size-4.5" />
@@ -410,12 +453,18 @@ export function Header() {
           </PopoverContent>
         </Popover>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator
+          orientation="vertical"
+          className={cn('h-6', isDark && 'bg-white/15')}
+        />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="flex shrink-0 items-center gap-2 rounded-lg p-1 text-left outline-hidden transition-colors hover:bg-field focus-visible:ring-2 focus-visible:ring-ring"
+              className={cn(
+                'flex shrink-0 items-center gap-2 rounded-lg p-1 text-left outline-hidden transition-colors focus-visible:ring-2 focus-visible:ring-ring',
+                isDark ? 'hover:bg-white/10' : 'hover:bg-field',
+              )}
               type="button"
               aria-label="Mở menu tài khoản"
             >
@@ -425,7 +474,12 @@ export function Header() {
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-left sm:block">
-                <span className="block text-[13px] font-semibold leading-tight text-foreground">
+                <span
+                  className={cn(
+                    'block text-[13px] font-semibold leading-tight',
+                    isDark ? 'text-white' : 'text-foreground',
+                  )}
+                >
                   {accountName}
                 </span>
                 <span className="mt-0.5 flex max-w-48 items-center gap-1 overflow-hidden">
@@ -435,7 +489,12 @@ export function Header() {
                       variant="secondary"
                       appearance="light"
                       size="xs"
-                      className="max-w-24 truncate border border-admin-blue-light font-semibold"
+                      className={cn(
+                        'max-w-24 truncate border font-semibold',
+                        isDark
+                          ? 'border-white/15 bg-white/10 text-white/70'
+                          : 'border-admin-blue-light',
+                      )}
                     >
                       {role}
                     </Badge>

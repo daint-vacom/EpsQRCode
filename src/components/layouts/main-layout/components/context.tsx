@@ -7,6 +7,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppSettings } from '@/providers/app-settings-provider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+export type LayoutSurfaceVariant = 'light' | 'dark';
+
 export interface LayoutShellConfig {
   menuGroups: MenuGroupConfig[];
   homePath: string;
@@ -17,6 +19,8 @@ export interface LayoutShellConfig {
   breadcrumbRootPath: string;
   breadcrumbCurrent: string;
   breadcrumbItems?: LayoutBreadcrumbItem[];
+  secondarySidebarVariant: LayoutSurfaceVariant;
+  headerVariant: LayoutSurfaceVariant;
 }
 
 export interface LayoutBreadcrumbItem {
@@ -61,6 +65,8 @@ export function LayoutProvider({
     breadcrumbRootLabel: 'Tổ chức',
     breadcrumbRootPath: '/',
     breadcrumbCurrent: 'Nhân viên',
+    secondarySidebarVariant: 'light',
+    headerVariant: 'light',
     ...customShell,
   };
   const isSidebarMenuRoute = shell.menuGroups.some((group) =>

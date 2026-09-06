@@ -16,6 +16,7 @@ function SettingsProbe() {
         saveAppearance({
           theme: 'dark',
           density: 'medium',
+          sidebarTheme: 'dark',
           sidebarCollapsed: false,
           autoCollapseSidebarOnDetail: true,
         })
@@ -41,6 +42,7 @@ describe('AppSettingsProvider', () => {
       JSON.stringify({
         theme: 'dark',
         density: 'small',
+        sidebarTheme: 'dark',
         sidebarCollapsed: false,
         autoCollapseSidebarOnDetail: true,
       }),
@@ -96,6 +98,7 @@ describe('AppSettingsProvider', () => {
       ).toEqual({
         theme: 'dark',
         density: 'medium',
+        sidebarTheme: 'dark',
         sidebarCollapsed: false,
         autoCollapseSidebarOnDetail: true,
       });

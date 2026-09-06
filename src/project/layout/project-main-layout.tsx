@@ -2,6 +2,7 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { PROJECT_MENU_GROUPS } from '@/config/project-menu.config';
+import { useAppSettings } from '@/providers/app-settings-provider';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { MainLayout } from '@/components/layouts/main-layout';
@@ -13,6 +14,7 @@ export function ProjectMainLayout() {
   const [searchParams] = useSearchParams();
   const { userId } = useUser();
   const { tenantId, tenantName, roleNames } = useTenant();
+  const { appearance } = useAppSettings();
   const isContractCreate = pathname === ROUTES.PROJECT.CONTRACT_CREATE;
   const contractEditId = isContractCreate
     ? searchParams.get('edit')
@@ -94,6 +96,8 @@ export function ProjectMainLayout() {
         brandName: 'VACOM | KẾ TOÁN DỊCH VỤ',
         headerTitle: headerTenantName,
         accountRoles,
+        secondarySidebarVariant: appearance.sidebarTheme,
+        headerVariant: appearance.sidebarTheme,
         breadcrumbRootLabel: 'Trang chủ',
         breadcrumbRootPath: '/',
         breadcrumbCurrent,
