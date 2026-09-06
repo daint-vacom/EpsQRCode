@@ -252,9 +252,9 @@ export function DataConfigurationPage() {
   const canEditTable = canCreate || canUpdate;
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-4 overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
       <PageHeader title="Cấu hình dữ liệu" className="shrink-0" />
-      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-4 xl:flex-row xl:overflow-hidden">
+      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
         <Card className="max-h-[220px] w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
             <CardTitle className="text-[15px]">Đối tượng</CardTitle>

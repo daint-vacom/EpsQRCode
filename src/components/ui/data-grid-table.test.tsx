@@ -43,6 +43,36 @@ function FetchingTable() {
   );
 }
 
+function HiddenInlineFilterTable() {
+  const table = useReactTable({
+    data: [],
+    columns: [
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Tên',
+        meta: {
+          headerFilter: (
+            <input aria-label="Lọc theo tên" data-testid="header-filter" />
+          ),
+        },
+      },
+    ],
+    state: { pagination: { pageIndex: 0, pageSize: 3 } },
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <DataGrid
+      table={table}
+      recordCount={0}
+      tableLayout={{ showInlineFilters: false }}
+    >
+      <DataGridTable />
+    </DataGrid>
+  );
+}
+
 function PinnedTable() {
   const table = useReactTable({
     data: [{ id: '1', name: 'Nhân viên' }],
@@ -134,6 +164,13 @@ describe('DataGridTable loading state', () => {
     const header = screen.getByRole('columnheader');
     expect(header).toHaveTextContent('Tên');
     expect(header).toContainElement(screen.getByTestId('header-filter'));
+  });
+
+  it('hides inline header filters when the table layout disables them', () => {
+    render(<HiddenInlineFilterTable />);
+
+    expect(screen.getByRole('columnheader')).toHaveTextContent('Tên');
+    expect(screen.queryByTestId('header-filter')).not.toBeInTheDocument();
   });
 
   it('styles state-pinned columns without enabling pin controls', () => {

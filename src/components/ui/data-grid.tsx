@@ -75,6 +75,7 @@ export interface DataGridProps<TData extends object> {
     headerBackground?: boolean;
     headerBorder?: boolean;
     headerSticky?: boolean;
+    showInlineFilters?: boolean;
     width?: 'auto' | 'fixed';
     columnsVisibility?: boolean;
     columnsResizable?: boolean;
@@ -144,6 +145,7 @@ function DataGrid<TData extends object>({
       headerSticky: true,
       headerBackground: true,
       headerBorder: true,
+      showInlineFilters: true,
       width: 'fixed',
       columnsVisibility: false,
       columnsResizable: false,

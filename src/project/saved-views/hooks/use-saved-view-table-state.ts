@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { ColumnOrderState, VisibilityState } from '@tanstack/react-table';
 import {
+  usePersistedBoolean,
   usePersistedColumnOrder,
   usePersistedColumnVisibility,
 } from '@/components/ui/data-grid-columns';
@@ -9,6 +10,7 @@ import type { SavedViewConfig } from '../model/saved-view';
 interface SavedViewTableStateOptions {
   visibilityStorageKey: string;
   orderStorageKey: string;
+  inlineFiltersStorageKey?: string;
   defaultColumnVisibility?: VisibilityState;
   defaultColumnOrder?: ColumnOrderState;
 }
@@ -21,6 +23,7 @@ interface SavedViewTableStateResetOptions {
 export function useSavedViewTableState<TFilters extends object>({
   visibilityStorageKey,
   orderStorageKey,
+  inlineFiltersStorageKey,
   defaultColumnVisibility = {},
   defaultColumnOrder = [],
 }: SavedViewTableStateOptions) {
@@ -30,6 +33,8 @@ export function useSavedViewTableState<TFilters extends object>({
     orderStorageKey,
     defaultColumnOrder,
   );
+  const { value: showInlineFilters, onValueChange: onShowInlineFiltersChange } =
+    usePersistedBoolean(inlineFiltersStorageKey, false);
 
   const applySavedViewTableState = useCallback(
     (
@@ -64,6 +69,8 @@ export function useSavedViewTableState<TFilters extends object>({
     onColumnVisibilityChange,
     columnOrder,
     onColumnOrderChange,
+    showInlineFilters,
+    onShowInlineFiltersChange,
     applySavedViewTableState,
     resetSavedViewTableState,
   };

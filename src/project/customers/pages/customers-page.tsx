@@ -8,8 +8,12 @@ import {
 } from '@/project/saved-views/api/saved-views.api';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type RowSelectionState,
+} from '@tanstack/react-table';
+import { ChevronDown, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -28,10 +32,16 @@ import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visib
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { StatusStats, type StatusStatItem } from '@/components/ui/status-stats';
 import {
   createCustomer,
   deleteCustomer,
@@ -42,8 +52,8 @@ import {
   updateCustomer,
   uploadCustomerImage,
 } from '../api/customers.api';
-import { CustomerFilterDrawer } from '../components/customer-filter-drawer';
-import { CustomerSavedViews } from '../components/customer-saved-views';
+import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
+import { CustomerStatsCards } from '../components/customer-stats-cards';
 import {
   CustomerFormDialog,
   useCustomerForm,
@@ -54,7 +64,6 @@ import {
 } from '../forms/customer-saved-view-form.generated';
 import { useCustomerList } from '../hooks/use-customer-list';
 import {
-  CUSTOMER_STATUS_LABELS,
   emptyCustomerForm,
   mapCustomerToFormValues,
   type Customer,
@@ -75,27 +84,6 @@ import {
   useCustomerColumns,
 } from '../table/customer.columns.generated';
 import { CustomerFilterBar } from '../table/customer.filters.generated';
-
-const customerStatItems = [
-  {
-    key: 'total',
-    label: 'Tổng số',
-    filterValue: null,
-    className: '!bg-muted !text-muted-foreground',
-  },
-  {
-    key: 'active',
-    label: CUSTOMER_STATUS_LABELS.active,
-    filterValue: 'active',
-    className: '!bg-admin-success-bg !text-admin-success-text',
-  },
-  {
-    key: 'inactive',
-    label: CUSTOMER_STATUS_LABELS.inactive,
-    filterValue: 'inactive',
-    className: '!bg-muted !text-muted-foreground',
-  },
-] satisfies readonly StatusStatItem<'active' | 'inactive'>[];
 
 const customerDefaultColumnVisibility = {
   businessRegistrationCode: false,
@@ -125,6 +113,7 @@ export function CustomersPage() {
   const [deletingView, setDeletingView] = useState<CustomerSavedView | null>(
     null,
   );
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const form = useCustomerForm();
   const savedViewForm = useCustomerSavedViewForm();
 
@@ -141,7 +130,7 @@ export function CustomersPage() {
     onPaginationChange,
     tenantQuery,
     workspaceQuery,
-    statusStatsQuery,
+    customerStatsQuery,
     customerTagsByCustomerId,
   } = useCustomerList();
 
@@ -223,9 +212,12 @@ export function CustomersPage() {
     onColumnOrderChange,
     applySavedViewTableState,
     resetSavedViewTableState,
+    showInlineFilters,
+    onShowInlineFiltersChange,
   } = useSavedViewTableState<CustomerListFilters>({
     visibilityStorageKey: 'project.customers.columnVisibility',
     orderStorageKey: 'project.customers.columnOrder',
+    inlineFiltersStorageKey: 'project.customers.showInlineFilters',
     defaultColumnVisibility: customerTableDefaultColumnVisibility,
   });
 
@@ -543,13 +535,16 @@ export function CustomersPage() {
     getRowId: (row) => row.id,
     state: {
       pagination,
+      rowSelection,
       columnVisibility,
       columnOrder,
       columnPinning: CUSTOMER_COLUMN_PINNING,
     },
     onPaginationChange,
+    onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange,
     onColumnOrderChange,
+    enableRowSelection: true,
     manualPagination: true,
     pageCount: Math.ceil(total / pagination.pageSize),
     getCoreRowModel: getCoreRowModel(),
@@ -557,24 +552,12 @@ export function CustomersPage() {
 
   const listError = tenantQuery.error ?? workspaceQuery.error;
   const isListLoading = tenantQuery.isPending || workspaceQuery.isLoading;
+  const selectedCustomersCount = table.getSelectedRowModel().rows.length;
+  const selectableCustomersCount = total;
 
   const pageHeader = (
     <PageHeader
       title="Khách hàng"
-      titleAside={
-        <CustomerSavedViews
-          views={savedViews}
-          activeViewId={activeViewId}
-          canManage={canManageSavedViews}
-          isLoading={savedViewsQuery.isPending}
-          isDirty={isActiveViewDirty}
-          isSaving={savedViewMutation.isPending}
-          onSelect={selectSavedView}
-          onCreate={openCreateSavedView}
-          onEdit={openEditSavedView}
-          onSaveCurrent={() => saveCurrentView()}
-        />
-      }
       actions={
         <ShortcutTooltip label="Thêm khách hàng" shortcut="Alt + N">
           <Button
@@ -592,7 +575,7 @@ export function CustomersPage() {
 
   if (tenantQuery.isError || workspaceQuery.isError) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
         {pageHeader}
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-destructive" />
@@ -617,30 +600,55 @@ export function CustomersPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
       {pageHeader}
+      <CustomerStatsCards
+        stats={customerStatsQuery.data}
+        isLoading={customerStatsQuery.isPending}
+      />
       <DataGrid
         table={table}
         recordCount={total}
         isLoading={isListLoading}
         isFetching={workspaceQuery.isFetching}
         emptyMessage="Chưa có khách hàng"
-        tableLayout={{ dense: true, columnsVisibility: false }}
+        tableLayout={{
+          dense: true,
+          columnsVisibility: false,
+          showInlineFilters,
+        }}
       >
-        <Card className="min-h-0 flex-1 overflow-hidden">
+        <Card className="min-h-[28rem] flex-1 overflow-hidden">
           <DataGridHeader
-            variant="stats"
-            stats={
-              <StatusStats
-                items={customerStatItems}
-                counts={statusStatsQuery.data}
-                isLoading={statusStatsQuery.isPending}
-                activeFilters={filters.statuses}
-                onFilterChange={(status) =>
-                  setFilter('statuses', status ? [status] : [])
-                }
-                ariaLabel="Lọc khách hàng theo trạng thái"
-              />
+            title={
+              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
+                <span>
+                  Đã chọn{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedCustomersCount}/{selectableCustomersCount}
+                  </span>{' '}
+                  khách hàng
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      disabled={selectedCustomersCount === 0}
+                      aria-label="Thao tác hàng loạt"
+                    >
+                      Thao tác hàng loạt
+                      <ChevronDown />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Khách hàng đã chọn</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={() => setRowSelection({})}>
+                      Bỏ chọn tất cả
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             }
             toolbar={
               <>
@@ -648,21 +656,21 @@ export function CustomersPage() {
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                 />
-                <Button
-                  variant="outline"
-                  mode="icon"
-                  aria-label="Làm mới"
-                  title="Làm mới"
-                  onClick={() => {
-                    void workspaceQuery.refetch();
-                    void statusStatsQuery.refetch();
-                  }}
-                >
-                  <RefreshCw />
-                </Button>
-                <CustomerFilterDrawer
+                <CustomerFilterViewControl
+                  views={savedViews}
+                  activeViewId={activeViewId}
+                  canManage={canManageSavedViews}
+                  isLoading={savedViewsQuery.isPending}
+                  isDirty={isActiveViewDirty}
+                  isSaving={savedViewMutation.isPending}
+                  showInlineFilters={showInlineFilters}
+                  onShowInlineFiltersChange={onShowInlineFiltersChange}
                   filters={filters}
                   customFields={customerCustomFieldsQuery.data ?? []}
+                  onSelect={selectSavedView}
+                  onCreate={openCreateSavedView}
+                  onEdit={openEditSavedView}
+                  onSaveCurrent={() => saveCurrentView()}
                   onApply={(values: CustomerFilterFormValues) =>
                     setFilters(values)
                   }
@@ -678,8 +686,19 @@ export function CustomersPage() {
                   }
                   canSaveToView={Boolean(activeView && canManageSavedViews)}
                   saveDisabled={!isActiveViewDirty}
-                  isSaving={savedViewMutation.isPending}
                 />
+                <Button
+                  variant="outline"
+                  mode="icon"
+                  aria-label="Làm mới"
+                  title="Làm mới"
+                  onClick={() => {
+                    void workspaceQuery.refetch();
+                    void customerStatsQuery.refetch();
+                  }}
+                >
+                  <RefreshCw />
+                </Button>
                 <DataGridColumnVisibility
                   table={table}
                   mode="drawer"

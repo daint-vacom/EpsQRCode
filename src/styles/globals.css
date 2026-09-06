@@ -69,6 +69,7 @@
   --admin-icon-rail-width: 56px;
   --admin-sidebar-width: 224px;
   --admin-topbar-height: 64px;
+  --admin-page-section-gap: 0.75rem;
 
   --background: var(--admin-surface);
   --foreground: var(--admin-neutral-800);
@@ -218,6 +219,7 @@
   --spacing-admin-rail: var(--admin-icon-rail-width);
   --spacing-admin-sidebar: var(--admin-sidebar-width);
   --spacing-admin-topbar: var(--admin-topbar-height);
+  --spacing-admin-page-section: var(--admin-page-section-gap);
 
   /** Animations **/
   --animate-marquee: marquee var(--duration) infinite linear;
@@ -332,6 +334,12 @@ html {
 
 @utility container-fluid {
   @apply mx-auto w-full px-4 lg:px-5;
+}
+
+@media (width >= --theme(--breakpoint-lg)) {
+  :root {
+    --admin-page-section-gap: 1rem;
+  }
 }
 
 /* Metronic Configs */

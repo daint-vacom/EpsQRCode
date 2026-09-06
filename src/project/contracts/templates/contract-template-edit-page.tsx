@@ -165,7 +165,7 @@ export function ContractTemplateEditPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+    <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={isEditMode ? 'Chỉnh sửa mẫu hợp đồng' : 'Thêm mẫu hợp đồng'}
         backLabel={

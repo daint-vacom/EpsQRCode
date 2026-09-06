@@ -13,7 +13,6 @@ import type {
   CustomerListResult,
   CustomerListRpcRow,
   CustomerRow,
-  CustomerStatus,
 } from '../model/customer';
 import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
 
@@ -35,11 +34,15 @@ interface EntityCustomDataRow {
   data: Record<string, unknown> | null;
 }
 
-export interface CustomerStatusStats {
+export interface CustomerStats {
   total: number;
   active: number;
   inactive: number;
+  withoutContact: number;
 }
+
+/** @deprecated Use CustomerStats for the customer list and dashboard metrics. */
+export type CustomerStatusStats = CustomerStats;
 
 function queryParams(params: Record<string, string>) {
   return { params };
@@ -190,26 +193,22 @@ export async function loadCustomerList(
 export async function loadCustomerStatusStats(
   tenantId: string,
   signal?: AbortSignal,
-): Promise<CustomerStatusStats> {
-  const [all, active, inactive] = await Promise.all(
-    [undefined, 'active', 'inactive'].map((status) =>
-      loadCustomerList(
-        tenantId,
-        {
-          page: 1,
-          pageSize: 1,
-          statuses: status ? [status as CustomerStatus] : undefined,
-        },
-        signal,
-      ),
+): Promise<CustomerStats> {
+  return loadCustomerStats(tenantId, signal);
+}
+
+export async function loadCustomerStats(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<CustomerStats> {
+  assertSupabaseConfigured();
+  return request<CustomerStats>(
+    supabaseApi.post(
+      '/rpc/customer_statistics',
+      { p_tenant_id: tenantId },
+      { signal },
     ),
   );
-
-  return {
-    total: all.total,
-    active: active.total,
-    inactive: inactive.total,
-  };
 }
 
 export async function loadCustomerDetail(

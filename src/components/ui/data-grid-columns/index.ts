@@ -14,3 +14,4 @@ export {
 export { getDataGridActionsColumnSize } from './action-column';
 export { usePersistedColumnVisibility } from './use-persisted-column-visibility';
 export { usePersistedColumnOrder } from './use-persisted-column-order';
+export { usePersistedBoolean } from './use-persisted-boolean';

@@ -124,7 +124,10 @@ function DataGridTableHeadRowCell<TData>({
   const { props } = useDataGrid();
 
   const { column } = header;
-  const headerFilter = column.columnDef.meta?.headerFilter;
+  const headerFilter =
+    props.tableLayout?.showInlineFilters === false
+      ? undefined
+      : column.columnDef.meta?.headerFilter;
   const isPinned = column.getIsPinned();
   const isLastLeftPinned =
     isPinned === 'left' && column.getIsLastColumn('left');

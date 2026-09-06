@@ -273,7 +273,7 @@ function ContractDetailShell({
           onManageResponsibles={onManageResponsibles}
           canManageResponsibles={canManageResponsibles}
         />
-        <div className="mt-5">
+        <div className="mt-admin-page-section">
           <EntityDetailTabs tabs={tabs} defaultValue="overview" />
         </div>
       </main>

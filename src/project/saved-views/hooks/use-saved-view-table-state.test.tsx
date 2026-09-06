@@ -65,4 +65,27 @@ describe('useSavedViewTableState', () => {
       customField: false,
     });
   });
+
+  it('persists inline filter visibility with the table settings', () => {
+    const options = {
+      visibilityStorageKey: 'test.saved-view.inline-visibility',
+      orderStorageKey: 'test.saved-view.inline-order',
+      inlineFiltersStorageKey: 'test.saved-view.inline-filters',
+    };
+    const first = renderHook(() => useSavedViewTableState(options));
+
+    expect(first.result.current.showInlineFilters).toBe(false);
+
+    act(() => {
+      first.result.current.onShowInlineFiltersChange(true);
+    });
+
+    expect(first.result.current.showInlineFilters).toBe(true);
+    expect(localStorage.getItem(options.inlineFiltersStorageKey)).toBe('true');
+
+    first.unmount();
+    const second = renderHook(() => useSavedViewTableState(options));
+
+    expect(second.result.current.showInlineFilters).toBe(true);
+  });
 });

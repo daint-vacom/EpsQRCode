@@ -420,8 +420,7 @@ export function ContractFeeLinesEditorTable({
               ) : (
                 fields.map((field, index) => {
                   const row = watchedRows[index] as
-                    | ContractFeeLineFormValue
-                    | undefined;
+                    ContractFeeLineFormValue | undefined;
                   const errors = form.formState.errors.lines?.[index];
                   void row;
 

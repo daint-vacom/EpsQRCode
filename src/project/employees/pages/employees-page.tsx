@@ -328,7 +328,7 @@ export function EmployeesPage() {
 
   if (tenantQuery.isError || workspaceQuery.isError) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
         {pageHeader}
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-destructive" />
@@ -353,7 +353,7 @@ export function EmployeesPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       {pageHeader}
       <DataGrid
         table={table}

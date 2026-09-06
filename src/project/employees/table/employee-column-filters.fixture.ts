@@ -2,8 +2,7 @@ import type { ColumnFilterSpec } from '@/builders/column-filter';
 
 const spec: ColumnFilterSpec = {
   componentName: 'Employee',
-  specPath:
-    'src/project/employees/table/employee-column-filters.fixture.ts',
+  specPath: 'src/project/employees/table/employee-column-filters.fixture.ts',
   fields: [
     {
       type: 'search',

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { Button } from '@/components/ui/button';
 import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
@@ -14,6 +15,8 @@ import type {
 
 interface CustomerFilterDrawerProps {
   filters: CustomerListFilters;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onApply: (values: CustomerFilterFormValues) => void;
   onReset: () => void;
   onSaveToView?: (values: CustomerFilterFormValues) => void;
@@ -21,10 +24,13 @@ interface CustomerFilterDrawerProps {
   saveDisabled?: boolean;
   isSaving?: boolean;
   customFields?: CustomField[];
+  trigger?: ReactNode;
 }
 
 export function CustomerFilterDrawer({
   filters,
+  open,
+  onOpenChange,
   onApply,
   onReset,
   onSaveToView,
@@ -32,9 +38,16 @@ export function CustomerFilterDrawer({
   saveDisabled = false,
   isSaving = false,
   customFields = [],
+  trigger,
 }: CustomerFilterDrawerProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const form = useCustomerFilterForm({ defaultValues: filters });
+  const isOpen = open ?? internalOpen;
+
+  const setDrawerOpen = (nextOpen: boolean) => {
+    if (open === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+  };
 
   useEffect(() => {
     form.reset(filters);
@@ -42,11 +55,11 @@ export function CustomerFilterDrawer({
 
   const handleSubmit = (values: CustomerFilterFormValues) => {
     onApply(values);
-    setOpen(false);
+    setDrawerOpen(false);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    setDrawerOpen(nextOpen);
     if (!nextOpen) form.reset(filters);
   };
 
@@ -61,19 +74,20 @@ export function CustomerFilterDrawer({
     void form.handleSubmit((values) => {
       onApply(values);
       onSaveToView(values);
-      setOpen(false);
+      setDrawerOpen(false);
     })();
   };
 
   return (
     <DataGridFilterDrawer
-      open={open}
+      open={isOpen}
       onOpenChange={handleOpenChange}
       title="Bộ lọc khách hàng"
       onSaveToView={onSaveToView ? handleSaveToView : undefined}
       canSaveToView={canSaveToView}
       saveDisabled={saveDisabled && !form.formState.isDirty}
       isSaving={isSaving}
+      trigger={trigger}
       footer={
         <div className="flex items-center justify-between gap-2">
           <Button type="button" variant="ghost" onClick={handleReset}>

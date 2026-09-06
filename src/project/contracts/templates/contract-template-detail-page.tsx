@@ -250,7 +250,7 @@ export function ContractTemplateDetailPage() {
     );
 
   return (
-    <div className="flex min-h-full flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+    <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageBackButton
           label="Quay lại danh sách mẫu hợp đồng"

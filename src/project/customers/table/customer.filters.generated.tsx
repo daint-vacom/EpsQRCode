@@ -2,7 +2,11 @@
  * Scaffolded by filter-builder from `src/project/customers/table/customer.filters.fixture.ts`. Run npm run gen:filter — do NOT hand-write this file.
  * You own this file now — keep domain state, renderers, and API mapping outside the builder.
  */
-import { FilterToolbar } from '@/components/ui/filter-toolbar';
+import type { ReactNode } from 'react';
+import {
+  FilterToolbar,
+  type FilterToolbarOption,
+} from '@/components/ui/filter-toolbar';
 
 export interface CustomerFilterBarProps {
   keyword: string;

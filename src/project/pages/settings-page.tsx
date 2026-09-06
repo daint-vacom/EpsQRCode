@@ -223,7 +223,7 @@ export function ProjectSettingsPage() {
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-5"
+        className="flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-admin-page-section"
       >
         <div className="shrink-0 px-4 pt-4 lg:min-h-0 lg:px-5 lg:pe-0 lg:pt-5">
           <Card className="flex h-fit max-h-full min-h-0 self-start flex-col">
@@ -245,8 +245,8 @@ export function ProjectSettingsPage() {
         </div>
 
         <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">
-          <div className="min-w-0 space-y-4 px-4 pb-4 pt-4 lg:space-y-5 lg:ps-0 lg:pe-5 lg:pb-5 lg:pt-5">
-            <TabsContent value="organization" className="mt-0 space-y-5">
+          <div className="min-w-0 space-y-3 px-4 pb-4 pt-4 lg:space-y-4 lg:ps-0 lg:pe-5 lg:pb-5 lg:pt-5">
+            <TabsContent value="organization" className="mt-0 space-y-4">
               <Card>
                 <CardHeader className="p-5">
                   <CardHeading>
@@ -282,7 +282,7 @@ export function ProjectSettingsPage() {
               />
             </TabsContent>
 
-            <TabsContent value="appearance" className="mt-0 space-y-5">
+            <TabsContent value="appearance" className="mt-0 space-y-4">
               <SettingsSection icon={Palette} title="Giao diện ứng dụng">
                 <div className="grid gap-4 md:grid-cols-2">
                   <SettingsField label="Chủ đề">

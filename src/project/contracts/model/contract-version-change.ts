@@ -34,10 +34,7 @@ export interface ContractChargeChanges {
 }
 
 export type ContractVersionChangeAction =
-  | 'create'
-  | 'keep-current'
-  | 'update-draft'
-  | 'create-new';
+  'create' | 'keep-current' | 'update-draft' | 'create-new';
 
 export interface ContractVersionChangeCheck {
   action: ContractVersionChangeAction;

@@ -3,10 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { buildListQueryParams } from '@/lib/list-query-params';
 import { useTableListState } from '@/hooks/use-table-list-state';
 import { useTenant } from '@/providers/tenant-provider';
-import {
-  loadCustomerList,
-  loadCustomerStatusStats,
-} from '../api/customers.api';
+import { loadCustomerList, loadCustomerStats } from '../api/customers.api';
 import {
   BUSINESS_TYPES,
   CUSTOMER_LIST_INITIAL_FILTERS,
@@ -157,10 +154,9 @@ export function useCustomerList() {
     placeholderData: keepPreviousData,
   });
 
-  const statusStatsQuery = useQuery({
+  const customerStatsQuery = useQuery({
     queryKey: ['project', 'customers', 'stats', tenantState.tenantId],
-    queryFn: ({ signal }) =>
-      loadCustomerStatusStats(tenantState.tenantId!, signal),
+    queryFn: ({ signal }) => loadCustomerStats(tenantState.tenantId!, signal),
     enabled: Boolean(tenantState.tenantId),
   });
 
@@ -168,7 +164,7 @@ export function useCustomerList() {
     ...listState,
     tenantQuery: tenantState,
     workspaceQuery: listQuery,
-    statusStatsQuery,
+    customerStatsQuery,
     customers: listQuery.data?.customers ?? [],
     total: listQuery.data?.total ?? 0,
     customerTagOptions: subjectTagFilterQuery.data?.options ?? [],

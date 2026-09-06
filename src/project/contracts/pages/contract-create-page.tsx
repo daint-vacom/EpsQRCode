@@ -747,7 +747,7 @@ export function ContractCreatePage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 p-4 lg:gap-5 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       {isEditMode ? (
         <PageHeader
           title="Chỉnh sửa hợp đồng"

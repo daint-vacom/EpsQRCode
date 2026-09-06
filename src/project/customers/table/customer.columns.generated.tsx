@@ -36,6 +36,7 @@ import {
 } from './customer-column-filters.generated';
 
 export const CUSTOMER_COLUMN_PINNING: ColumnPinningState = {
+  left: ['select'],
   right: ['actions'],
 };
 
@@ -134,6 +135,7 @@ export function useCustomerColumns(
       );
 
     return [
+      col.select(),
       col.custom({
         id: 'name',
         header: 'Khách hàng',
