@@ -1,15 +1,26 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
+import { SavedViewFilterControls } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
-import { SavedViewsToolbar } from '@/project/saved-views/components/saved-views-toolbar';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Layers3, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type RowSelectionState,
+} from '@tanstack/react-table';
+import {
+  Archive,
+  ChevronDown,
+  Layers3,
+  Plus,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -29,10 +40,15 @@ import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visib
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { StatusStats, type StatusStatItem } from '@/components/ui/status-stats';
 import { archiveContractTemplate } from '../api/contract-templates.api';
 import {
   CONTRACT_TEMPLATE_STATUS_LABELS,
@@ -48,37 +64,17 @@ import {
   type ContractTemplateSavedView,
   type ContractTemplateSavedViewConfig,
 } from '../model/contract-template-saved-view';
+import {
+  ContractTemplateFilterDrawer,
+  type ContractTemplateFilterDraft,
+} from './contract-template-filter-drawer';
 import { ContractTemplateStatusBadge } from './contract-template-status-badge';
-import { useContractTemplateColumns } from './contract-template.columns.generated';
+import {
+  CONTRACT_TEMPLATE_COLUMN_PINNING,
+  useContractTemplateColumns,
+} from './contract-template.columns.generated';
 import { ContractTemplateFilterBar } from './contract-template.filters.generated';
 import { useContractTemplateList } from './use-contract-template-list';
-
-const contractTemplateStatItems = [
-  {
-    key: 'total',
-    label: 'Tổng số',
-    filterValue: null,
-    className: '!bg-muted !text-muted-foreground',
-  },
-  {
-    key: 'draft',
-    label: CONTRACT_TEMPLATE_STATUS_LABELS.draft,
-    filterValue: 'draft',
-    className: '!bg-muted !text-muted-foreground',
-  },
-  {
-    key: 'published',
-    label: CONTRACT_TEMPLATE_STATUS_LABELS.published,
-    filterValue: 'published',
-    className: '!bg-admin-success-bg !text-admin-success-text',
-  },
-  {
-    key: 'archived',
-    label: CONTRACT_TEMPLATE_STATUS_LABELS.archived,
-    filterValue: 'archived',
-    className: '!bg-muted !text-muted-foreground',
-  },
-] satisfies readonly StatusStatItem<'draft' | 'published' | 'archived'>[];
 
 const CONTRACT_TEMPLATE_FILTER_STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -95,6 +91,10 @@ export function ContractTemplatesPage() {
   const { userId, hasPermission } = useUser();
   const [archivingTemplate, setArchivingTemplate] =
     useState<ContractTemplate | null>(null);
+  const [archivingTemplates, setArchivingTemplates] = useState<
+    ContractTemplate[]
+  >([]);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingView, setEditingView] =
     useState<ContractTemplateSavedView | null>(null);
@@ -114,7 +114,6 @@ export function ContractTemplatesPage() {
     onPaginationChange,
     tenantQuery,
     listQuery,
-    statusStatsQuery,
     contractTemplateTagsByTemplateId,
   } = useContractTemplateList();
   const savedViewState = useTenantSavedViews<ContractTemplateListFilters>({
@@ -129,6 +128,24 @@ export function ContractTemplatesPage() {
     onSuccess: async () => {
       toast.success('Đã lưu trữ mẫu hợp đồng.');
       setArchivingTemplate(null);
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'contract-templates'],
+      });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const bulkArchiveMutation = useMutation({
+    mutationFn: (selectedTemplates: ContractTemplate[]) =>
+      Promise.all(
+        selectedTemplates.map((template) =>
+          archiveContractTemplate(template.id),
+        ),
+      ),
+    onSuccess: async (_, archivedTemplates) => {
+      setArchivingTemplates([]);
+      setRowSelection({});
+      toast.success(`Đã lưu trữ ${archivedTemplates.length} mẫu hợp đồng.`);
       await queryClient.invalidateQueries({
         queryKey: ['project', 'contract-templates'],
       });
@@ -203,9 +220,12 @@ export function ContractTemplatesPage() {
     onColumnOrderChange,
     applySavedViewTableState,
     resetSavedViewTableState,
+    showInlineFilters,
+    onShowInlineFiltersChange,
   } = useSavedViewTableState<ContractTemplateListFilters>({
     visibilityStorageKey: 'project.contractTemplates.columnVisibility',
     orderStorageKey: 'project.contractTemplates.columnOrder',
+    inlineFiltersStorageKey: 'project.contractTemplates.showInlineFilters',
   });
   const currentViewConfig = useMemo<ContractTemplateSavedViewConfig>(
     () => ({ version: 1, keyword, filters, columnVisibility, columnOrder }),
@@ -250,7 +270,6 @@ export function ContractTemplatesPage() {
   }
 
   function openEditSavedView(view: ContractTemplateSavedView) {
-    selectSavedView(view.id);
     setEditingView(view);
     viewForm.reset({ name: view.name });
     setViewDialogOpen(true);
@@ -288,20 +307,6 @@ export function ContractTemplatesPage() {
     <PageHeader
       title="Quản lý mẫu hợp đồng"
       icon={Layers3}
-      titleAside={
-        <SavedViewsToolbar
-          views={savedViewState.savedViews}
-          activeViewId={savedViewState.activeViewId}
-          canManage={canManageSavedViews}
-          isLoading={savedViewState.savedViewsQuery.isPending}
-          isDirty={isActiveViewDirty}
-          isSaving={savedViewState.saveMutation.isPending}
-          onSelect={selectSavedView}
-          onCreate={openCreateSavedView}
-          onEdit={openEditSavedView}
-          onSaveCurrent={() => saveView()}
-        />
-      }
       actions={
         <ShortcutTooltip label="Thêm mẫu hợp đồng" shortcut="Alt + N">
           <Button
@@ -321,15 +326,26 @@ export function ContractTemplatesPage() {
     data: templates,
     columns,
     getRowId: (row) => row.id,
-    state: { pagination, columnVisibility, columnOrder },
+    state: {
+      pagination,
+      columnVisibility,
+      columnOrder,
+      columnPinning: CONTRACT_TEMPLATE_COLUMN_PINNING,
+      rowSelection,
+    },
     onPaginationChange,
     onColumnVisibilityChange,
     onColumnOrderChange,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     manualPagination: true,
     pageCount: Math.ceil(total / pagination.pageSize),
     getCoreRowModel: getCoreRowModel(),
   });
   const listError = tenantQuery.error ?? listQuery.error;
+  const selectedTemplates = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original);
 
   if (tenantQuery.isError || listQuery.isError) {
     return (
@@ -360,23 +376,45 @@ export function ContractTemplatesPage() {
         isLoading={listQuery.isLoading}
         isFetching={listQuery.isFetching}
         emptyMessage="Chưa có mẫu hợp đồng"
-        tableLayout={{ dense: true, columnsVisibility: false }}
+        tableLayout={{
+          dense: true,
+          columnsVisibility: false,
+          showInlineFilters,
+        }}
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
           <DataGridHeader
-            variant="stats"
-            stats={
-              <StatusStats
-                items={contractTemplateStatItems}
-                counts={statusStatsQuery.data}
-                isLoading={statusStatsQuery.isPending}
-                activeFilters={filters.statuses}
-                onFilterChange={(status) => {
-                  setFilter('status', status ?? 'all');
-                  setFilter('statuses', status ? [status] : []);
-                }}
-                ariaLabel="Lọc mẫu hợp đồng theo trạng thái"
-              />
+            title={
+              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
+                <span>
+                  Đã chọn{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedTemplates.length}
+                  </span>{' '}
+                  mẫu hợp đồng
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      disabled={selectedTemplates.length === 0}
+                      aria-label="Thao tác hàng loạt"
+                    >
+                      Thao tác hàng loạt
+                      <ChevronDown />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      onSelect={() => setArchivingTemplates(selectedTemplates)}
+                    >
+                      <Archive />
+                      Lưu trữ mẫu hợp đồng
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             }
             toolbar={
               <>
@@ -416,6 +454,50 @@ export function ContractTemplatesPage() {
                     ) : null
                   }
                 />
+                <SavedViewFilterControls
+                  views={savedViewState.savedViews}
+                  activeViewId={savedViewState.activeViewId}
+                  canManage={canManageSavedViews}
+                  isLoading={savedViewState.savedViewsQuery.isPending}
+                  isDirty={isActiveViewDirty}
+                  isSaving={savedViewState.saveMutation.isPending}
+                  showInlineFilters={showInlineFilters}
+                  onShowInlineFiltersChange={onShowInlineFiltersChange}
+                  renderFilterDrawer={({ open, onOpenChange, trigger }) => (
+                    <ContractTemplateFilterDrawer
+                      keyword={keyword}
+                      filters={filters}
+                      open={open}
+                      onOpenChange={onOpenChange}
+                      onApply={({
+                        keyword: nextKeyword,
+                        filters: nextFilters,
+                      }) => {
+                        setKeyword(nextKeyword);
+                        setFilters(nextFilters);
+                      }}
+                      onReset={resetAll}
+                      onSaveToView={
+                        canManageSavedViews
+                          ? (draft: ContractTemplateFilterDraft) =>
+                              saveView({
+                                ...currentViewConfig,
+                                keyword: draft.keyword,
+                                filters: draft.filters,
+                              })
+                          : undefined
+                      }
+                      canSaveToView={Boolean(activeView && canManageSavedViews)}
+                      saveDisabled={!isActiveViewDirty}
+                      isSaving={savedViewState.saveMutation.isPending}
+                      trigger={trigger}
+                    />
+                  )}
+                  onSelect={selectSavedView}
+                  onCreate={openCreateSavedView}
+                  onEdit={openEditSavedView}
+                  onSaveCurrent={() => saveView()}
+                />
                 <Button
                   variant="outline"
                   mode="icon"
@@ -423,7 +505,6 @@ export function ContractTemplatesPage() {
                   title="Làm mới"
                   onClick={() => {
                     void listQuery.refetch();
-                    void statusStatsQuery.refetch();
                   }}
                 >
                   <RefreshCw />
@@ -486,6 +567,21 @@ export function ContractTemplatesPage() {
         confirmVariant="destructive"
         onConfirm={() => {
           if (archivingTemplate) archiveMutation.mutate(archivingTemplate);
+        }}
+      />
+      <ConfirmDialog
+        open={archivingTemplates.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setArchivingTemplates([]);
+        }}
+        title={`Lưu trữ ${archivingTemplates.length} mẫu hợp đồng?`}
+        description={`Các mẫu hợp đồng đã chọn sẽ không còn được sử dụng để tạo hợp đồng mới.`}
+        confirmLabel="Lưu trữ mẫu"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (archivingTemplates.length > 0) {
+            bulkArchiveMutation.mutate(archivingTemplates);
+          }
         }}
       />
       <ConfirmDialog

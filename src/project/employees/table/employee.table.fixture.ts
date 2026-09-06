@@ -6,6 +6,9 @@ const spec: TableSpec = {
   specPath: 'src/project/employees/table/employee.table.fixture.ts',
   columns: [
     {
+      kind: 'select',
+    },
+    {
       kind: 'custom',
       id: 'name',
       header: 'Nhân viên',

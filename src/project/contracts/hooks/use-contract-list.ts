@@ -9,10 +9,7 @@ import {
   DEFAULT_CONTRACT_RENEWAL_REMINDER_DAYS,
   DEFAULT_PAYMENT_REMINDER_DAYS,
 } from '../../model/tenant-settings';
-import {
-  loadContractList,
-  loadContractStatusStats,
-} from '../api/contracts.api';
+import { loadContractList } from '../api/contracts.api';
 import {
   CONTRACT_LIST_INITIAL_FILTERS,
   CONTRACT_STATUSES,
@@ -118,17 +115,6 @@ export function useContractList() {
     placeholderData: keepPreviousData,
   });
 
-  const statusStatsQuery = useQuery({
-    queryKey: ['project', 'contracts', 'stats', userId, tenantId],
-    queryFn: ({ signal }) => {
-      if (!tenantId) {
-        throw new Error('Chưa xác định tenant đang hoạt động.');
-      }
-      return loadContractStatusStats({ tenantId }, signal);
-    },
-    enabled: Boolean(tenantId),
-  });
-
   return {
     ...listState,
     tenantQuery: {
@@ -138,7 +124,6 @@ export function useContractList() {
       refetch,
     },
     workspaceQuery: listQuery,
-    statusStatsQuery,
     tenantSettingsQuery,
     paymentReminderDays:
       tenantSettingsQuery.data?.values.paymentReminderDays ??

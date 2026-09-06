@@ -16,6 +16,7 @@ interface SavedViewsToolbarProps<TFilters extends object> {
   onSaveCurrent: () => void;
 }
 
+/** Legacy chip toolbar kept for callers that have not moved to the list-page preset. */
 export function SavedViewsToolbar<TFilters extends object>({
   views,
   activeViewId,

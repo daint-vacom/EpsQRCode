@@ -7,6 +7,9 @@ const spec: TableSpec = {
     'src/project/contracts/templates/contract-template.table.fixture.ts',
   columns: [
     {
+      kind: 'select',
+    },
+    {
       kind: 'custom',
       id: 'template',
       header: 'Mẫu hợp đồng',

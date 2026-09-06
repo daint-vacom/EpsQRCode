@@ -6,7 +6,6 @@ import { useTenant } from '@/providers/tenant-provider';
 import {
   loadEmployeeList,
   loadEmployeeRoleOptions,
-  loadEmployeeStatusStats,
 } from '../api/employees.api';
 import {
   EMPLOYEE_LIST_INITIAL_FILTERS,
@@ -103,18 +102,10 @@ export function useEmployeeList() {
     placeholderData: keepPreviousData,
   });
 
-  const statusStatsQuery = useQuery({
-    queryKey: ['project', 'employees', 'stats', tenantState.tenantId],
-    queryFn: ({ signal }) =>
-      loadEmployeeStatusStats(tenantState.tenantId!, signal),
-    enabled: Boolean(tenantState.tenantId),
-  });
-
   return {
     ...listState,
     tenantQuery: tenantState,
     workspaceQuery: listQuery,
-    statusStatsQuery,
     employees: listQuery.data?.employees ?? [],
     total: listQuery.data?.total ?? 0,
     employeeTagOptions: subjectTagFilterQuery.data?.options ?? [],

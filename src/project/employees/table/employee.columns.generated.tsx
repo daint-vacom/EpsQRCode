@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
@@ -34,6 +34,11 @@ import {
   EmployeeStatusColumnFilter,
   EmployeeTextColumnFilter,
 } from './employee-column-filters.generated';
+
+export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
+  left: ['select'],
+  right: ['actions'],
+};
 
 const statusBadgeConfig: StatusBadgeConfig<string> = {
   active: {
@@ -75,6 +80,7 @@ export function useEmployeeColumns(
     const col = createColumnHelpers<Employee>();
 
     return [
+      col.select(),
       col.custom({
         id: 'name',
         header: 'Nhân viên',

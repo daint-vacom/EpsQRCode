@@ -3,10 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { buildListQueryParams } from '@/lib/list-query-params';
 import { useTableListState } from '@/hooks/use-table-list-state';
 import { useTenant } from '@/providers/tenant-provider';
-import {
-  loadContractTemplateList,
-  loadContractTemplateStatusStats,
-} from '../api/contract-templates.api';
+import { loadContractTemplateList } from '../api/contract-templates.api';
 import type {
   ContractTemplateListFilters,
   ContractTemplateListParams,
@@ -111,17 +108,10 @@ export function useContractTemplateList() {
     placeholderData: keepPreviousData,
   });
 
-  const statusStatsQuery = useQuery({
-    queryKey: ['project', 'contract-templates', 'stats', tenantId],
-    queryFn: ({ signal }) => loadContractTemplateStatusStats(tenantId!, signal),
-    enabled: Boolean(tenantId),
-  });
-
   return {
     ...listState,
     tenantQuery: { isPending, isError, error, refetch },
     listQuery,
-    statusStatsQuery,
     contractTemplateTagOptions: subjectTagFilterQuery.data?.options ?? [],
     contractTemplateTagsByTemplateId:
       subjectTagFilterQuery.data?.tagsBySubjectId ?? {},

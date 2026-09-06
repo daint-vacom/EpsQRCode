@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { SavedViewFilterControls } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
-import { SavedViewsToolbar } from '@/project/saved-views/components/saved-views-toolbar';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,14 @@ import {
   useReactTable,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { FileText, Plus, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  FileText,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -29,27 +36,31 @@ import {
 } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
-import { DataGridActionBar } from '@/components/ui/data-grid-action-bar';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { StatusStats, type StatusStatItem } from '@/components/ui/status-stats';
 import {
   deleteContract,
   renewContracts,
   type ContractBulkRenewalInput,
 } from '../api/contracts.api';
 import { ContractBulkRenewalDialog } from '../components/contract-bulk-renewal-dialog';
-import { useContractList } from '../hooks/use-contract-list';
 import {
-  type Contract,
-  type ContractListFilters,
-  type ContractStatus,
-} from '../model/contract';
+  ContractFilterDrawer,
+  type ContractFilterDraft,
+} from '../components/contract-filter-drawer';
+import { useContractList } from '../hooks/use-contract-list';
+import { type Contract, type ContractListFilters } from '../model/contract';
 import {
   CONTRACT_SAVED_VIEW_MANAGE_PERMISSION,
   CONTRACT_SAVED_VIEW_RESOURCE,
@@ -93,7 +104,6 @@ export function ContractsPage() {
     onPaginationChange,
     tenantQuery,
     workspaceQuery,
-    statusStatsQuery,
     customerOptions,
     customerOptionsQuery,
     paymentReminderDays,
@@ -193,9 +203,12 @@ export function ContractsPage() {
     onColumnOrderChange,
     applySavedViewTableState,
     resetSavedViewTableState,
+    showInlineFilters,
+    onShowInlineFiltersChange,
   } = useSavedViewTableState<ContractListFilters>({
     visibilityStorageKey: 'project.contracts.columnVisibility',
     orderStorageKey: 'project.contracts.columnOrder',
+    inlineFiltersStorageKey: 'project.contracts.showInlineFilters',
   });
   const currentViewConfig = useMemo<ContractSavedViewConfig>(
     () => ({ version: 1, keyword, filters, columnVisibility, columnOrder }),
@@ -236,7 +249,6 @@ export function ContractsPage() {
   }
 
   function openEditSavedView(view: ContractSavedView) {
-    selectSavedView(view.id);
     setEditingView(view);
     viewForm.reset({ name: view.name });
     setViewDialogOpen(true);
@@ -274,20 +286,6 @@ export function ContractsPage() {
     <PageHeader
       title="Quản lý hợp đồng"
       icon={FileText}
-      titleAside={
-        <SavedViewsToolbar
-          views={savedViewState.savedViews}
-          activeViewId={savedViewState.activeViewId}
-          canManage={canManageSavedViews}
-          isLoading={savedViewState.savedViewsQuery.isPending}
-          isDirty={isActiveViewDirty}
-          isSaving={savedViewState.saveMutation.isPending}
-          onSelect={selectSavedView}
-          onCreate={openCreateSavedView}
-          onEdit={openEditSavedView}
-          onSaveCurrent={() => saveView()}
-        />
-      }
       actions={
         <ShortcutTooltip label="Thêm hợp đồng" shortcut="Alt + N">
           <Button
@@ -366,28 +364,104 @@ export function ContractsPage() {
         isLoading={isListLoading}
         isFetching={workspaceQuery.isFetching}
         emptyMessage="Chưa có hợp đồng"
-        tableLayout={{ dense: true, columnsVisibility: false }}
+        tableLayout={{
+          dense: true,
+          columnsVisibility: false,
+          showInlineFilters,
+        }}
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
           <DataGridHeader
-            variant="stats"
-            stats={
-              <StatusStats
-                items={contractStatItems}
-                counts={statusStatsQuery.data}
-                isLoading={statusStatsQuery.isPending}
-                activeFilters={filters.status}
-                onFilterChange={(status) =>
-                  setFilter('status', status ? [status] : [])
-                }
-                ariaLabel="Lọc hợp đồng theo trạng thái"
-              />
+            title={
+              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
+                <span>
+                  Đã chọn{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedContracts.length}
+                  </span>{' '}
+                  hợp đồng
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      disabled={selectedContracts.length === 0}
+                      aria-label="Thao tác hàng loạt"
+                    >
+                      Thao tác hàng loạt
+                      <ChevronDown />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      onSelect={() => setBulkRenewalDialogOpen(true)}
+                    >
+                      <RefreshCw />
+                      Gia hạn hợp đồng
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => setDeletingContracts(selectedContracts)}
+                    >
+                      <Trash2 />
+                      Xóa hợp đồng
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             }
             toolbar={
               <>
                 <ContractFilterBar
                   keyword={keyword}
                   onKeywordChange={setKeyword}
+                />
+                <SavedViewFilterControls
+                  views={savedViewState.savedViews}
+                  activeViewId={savedViewState.activeViewId}
+                  canManage={canManageSavedViews}
+                  isLoading={savedViewState.savedViewsQuery.isPending}
+                  isDirty={isActiveViewDirty}
+                  isSaving={savedViewState.saveMutation.isPending}
+                  showInlineFilters={showInlineFilters}
+                  onShowInlineFiltersChange={onShowInlineFiltersChange}
+                  renderFilterDrawer={({ open, onOpenChange, trigger }) => (
+                    <ContractFilterDrawer
+                      keyword={keyword}
+                      filters={filters}
+                      customerOptions={customerOptions}
+                      customerOptionsLoading={customerOptionsQuery.isPending}
+                      open={open}
+                      onOpenChange={onOpenChange}
+                      onApply={({
+                        keyword: nextKeyword,
+                        filters: nextFilters,
+                      }) => {
+                        setKeyword(nextKeyword);
+                        setFilters(nextFilters);
+                      }}
+                      onReset={resetAll}
+                      onSaveToView={
+                        canManageSavedViews
+                          ? (draft: ContractFilterDraft) =>
+                              saveView({
+                                ...currentViewConfig,
+                                keyword: draft.keyword,
+                                filters: draft.filters,
+                              })
+                          : undefined
+                      }
+                      canSaveToView={Boolean(activeView && canManageSavedViews)}
+                      saveDisabled={!isActiveViewDirty}
+                      isSaving={savedViewState.saveMutation.isPending}
+                      trigger={trigger}
+                    />
+                  )}
+                  onSelect={selectSavedView}
+                  onCreate={openCreateSavedView}
+                  onEdit={openEditSavedView}
+                  onSaveCurrent={() => saveView()}
                 />
                 <Button
                   variant="outline"
@@ -396,7 +470,6 @@ export function ContractsPage() {
                   title="Làm mới"
                   onClick={() => {
                     void workspaceQuery.refetch();
-                    void statusStatsQuery.refetch();
                   }}
                 >
                   <RefreshCw />
@@ -424,31 +497,6 @@ export function ContractsPage() {
             <DataGridPagination />
           </CardFooter>
         </Card>
-
-        <DataGridActionBar>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={renewalMutation.isPending}
-            loading={renewalMutation.isPending}
-            loadingText="Đang gia hạn..."
-            onClick={() => setBulkRenewalDialogOpen(true)}
-          >
-            <RefreshCw />
-            Gia hạn
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={deleteMutation.isPending}
-            loading={deleteMutation.isPending}
-            loadingText="Đang xóa..."
-            onClick={() => setDeletingContracts(selectedContracts)}
-          >
-            <Trash2 />
-            Xóa
-          </Button>
-        </DataGridActionBar>
       </DataGrid>
 
       <ConfirmDialog
@@ -532,30 +580,3 @@ export function ContractsPage() {
     </div>
   );
 }
-
-const contractStatItems = [
-  {
-    key: 'total',
-    label: 'Tổng số',
-    filterValue: null,
-    className: '!bg-muted !text-muted-foreground',
-  },
-  {
-    key: 'active',
-    label: 'Đang hiệu lực',
-    filterValue: 'active',
-    className: '!bg-admin-success-bg !text-admin-success-text',
-  },
-  {
-    key: 'expiring',
-    label: 'Sắp hết hạn',
-    filterValue: 'active',
-    className: '!bg-admin-amber-bg !text-admin-amber-dark',
-  },
-  {
-    key: 'expired',
-    label: 'Đã hết hạn',
-    filterValue: 'expired',
-    className: '!bg-admin-red-bg !text-admin-red-dark',
-  },
-] satisfies readonly StatusStatItem<ContractStatus>[];

@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Archive, Eye, Pencil } from 'lucide-react';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import {
@@ -26,6 +26,11 @@ import {
   ContractTemplateVersionNoColumnFilter,
 } from './contract-template-column-filters.generated';
 import { ContractTemplateStatusBadge } from './contract-template-status-badge';
+
+export const CONTRACT_TEMPLATE_COLUMN_PINNING: ColumnPinningState = {
+  left: ['select'],
+  right: ['actions'],
+};
 
 export interface UseContractTemplateColumnsParams {
   onView: (template: ContractTemplate) => void;
@@ -61,6 +66,7 @@ export function useContractTemplateColumns(
     });
 
     return [
+      col.select(),
       col.custom({
         id: 'template',
         header: 'Mẫu hợp đồng',

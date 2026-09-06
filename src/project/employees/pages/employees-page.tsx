@@ -1,14 +1,25 @@
 import { useMemo, useState } from 'react';
+import { SavedViewFilterControls } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
-import { SavedViewsToolbar } from '@/project/saved-views/components/saved-views-toolbar';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Plus, RefreshCw, TriangleAlert, Users } from 'lucide-react';
+import {
+  getCoreRowModel,
+  useReactTable,
+  type RowSelectionState,
+} from '@tanstack/react-table';
+import {
+  ChevronDown,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TriangleAlert,
+  Users,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -27,22 +38,30 @@ import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visib
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { StatusStats, type StatusStatItem } from '@/components/ui/status-stats';
 import {
   createEmployee,
   deleteEmployee,
   updateEmployee,
 } from '../api/employees.api';
 import {
+  EmployeeFilterDrawer,
+  type EmployeeFilterDraft,
+} from '../components/employee-filter-drawer';
+import {
   EmployeeFormDialog,
   useEmployeeForm,
 } from '../forms/employee-form.generated';
 import { useEmployeeList } from '../hooks/use-employee-list';
 import {
-  EMPLOYEE_STATUS_LABELS,
   emptyEmployeeForm,
   mapEmployeeToFormValues,
   type Employee,
@@ -57,39 +76,23 @@ import {
   type EmployeeSavedView,
   type EmployeeSavedViewConfig,
 } from '../model/employee-saved-view';
-import { useEmployeeColumns } from '../table/employee.columns.generated';
+import {
+  EMPLOYEE_COLUMN_PINNING,
+  useEmployeeColumns,
+} from '../table/employee.columns.generated';
 import { EmployeeFilterBar } from '../table/employee.filters.generated';
-
-const employeeStatItems = [
-  {
-    key: 'total',
-    label: 'Tổng số',
-    filterValue: null,
-    className: '!bg-muted !text-muted-foreground',
-  },
-  {
-    key: 'active',
-    label: EMPLOYEE_STATUS_LABELS.active,
-    filterValue: 'active',
-    className: '!bg-admin-success-bg !text-admin-success-text',
-  },
-  {
-    key: 'inactive',
-    label: EMPLOYEE_STATUS_LABELS.inactive,
-    filterValue: 'inactive',
-    className: '!bg-muted !text-muted-foreground',
-  },
-] satisfies readonly StatusStatItem<'active' | 'inactive'>[];
 
 export function EmployeesPage() {
   const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(
     null,
   );
+  const [deletingEmployees, setDeletingEmployees] = useState<Employee[]>([]);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingView, setEditingView] = useState<EmployeeSavedView | null>(
     null,
@@ -113,7 +116,6 @@ export function EmployeesPage() {
     onPaginationChange,
     tenantQuery,
     workspaceQuery,
-    statusStatsQuery,
     employeeTagsByEmployeeId,
     employeeRoleOptions,
     employeeRoleOptionsQuery,
@@ -150,6 +152,20 @@ export function EmployeesPage() {
     mutationFn: deleteEmployee,
     onSuccess: async () => {
       toast.success('Đã xóa nhân viên.');
+      await invalidateEmployees();
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (selectedEmployees: Employee[]) =>
+      Promise.all(
+        selectedEmployees.map((employee) => deleteEmployee(employee.id)),
+      ),
+    onSuccess: async (_, deletedEmployees) => {
+      setDeletingEmployees([]);
+      setRowSelection({});
+      toast.success(`Đã xóa ${deletedEmployees.length} nhân viên.`);
       await invalidateEmployees();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -195,9 +211,12 @@ export function EmployeesPage() {
     onColumnOrderChange,
     applySavedViewTableState,
     resetSavedViewTableState,
+    showInlineFilters,
+    onShowInlineFiltersChange,
   } = useSavedViewTableState<EmployeeListFilters>({
     visibilityStorageKey: 'project.employees.columnVisibility',
     orderStorageKey: 'project.employees.columnOrder',
+    inlineFiltersStorageKey: 'project.employees.showInlineFilters',
   });
   const currentViewConfig = useMemo<EmployeeSavedViewConfig>(
     () => ({ version: 1, keyword, filters, columnVisibility, columnOrder }),
@@ -243,7 +262,6 @@ export function EmployeesPage() {
   }
 
   function openEditSavedView(view: EmployeeSavedView) {
-    selectSavedView(view.id);
     setEditingView(view);
     viewForm.reset({ name: view.name });
     setViewDialogOpen(true);
@@ -282,20 +300,6 @@ export function EmployeesPage() {
     <PageHeader
       title="Quản lý nhân viên"
       icon={Users}
-      titleAside={
-        <SavedViewsToolbar
-          views={savedViewState.savedViews}
-          activeViewId={savedViewState.activeViewId}
-          canManage={canManageSavedViews}
-          isLoading={savedViewState.savedViewsQuery.isPending}
-          isDirty={isActiveViewDirty}
-          isSaving={savedViewState.saveMutation.isPending}
-          onSelect={selectSavedView}
-          onCreate={openCreateSavedView}
-          onEdit={openEditSavedView}
-          onSaveCurrent={() => saveView()}
-        />
-      }
       actions={
         <ShortcutTooltip label="Thêm nhân viên" shortcut="Alt + N">
           <Button
@@ -315,10 +319,18 @@ export function EmployeesPage() {
     data: employees,
     columns,
     getRowId: (row) => row.id,
-    state: { pagination, columnVisibility, columnOrder },
+    state: {
+      pagination,
+      columnVisibility,
+      columnOrder,
+      columnPinning: EMPLOYEE_COLUMN_PINNING,
+      rowSelection,
+    },
     onPaginationChange,
     onColumnVisibilityChange,
     onColumnOrderChange,
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     manualPagination: true,
     pageCount: Math.ceil(total / pagination.pageSize),
     getCoreRowModel: getCoreRowModel(),
@@ -326,6 +338,9 @@ export function EmployeesPage() {
 
   const listError = tenantQuery.error ?? workspaceQuery.error;
   const isListLoading = tenantQuery.isPending || workspaceQuery.isLoading;
+  const selectedEmployees = table
+    .getSelectedRowModel()
+    .rows.map((row) => row.original);
 
   if (tenantQuery.isError || workspaceQuery.isError) {
     return (
@@ -362,28 +377,98 @@ export function EmployeesPage() {
         isLoading={isListLoading}
         isFetching={workspaceQuery.isFetching}
         emptyMessage="Chưa có nhân viên"
-        tableLayout={{ dense: true, columnsVisibility: false }}
+        tableLayout={{
+          dense: true,
+          columnsVisibility: false,
+          showInlineFilters,
+        }}
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
           <DataGridHeader
-            variant="stats"
-            stats={
-              <StatusStats
-                items={employeeStatItems}
-                counts={statusStatsQuery.data}
-                isLoading={statusStatsQuery.isPending}
-                activeFilters={filters.statuses}
-                onFilterChange={(status) =>
-                  setFilter('statuses', status ? [status] : [])
-                }
-                ariaLabel="Lọc nhân viên theo trạng thái"
-              />
+            title={
+              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
+                <span>
+                  Đã chọn{' '}
+                  <span className="font-semibold text-foreground">
+                    {selectedEmployees.length}
+                  </span>{' '}
+                  nhân viên
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      disabled={selectedEmployees.length === 0}
+                      aria-label="Thao tác hàng loạt"
+                    >
+                      Thao tác hàng loạt
+                      <ChevronDown />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onSelect={() => setDeletingEmployees(selectedEmployees)}
+                    >
+                      <Trash2 />
+                      Xóa nhân viên
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             }
             toolbar={
               <>
                 <EmployeeFilterBar
                   keyword={keyword}
                   onKeywordChange={setKeyword}
+                />
+                <SavedViewFilterControls
+                  views={savedViewState.savedViews}
+                  activeViewId={savedViewState.activeViewId}
+                  canManage={canManageSavedViews}
+                  isLoading={savedViewState.savedViewsQuery.isPending}
+                  isDirty={isActiveViewDirty}
+                  isSaving={savedViewState.saveMutation.isPending}
+                  showInlineFilters={showInlineFilters}
+                  onShowInlineFiltersChange={onShowInlineFiltersChange}
+                  renderFilterDrawer={({ open, onOpenChange, trigger }) => (
+                    <EmployeeFilterDrawer
+                      keyword={keyword}
+                      filters={filters}
+                      roleOptions={employeeRoleOptions}
+                      roleOptionsLoading={employeeRoleOptionsQuery.isLoading}
+                      open={open}
+                      onOpenChange={onOpenChange}
+                      onApply={({
+                        keyword: nextKeyword,
+                        filters: nextFilters,
+                      }) => {
+                        setKeyword(nextKeyword);
+                        setFilters(nextFilters);
+                      }}
+                      onReset={resetAll}
+                      onSaveToView={
+                        canManageSavedViews
+                          ? (draft: EmployeeFilterDraft) =>
+                              saveView({
+                                ...currentViewConfig,
+                                keyword: draft.keyword,
+                                filters: draft.filters,
+                              })
+                          : undefined
+                      }
+                      canSaveToView={Boolean(activeView && canManageSavedViews)}
+                      saveDisabled={!isActiveViewDirty}
+                      isSaving={savedViewState.saveMutation.isPending}
+                      trigger={trigger}
+                    />
+                  )}
+                  onSelect={selectSavedView}
+                  onCreate={openCreateSavedView}
+                  onEdit={openEditSavedView}
+                  onSaveCurrent={() => saveView()}
                 />
                 <Button
                   variant="outline"
@@ -392,7 +477,6 @@ export function EmployeesPage() {
                   title="Làm mới"
                   onClick={() => {
                     void workspaceQuery.refetch();
-                    void statusStatsQuery.refetch();
                   }}
                 >
                   <RefreshCw />
@@ -463,6 +547,21 @@ export function EmployeesPage() {
         confirmVariant="destructive"
         onConfirm={() => {
           if (deletingEmployee) deleteMutation.mutate(deletingEmployee.id);
+        }}
+      />
+      <ConfirmDialog
+        open={deletingEmployees.length > 0}
+        onOpenChange={(open) => {
+          if (!open) setDeletingEmployees([]);
+        }}
+        title={`Xóa ${deletingEmployees.length} nhân viên?`}
+        description={`Bạn có chắc muốn xóa ${deletingEmployees.length} nhân viên đã chọn? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa nhân viên"
+        confirmVariant="destructive"
+        onConfirm={() => {
+          if (deletingEmployees.length > 0) {
+            bulkDeleteMutation.mutate(deletingEmployees);
+          }
         }}
       />
       <ConfirmDialog
