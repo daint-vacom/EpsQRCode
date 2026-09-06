@@ -325,7 +325,6 @@ export function CustomersPage() {
   }
 
   function openEditSavedView(view: CustomerSavedView) {
-    selectSavedView(view.id);
     setEditingView(view);
     savedViewForm.reset({ name: view.name });
     setViewDialogOpen(true);

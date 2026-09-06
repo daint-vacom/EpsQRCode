@@ -3,6 +3,7 @@ import type { CustomField } from '@/project/data-configuration/model/custom-fiel
 import {
   Check,
   ChevronDown,
+  Pencil,
   Plus,
   Save,
   Settings2,
@@ -20,6 +21,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   CustomerFilterFormValues,
   CustomerListFilters,
@@ -71,6 +77,7 @@ export function CustomerFilterViewControl({
   saveDisabled = false,
 }: CustomerFilterViewControlProps) {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const activeView = views.find((view) => view.id === activeViewId) ?? null;
 
   return (
@@ -98,7 +105,7 @@ export function CustomerFilterViewControl({
           </Button>
         }
       />
-      <DropdownMenu>
+      <DropdownMenu open={viewMenuOpen} onOpenChange={setViewMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
@@ -123,14 +130,58 @@ export function CustomerFilterViewControl({
             Tất cả khách hàng
           </DropdownMenuItem>
           {views.map((view) => (
-            <DropdownMenuItem key={view.id} onSelect={() => onSelect(view.id)}>
-              <span className="flex size-4 shrink-0 items-center justify-center">
-                {activeViewId === view.id ? (
-                  <Check className="size-4 text-primary" />
-                ) : null}
-              </span>
-              <span className="min-w-0 truncate">{view.name}</span>
-            </DropdownMenuItem>
+            <div key={view.id} className="group relative">
+              <DropdownMenuItem
+                className="me-8 pe-2"
+                onSelect={(event) => {
+                  if (
+                    event.target instanceof HTMLElement &&
+                    event.target.closest('[data-view-edit-action]')
+                  ) {
+                    event.preventDefault();
+                    return;
+                  }
+
+                  onSelect(view.id);
+                }}
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center">
+                  {activeViewId === view.id ? (
+                    <Check className="size-4 text-primary" />
+                  ) : null}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{view.name}</span>
+              </DropdownMenuItem>
+              {canManage ? (
+                <span className="absolute end-1 top-1/2 flex -translate-y-1/2 items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Sửa view ${view.name}`}
+                        data-view-edit-action
+                        className="size-6 text-primary"
+                        onPointerDown={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setViewMenuOpen(false);
+                          onEdit(view);
+                        }}
+                      >
+                        <Pencil className="size-3.5 !opacity-100" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent variant="light">Sửa view</TooltipContent>
+                  </Tooltip>
+                </span>
+              ) : null}
+            </div>
           ))}
 
           <DropdownMenuSeparator />
