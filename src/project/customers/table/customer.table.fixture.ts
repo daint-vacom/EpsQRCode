@@ -14,7 +14,8 @@ const spec: TableSpec = {
       kind: 'custom',
       id: 'name',
       header: 'Khách hàng',
-      headerClassName: 'min-w-[240px]',
+      headerClassName: 'min-w-[300px]',
+      size: 320,
     },
     {
       kind: 'custom',

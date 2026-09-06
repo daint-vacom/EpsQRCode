@@ -356,8 +356,8 @@ export function createColumnHelpers<TRow extends object>(
         size: 44,
         meta: createMeta({
           header: '',
-          headerClassName: 'w-[44px]',
-          cellClassName: 'w-[44px]',
+          headerClassName: 'w-[44px] max-w-[44px]',
+          cellClassName: 'w-[44px] max-w-[44px]',
         }),
       };
     },

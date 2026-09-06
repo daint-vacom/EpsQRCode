@@ -76,6 +76,14 @@ describe('createColumnHelpers', () => {
     }
   });
 
+  it('keeps selection columns at the shared 44px width', () => {
+    const column = col.select();
+
+    expect(column.size).toBe(44);
+    expect(column.meta?.headerClassName).toBe('w-[44px] max-w-[44px]');
+    expect(column.meta?.cellClassName).toBe('w-[44px] max-w-[44px]');
+  });
+
   it('renders shared number, currency, percent, and date formatting', () => {
     const columns = [
       col.number({

@@ -165,6 +165,7 @@ describe('buildColumnsModule', () => {
     expect(out).toContain(
       'export const CONTRACT_TEMPLATE_COLUMN_PINNING: ColumnPinningState = {',
     );
+    expect(out).toContain('col.select(),');
     expect(out).toContain("left: ['select'],");
     expect(out).toContain("right: ['rowActions'],");
   });
