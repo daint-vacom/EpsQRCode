@@ -6,7 +6,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Building2, Palette, Save, type LucideIcon } from 'lucide-react';
+import {
+  Building2,
+  Palette,
+  Save,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { queryClient } from '@/lib/query-client';
@@ -28,6 +34,7 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { CardLoading } from '@/components/ui/loading';
+import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -220,11 +227,14 @@ export function ProjectSettingsPage() {
   const currentTheme = theme === 'light' || theme === 'dark' ? theme : 'system';
 
   return (
-    <div className="h-full min-h-0">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 px-4 pt-4 lg:px-5 lg:pt-5">
+        <PageHeader title="Cài đặt" icon={Settings} />
+      </div>
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
-        className="flex h-full min-h-0 flex-col lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-admin-page-section"
+        className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-admin-page-section"
       >
         <div className="shrink-0 px-4 pt-4 lg:min-h-0 lg:px-5 lg:pe-0 lg:pt-5">
           <Card className="flex h-fit max-h-full min-h-0 self-start flex-col">

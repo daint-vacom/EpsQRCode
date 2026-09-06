@@ -9,7 +9,7 @@ import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-vi
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Layers3, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -286,7 +286,8 @@ export function ContractTemplatesPage() {
   }
   const pageHeader = (
     <PageHeader
-      title="Mẫu hợp đồng"
+      title="Quản lý mẫu hợp đồng"
+      icon={Layers3}
       titleAside={
         <SavedViewsToolbar
           views={savedViewState.savedViews}

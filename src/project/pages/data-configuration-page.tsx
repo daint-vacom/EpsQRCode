@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Database,
   FileText,
+  ListTree,
   Save,
   Trash2,
   UserRoundSearch,
@@ -253,7 +254,11 @@ export function DataConfigurationPage() {
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
-      <PageHeader title="Cấu hình dữ liệu" className="shrink-0" />
+      <PageHeader
+        title="Cấu hình dữ liệu"
+        icon={ListTree}
+        className="shrink-0"
+      />
       <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
         <Card className="max-h-[220px] w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">

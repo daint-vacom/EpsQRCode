@@ -751,6 +751,7 @@ export function ContractCreatePage() {
       {isEditMode ? (
         <PageHeader
           title="Chỉnh sửa hợp đồng"
+          icon={FileText}
           backLabel="Quay lại chi tiết hợp đồng"
           onBack={handleCancel}
           titleAside={
@@ -787,7 +788,9 @@ export function ContractCreatePage() {
             ) : null
           }
         />
-      ) : null}
+      ) : (
+        <PageHeader title="Thêm hợp đồng" icon={FileText} />
+      )}
 
       <Card className="min-h-0 flex-1 overflow-hidden">
         <CardContent className="flex min-h-0 flex-1 flex-col gap-0 p-0">

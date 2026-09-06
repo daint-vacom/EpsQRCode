@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { FolderPlus, Plus, TriangleAlert } from 'lucide-react';
+import { FolderPlus, Plus, Tags, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -18,6 +18,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
@@ -283,7 +284,8 @@ export function TagsPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col p-4 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+      <PageHeader title="Quản lý nhãn" icon={Tags} className="shrink-0" />
       <DataGrid
         table={table}
         recordCount={tableRows.length}
@@ -302,7 +304,7 @@ export function TagsPage() {
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
           <CardHeader className="justify-between">
-            <CardTitle>Quản lý nhãn</CardTitle>
+            <CardTitle>Danh sách nhãn</CardTitle>
             <CardToolbar>
               <Tooltip>
                 <TooltipTrigger asChild>

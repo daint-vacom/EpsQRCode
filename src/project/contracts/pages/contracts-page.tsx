@@ -13,7 +13,7 @@ import {
   useReactTable,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { Plus, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
+import { FileText, Plus, RefreshCw, Trash2, TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -273,6 +273,7 @@ export function ContractsPage() {
   const pageHeader = (
     <PageHeader
       title="Quản lý hợp đồng"
+      icon={FileText}
       titleAside={
         <SavedViewsToolbar
           views={savedViewState.savedViews}

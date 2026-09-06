@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageLoading } from '@/components/ui/loading';
+import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Tooltip,
@@ -391,6 +392,14 @@ export function RolePermissionsPage() {
     saveRoleMutation.mutate({ role: dialogRole, values });
   };
 
+  const pageHeader = (
+    <PageHeader
+      title="Quản lý phân quyền"
+      icon={ShieldCheck}
+      className="shrink-0"
+    />
+  );
+
   if (workspaceQuery.isPending) {
     return (
       <PageLoading label="Đang tải cấu hình phân quyền..." className="h-full" />
@@ -399,202 +408,211 @@ export function RolePermissionsPage() {
 
   if (workspaceQuery.isError) {
     return (
-      <div className="flex h-full items-center justify-center p-4 text-sm text-destructive lg:p-5">
-        {workspaceQuery.error instanceof Error
-          ? workspaceQuery.error.message
-          : 'Không thể tải cấu hình phân quyền.'}
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 text-sm text-destructive lg:p-5">
+        {pageHeader}
+        <div className="flex flex-1 items-center justify-center">
+          {workspaceQuery.error instanceof Error
+            ? workspaceQuery.error.message
+            : 'Không thể tải cấu hình phân quyền.'}
+        </div>
       </div>
     );
   }
 
   if (!selectedRole) {
     return (
-      <div className="flex h-full items-center justify-center p-4 text-sm text-muted-foreground lg:p-5">
-        Chưa có vai trò nào trong tenant.
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 text-sm text-muted-foreground lg:p-5">
+        {pageHeader}
+        <div className="flex flex-1 items-center justify-center">
+          Chưa có vai trò nào trong tenant.
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:flex-row xl:overflow-hidden xl:p-5">
-      <Card className="max-h-[220px] w-full max-w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
-        <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
-          <CardTitle className="text-[15px]">Vai trò</CardTitle>
-        </CardHeader>
-        <CardContent className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-auto p-3 xl:flex xl:flex-col">
-          {roles.map((role) => (
-            <button
-              key={role.id}
-              type="button"
-              className={cn(
-                'flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors',
-                role.id === activeRoleId
-                  ? 'border-primary bg-primary/8 text-foreground'
-                  : 'border-border bg-background hover:bg-field',
-              )}
-              onClick={() => {
-                if (
-                  role.id === activeRoleId ||
-                  confirmLeave(
-                    'Bạn có thay đổi quyền chưa lưu. Bạn vẫn muốn chuyển vai trò?',
-                  )
-                ) {
-                  setSelectedRoleId(role.id);
-                }
-              }}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    'size-2.5 shrink-0 rounded-full border',
-                    ROLE_COLOR_SWATCH_CLASSES[role.color],
-                  )}
-                />
-                <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-semibold">
-                    {role.name}
+    <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
+      {pageHeader}
+      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
+        <Card className="max-h-[220px] w-full max-w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
+          <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
+            <CardTitle className="text-[15px]">Vai trò</CardTitle>
+          </CardHeader>
+          <CardContent className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-auto p-3 xl:flex xl:flex-col">
+            {roles.map((role) => (
+              <button
+                key={role.id}
+                type="button"
+                className={cn(
+                  'flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left transition-colors',
+                  role.id === activeRoleId
+                    ? 'border-primary bg-primary/8 text-foreground'
+                    : 'border-border bg-background hover:bg-field',
+                )}
+                onClick={() => {
+                  if (
+                    role.id === activeRoleId ||
+                    confirmLeave(
+                      'Bạn có thay đổi quyền chưa lưu. Bạn vẫn muốn chuyển vai trò?',
+                    )
+                  ) {
+                    setSelectedRoleId(role.id);
+                  }
+                }}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      'size-2.5 shrink-0 rounded-full border',
+                      ROLE_COLOR_SWATCH_CLASSES[role.color],
+                    )}
+                  />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13px] font-semibold">
+                      {role.name}
+                    </span>
                   </span>
                 </span>
-              </span>
-              <Badge
-                variant="secondary"
-                appearance="light"
-                size="sm"
-                className="gap-1"
-              >
-                <User />
-                {role.userCount}
-              </Badge>
-            </button>
-          ))}
-          <Button
-            variant="outline"
-            className="mt-auto justify-center"
-            onClick={() =>
-              openRoleDialog({
-                id: '',
-                code: '',
-                name: '',
-                color: 'blue',
-                description: '',
-                userCount: 0,
-                scope: 'all',
-              })
-            }
-          >
-            + Thêm vai trò
-          </Button>
-        </CardContent>
-      </Card>
+                <Badge
+                  variant="secondary"
+                  appearance="light"
+                  size="sm"
+                  className="gap-1"
+                >
+                  <User />
+                  {role.userCount}
+                </Badge>
+              </button>
+            ))}
+            <Button
+              variant="outline"
+              className="mt-auto justify-center"
+              onClick={() =>
+                openRoleDialog({
+                  id: '',
+                  code: '',
+                  name: '',
+                  color: 'blue',
+                  description: '',
+                  userCount: 0,
+                  scope: 'all',
+                })
+              }
+            >
+              + Thêm vai trò
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Card className="min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden">
-        <CardHeader className="shrink-0 flex-col items-stretch gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
-          <CardHeading>
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-[18px]">
-                Phân quyền: {selectedRole.name}
-              </CardTitle>
-              <Badge variant="primary" appearance="light" size="sm">
-                {selectedPermissions}/{totalPermissions} quyền
-              </Badge>
+        <Card className="min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden">
+          <CardHeader className="shrink-0 flex-col items-stretch gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
+            <CardHeading>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-[18px]">
+                  Phân quyền: {selectedRole.name}
+                </CardTitle>
+                <Badge variant="primary" appearance="light" size="sm">
+                  {selectedPermissions}/{totalPermissions} quyền
+                </Badge>
+              </div>
+            </CardHeading>
+            <CardToolbar>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => openRoleDialog(selectedRole)}
+                >
+                  <Pencil />
+                  Chỉnh sửa vai trò
+                </Button>
+                <Button
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  disabled={
+                    Boolean(selectedRole.isSystem) ||
+                    selectedRole.userCount > 0 ||
+                    deleteRoleMutation.isPending
+                  }
+                  title={
+                    selectedRole.isSystem
+                      ? 'Không thể xóa vai trò hệ thống'
+                      : selectedRole.userCount > 0
+                        ? 'Không thể xóa vai trò đang được gán cho người dùng'
+                        : 'Xóa vai trò'
+                  }
+                  onClick={() => setDeletingRole(selectedRole)}
+                >
+                  <Trash2 />
+                  Xóa vai trò
+                </Button>
+              </div>
+            </CardToolbar>
+          </CardHeader>
+
+          <CardContent className="min-h-0 min-w-0 overflow-hidden p-0">
+            <ScrollArea className="h-full w-full max-w-full min-w-0">
+              <div className="min-w-[752px]">
+                <div className="sticky top-0 z-10 grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] border-b bg-muted text-[12px] font-semibold text-secondary-foreground">
+                  <div className="border-r px-5 py-3">Module</div>
+                  {PERMISSION_TAGS.map((tag) => (
+                    <div key={tag} className="border-r px-3 py-3 text-center">
+                      <TagHeader tag={tag} />
+                    </div>
+                  ))}
+                </div>
+
+                {modules.map((module) => (
+                  <ModulePermissionSection
+                    key={module.code}
+                    expanded={expandedModules.includes(module.code)}
+                    module={module}
+                    onToggle={() => handleToggleModule(module.code)}
+                    onTogglePermission={handleTogglePermission}
+                  />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </CardContent>
+
+          <CardFooter className="shrink-0 justify-between gap-3 bg-background">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {changeCount > 0 ? (
+                <>
+                  <AlertTriangle className="size-4 text-admin-amber-dark" />
+                  <span>{changeCount} thay đổi chưa lưu</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="size-4 text-admin-success-text" />
+                  <span>Không có thay đổi</span>
+                </>
+              )}
             </div>
-          </CardHeading>
-          <CardToolbar>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                onClick={() => openRoleDialog(selectedRole)}
+                disabled={changeCount === 0}
+                onClick={handleReset}
               >
-                <Pencil />
-                Chỉnh sửa vai trò
+                <RotateCcw />
+                Khôi phục
               </Button>
               <Button
-                variant="outline"
-                className="text-destructive hover:bg-destructive/5 hover:text-destructive"
-                disabled={
-                  Boolean(selectedRole.isSystem) ||
-                  selectedRole.userCount > 0 ||
-                  deleteRoleMutation.isPending
-                }
-                title={
-                  selectedRole.isSystem
-                    ? 'Không thể xóa vai trò hệ thống'
-                    : selectedRole.userCount > 0
-                      ? 'Không thể xóa vai trò đang được gán cho người dùng'
-                      : 'Xóa vai trò'
-                }
-                onClick={() => setDeletingRole(selectedRole)}
+                variant="primary"
+                disabled={changeCount === 0}
+                loading={savePermissionsMutation.isPending}
+                loadingText="Đang lưu..."
+                onClick={() => savePermissionsMutation.mutate()}
               >
-                <Trash2 />
-                Xóa vai trò
+                <Save />
+                Lưu thay đổi
               </Button>
             </div>
-          </CardToolbar>
-        </CardHeader>
-
-        <CardContent className="min-h-0 min-w-0 overflow-hidden p-0">
-          <ScrollArea className="h-full w-full max-w-full min-w-0">
-            <div className="min-w-[752px]">
-              <div className="sticky top-0 z-10 grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] border-b bg-muted text-[12px] font-semibold text-secondary-foreground">
-                <div className="border-r px-5 py-3">Module</div>
-                {PERMISSION_TAGS.map((tag) => (
-                  <div key={tag} className="border-r px-3 py-3 text-center">
-                    <TagHeader tag={tag} />
-                  </div>
-                ))}
-              </div>
-
-              {modules.map((module) => (
-                <ModulePermissionSection
-                  key={module.code}
-                  expanded={expandedModules.includes(module.code)}
-                  module={module}
-                  onToggle={() => handleToggleModule(module.code)}
-                  onTogglePermission={handleTogglePermission}
-                />
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </CardContent>
-
-        <CardFooter className="shrink-0 justify-between gap-3 bg-background">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {changeCount > 0 ? (
-              <>
-                <AlertTriangle className="size-4 text-admin-amber-dark" />
-                <span>{changeCount} thay đổi chưa lưu</span>
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="size-4 text-admin-success-text" />
-                <span>Không có thay đổi</span>
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              disabled={changeCount === 0}
-              onClick={handleReset}
-            >
-              <RotateCcw />
-              Khôi phục
-            </Button>
-            <Button
-              variant="primary"
-              disabled={changeCount === 0}
-              loading={savePermissionsMutation.isPending}
-              loadingText="Đang lưu..."
-              onClick={() => savePermissionsMutation.mutate()}
-            >
-              <Save />
-              Lưu thay đổi
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+          </CardFooter>
+        </Card>
+      </div>
 
       <RoleFormDialog
         open={dialogOpen}

@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   CalendarClock,
   FileText,
+  LayoutDashboard,
   RefreshCw,
   TriangleAlert,
   UserRound,
@@ -326,6 +327,7 @@ export function DashboardPage() {
   const pageHeader = (
     <PageHeader
       title="Tổng quan"
+      icon={LayoutDashboard}
       actions={
         <Button
           variant="outline"

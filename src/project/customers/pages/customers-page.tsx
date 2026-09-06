@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Trash2,
   TriangleAlert,
+  UserRoundSearch,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -609,7 +610,8 @@ export function CustomersPage() {
 
   const pageHeader = (
     <PageHeader
-      title="Khách hàng"
+      title="Quản lý khách hàng"
+      icon={UserRoundSearch}
       actions={
         <ShortcutTooltip label="Thêm khách hàng" shortcut="Alt + N">
           <Button

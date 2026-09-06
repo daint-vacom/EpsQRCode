@@ -8,7 +8,7 @@ import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-vi
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import { Plus, RefreshCw, TriangleAlert, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -280,7 +280,8 @@ export function EmployeesPage() {
 
   const pageHeader = (
     <PageHeader
-      title="Nhân viên"
+      title="Quản lý nhân viên"
+      icon={Users}
       titleAside={
         <SavedViewsToolbar
           views={savedViewState.savedViews}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Save } from 'lucide-react';
+import { FileText, Save } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -168,6 +168,7 @@ export function ContractTemplateEditPage() {
     <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={isEditMode ? 'Chỉnh sửa mẫu hợp đồng' : 'Thêm mẫu hợp đồng'}
+        icon={FileText}
         backLabel={
           isEditMode
             ? 'Quay lại thông tin mẫu hợp đồng'
