@@ -3,7 +3,11 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { buildListQueryParams } from '@/lib/list-query-params';
 import { useTableListState } from '@/hooks/use-table-list-state';
 import { useTenant } from '@/providers/tenant-provider';
-import { loadCustomerList, loadCustomerStats } from '../api/customers.api';
+import {
+  loadCustomerList,
+  loadCustomerPreviousMonthStats,
+  loadCustomerStats,
+} from '../api/customers.api';
 import {
   BUSINESS_TYPES,
   CUSTOMER_LIST_INITIAL_FILTERS,
@@ -160,11 +164,25 @@ export function useCustomerList() {
     enabled: Boolean(tenantState.tenantId),
   });
 
+  const customerPreviousMonthStatsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'stats',
+      'previous-month',
+      tenantState.tenantId,
+    ],
+    queryFn: ({ signal }) =>
+      loadCustomerPreviousMonthStats(tenantState.tenantId!, signal),
+    enabled: Boolean(tenantState.tenantId),
+  });
+
   return {
     ...listState,
     tenantQuery: tenantState,
     workspaceQuery: listQuery,
     customerStatsQuery,
+    customerPreviousMonthStatsQuery,
     customers: listQuery.data?.customers ?? [],
     total: listQuery.data?.total ?? 0,
     customerTagOptions: subjectTagFilterQuery.data?.options ?? [],

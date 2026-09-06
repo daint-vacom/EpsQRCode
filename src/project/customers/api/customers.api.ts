@@ -42,6 +42,23 @@ export interface CustomerStats {
   withoutContact: number;
 }
 
+interface CustomerStatisticsSnapshotValues {
+  total: number;
+  active: number;
+  inactive: number;
+  uncontacted: number;
+}
+
+interface CustomerPreviousMonthStatsResponse {
+  snapshotDate: string | null;
+  values: CustomerStatisticsSnapshotValues | null;
+}
+
+export interface CustomerPreviousMonthStats {
+  snapshotDate: string;
+  stats: CustomerStats;
+}
+
 /** @deprecated Use CustomerStats for the customer list and dashboard metrics. */
 export type CustomerStatusStats = CustomerStats;
 
@@ -210,6 +227,35 @@ export async function loadCustomerStats(
       { signal },
     ),
   );
+}
+
+export async function loadCustomerPreviousMonthStats(
+  tenantId: string,
+  signal?: AbortSignal,
+): Promise<CustomerPreviousMonthStats | null> {
+  assertSupabaseConfigured();
+  const response = await request<CustomerPreviousMonthStatsResponse>(
+    supabaseApi.post(
+      '/rpc/tenant_statistics_previous_month',
+      {
+        p_tenant_id: tenantId,
+        p_entity: 'customers',
+      },
+      { signal },
+    ),
+  );
+
+  if (!response.snapshotDate || !response.values) return null;
+
+  return {
+    snapshotDate: response.snapshotDate,
+    stats: {
+      total: response.values.total,
+      active: response.values.active,
+      inactive: response.values.inactive,
+      withoutContact: response.values.uncontacted,
+    },
+  };
 }
 
 export async function loadCustomerDetail(

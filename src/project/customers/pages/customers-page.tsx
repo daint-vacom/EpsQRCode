@@ -144,6 +144,7 @@ export function CustomersPage() {
     tenantQuery,
     workspaceQuery,
     customerStatsQuery,
+    customerPreviousMonthStatsQuery,
     customerTagsByCustomerId,
   } = useCustomerList();
 
@@ -658,7 +659,12 @@ export function CustomersPage() {
       {pageHeader}
       <CustomerStatsCards
         stats={customerStatsQuery.data}
+        previousMonthStats={customerPreviousMonthStatsQuery.data}
         isLoading={customerStatsQuery.isPending}
+        activeFilters={filters.statuses}
+        onFilterChange={(status) =>
+          setFilter('statuses', status ? [status] : [])
+        }
       />
       <DataGrid
         table={table}
@@ -759,6 +765,7 @@ export function CustomersPage() {
                   onClick={() => {
                     void workspaceQuery.refetch();
                     void customerStatsQuery.refetch();
+                    void customerPreviousMonthStatsQuery.refetch();
                   }}
                 >
                   <RefreshCw />
