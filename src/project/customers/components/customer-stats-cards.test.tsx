@@ -56,6 +56,31 @@ describe('CustomerStatsCards', () => {
     expect(
       screen.getByRole('button', { name: 'Lọc khách hàng: Đang hoạt động' }),
     ).toHaveClass('before:bg-muted-foreground/30');
+
+    const inactiveCard = screen.getByRole('button', {
+      name: 'Lọc khách hàng: Tổng số khách hàng',
+    });
+    const inactiveContent = inactiveCard.querySelector<HTMLElement>(
+      '[data-slot="card-content"]',
+    );
+    const inactiveIconContainer =
+      inactiveCard.querySelector<HTMLElement>('span');
+
+    expect(inactiveContent).toHaveClass('opacity-70');
+    expect(inactiveIconContainer).toHaveClass(
+      'bg-muted',
+      'text-muted-foreground',
+    );
+    expect(inactiveIconContainer?.querySelector('svg')).toHaveClass(
+      'text-muted-foreground',
+    );
+
+    const activeCard = screen.getByRole('button', {
+      name: 'Lọc khách hàng: Ngừng hoạt động',
+    });
+    expect(
+      activeCard.querySelector<HTMLElement>('[data-slot="card-content"]'),
+    ).toHaveClass('opacity-100');
   });
 
   it('uses the card tone for each stat label', () => {

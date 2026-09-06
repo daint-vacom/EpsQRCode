@@ -160,6 +160,7 @@ export function CustomerStatsCards({
             filterValue === null
               ? activeFilters.length === 0
               : activeFilters.length === 1 && activeFilters[0] === filterValue;
+          const isCardInactive = hasStatusFilter && !isActive;
           const description =
             filterValue === null
               ? 'So với tháng trước'
@@ -178,7 +179,7 @@ export function CustomerStatsCards({
               aria-label={`Lọc khách hàng: ${label}`}
               className={cn(
                 'group relative overflow-visible border-0 bg-transparent shadow-none transition-transform duration-300 ease-out before:pointer-events-none before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:transition-colors before:duration-300 before:ease-out before:content-[""] hover:-translate-y-1.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                hasStatusFilter && !isActive
+                isCardInactive
                   ? 'before:bg-muted-foreground/30'
                   : toneIndicatorClasses[tone],
                 isActive ? 'ring-1 ring-primary/15' : null,
@@ -192,17 +193,35 @@ export function CustomerStatsCards({
                 if (!isLoading) onFilterChange(filterValue);
               }}
             >
-              <CardContent className="relative z-10 mt-1 flex min-h-28 items-center gap-3 rounded-[inherit] border border-border bg-card p-4 shadow-xs transition-shadow duration-300 ease-out group-hover:shadow-md">
+              <CardContent
+                className={cn(
+                  'relative z-10 mt-1 flex min-h-28 items-center gap-3 rounded-[inherit] border border-border bg-card p-4 shadow-xs transition-[box-shadow,opacity] duration-300 ease-out group-hover:shadow-md',
+                  isCardInactive ? 'opacity-70' : 'opacity-100',
+                )}
+              >
                 <span
-                  className={`inline-flex size-12 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}
+                  className={cn(
+                    'inline-flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 ease-out',
+                    isCardInactive
+                      ? 'bg-muted text-muted-foreground'
+                      : toneClasses[tone],
+                  )}
                 >
-                  <Icon className="size-6" aria-hidden="true" />
+                  <Icon
+                    className={cn(
+                      'size-6 transition-colors duration-300 ease-out',
+                      isCardInactive ? 'text-muted-foreground' : null,
+                    )}
+                    aria-hidden="true"
+                  />
                 </span>
                 <div className="min-w-0">
                   <CardDescription
                     className={cn(
                       'truncate font-semibold',
-                      toneLabelClasses[tone],
+                      isCardInactive
+                        ? 'text-muted-foreground'
+                        : toneLabelClasses[tone],
                     )}
                   >
                     {label}
