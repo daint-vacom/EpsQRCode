@@ -553,7 +553,6 @@ export function CustomersPage() {
   const listError = tenantQuery.error ?? workspaceQuery.error;
   const isListLoading = tenantQuery.isPending || workspaceQuery.isLoading;
   const selectedCustomersCount = table.getSelectedRowModel().rows.length;
-  const selectableCustomersCount = total;
 
   const pageHeader = (
     <PageHeader
@@ -625,7 +624,7 @@ export function CustomersPage() {
                 <span>
                   Đã chọn{' '}
                   <span className="font-semibold text-foreground">
-                    {selectedCustomersCount}/{selectableCustomersCount}
+                    {selectedCustomersCount}
                   </span>{' '}
                   khách hàng
                 </span>

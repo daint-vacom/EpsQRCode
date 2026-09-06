@@ -7,7 +7,9 @@ import {
   Save,
   Settings2,
   SlidersHorizontal,
+  X,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -176,6 +178,37 @@ export function CustomerFilterViewControl({
           ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
+      <div
+        aria-hidden={!activeView}
+        className={cn(
+          '-ms-px flex h-8.5 min-w-0 items-center overflow-hidden rounded-e-md bg-muted/80 text-xs text-secondary-foreground transition-all duration-200 ease-out',
+          activeView
+            ? 'max-w-48 translate-x-0 px-2.5 opacity-100'
+            : 'pointer-events-none max-w-0 -translate-x-2 px-0 opacity-0',
+        )}
+        title={activeView?.name}
+      >
+        <span className="min-w-0 max-w-40 truncate">
+          {activeView?.name ?? ''}
+        </span>
+        <button
+          type="button"
+          disabled={!activeView}
+          aria-label={activeView ? `Bỏ view ${activeView.name}` : undefined}
+          className="ms-1 inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-full bg-muted-foreground/60 text-background transition-colors hover:bg-muted-foreground/80 hover:text-background focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onSelect(null);
+          }}
+        >
+          <X className="size-2.5" />
+        </button>
+      </div>
     </div>
   );
 }
