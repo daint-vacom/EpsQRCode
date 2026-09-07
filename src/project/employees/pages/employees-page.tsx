@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ROUTES } from '@/constants/routes';
 import { SavedViewFilterControls } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
@@ -6,7 +7,7 @@ import {
 } from '@/project/saved-views/components/saved-view-form-dialog';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
   useReactTable,
@@ -50,7 +51,11 @@ import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   createEmployee,
   deleteEmployee,
+  loadEmployeeCustomFields,
+  loadEmployeeCustomFieldValues,
+  saveEmployeeCustomFieldValues,
   updateEmployee,
+  uploadEmployeeAvatar,
 } from '../api/employees.api';
 import {
   EmployeeFilterDrawer,
@@ -89,6 +94,7 @@ export function EmployeesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(
     null,
   );
@@ -102,6 +108,43 @@ export function EmployeesPage() {
   );
   const form = useEmployeeForm();
   const viewForm = useSavedViewForm();
+
+  const employeeCustomFieldsQuery = useQuery({
+    queryKey: ['project', 'employees', 'custom-fields', tenantId],
+    queryFn: () => loadEmployeeCustomFields(tenantId!),
+    enabled: Boolean(tenantId),
+    staleTime: 60 * 1000,
+  });
+
+  const employeeCustomDataQuery = useQuery({
+    queryKey: [
+      'project',
+      'employees',
+      'custom-data',
+      tenantId,
+      editingEmployee?.id,
+    ],
+    queryFn: () =>
+      loadEmployeeCustomFieldValues(tenantId!, editingEmployee!.id),
+    enabled: Boolean(tenantId && dialogOpen && editingEmployee),
+  });
+
+  useEffect(() => {
+    if (!dialogOpen || !editingEmployee || employeeCustomDataQuery.isLoading) {
+      return;
+    }
+
+    form.reset({
+      ...mapEmployeeToFormValues(editingEmployee),
+      customFields: employeeCustomDataQuery.data ?? {},
+    });
+  }, [
+    dialogOpen,
+    editingEmployee,
+    employeeCustomDataQuery.data,
+    employeeCustomDataQuery.isLoading,
+    form,
+  ]);
 
   const {
     employees,
@@ -133,16 +176,39 @@ export function EmployeesPage() {
     });
 
   const saveMutation = useMutation({
-    mutationFn: (values: EmployeeFormValues) => {
-      if (editingEmployee) return updateEmployee(editingEmployee.id, values);
+    mutationFn: async (values: EmployeeFormValues) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
-      return createEmployee(tenantId, values);
+
+      let savedEmployee = editingEmployee
+        ? await updateEmployee(editingEmployee.id, values)
+        : await createEmployee(tenantId, values);
+
+      if (employeeImageFile) {
+        const imageUrl = await uploadEmployeeAvatar(
+          tenantId,
+          savedEmployee.id,
+          employeeImageFile,
+        );
+        savedEmployee = await updateEmployee(savedEmployee.id, {
+          ...values,
+          imageUrl,
+        });
+      }
+
+      await saveEmployeeCustomFieldValues(
+        tenantId,
+        savedEmployee.id,
+        values.customFields,
+      );
+
+      return savedEmployee;
     },
     onSuccess: async () => {
       toast.success(
         editingEmployee ? 'Đã cập nhật nhân viên.' : 'Đã tạo nhân viên.',
       );
       setDialogOpen(false);
+      setEmployeeImageFile(null);
       await invalidateEmployees();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -173,14 +239,40 @@ export function EmployeesPage() {
 
   function openCreate() {
     setEditingEmployee(null);
+    setEmployeeImageFile(null);
     form.reset(emptyEmployeeForm);
     setDialogOpen(true);
   }
 
   function openEdit(employee: Employee) {
     setEditingEmployee(employee);
+    setEmployeeImageFile(null);
     form.reset(mapEmployeeToFormValues(employee));
     setDialogOpen(true);
+  }
+
+  function handleEmployeeSubmit(values: EmployeeFormValues) {
+    const missingField = (employeeCustomFieldsQuery.data ?? [])
+      .filter((field) => field.isActive && field.isRequired)
+      .find((field) => !values.customFields[field.key]?.trim());
+
+    if (missingField) {
+      form.setError(`customFields.${missingField.key}` as never, {
+        type: 'required',
+        message: `Vui lòng nhập ${missingField.label}.`,
+      });
+      return;
+    }
+
+    saveMutation.mutate(values);
+  }
+
+  function openEmployeeCustomFieldConfiguration() {
+    window.open(
+      `${ROUTES.PROJECT.DATA_CONFIGURATION}?entity=employee`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   }
 
   const columns = useEmployeeColumns({
@@ -509,8 +601,16 @@ export function EmployeesPage() {
       <EmployeeFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        mode={editingEmployee ? 'edit' : 'create'}
         form={form}
-        onSubmit={(values) => saveMutation.mutate(values)}
+        onSubmit={handleEmployeeSubmit}
+        onImageUrlFileChange={setEmployeeImageFile}
+        customFields={employeeCustomFieldsQuery.data ?? []}
+        onAddCustomField={openEmployeeCustomFieldConfiguration}
+        onReloadCustomFields={() => {
+          void employeeCustomFieldsQuery.refetch();
+        }}
+        isReloadingCustomFields={employeeCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
         title={editingEmployee ? 'Sửa nhân viên' : 'Thêm nhân viên'}
       />

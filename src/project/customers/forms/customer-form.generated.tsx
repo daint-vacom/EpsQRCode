@@ -12,8 +12,12 @@ import type { KeyboardEvent } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, RefreshCw } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import type { UseFormProps, UseFormReturn } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
+import type {
+  ControllerRenderProps,
+  UseFormProps,
+  UseFormReturn,
+} from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CountrySelect } from '@/components/ui/country-select';
@@ -45,6 +49,8 @@ import {
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { getAvatarInitials } from '@/components/common/avatar-identity';
+import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   customerFormSchema,
   type Customer,
@@ -182,14 +188,10 @@ export function CustomerForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <ImageUploadField
-                        value={field.value}
-                        onValueChange={field.onChange}
+                      <CustomerAvatarUploadField
+                        form={form}
+                        field={field}
                         onFileChange={onImageUrlFileChange}
-                        accept="image/png,image/jpeg,image/webp"
-                        maxSizeMb={5}
-                        label="Ảnh khách hàng"
-                        fallbackText="K"
                       />
                     </FormControl>
                     <FormMessage />
@@ -502,6 +504,31 @@ export function CustomerForm({
         </div>
       </form>
     </Form>
+  );
+}
+
+function CustomerAvatarUploadField({
+  form,
+  field,
+  onFileChange,
+}: {
+  form: UseFormReturn<CustomerFormValues>;
+  field: ControllerRenderProps<CustomerFormValues, 'imageUrl'>;
+  onFileChange?: (file: File | null) => void;
+}) {
+  const customerName = useWatch({ control: form.control, name: 'name' });
+
+  return (
+    <ImageUploadField
+      value={field.value}
+      onValueChange={field.onChange}
+      onFileChange={onFileChange}
+      accept="image/png,image/jpeg,image/webp"
+      maxSizeMb={5}
+      label="Ảnh khách hàng"
+      fallbackText={getAvatarInitials(customerName) || 'K'}
+      fallbackTone={IDENTITY_AVATAR_TONES.customer}
+    />
   );
 }
 

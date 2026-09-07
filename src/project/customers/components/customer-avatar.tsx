@@ -1,4 +1,5 @@
 import { ImageAvatar } from '@/components/ui/image-avatar';
+import { getAvatarInitials } from '@/components/common/avatar-identity';
 import {
   GradientAvatar,
   IDENTITY_AVATAR_TONES,
@@ -8,12 +9,7 @@ import type { Customer } from '../model/customer';
 type CustomerAvatarData = Pick<Customer, 'name' | 'imageUrl'>;
 
 export function getCustomerInitials(customer: CustomerAvatarData) {
-  return customer.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('');
+  return getAvatarInitials(customer.name);
 }
 
 export function CustomerAvatar({
@@ -30,6 +26,7 @@ export function CustomerAvatar({
       src={customer.imageUrl}
       alt={customer.name}
       fallback={fallback}
+      fallbackTone={IDENTITY_AVATAR_TONES.customer}
       className={className}
     />
   ) : (

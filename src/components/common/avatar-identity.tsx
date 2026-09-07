@@ -28,7 +28,7 @@ export interface AvatarIdentityAlert {
   tone?: AvatarIdentityAlertTone;
 }
 
-function getInitials(name: string) {
+export function getAvatarInitials(name: string) {
   return name
     .split(/\s+/)
     .filter(Boolean)
@@ -50,7 +50,7 @@ export function AvatarIdentity({
       <GradientAvatar
         src={avatarUrl}
         alt={name}
-        fallback={getInitials(name)}
+        fallback={getAvatarInitials(name)}
         tone={tone}
         className="size-9 rounded-lg text-sm transition-transform group-hover:scale-105"
       />

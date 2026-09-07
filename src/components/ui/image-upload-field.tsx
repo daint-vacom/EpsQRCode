@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
+import type { GradientAvatarTone } from '@/components/common/gradient-avatar';
 import { Button } from './button';
 import { ImageAvatar } from './image-avatar';
 
@@ -11,6 +12,7 @@ interface ImageUploadFieldProps {
   maxSizeMb?: number;
   label?: string;
   fallbackText?: string;
+  fallbackTone?: GradientAvatarTone;
   className?: string;
 }
 
@@ -33,6 +35,7 @@ export function ImageUploadField({
   maxSizeMb = 5,
   label = 'Ảnh đại diện',
   fallbackText = 'V',
+  fallbackTone = 'amber',
   className,
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +95,7 @@ export function ImageUploadField({
           src={imageSource}
           alt={`Xem trước ${label.toLowerCase()}`}
           fallback={fallbackText}
+          fallbackTone={fallbackTone}
           className="size-20 rounded-xl text-xl"
         />
         <div className="min-w-0 space-y-1">

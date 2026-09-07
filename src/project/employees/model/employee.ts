@@ -9,6 +9,20 @@ export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   inactive: 'Ngừng làm việc',
 };
 
+const employeeCustomFieldValuesSchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+
+    return Object.fromEntries(
+      Object.entries(value).map(([key, fieldValue]) => [
+        key,
+        fieldValue == null ? '' : String(fieldValue),
+      ]),
+    );
+  },
+  z.record(z.string(), z.string()),
+);
+
 export type EmployeeAccountFilter = 'all' | 'linked' | 'unlinked';
 
 export interface EmployeeListFilters {
@@ -39,6 +53,8 @@ export const employeeFormSchema = z.object({
   status: z.enum(EMPLOYEE_STATUSES),
   joinedAt: z.date().nullable(),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
+  imageUrl: z.string().trim(),
+  customFields: employeeCustomFieldValuesSchema,
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;
@@ -86,6 +102,7 @@ export interface EmployeeRow {
   status: EmployeeStatus;
   joined_at: string | null;
   note: string;
+  avatar_url?: string | null;
 }
 
 export interface EmployeeListRpcRow extends EmployeeRow {
@@ -123,6 +140,8 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   status: 'active',
   joinedAt: null,
   note: '',
+  imageUrl: '',
+  customFields: {},
 };
 
 export function mapEmployeeRow(
@@ -139,7 +158,7 @@ export function mapEmployeeRow(
     id: row.id,
     tenantId: row.tenant_id,
     userId: row.user_id,
-    avatarUrl,
+    avatarUrl: avatarUrl ?? row.avatar_url ?? null,
     roles,
     employeeCode: row.employee_code,
     firstName: row.first_name,
@@ -170,5 +189,7 @@ export function mapEmployeeToFormValues(
       ? new Date(`${employee.joinedAt}T00:00:00`)
       : null,
     note: employee.note,
+    imageUrl: employee.avatarUrl ?? '',
+    customFields: {},
   };
 }

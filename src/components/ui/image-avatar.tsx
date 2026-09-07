@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  GRADIENT_AVATAR_TONE_CLASSES,
+  type GradientAvatarTone,
+} from '@/components/common/gradient-avatar';
 
 interface ImageAvatarProps {
   src?: string | null;
   alt: string;
   fallback: string;
+  fallbackTone?: GradientAvatarTone;
   className?: string;
 }
 
@@ -12,6 +17,7 @@ export function ImageAvatar({
   src,
   alt,
   fallback,
+  fallbackTone = 'amber',
   className,
 }: ImageAvatarProps) {
   const [hasError, setHasError] = useState(false);
@@ -31,7 +37,8 @@ export function ImageAvatar({
   ) : (
     <span
       className={cn(
-        'flex shrink-0 items-center justify-center border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] font-bold text-[#f57c00] shadow-sm',
+        'flex shrink-0 items-center justify-center border bg-gradient-to-br font-bold shadow-sm',
+        GRADIENT_AVATAR_TONE_CLASSES[fallbackTone],
         className,
       )}
     >

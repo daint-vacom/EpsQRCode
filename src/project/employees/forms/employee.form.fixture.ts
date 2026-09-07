@@ -9,6 +9,15 @@ const spec: FormSpec = {
   specPath: 'src/project/employees/forms/employee.form.fixture.ts',
   fields: [
     {
+      kind: 'image',
+      name: 'imageUrl',
+      label: 'Ảnh nhân viên',
+      width: 'full',
+      accept: 'image/png,image/jpeg,image/webp',
+      maxSizeMb: 5,
+      fallbackText: 'NV',
+    },
+    {
       kind: 'text',
       name: 'employeeCode',
       label: 'Mã nhân viên',

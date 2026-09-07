@@ -1,3 +1,10 @@
+import { loadCustomFields } from '@/project/data-configuration/api/custom-fields.api';
+import type { CustomField } from '@/project/data-configuration/model/custom-field';
+import {
+  getPublicStorageUrl,
+  TENANT_ASSETS_BUCKET,
+  uploadStorageObject,
+} from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   Employee,
@@ -33,6 +40,10 @@ interface EmployeeListRpcResponse {
   total: number | string;
 }
 
+interface EntityCustomDataRow {
+  data: Record<string, unknown> | null;
+}
+
 export interface EmployeeStatusStats {
   total: number;
   active: number;
@@ -54,6 +65,67 @@ function numberValue(value: number | string | null | undefined) {
 export interface EmployeeWorkspace {
   tenantId: string;
   employees: Employee[];
+}
+
+export async function loadEmployeeCustomFields(
+  tenantId: string,
+): Promise<CustomField[]> {
+  return loadCustomFields(tenantId, 'employee');
+}
+
+function normalizeCustomFieldValues(
+  data: Record<string, unknown> | null | undefined,
+) {
+  return Object.fromEntries(
+    Object.entries(data ?? {}).map(([key, value]) => [
+      key,
+      value == null ? '' : String(value),
+    ]),
+  );
+}
+
+export async function loadEmployeeCustomFieldValues(
+  tenantId: string,
+  employeeId: string,
+): Promise<Record<string, string>> {
+  assertSupabaseConfigured();
+  const rows = await request<EntityCustomDataRow[]>(
+    supabaseApi.get(
+      '/entity_custom_data',
+      queryParams({
+        select: 'data',
+        tenant_id: `eq.${tenantId}`,
+        entity_type: 'eq.employee',
+        entity_id: `eq.${employeeId}`,
+        limit: '1',
+      }),
+    ),
+  );
+
+  return normalizeCustomFieldValues(rows[0]?.data);
+}
+
+export async function saveEmployeeCustomFieldValues(
+  tenantId: string,
+  employeeId: string,
+  data: Record<string, string>,
+): Promise<void> {
+  assertSupabaseConfigured();
+  await supabaseApi.post(
+    '/entity_custom_data',
+    {
+      tenant_id: tenantId,
+      entity_type: 'employee',
+      entity_id: employeeId,
+      data,
+    },
+    {
+      ...queryParams({ on_conflict: 'tenant_id,entity_type,entity_id' }),
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
+    },
+  );
 }
 
 export async function loadEmployeeList(
@@ -205,7 +277,8 @@ export async function loadEmployeeWorkspace(
     employees: rows.map((row) =>
       mapEmployeeRow(
         row,
-        row.user_id ? (avatarsByUserId.get(row.user_id) ?? null) : null,
+        row.avatar_url ??
+          (row.user_id ? (avatarsByUserId.get(row.user_id) ?? null) : null),
         row.user_id ? (roleNamesByUserId.get(row.user_id) ?? []) : [],
       ),
     ),
@@ -223,7 +296,36 @@ function toPayload(values: EmployeeFormValues) {
     status: values.status,
     joined_at: values.joinedAt?.toISOString().slice(0, 10) ?? null,
     note: values.note,
+    avatar_url: values.imageUrl || null,
   };
+}
+
+function fileExtension(file: File): string {
+  const extension = file.name.split('.').pop()?.toLowerCase();
+  if (extension && /^[a-z0-9]+$/.test(extension)) return extension;
+
+  return file.type === 'image/png'
+    ? 'png'
+    : file.type === 'image/webp'
+      ? 'webp'
+      : 'jpg';
+}
+
+export async function uploadEmployeeAvatar(
+  tenantId: string,
+  employeeId: string,
+  file: File,
+): Promise<string> {
+  assertSupabaseConfigured();
+  const path = `${tenantId}/employees/${employeeId}/avatar.${fileExtension(file)}`;
+  await uploadStorageObject({
+    bucket: TENANT_ASSETS_BUCKET,
+    path,
+    file,
+    upsert: true,
+  });
+
+  return getPublicStorageUrl(TENANT_ASSETS_BUCKET, path);
 }
 
 export async function createEmployee(
