@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   contractVersionLineSchema,
   getContractDateStatus,
+  getContractExpiringDateRange,
   mapContractRow,
 } from './contract';
 import {
@@ -14,6 +15,13 @@ import {
 } from './receivable';
 
 describe('contract model', () => {
+  it('builds the inclusive end-date range used by the expiring stat', () => {
+    expect(getContractExpiringDateRange(30, new Date(2026, 8, 3))).toEqual({
+      from: '2026-09-03',
+      to: '2026-10-03',
+    });
+  });
+
   it('maps contract date status using the configured reminder window', () => {
     const today = new Date(2026, 8, 3);
 

@@ -1,4 +1,10 @@
-import { differenceInCalendarDays, isValid, parseISO } from 'date-fns';
+import {
+  addDays,
+  differenceInCalendarDays,
+  format,
+  isValid,
+  parseISO,
+} from 'date-fns';
 import { z } from 'zod';
 import type { FileAttachment } from '../../files/model/file';
 
@@ -60,6 +66,8 @@ export interface ContractListFilters {
   outstandingMax?: number;
   nextDueFrom: string;
   nextDueTo: string;
+  endDateFrom: string;
+  endDateTo: string;
 }
 
 export const CONTRACT_LIST_INITIAL_FILTERS: ContractListFilters = {
@@ -70,6 +78,8 @@ export const CONTRACT_LIST_INITIAL_FILTERS: ContractListFilters = {
   outstandingMax: undefined,
   nextDueFrom: '',
   nextDueTo: '',
+  endDateFrom: '',
+  endDateTo: '',
 };
 
 export const CONTRACT_VERSION_STATUS_LABELS: Record<
@@ -282,6 +292,8 @@ export interface ContractListParams {
   outstandingMax?: number;
   nextDueFrom?: string;
   nextDueTo?: string;
+  endDateFrom?: string;
+  endDateTo?: string;
 }
 
 export interface ContractListResult {
@@ -338,6 +350,18 @@ export function getContractDateStatus(
 }
 
 export const CONTRACT_EXPIRING_WINDOW_DAYS = 30;
+
+export function getContractExpiringDateRange(
+  expiringWithinDays: number,
+  referenceDate = new Date(),
+): { from: string; to: string } {
+  const days = Math.max(0, expiringWithinDays);
+
+  return {
+    from: format(referenceDate, 'yyyy-MM-dd'),
+    to: format(addDays(referenceDate, days), 'yyyy-MM-dd'),
+  };
+}
 
 export interface ContractStatusStats {
   total: number;

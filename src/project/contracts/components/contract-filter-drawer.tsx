@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
+import { DateRangeFilter } from '@/components/ui/filters/range-filter';
 import { Label } from '@/components/ui/label';
 import type { CustomerSelectOption } from '../../customers/api/customers.api';
 import {
@@ -167,6 +168,19 @@ export function ContractFilterDrawer({
                 nextDueTo: value.to ?? '',
               })
             }
+          />
+        </Field>
+        <Field label="Ngày hết hạn hợp đồng">
+          <DateRangeFilter
+            value={{ from: draft.endDateFrom, to: draft.endDateTo }}
+            onChange={(value) =>
+              update({
+                endDateFrom: value.from ?? '',
+                endDateTo: value.to ?? '',
+              })
+            }
+            label="Ngày hết hạn hợp đồng"
+            placeholder=""
           />
         </Field>
       </div>

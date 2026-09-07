@@ -166,6 +166,8 @@ export async function loadContractList(
         p_outstanding_max: params.outstandingMax ?? null,
         p_next_due_from: params.nextDueFrom ?? null,
         p_next_due_to: params.nextDueTo ?? null,
+        p_end_date_from: params.endDateFrom ?? null,
+        p_end_date_to: params.endDateTo ?? null,
       },
       { signal },
     ),

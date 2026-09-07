@@ -38,6 +38,8 @@ export function useContractList() {
       outstandingMax: {},
       nextDueFrom: {},
       nextDueTo: {},
+      endDateFrom: {},
+      endDateTo: {},
     },
   });
   const listParams: ContractListParams = {
@@ -76,6 +78,14 @@ export function useContractList() {
     nextDueTo:
       typeof queryParams.nextDueTo === 'string'
         ? queryParams.nextDueTo
+        : undefined,
+    endDateFrom:
+      typeof queryParams.endDateFrom === 'string'
+        ? queryParams.endDateFrom
+        : undefined,
+    endDateTo:
+      typeof queryParams.endDateTo === 'string'
+        ? queryParams.endDateTo
         : undefined,
   };
 

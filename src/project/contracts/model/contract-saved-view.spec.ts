@@ -24,6 +24,8 @@ const spec: SavedViewSpec = {
     { name: 'outstandingMax', kind: 'optionalNumber' },
     { name: 'nextDueFrom', kind: 'string' },
     { name: 'nextDueTo', kind: 'string' },
+    { name: 'endDateFrom', kind: 'string' },
+    { name: 'endDateTo', kind: 'string' },
   ],
 };
 

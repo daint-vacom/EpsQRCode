@@ -79,6 +79,14 @@ export function normalizeContractSavedViewConfig(
         typeof rawFilters.nextDueTo === 'string'
           ? rawFilters.nextDueTo
           : CONTRACT_LIST_INITIAL_FILTERS.nextDueTo,
+      endDateFrom:
+        typeof rawFilters.endDateFrom === 'string'
+          ? rawFilters.endDateFrom
+          : CONTRACT_LIST_INITIAL_FILTERS.endDateFrom,
+      endDateTo:
+        typeof rawFilters.endDateTo === 'string'
+          ? rawFilters.endDateTo
+          : CONTRACT_LIST_INITIAL_FILTERS.endDateTo,
     },
     columnVisibility: booleanRecord(source.columnVisibility),
     columnOrder: stringArray(source.columnOrder) as ColumnOrderState,

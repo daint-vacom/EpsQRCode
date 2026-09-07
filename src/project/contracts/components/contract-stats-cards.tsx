@@ -61,6 +61,7 @@ interface ContractStatusCardConfig {
   icon: LucideIcon;
   tone: ContractStatTone;
   filterValue: ContractStatus | null;
+  canFilter: boolean;
 }
 
 const statusCards: readonly ContractStatusCardConfig[] = [
@@ -70,6 +71,7 @@ const statusCards: readonly ContractStatusCardConfig[] = [
     icon: FileCheck2,
     tone: 'blue',
     filterValue: 'active',
+    canFilter: true,
   },
   {
     key: 'expiring',
@@ -77,6 +79,7 @@ const statusCards: readonly ContractStatusCardConfig[] = [
     icon: CalendarClock,
     tone: 'amber',
     filterValue: null,
+    canFilter: true,
   },
   {
     key: 'expired',
@@ -84,6 +87,7 @@ const statusCards: readonly ContractStatusCardConfig[] = [
     icon: CalendarX2,
     tone: 'red',
     filterValue: 'expired',
+    canFilter: true,
   },
 ];
 
@@ -236,6 +240,7 @@ function StatusSummaryRow({
   isInactive,
   isLoading,
   onFilterChange,
+  onExpiringFilterChange,
 }: {
   config: ContractStatusCardConfig;
   stats?: ContractStatusStats;
@@ -244,12 +249,13 @@ function StatusSummaryRow({
   isInactive: boolean;
   isLoading: boolean;
   onFilterChange: (status: ContractStatus | null) => void;
+  onExpiringFilterChange: () => void;
 }) {
   const Icon = config.icon;
   const value = stats?.[config.key];
   const percentage =
     value !== undefined && total > 0 ? formatPercent(value / total) : '—%';
-  const canFilter = config.filterValue !== null;
+  const canFilter = config.canFilter;
 
   const rowContent = (
     <>
@@ -318,7 +324,13 @@ function StatusSummaryRow({
         isActive ? 'bg-primary/5' : null,
         isInactive ? 'opacity-70' : null,
       )}
-      onClick={() => onFilterChange(config.filterValue)}
+      onClick={() => {
+        if (config.key === 'expiring') {
+          onExpiringFilterChange();
+          return;
+        }
+        onFilterChange(config.filterValue);
+      }}
     >
       {rowContent}
     </button>
@@ -330,13 +342,17 @@ export function ContractStatsCards({
   paymentPlan,
   isLoading = false,
   activeStatusFilters = [],
+  isExpiringFilterActive = false,
   onStatusFilterChange,
+  onExpiringFilterChange,
 }: {
   stats?: ContractStatusStats;
   paymentPlan?: DashboardMonthlyReceivable[];
   isLoading?: boolean;
   activeStatusFilters?: readonly ContractStatus[];
+  isExpiringFilterActive?: boolean;
   onStatusFilterChange: (status: ContractStatus | null) => void;
+  onExpiringFilterChange: () => void;
 }) {
   const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd');
   const currentMonth = getMonthPlan(paymentPlan, currentMonthStart);
@@ -378,7 +394,6 @@ export function ContractStatsCards({
     trendPreviousMonth ? getPaymentPlanTotal(trendPreviousMonth) : undefined,
   );
   const hasStatusFilter = activeStatusFilters.length > 0;
-  const isPlanInactive = hasStatusFilter;
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1.15fr)_minmax(18rem,0.9fr)]">
@@ -389,7 +404,6 @@ export function ContractStatsCards({
         aria-label="Xóa bộ lọc trạng thái hợp đồng"
         className={cn(
           'group relative cursor-pointer overflow-hidden border-0 bg-admin-neutral-800 text-white shadow-xs transition-transform duration-300 ease-out hover:-translate-y-1 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          isPlanInactive ? 'opacity-70' : 'opacity-100',
         )}
         onClick={() => onStatusFilterChange(null)}
         onKeyDown={(event) => {
@@ -506,9 +520,12 @@ export function ContractStatsCards({
         <CardContent className="divide-y divide-border p-0">
           {statusCards.map((config) => {
             const isActive =
-              config.filterValue !== null &&
-              activeStatusFilters.length === 1 &&
-              activeStatusFilters[0] === config.filterValue;
+              config.key === 'expiring'
+                ? isExpiringFilterActive
+                : !isExpiringFilterActive &&
+                  config.filterValue !== null &&
+                  activeStatusFilters.length === 1 &&
+                  activeStatusFilters[0] === config.filterValue;
             const isInactive = hasStatusFilter && !isActive;
 
             return (
@@ -521,6 +538,7 @@ export function ContractStatsCards({
                 isInactive={isInactive}
                 isLoading={isLoading}
                 onFilterChange={onStatusFilterChange}
+                onExpiringFilterChange={onExpiringFilterChange}
               />
             );
           })}

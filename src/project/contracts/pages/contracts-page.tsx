@@ -67,7 +67,11 @@ import {
 import { ContractStatsCards } from '../components/contract-stats-cards';
 import { useContractList } from '../hooks/use-contract-list';
 import { useContractStats } from '../hooks/use-contract-stats';
-import { type Contract, type ContractListFilters } from '../model/contract';
+import {
+  getContractExpiringDateRange,
+  type Contract,
+  type ContractListFilters,
+} from '../model/contract';
 import {
   CONTRACT_SAVED_VIEW_MANAGE_PERMISSION,
   CONTRACT_SAVED_VIEW_RESOURCE,
@@ -173,6 +177,46 @@ export function ContractsPage() {
     navigate(
       `${ROUTES.PROJECT.CONTRACT_CREATE}?edit=${encodeURIComponent(contract.id)}`,
     );
+  }
+
+  const expiringDateRange = getContractExpiringDateRange(
+    contractRenewalReminderDays,
+  );
+  const isExpiringFilterActive =
+    filters.status.length === 1 &&
+    filters.status[0] === 'active' &&
+    filters.endDateFrom === expiringDateRange.from &&
+    filters.endDateTo === expiringDateRange.to;
+
+  function handleStatusFilterChange(
+    status: ContractListFilters['status'][number] | null,
+  ) {
+    const isSelectedStatus =
+      status !== null &&
+      !isExpiringFilterActive &&
+      filters.status.length === 1 &&
+      filters.status[0] === status;
+
+    setFilters((current) => ({
+      ...current,
+      status: isSelectedStatus || status === null ? [] : [status],
+      endDateFrom: '',
+      endDateTo: '',
+    }));
+  }
+
+  function handleExpiringFilterChange() {
+    if (isExpiringFilterActive) {
+      handleStatusFilterChange(null);
+      return;
+    }
+
+    setFilters((current) => ({
+      ...current,
+      status: ['active'],
+      endDateFrom: expiringDateRange.from,
+      endDateTo: expiringDateRange.to,
+    }));
   }
 
   const columns = useContractColumns({
@@ -406,9 +450,9 @@ export function ContractsPage() {
             contractStats.paymentPlanQuery.isPending
           }
           activeStatusFilters={filters.status}
-          onStatusFilterChange={(status) =>
-            setFilter('status', status ? [status] : [])
-          }
+          isExpiringFilterActive={isExpiringFilterActive}
+          onStatusFilterChange={handleStatusFilterChange}
+          onExpiringFilterChange={handleExpiringFilterChange}
         />
       </CollapsibleContent>
       <DataGrid
