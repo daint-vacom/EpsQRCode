@@ -365,7 +365,7 @@ export function ContractsPage() {
       <Collapsible
         open={statsOpen}
         onOpenChange={setStatsOpen}
-        className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5"
+        className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5"
       >
         {pageHeader}
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
@@ -394,10 +394,10 @@ export function ContractsPage() {
     <Collapsible
       open={statsOpen}
       onOpenChange={setStatsOpen}
-      className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5"
+      className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5"
     >
       {pageHeader}
-      <CollapsibleContent>
+      <CollapsibleContent className="shrink-0">
         <ContractStatsCards
           stats={contractStats.statusStats}
           paymentPlan={contractStats.paymentPlan}
@@ -423,7 +423,7 @@ export function ContractsPage() {
           showInlineFilters,
         }}
       >
-        <Card className="min-h-0 flex-1 overflow-hidden">
+        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             title={
               <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">

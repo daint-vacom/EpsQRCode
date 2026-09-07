@@ -382,7 +382,7 @@ export function ContractTemplatesPage() {
           showInlineFilters,
         }}
       >
-        <Card className="min-h-0 flex-1 overflow-hidden">
+        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             title={
               <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">

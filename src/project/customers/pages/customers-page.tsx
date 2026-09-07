@@ -690,7 +690,7 @@ export function CustomersPage() {
       className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5"
     >
       {pageHeader}
-      <CollapsibleContent>
+      <CollapsibleContent className="shrink-0">
         <CustomerStatsCards
           stats={customerStatsQuery.data}
           previousMonthStats={customerPreviousMonthStatsQuery.data}
@@ -713,7 +713,7 @@ export function CustomersPage() {
           showInlineFilters,
         }}
       >
-        <Card className="min-h-[28rem] flex-1 overflow-hidden">
+        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             title={
               <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
