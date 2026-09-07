@@ -32,6 +32,23 @@ npm run lint       # eslint --fix
 npm run format     # prettier --write .
 ```
 
+## Deploy server
+
+Workflow [`deploy-server.yml`](.github/workflows/deploy-server.yml) deploy tự động mỗi khi có push vào
+`main`, chạy trên GitHub Actions self-hosted runner của server và phục vụ frontend bằng Docker + Nginx.
+Workflow Pages cũ đã được thay thế vì Pages không phù hợp với frontend cần gọi API theo domain server.
+
+Trong GitHub, tạo environment `production` và cấu hình các biến sau:
+
+- `DEPLOY_PORT` — cổng host được reverse proxy/domain trỏ tới, bắt buộc.
+- `VITE_API_URL` — URL API production, bắt buộc nếu không dùng reverse proxy `/api/v1`.
+- `VITE_USE_MOCK=0` — tắt mock data khi deploy thật.
+- `DOCKER_NETWORK` — mặc định `bridge`; đặt `miniapp-network` nếu API/container dùng network riêng.
+- `CONTAINER_NAME`, `IMAGE_NAME` — tùy chọn, mặc định lần lượt là `web-template-container` và `web-template-image`.
+
+Nếu dùng Supabase, đặt `VITE_SUPABASE_URL` và các biến hiển thị tương ứng; đặt `VITE_SUPABASE_ANON_KEY`
+ở Environment secret. Self-hosted runner cần có Docker, Node.js và quyền chạy Docker.
+
 Pre-commit (husky) chạy `lint-staged` trên file staged.
 
 ## Tài liệu

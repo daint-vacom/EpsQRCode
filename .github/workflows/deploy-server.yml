@@ -1,0 +1,106 @@
+name: Deploy to server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: self-hosted
+    environment: production
+    timeout-minutes: 15
+
+    env:
+      CONTAINER_NAME: ${{ vars.CONTAINER_NAME || 'web-template-container' }}
+      IMAGE_NAME: ${{ vars.IMAGE_NAME || 'web-template-image' }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DOCKER_NETWORK: ${{ vars.DOCKER_NETWORK || 'bridge' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate deployment settings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$DEPLOY_PORT" =~ ^[0-9]+$ ]] || (( DEPLOY_PORT < 1 || DEPLOY_PORT > 65535 )); then
+            echo "DEPLOY_PORT must be a valid host port (1-65535)."
+            echo "Set it in the production environment or repository variables."
+            exit 1
+          fi
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is required on the self-hosted runner."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm install --force
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_BASE_URL: /
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_API_TIMEOUT_MS: ${{ vars.VITE_API_TIMEOUT_MS || '30000' }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_SCHEMA: ${{ vars.VITE_SUPABASE_SCHEMA || 'public' }}
+          VITE_SUPABASE_LOGIN_DOMAIN: ${{ vars.VITE_SUPABASE_LOGIN_DOMAIN || 'vacom.vn' }}
+          VITE_USE_MOCK: ${{ vars.VITE_USE_MOCK || '0' }}
+          VITE_APP_NAME: ${{ vars.VITE_APP_NAME || 'Admin Template' }}
+          VITE_DEFAULT_LOCALE: ${{ vars.VITE_DEFAULT_LOCALE || 'vi' }}
+
+      - name: Build Docker image
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker build --tag "$IMAGE_NAME:$IMAGE_TAG" .
+
+      - name: Replace running container
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          docker rm --force "$CONTAINER_NAME" 2>/dev/null || true
+          docker run --detach \
+            --restart unless-stopped \
+            --name "$CONTAINER_NAME" \
+            --network "$DOCKER_NETWORK" \
+            --publish "$DEPLOY_PORT:80" \
+            "$IMAGE_NAME:$IMAGE_TAG"
+
+      - name: Verify deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for attempt in {1..10}; do
+            if curl --fail --silent --show-error "http://127.0.0.1:$DEPLOY_PORT/health"; then
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker logs "$CONTAINER_NAME" || true
+          exit 1
