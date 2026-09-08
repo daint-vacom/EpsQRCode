@@ -21,7 +21,9 @@ import { Input, InputWrapper } from '@/components/ui/input';
 </InputWrapper>
 ```
 
-Variant size: `sm | md | lg` (mặc định `md`). `onChange` giữ chữ ký HTML chuẩn `(e) => e.target.value`.
+Variant size: `sm | md | lg` (mặc định `md`). Variant `header` dành cho ô tìm kiếm chính trên header:
+rộng hơn, cùng chiều cao với control `md`, nền trong suốt và viền outline theo màu chữ nền. `onChange`
+giữ chữ ký HTML chuẩn `(e) => e.target.value`.
 
 ---
 
@@ -35,6 +37,9 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 
 <SearchInput value={keyword} onSearch={setKeyword} placeholder="Tìm theo tên, username" />
 ```
+
+Dùng `variant="header"` khi đặt ô tìm kiếm trên header; variant này chỉ thay đổi hình thức, không thay
+đổi contract debounce của `SearchInput`.
 
 | Prop | Kiểu | Mặc định | Ghi chú |
 |---|---|---|---|

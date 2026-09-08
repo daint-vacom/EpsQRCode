@@ -5,6 +5,7 @@ import {
   Bell,
   Building2,
   CircleHelp,
+  Home,
   Languages,
   LogOut,
   Menu,
@@ -13,7 +14,6 @@ import {
   PanelLeft,
   PanelLeftClose,
   Plus,
-  Search,
   Settings,
   ShieldAlert,
   ShoppingCart,
@@ -40,6 +40,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import {
   Popover,
   PopoverContent,
@@ -212,16 +213,6 @@ export function Header() {
     }
   };
 
-  const focusPageSearch = () => {
-    const searchInput = document.querySelector<HTMLInputElement>(
-      '[data-shortcut-target="page-search"]',
-    );
-    if (!searchInput || searchInput.disabled) return;
-
-    searchInput.focus();
-    searchInput.select();
-  };
-
   useEffect(() => {
     setIsSheetOpen(false);
   }, [pathname]);
@@ -229,7 +220,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        'fixed end-0 start-0 top-0 z-10 flex h-(--header-height-mobile) shrink-0 items-center justify-between border-b px-4 transition-[inset-inline-start] duration-200 ease-out lg:h-(--header-height) lg:px-6',
+        'fixed end-0 start-0 top-0 z-10 flex h-(--header-height-mobile) shrink-0 items-center justify-between border-b px-3 transition-[inset-inline-start] duration-200 ease-out lg:h-(--header-height) lg:px-4',
         isDark
           ? 'border-white/10 bg-admin-neutral-900 text-white'
           : 'border-border bg-card',
@@ -289,18 +280,10 @@ export function Header() {
           </Button>
         )}
 
-        <div className="min-w-0">
-          <h1
-            className={cn(
-              'truncate text-lg font-bold leading-tight',
-              isDark ? 'text-white' : 'text-foreground',
-            )}
-          >
-            {shell.headerTitle}
-          </h1>
+        <div className="min-w-0 flex-1">
           <nav
             className={cn(
-              'mt-0.5 flex items-center gap-1.5 text-xs font-medium',
+              'flex items-center gap-2 text-sm font-medium',
               isDark ? 'text-white/55' : 'text-muted-foreground',
             )}
           >
@@ -318,14 +301,26 @@ export function Header() {
                 {item.path ? (
                   <Link
                     to={item.path}
-                    className={
-                      isDark ? 'hover:text-white' : 'hover:text-foreground'
-                    }
+                    aria-label={index === 0 ? shell.headerTitle : undefined}
+                    title={index === 0 ? shell.headerTitle : undefined}
+                    className={cn(
+                      'inline-flex items-center',
+                      isDark ? 'hover:text-white' : 'hover:text-foreground',
+                    )}
                   >
-                    {item.label}
+                    {index === 0 ? (
+                      <>
+                        <Home className="me-1.5 size-4" aria-hidden="true" />
+                        <span className="max-w-40 truncate sm:max-w-56">
+                          {shell.headerTitle}
+                        </span>
+                      </>
+                    ) : (
+                      item.label
+                    )}
                   </Link>
                 ) : (
-                  <span className="text-primary">{item.label}</span>
+                  <span className="inline-flex items-center">{item.label}</span>
                 )}
               </Fragment>
             ))}
@@ -334,31 +329,19 @@ export function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <Button
-          variant="primary"
-          mode="icon"
-          size="sm"
-          shape="circle"
-          className="size-7"
-          aria-label="Thêm nhanh"
-          title="Thêm nhanh"
-        >
-          <Plus className="size-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          mode="icon"
-          size="sm"
+        <SearchInput
+          variant="header"
+          placeholder="Tìm kiếm..."
           aria-label="Tìm kiếm"
-          title="Tìm kiếm"
-          onClick={focusPageSearch}
-          className={
-            isDark
-              ? 'text-white/70 hover:bg-white/10 hover:text-white'
-              : undefined
-          }
-        >
-          <Search className="size-4" />
+          className="w-52 sm:w-64 lg:w-72"
+        />
+        <Separator
+          orientation="vertical"
+          className={cn('h-6', isDark && 'bg-white/15')}
+        />
+        <Button variant="light" size="md" aria-label="Thêm">
+          <Plus />
+          Thêm
         </Button>
         <Popover>
           <PopoverTrigger asChild>

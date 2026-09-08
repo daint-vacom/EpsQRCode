@@ -2,8 +2,8 @@
 
 > Hub: [`docs/06-component-usage-guide.md`](../06-component-usage-guide.md).
 
-Variant (giữ nguyên tên API): `primary` (CTA xanh template), `secondary`, `outline`, `ghost`,
-`dashed`, `destructive`, `mono`. Size: `sm | md | lg | icon`. `mode="icon"` cho nút chỉ có icon;
+Variant (giữ nguyên tên API): `primary` (CTA xanh template), `light` (nền primary nhẹ), `secondary`,
+`outline`, `ghost`, `dashed`, `destructive`, `mono`. Size: `sm | md | lg | icon`. `mode="icon"` cho nút chỉ có icon;
 `mode="input"` cho nút trông như ô field (dùng làm trigger Combobox/MultiSelect).
 
 ```tsx

@@ -77,11 +77,20 @@ export function SearchInput({
     <InputWrapper
       variant={variant}
       background={background}
-      className={cn('text-foreground', className)}
+      className={cn(
+        variant === 'header' ? undefined : 'text-foreground',
+        className,
+      )}
     >
-      <Search className="text-muted-foreground" aria-hidden="true" />
+      <Search
+        className={
+          variant === 'header' ? 'text-current/60' : 'text-muted-foreground'
+        }
+        aria-hidden="true"
+      />
       <Input
         {...props}
+        variant={variant}
         data-shortcut-target="page-search"
         type="search"
         className="[&::-webkit-search-cancel-button]:appearance-none"
@@ -99,7 +108,12 @@ export function SearchInput({
           aria-label="Xóa tìm kiếm"
           disabled={disabled}
           onClick={handleClear}
-          className="-me-1 size-6 text-muted-foreground hover:text-foreground"
+          className={cn(
+            '-me-1 size-6',
+            variant === 'header'
+              ? 'text-current/60 hover:text-current'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
         >
           <X className="size-3.5" />
         </Button>

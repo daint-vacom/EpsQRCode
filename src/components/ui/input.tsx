@@ -23,6 +23,8 @@ const inputVariants = cva(
         lg: 'h-10 px-4 text-sm rounded-md file:pe-4 file:me-4',
         md: 'h-8.5 px-3 text-[0.8125rem] leading-(--text-sm--line-height) rounded-md file:pe-3 file:me-3',
         sm: 'h-7 px-2.5 text-xs rounded-md file:pe-2.5 file:me-2.5',
+        header:
+          'h-8.5 rounded-md border-current/25 bg-transparent px-3 text-[0.8125rem] text-inherit shadow-none focus-visible:!bg-transparent focus-visible:border-current/50 focus-visible:ring-current/20 file:pe-3 file:me-3',
         ghost:
           'h-8.5 rounded-md border-transparent bg-transparent px-2.5 text-[0.8125rem] leading-(--text-sm--line-height) shadow-none hover:bg-accent/60 focus-visible:bg-background file:pe-2.5 file:me-2.5',
       },
@@ -116,6 +118,8 @@ const inputWrapperVariants = cva(
         sm: 'gap-1.25 [&_svg:not([class*=size-])]:size-3.5',
         md: 'gap-1.5 [&_svg:not([class*=size-])]:size-4',
         lg: 'gap-1.5 [&_svg:not([class*=size-])]:size-4',
+        header:
+          'gap-1.5 border-current/25 bg-transparent text-inherit shadow-none has-[:focus-visible]:!bg-transparent has-[:focus-visible]:border-current/50 has-[:focus-visible]:ring-current/20 [&_svg:not([class*=size-])]:size-4 [&_svg]:text-current/60 [&_[data-slot=input]]:!text-inherit [&_[data-slot=input]]:placeholder:text-current/55 [&_[data-slot=input]]:focus-visible:!bg-transparent',
       },
     },
     defaultVariants: {
