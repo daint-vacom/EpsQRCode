@@ -3,7 +3,6 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import type { CustomerSelectOption } from '@/project/customers/components/customer-select';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft,
   ArrowRight,
   Check,
   FileText,
@@ -51,8 +50,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { loadActiveCurrencies } from '../../api/currencies.api';
-import { CURRENT_CURRENCY_CODE, toCurrencyOptions } from '../../model/currency';
+import { CURRENT_CURRENCY_CODE } from '../../model/currency';
 import { loadContractTemplateDetail } from '../api/contract-templates.api';
 import {
   activateContract,
@@ -63,7 +61,6 @@ import {
 } from '../api/contracts.api';
 import type { ContractDetail } from '../api/contracts.api';
 import { ContractConfirmationProcessing } from '../components/contract-confirmation-processing';
-import { ContractCurrencyField } from '../components/contract-currency-field';
 import {
   ContractFeeLinesEditor,
   createDefaultContractFeeLine,
@@ -86,12 +83,12 @@ import {
 const STEPS = [
   {
     value: 1,
-    label: 'Thông tin chung',
+    label: 'Nhập thông tin',
     icon: FileText,
   },
   {
     value: 2,
-    label: 'Xác nhận',
+    label: 'Kiểm tra hợp đồng',
     icon: Check,
   },
 ] as const;
@@ -201,12 +198,6 @@ export function ContractCreatePage() {
   const mappedEditIdRef = useRef<string | null>(null);
   const mappedTemplateIdRef = useRef<string | null>(null);
   const versionCheckRunRef = useRef(0);
-
-  const currenciesQuery = useQuery({
-    queryKey: ['project', 'currencies', 'active'],
-    queryFn: loadActiveCurrencies,
-  });
-  const currencyCodeOptions = toCurrencyOptions(currenciesQuery.data ?? []);
 
   const editDetailQuery = useQuery({
     queryKey: [
@@ -646,11 +637,11 @@ export function ContractCreatePage() {
             <Button
               variant="primary"
               onClick={() => {
-                void (isEditMode
-                  ? editDetailQuery.refetch()
-                  : isTemplateMode
-                    ? templateQuery.refetch()
-                    : currenciesQuery.refetch());
+                if (isEditMode) {
+                  void editDetailQuery.refetch();
+                } else if (isTemplateMode) {
+                  void templateQuery.refetch();
+                }
               }}
             >
               Thử lại
@@ -714,54 +705,81 @@ export function ContractCreatePage() {
             ) : null
           }
           actions={
-            <StepperNav className="w-auto gap-2">
-              {STEPS.map((item, index) => {
-                const Icon = item.icon;
-                const isLocked = item.value > maxStep;
-                return (
-                  <Fragment key={item.value}>
-                    <div
-                      className={cn(
-                        'flex min-w-0 items-center',
-                        index < STEPS.length - 1 ? 'flex-1' : 'shrink-0',
-                      )}
-                    >
-                      <StepperItem
-                        step={item.value}
-                        completed={item.value < step}
-                        disabled={isLocked}
-                        fill={false}
-                        className="min-w-0 justify-start"
-                      >
-                        {isLocked ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="min-w-0">
-                                <StepTriggerContent
-                                  icon={Icon}
-                                  label={item.label}
-                                />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Hoàn thành bước trước để mở bước này
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <StepTriggerContent icon={Icon} label={item.label} />
+            <div className="flex items-center gap-2">
+              <StepperNav className="w-auto gap-2">
+                {STEPS.map((item, index) => {
+                  const Icon = item.icon;
+                  const isLocked = item.value > maxStep;
+                  return (
+                    <Fragment key={item.value}>
+                      <div
+                        className={cn(
+                          'flex min-w-0 items-center',
+                          index < STEPS.length - 1 ? 'flex-1' : 'shrink-0',
                         )}
-                      </StepperItem>
-                      {index < STEPS.length - 1 ? (
-                        <StepperConnector
-                          aria-hidden="true"
+                      >
+                        <StepperItem
+                          step={item.value}
                           completed={item.value < step}
-                        />
-                      ) : null}
-                    </div>
-                  </Fragment>
-                );
-              })}
-            </StepperNav>
+                          disabled={isLocked}
+                          fill={false}
+                          className="min-w-0 justify-start"
+                        >
+                          {isLocked ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="min-w-0">
+                                  <StepTriggerContent
+                                    icon={Icon}
+                                    label={item.label}
+                                  />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Hoàn thành bước trước để mở bước này
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <StepTriggerContent
+                              icon={Icon}
+                              label={item.label}
+                            />
+                          )}
+                        </StepperItem>
+                        {index < STEPS.length - 1 ? (
+                          <StepperConnector
+                            aria-hidden="true"
+                            completed={item.value < step}
+                            className="h-0.5 w-8 min-w-8 flex-none data-[state=inactive]:bg-border"
+                          />
+                        ) : null}
+                      </div>
+                    </Fragment>
+                  );
+                })}
+              </StepperNav>
+              <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+              <ShortcutTooltip
+                label={step === 2 ? 'Lưu hợp đồng' : 'Tiếp tục'}
+                shortcut="Ctrl/Cmd + S"
+              >
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={
+                    saveMutation.isPending ||
+                    (step === 2 &&
+                      (processingState !== 'complete' || !versionCheck))
+                  }
+                  loading={saveMutation.isPending}
+                  loadingText="Đang lưu..."
+                  onClick={() => void handleSave()}
+                >
+                  {step === 2 ? <Save /> : <ArrowRight />}
+                  {step === 2 ? 'Xác nhận & lưu' : 'Tiếp tục'}
+                </Button>
+              </ShortcutTooltip>
+            </div>
           }
         />
 
@@ -770,21 +788,12 @@ export function ContractCreatePage() {
             value={1}
             className="flex min-h-full flex-col gap-admin-page-section"
           >
-            <Card>
-              <CardHeader className="pb-3">
-                <CardHeading>
-                  <CardTitle>Thông tin hợp đồng</CardTitle>
-                </CardHeading>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ContractForm
-                  form={form}
-                  onSubmit={() => undefined}
-                  selectedCustomer={selectedCustomer}
-                  onCustomerSelect={setSelectedCustomer}
-                />
-              </CardContent>
-            </Card>
+            <ContractForm
+              form={form}
+              onSubmit={() => undefined}
+              selectedCustomer={selectedCustomer}
+              onCustomerSelect={setSelectedCustomer}
+            />
 
             <div className="flex min-h-[32rem] min-h-0 flex-1 flex-col overflow-hidden">
               <ContractFeeLinesEditor
@@ -792,12 +801,6 @@ export function ContractCreatePage() {
                 ref={feeLinesEditorRef}
                 lines={feeLines}
                 onChange={setFeeLines}
-                currencyField={
-                  <ContractCurrencyField
-                    form={form}
-                    options={currencyCodeOptions}
-                  />
-                }
               />
             </div>
           </StepperContent>
@@ -826,53 +829,6 @@ export function ContractCreatePage() {
           </StepperContent>
         </StepperPanel>
       </Stepper>
-
-      <div className="flex shrink-0 items-center justify-between border-t border-border pt-4">
-        <Button type="button" variant="outline" onClick={handleCancel}>
-          Hủy
-        </Button>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={step === 1}
-            onClick={() => setStep((current) => Math.max(1, current - 1))}
-          >
-            <ArrowLeft />
-            Bước trước
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={step === STEPS.length}
-            onClick={() => void handleNext()}
-          >
-            Bước tiếp theo
-            <ArrowRight />
-          </Button>
-          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-          <ShortcutTooltip
-            label={step === 2 ? 'Lưu hợp đồng' : 'Xem xác nhận'}
-            shortcut="Ctrl/Cmd + S"
-          >
-            <Button
-              type="button"
-              variant="primary"
-              disabled={
-                saveMutation.isPending ||
-                (step === 2 &&
-                  (processingState !== 'complete' || !versionCheck))
-              }
-              loading={saveMutation.isPending}
-              loadingText="Đang lưu..."
-              onClick={() => void handleSave()}
-            >
-              {step === 2 ? <Save /> : <ArrowRight />}
-              {step === 2 ? 'Xác nhận & lưu' : 'Xem xác nhận'}
-            </Button>
-          </ShortcutTooltip>
-        </div>
-      </div>
     </div>
   );
 }
@@ -886,7 +842,7 @@ function StepTriggerContent({
 }) {
   return (
     <StepperTrigger className="min-w-0 px-1 text-left">
-      <StepperIndicator className="data-[state=inactive]:bg-muted data-[state=inactive]:text-muted-foreground">
+      <StepperIndicator className="data-[state=inactive]:border data-[state=inactive]:border-border data-[state=inactive]:bg-muted data-[state=inactive]:text-muted-foreground">
         <Icon className="size-3.5" />
       </StepperIndicator>
       <span className="hidden min-w-0 sm:flex">

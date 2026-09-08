@@ -147,7 +147,7 @@ export const ContractFeeLinesEditor = forwardRef<
   return (
     <Form {...form}>
       <div className="flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col">
-        <div className="mt-3 flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
           <ContractFeeLinesEditorTable
             form={form}
             toolbarContent={currencyField}

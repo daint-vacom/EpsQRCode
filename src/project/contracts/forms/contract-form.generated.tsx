@@ -12,9 +12,17 @@ import { CustomerSelect } from '@/project/customers/components/customer-select';
 import type { CustomerSelectOption } from '@/project/customers/components/customer-select';
 import { TagSelect } from '@/project/tags/components/tag-select';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CalendarClock, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardHeading,
+  CardTitle,
+} from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -100,157 +108,189 @@ export function ContractForm({
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          <FormField
-            control={form.control}
-            name="customerId"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>
-                  Khách hàng<span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <CustomerSelect
-                    value={field.value}
-                    selectedCustomer={selectedCustomer}
-                    onChange={field.onChange}
-                    onSelect={onCustomerSelect}
-                    placeholder="Chọn khách hàng"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 gap-admin-page-section xl:grid-cols-2">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardHeading>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <FileText className="size-4" aria-hidden="true" />
+                  </span>
+                  Thông tin chung
+                </CardTitle>
+              </CardHeading>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="customerId"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>
+                        Khách hàng<span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <CustomerSelect
+                          value={field.value}
+                          selectedCustomer={selectedCustomer}
+                          onChange={field.onChange}
+                          onSelect={onCustomerSelect}
+                          placeholder="Chọn khách hàng"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="tagIds"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Nhãn</FormLabel>
-                <FormControl>
-                  <TagSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    moduleCodes={['contracts']}
-                    placeholder="Chọn nhãn"
-                    searchPlaceholder="Tìm nhãn..."
-                    emptyMessage="Không tìm thấy nhãn"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="contractCode"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-1">
+                      <FormLabel>
+                        Mã hợp đồng<span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input variant="md" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="contractCode"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6 md:col-start-1">
-                <FormLabel>
-                  Mã hợp đồng<span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-1">
+                      <FormLabel>
+                        Tên hợp đồng<span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input variant="md" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>
-                  Tên hợp đồng<span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="tagIds"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Nhãn</FormLabel>
+                      <FormControl>
+                        <TagSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          moduleCodes={['contracts']}
+                          placeholder="Chọn nhãn"
+                          searchPlaceholder="Tìm nhãn..."
+                          emptyMessage="Không tìm thấy nhãn"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          <FormField
-            control={form.control}
-            name="startDate"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>
-                  Ngày bắt đầu<span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn ngày bắt đầu"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <Card>
+            <CardHeader className="pb-3">
+              <CardHeading>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <CalendarClock className="size-4" aria-hidden="true" />
+                  </span>
+                  Thời gian &amp; gia hạn
+                </CardTitle>
+              </CardHeading>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-1">
+                      <FormLabel>
+                        Ngày bắt đầu<span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          calendarLabel="Chọn ngày bắt đầu"
+                          valueMode="iso-date"
+                          variant="md"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="endDate"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Ngày kết thúc</FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn ngày kết thúc"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-1">
+                      <FormLabel>Ngày kết thúc</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          calendarLabel="Chọn ngày kết thúc"
+                          valueMode="iso-date"
+                          variant="md"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="autoRenew"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6 flex-row items-center gap-2.5">
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <FormLabel className="font-normal text-foreground">
-                  Tự động gia hạn
-                </FormLabel>
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="autoRenew"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2 flex-row items-center gap-2.5">
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal text-foreground">
+                        Tự động gia hạn
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="note"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Ghi chú</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="note"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Ghi chú</FormLabel>
+                      <FormControl>
+                        <Textarea rows={3} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
         {lineEditor ? <div className="mt-6">{lineEditor}</div> : null}
       </form>
