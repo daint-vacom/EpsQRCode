@@ -35,7 +35,7 @@ type AppSettingsContextValue = {
 
 const defaultAppearance: AppAppearanceSettings = {
   theme: 'system',
-  density: 'large',
+  density: 'small',
   sidebarTheme: 'dark',
   sidebarCollapsed: false,
   autoCollapseSidebarOnDetail: true,

@@ -62,6 +62,21 @@ describe('AppSettingsProvider', () => {
     });
   });
 
+  it('defaults to the smallest density when no setting is persisted', async () => {
+    render(
+      <AppSettingsProvider>
+        <SettingsProbe />
+      </AppSettingsProvider>,
+    );
+
+    expect(screen.getByRole('button')).toHaveTextContent('small');
+    await waitFor(() => {
+      expect(
+        document.documentElement.style.getPropertyValue('--app-root-font-size'),
+      ).toBe('14.4px');
+    });
+  });
+
   it('defaults auto-hide sidebar to true for older saved settings', () => {
     localStorage.setItem(
       APP_SETTINGS_STORAGE_KEY,

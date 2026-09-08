@@ -89,17 +89,30 @@ export function ProjectSettingsPage() {
   const currencyCodeOptions = toCurrencyOptions(currenciesQuery.data ?? []);
   const form = useTenantSettingsForm();
   const currentSettingsRef = useRef<Record<string, unknown>>({});
-  const hydratedTenantIdRef = useRef<string | null>(null);
+  const [hydratedTenantId, setHydratedTenantId] = useState<string | null>(null);
+  const navigationPromptOpenRef = useRef(false);
 
   useEffect(() => {
     const data = tenantSettingsQuery.data;
-    if (!data || hydratedTenantIdRef.current === data.tenantId) return;
+    if (
+      !data ||
+      (!currenciesQuery.isSuccess && !currenciesQuery.isError) ||
+      hydratedTenantId === data.tenantId
+    ) {
+      return;
+    }
 
-    form.reset(data.values);
+    form.reset(data.values, { keepDirty: false });
     setLogoFile(null);
     currentSettingsRef.current = data.settings;
-    hydratedTenantIdRef.current = data.tenantId;
-  }, [form, tenantSettingsQuery.data]);
+    setHydratedTenantId(data.tenantId);
+  }, [
+    currenciesQuery.isError,
+    currenciesQuery.isSuccess,
+    form,
+    hydratedTenantId,
+    tenantSettingsQuery.data,
+  ]);
 
   const tenantMutation = useMutation({
     mutationFn: async (values: TenantSettingsValues) => {
@@ -155,7 +168,10 @@ export function ProjectSettingsPage() {
     },
   });
 
-  const organizationDirty = form.formState.isDirty || Boolean(logoFile);
+  const isTenantSettingsHydrated =
+    tenantSettingsQuery.data?.tenantId === hydratedTenantId;
+  const organizationDirty =
+    isTenantSettingsHydrated && (form.formState.isDirty || Boolean(logoFile));
   const confirmLeave = useCallback(
     (message: string) => !organizationDirty || window.confirm(message),
     [organizationDirty],
@@ -191,9 +207,18 @@ export function ProjectSettingsPage() {
         return;
       }
 
-      if (!confirmLeave('Bạn có thay đổi chưa lưu. Bạn vẫn muốn rời trang?')) {
+      if (navigationPromptOpenRef.current) return;
+
+      navigationPromptOpenRef.current = true;
+      const canLeave = confirmLeave(
+        'Bạn có thay đổi chưa lưu. Bạn vẫn muốn rời trang?',
+      );
+      navigationPromptOpenRef.current = false;
+
+      if (!canLeave) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
       }
     };
 
@@ -268,7 +293,10 @@ export function ProjectSettingsPage() {
                   </CardHeading>
                 </CardHeader>
                 <CardContent className="space-y-5 p-5">
-                  {tenantSettingsQuery.isPending ? (
+                  {tenantSettingsQuery.isPending ||
+                  currenciesQuery.isPending ||
+                  (Boolean(tenantSettingsQuery.data) &&
+                    !isTenantSettingsHydrated) ? (
                     <CardLoading label="Đang tải thông tin tổ chức..." />
                   ) : tenantSettingsQuery.isError ? (
                     <p className="text-sm text-destructive">
