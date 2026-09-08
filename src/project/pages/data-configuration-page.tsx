@@ -13,6 +13,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_ENTITY_ORDER } from '@/config/project-menu.config';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
@@ -265,7 +266,7 @@ export function DataConfigurationPage() {
             <CardTitle className="text-[15px]">Đối tượng</CardTitle>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-3 sm:grid-cols-3 xl:flex xl:flex-col">
-            {CUSTOM_FIELD_ENTITY_TYPES.map((entityType) => {
+            {PROJECT_ENTITY_ORDER.map((entityType) => {
               const Icon = ENTITY_ICONS[entityType];
               const meta = CUSTOM_FIELD_ENTITY_META[entityType];
               const isSelected = entityType === selectedEntity;

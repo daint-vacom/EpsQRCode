@@ -57,6 +57,7 @@ import {
   type TagGroup,
   type TagGroupFormValues,
 } from '../tags/model/tag';
+import { sortTagGroups } from '../tags/model/tag-group-order';
 import { useTagColumns } from '../tags/table/tag.columns.generated';
 
 const EMPTY_GROUPS: TagGroup[] = [];
@@ -94,11 +95,16 @@ export function TagsPage() {
 
   const workspace = workspaceQuery.data;
   const groups = workspace?.groups ?? EMPTY_GROUPS;
+  const orderedGroups = useMemo(() => sortTagGroups(groups), [groups]);
   const tags = workspace?.tags ?? EMPTY_TAGS;
-  const activeGroupId = groups.some((group) => group.id === selectedGroupId)
+  const activeGroupId = orderedGroups.some(
+    (group) => group.id === selectedGroupId,
+  )
     ? selectedGroupId
-    : (groups[0]?.id ?? null);
-  const selectedGroup = groups.find((group) => group.id === activeGroupId);
+    : (orderedGroups[0]?.id ?? null);
+  const selectedGroup = orderedGroups.find(
+    (group) => group.id === activeGroupId,
+  );
   const tableRows = useMemo(
     () => tags.filter((tag) => tag.groupId === activeGroupId),
     [activeGroupId, tags],
@@ -282,12 +288,12 @@ export function TagsPage() {
             </div>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-3 sm:grid-cols-3 xl:flex xl:flex-col">
-            {groups.length === 0 ? (
+            {orderedGroups.length === 0 ? (
               <div className="flex min-h-20 items-center justify-center rounded-md border border-dashed px-3 text-center text-sm text-muted-foreground sm:col-span-3 xl:min-h-24">
                 Chưa có nhóm nhãn
               </div>
             ) : (
-              groups.map((group) => {
+              orderedGroups.map((group) => {
                 const isSelected = group.id === activeGroupId;
 
                 return (
@@ -419,7 +425,7 @@ export function TagsPage() {
         onSubmit={(values) => tagMutation.mutate({ values, tag: null })}
         isSaving={tagMutation.isPending}
         title="Thêm nhãn"
-        groupIdOptions={groups.map((group) => ({
+        groupIdOptions={orderedGroups.map((group) => ({
           value: group.id,
           label: group.name,
         }))}
@@ -436,7 +442,7 @@ export function TagsPage() {
         }}
         isSaving={tagMutation.isPending}
         title="Sửa nhãn"
-        groupIdOptions={groups.map((group) => ({
+        groupIdOptions={orderedGroups.map((group) => ({
           value: group.id,
           label: group.name,
         }))}

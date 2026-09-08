@@ -28,11 +28,6 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     title: 'Quản trị',
     items: [
       {
-        label: 'Nhân viên',
-        icon: Users,
-        path: ROUTES.PROJECT.EMPLOYEES,
-      },
-      {
         label: 'Khách hàng',
         icon: UserRoundSearch,
         path: ROUTES.PROJECT.CUSTOMERS,
@@ -46,6 +41,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Mẫu hợp đồng',
         icon: Layers3,
         path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
+      },
+      {
+        label: 'Nhân viên',
+        icon: Users,
+        path: ROUTES.PROJECT.EMPLOYEES,
       },
       {
         label: 'Phân quyền',
@@ -75,3 +75,16 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     ],
   },
 ];
+
+export type ProjectEntity = 'customer' | 'contract' | 'employee';
+
+const PROJECT_ENTITY_BY_MENU_PATH: Readonly<Record<string, ProjectEntity>> = {
+  [ROUTES.PROJECT.CUSTOMERS]: 'customer',
+  [ROUTES.PROJECT.CONTRACTS]: 'contract',
+  [ROUTES.PROJECT.EMPLOYEES]: 'employee',
+};
+
+/** Thứ tự các đối tượng nghiệp vụ được lấy từ menu sidebar thực tế. */
+export const PROJECT_ENTITY_ORDER = PROJECT_MENU_GROUPS.flatMap((group) =>
+  group.items.map((item) => PROJECT_ENTITY_BY_MENU_PATH[item.path]),
+).filter((entity): entity is ProjectEntity => Boolean(entity));
