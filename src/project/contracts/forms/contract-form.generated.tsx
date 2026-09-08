@@ -12,7 +12,6 @@ import { CustomerSelect } from '@/project/customers/components/customer-select';
 import type { CustomerSelectOption } from '@/project/customers/components/customer-select';
 import { TagSelect } from '@/project/tags/components/tag-select';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -34,16 +33,12 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
-import { MultiSelect } from '@/components/ui/multi-select';
-import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { EmployeeIdentity } from '../../employees/components/employee-identity';
 import {
   contractFormSchema,
   type Contract,
-  type ContractEmployeeOption,
   type ContractFormValues,
 } from '../model/contract';
 
@@ -92,7 +87,6 @@ interface ContractFormProps {
   lineEditor?: ReactNode;
   selectedCustomer?: CustomerSelectOption;
   onCustomerSelect?: (customer: CustomerSelectOption | undefined) => void;
-  responsibleEmployeeIdsOptions: MultiSelectOption<ContractEmployeeOption>[];
 }
 
 export function ContractForm({
@@ -102,7 +96,6 @@ export function ContractForm({
   lineEditor,
   selectedCustomer,
   onCustomerSelect,
-  responsibleEmployeeIdsOptions,
 }: ContractFormProps) {
   return (
     <Form {...form}>
@@ -124,64 +117,6 @@ export function ContractForm({
                     onSelect={onCustomerSelect}
                     placeholder="Chọn khách hàng"
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="responsibleEmployeeIds"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Nhân viên phụ trách</FormLabel>
-                <FormControl>
-                  <div className="space-y-2">
-                    <MultiSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={responsibleEmployeeIdsOptions}
-                      placeholder="Chọn nhân viên phụ trách"
-                      searchPlaceholder="Tìm nhân viên..."
-                      emptyMessage="Không tìm thấy nhân viên"
-                      showSelectedOptionsInTrigger={false}
-                    />
-                    {field.value.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {responsibleEmployeeIdsOptions
-                          .filter((option) =>
-                            field.value.includes(option.value),
-                          )
-                          .map((option) => {
-                            if (!option.data) return null;
-
-                            return (
-                              <div
-                                key={option.value}
-                                className="flex w-fit max-w-full items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2"
-                              >
-                                <EmployeeIdentity employee={option.data} />
-                                <button
-                                  type="button"
-                                  aria-label={`Bỏ ${option.data.displayName}`}
-                                  className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                  onClick={() =>
-                                    field.onChange(
-                                      field.value.filter(
-                                        (id) => id !== option.value,
-                                      ),
-                                    )
-                                  }
-                                >
-                                  <X className="size-4" />
-                                </button>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    ) : null}
-                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -334,7 +269,6 @@ interface ContractFormDialogProps {
   lineEditor?: ReactNode;
   selectedCustomer?: CustomerSelectOption;
   onCustomerSelect?: (customer: CustomerSelectOption | undefined) => void;
-  responsibleEmployeeIdsOptions: MultiSelectOption<ContractEmployeeOption>[];
 }
 
 export function ContractFormDialog({
@@ -348,7 +282,6 @@ export function ContractFormDialog({
   lineEditor,
   selectedCustomer,
   onCustomerSelect,
-  responsibleEmployeeIdsOptions,
 }: ContractFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -398,7 +331,6 @@ export function ContractFormDialog({
               lineEditor={lineEditor}
               selectedCustomer={selectedCustomer}
               onCustomerSelect={onCustomerSelect}
-              responsibleEmployeeIdsOptions={responsibleEmployeeIdsOptions}
             />
           </div>
 

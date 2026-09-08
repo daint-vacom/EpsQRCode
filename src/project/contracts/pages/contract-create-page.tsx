@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Check,
   FileText,
-  ReceiptText,
   Save,
   type LucideIcon,
 } from 'lucide-react';
@@ -53,19 +52,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { loadActiveCurrencies } from '../../api/currencies.api';
-import { EmployeeIdentity } from '../../employees/components/employee-identity';
 import { CURRENT_CURRENCY_CODE, toCurrencyOptions } from '../../model/currency';
 import { loadContractTemplateDetail } from '../api/contract-templates.api';
 import {
   activateContract,
   createContract,
-  loadContractCreationWorkspace,
   loadContractDetail,
   updateContract,
   type ContractVersionLineValuesForApi,
 } from '../api/contracts.api';
 import type { ContractDetail } from '../api/contracts.api';
-import { ContractAttachmentsField } from '../components/contract-attachments-field';
 import { ContractConfirmationProcessing } from '../components/contract-confirmation-processing';
 import { ContractCurrencyField } from '../components/contract-currency-field';
 import {
@@ -95,11 +91,6 @@ const STEPS = [
   },
   {
     value: 2,
-    label: 'Khoản phí',
-    icon: ReceiptText,
-  },
-  {
-    value: 3,
     label: 'Xác nhận',
     icon: Check,
   },
@@ -194,10 +185,6 @@ export function ContractCreatePage() {
     createDefaultContractFeeLine(contractDefaultValues.startDate),
   ]);
   const [feeEditorKey, setFeeEditorKey] = useState('create');
-  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [removedAttachmentIds, setRemovedAttachmentIds] = useState<string[]>(
-    [],
-  );
   const [processingState, setProcessingState] = useState<
     'idle' | 'checking-charges' | 'checking-version' | 'complete'
   >('idle');
@@ -213,26 +200,8 @@ export function ContractCreatePage() {
   >(null);
   const mappedEditIdRef = useRef<string | null>(null);
   const mappedTemplateIdRef = useRef<string | null>(null);
-  const initializedCreateResponsibleRef = useRef(false);
   const versionCheckRunRef = useRef(0);
 
-  const workspaceQuery = useQuery({
-    queryKey: [
-      'project',
-      'contracts',
-      'create-options',
-      userId,
-      tenantId,
-      isEditMode,
-    ],
-    queryFn: () => {
-      if (!userId || !tenantId) {
-        throw new Error('Chưa xác định tổ chức hiện tại.');
-      }
-      return loadContractCreationWorkspace(userId, isEditMode, tenantId);
-    },
-    enabled: Boolean(userId && tenantId),
-  });
   const currenciesQuery = useQuery({
     queryKey: ['project', 'currencies', 'active'],
     queryFn: loadActiveCurrencies,
@@ -303,9 +272,6 @@ export function ContractCreatePage() {
     setSelectedEditVersionId(defaultVersion?.id ?? null);
     setPlannedEffectiveFrom(defaultVersion?.effectiveFrom ?? null);
     loadVersionIntoEditor(detail, defaultVersion);
-    setAttachmentFiles([]);
-    setRemovedAttachmentIds([]);
-    initializedCreateResponsibleRef.current = false;
     setStep(1);
     setMaxStep(1);
     mappedEditIdRef.current = editingContractId;
@@ -326,8 +292,6 @@ export function ContractCreatePage() {
     setFeeEditorKey('create');
     setSelectedEditVersionId(null);
     setPlannedEffectiveFrom(null);
-    setAttachmentFiles([]);
-    setRemovedAttachmentIds([]);
     setStep(1);
     setMaxStep(1);
   }, [editingContractId, form, templateId]);
@@ -371,9 +335,6 @@ export function ContractCreatePage() {
       currencyCode: CURRENT_CURRENCY_CODE,
       autoRenew: template.autoRenewDefault,
       note: template.note,
-      responsibleEmployeeIds: workspaceQuery.data?.defaultResponsibleEmployeeId
-        ? [workspaceQuery.data.defaultResponsibleEmployeeId]
-        : [],
     });
     setSelectedCustomer(undefined);
     setFeeLines(
@@ -384,44 +345,10 @@ export function ContractCreatePage() {
     setFeeEditorKey(`template:${templateId}:${latestVersion?.id ?? 'empty'}`);
     setSelectedEditVersionId(null);
     setPlannedEffectiveFrom(null);
-    setAttachmentFiles([]);
-    setRemovedAttachmentIds([]);
     setStep(1);
     setMaxStep(1);
     mappedTemplateIdRef.current = templateId;
-  }, [
-    form,
-    isTemplateMode,
-    templateId,
-    templateQuery.data,
-    workspaceQuery.data?.defaultResponsibleEmployeeId,
-  ]);
-
-  useEffect(() => {
-    if (
-      isEditMode ||
-      initializedCreateResponsibleRef.current ||
-      !workspaceQuery.data
-    ) {
-      return;
-    }
-
-    initializedCreateResponsibleRef.current = true;
-    const employeeId = workspaceQuery.data.defaultResponsibleEmployeeId;
-    if (employeeId) {
-      form.setValue('responsibleEmployeeIds', [employeeId], {
-        shouldDirty: false,
-      });
-    }
-  }, [form, isEditMode, workspaceQuery.data]);
-
-  const responsibleEmployeeIdsOptions =
-    workspaceQuery.data?.employees.map((employee) => ({
-      value: employee.id,
-      label: <EmployeeIdentity employee={employee} />,
-      searchableText: `${employee.displayName} ${employee.employeeCode}`,
-      data: employee,
-    })) ?? [];
+  }, [form, isTemplateMode, templateId, templateQuery.data]);
   const editableVersions = (editDetailQuery.data?.versions ?? []).filter(
     (version) => version.status === 'draft' || version.status === 'effective',
   );
@@ -466,7 +393,7 @@ export function ContractCreatePage() {
       source?: Parameters<typeof createContract>[5];
       effectiveFrom: string | null;
     }) => {
-      if (!userId || !workspaceQuery.data?.tenantId) {
+      if (!userId || !tenantId) {
         throw new Error('Chưa xác định tài khoản hoặc tenant.');
       }
       const savedContract =
@@ -480,7 +407,7 @@ export function ContractCreatePage() {
               effectiveFrom,
             )
           : await createContract(
-              workspaceQuery.data.tenantId,
+              tenantId,
               userId,
               values,
               lines,
@@ -494,7 +421,7 @@ export function ContractCreatePage() {
         const savedDetail = await loadContractDetail(
           userId,
           savedContract.id,
-          workspaceQuery.data.tenantId,
+          tenantId,
         );
         await activateContract(savedDetail, userId, undefined, {
           effectiveFrom: todayIso(),
@@ -534,19 +461,17 @@ export function ContractCreatePage() {
 
   async function handleNext() {
     if (step === 1) {
-      if (await form.trigger()) {
-        setStep(2);
-        setMaxStep((current) => Math.max(current, 2));
-      }
-      return;
-    }
-    if (step === 2) {
-      const isValid = await feeLinesEditorRef.current?.validate();
-      if (isValid) {
-        beginVersionCheck();
-      } else {
+      if (!(await form.trigger())) return;
+
+      const areFeeLinesValid = feeLinesEditorRef.current
+        ? await feeLinesEditorRef.current.validate()
+        : true;
+      if (!areFeeLinesValid) {
         toast.error('Vui lòng kiểm tra lại các khoản phí.');
+        return;
       }
+
+      beginVersionCheck();
     }
   }
 
@@ -555,8 +480,8 @@ export function ContractCreatePage() {
     setVersionCheck(null);
     setChargeChanges(null);
     setProcessingState('checking-charges');
-    setStep(3);
-    setMaxStep((current) => Math.max(current, 3));
+    setStep(2);
+    setMaxStep((current) => Math.max(current, 2));
 
     window.setTimeout(() => {
       if (runId !== versionCheckRunRef.current) return;
@@ -634,7 +559,7 @@ export function ContractCreatePage() {
       return;
     }
 
-    if (step < 3) {
+    if (step < 2) {
       beginVersionCheck();
       return;
     }
@@ -661,10 +586,10 @@ export function ContractCreatePage() {
       metadata: {
         responsibleEmployeeIds: values.responsibleEmployeeIds,
         tagIds: values.tagIds,
-        attachmentIdsToKeep: (editDetailQuery.data?.attachments ?? [])
-          .filter((attachment) => !removedAttachmentIds.includes(attachment.id))
-          .map((attachment) => attachment.id),
-        attachments: attachmentFiles,
+        attachmentIdsToKeep: (editDetailQuery.data?.attachments ?? []).map(
+          (attachment) => attachment.id,
+        ),
+        attachments: [],
       },
       source:
         isTemplateMode && templateQuery.data && templateId
@@ -678,12 +603,7 @@ export function ContractCreatePage() {
 
   const isLoadingEditData = isEditMode && editDetailQuery.isPending;
   const isLoadingTemplateData = isTemplateMode && templateQuery.isPending;
-  if (
-    isTenantPending ||
-    workspaceQuery.isPending ||
-    isLoadingEditData ||
-    isLoadingTemplateData
-  ) {
+  if (isTenantPending || isLoadingEditData || isLoadingTemplateData) {
     return (
       <PageLoading
         label={
@@ -696,13 +616,8 @@ export function ContractCreatePage() {
     );
   }
 
-  const pageError =
-    workspaceQuery.error ?? editDetailQuery.error ?? templateQuery.error;
-  if (
-    workspaceQuery.isError ||
-    editDetailQuery.isError ||
-    templateQuery.isError
-  ) {
+  const pageError = editDetailQuery.error ?? templateQuery.error;
+  if (editDetailQuery.isError || templateQuery.isError) {
     return (
       <div className="flex h-full items-center justify-center p-4 lg:p-5">
         <Card className="max-w-lg text-center">
@@ -735,7 +650,7 @@ export function ContractCreatePage() {
                   ? editDetailQuery.refetch()
                   : isTemplateMode
                     ? templateQuery.refetch()
-                    : workspaceQuery.refetch());
+                    : currenciesQuery.refetch());
               }}
             >
               Thử lại
@@ -748,14 +663,25 @@ export function ContractCreatePage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
-      {isEditMode ? (
+      <Stepper
+        value={step}
+        onValueChange={(nextStep) => {
+          if (nextStep === 2 && step !== 2) {
+            void handleNext();
+          } else {
+            setStep(nextStep);
+          }
+        }}
+        variant="success"
+        className="flex min-h-0 flex-1 flex-col gap-admin-page-section"
+      >
         <PageHeader
-          title="Chỉnh sửa hợp đồng"
+          title={isEditMode ? 'Chỉnh sửa hợp đồng' : 'Thêm hợp đồng'}
           icon={FileText}
           backLabel="Quay lại chi tiết hợp đồng"
-          onBack={handleCancel}
+          onBack={isEditMode ? handleCancel : undefined}
           titleAside={
-            editableVersions.length > 0 ? (
+            isEditMode && editableVersions.length > 0 ? (
               <Select
                 value={selectedEditVersionId ?? undefined}
                 onValueChange={handleEditVersionChange}
@@ -787,26 +713,8 @@ export function ContractCreatePage() {
               </Select>
             ) : null
           }
-        />
-      ) : (
-        <PageHeader title="Thêm hợp đồng" icon={FileText} />
-      )}
-
-      <Card className="min-h-0 flex-1 overflow-hidden">
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-0 p-0">
-          <Stepper
-            value={step}
-            onValueChange={(nextStep) => {
-              if (nextStep === 3 && step !== 3) {
-                beginVersionCheck();
-              } else {
-                setStep(nextStep);
-              }
-            }}
-            variant="success"
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <StepperNav className="shrink-0 px-8 pb-6 pt-6 sm:px-10">
+          actions={
+            <StepperNav className="w-auto gap-2">
               {STEPS.map((item, index) => {
                 const Icon = item.icon;
                 const isLocked = item.value > maxStep;
@@ -854,91 +762,57 @@ export function ContractCreatePage() {
                 );
               })}
             </StepperNav>
+          }
+        />
 
-            <StepperPanel className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-              <StepperContent value={1} className="px-6 pb-6">
-                <div className="mx-auto max-w-5xl">
-                  <ContractForm
+        <StepperPanel className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <StepperContent
+            value={1}
+            className="flex min-h-full flex-col gap-admin-page-section"
+          >
+            <Card>
+              <CardHeader className="pb-3">
+                <CardHeading>
+                  <CardTitle>Thông tin hợp đồng</CardTitle>
+                </CardHeading>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ContractForm
+                  form={form}
+                  onSubmit={() => undefined}
+                  selectedCustomer={selectedCustomer}
+                  onCustomerSelect={setSelectedCustomer}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex min-h-[32rem] min-h-0 flex-1 flex-col overflow-hidden">
+              <ContractFeeLinesEditor
+                key={feeEditorKey}
+                ref={feeLinesEditorRef}
+                lines={feeLines}
+                onChange={setFeeLines}
+                currencyField={
+                  <ContractCurrencyField
                     form={form}
-                    onSubmit={() => undefined}
-                    selectedCustomer={selectedCustomer}
-                    onCustomerSelect={setSelectedCustomer}
-                    responsibleEmployeeIdsOptions={
-                      responsibleEmployeeIdsOptions
-                    }
+                    options={currencyCodeOptions}
                   />
-                  <div className="mt-6 space-y-2">
-                    <p className="text-sm font-medium text-foreground">
-                      Người tạo hợp đồng
-                    </p>
-                    {(
-                      isEditMode
-                        ? editDetailQuery.data?.createdByEmployee
-                        : workspaceQuery.data?.employees.find(
-                            (employee) => employee.userId === userId,
-                          )
-                    ) ? (
-                      <EmployeeIdentity
-                        employee={
-                          (isEditMode
-                            ? editDetailQuery.data?.createdByEmployee
-                            : workspaceQuery.data?.employees.find(
-                                (employee) => employee.userId === userId,
-                              ))!
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Chưa xác định
-                      </p>
-                    )}
-                  </div>
-                  <ContractAttachmentsField
-                    className="mt-6"
-                    files={attachmentFiles}
-                    onChange={setAttachmentFiles}
-                    existingAttachments={
-                      isEditMode
-                        ? (editDetailQuery.data?.attachments ?? []).filter(
-                            (attachment) =>
-                              !removedAttachmentIds.includes(attachment.id),
-                          )
-                        : []
-                    }
-                    onRemoveExisting={(attachmentId) =>
-                      setRemovedAttachmentIds((current) =>
-                        current.includes(attachmentId)
-                          ? current
-                          : [...current, attachmentId],
-                      )
-                    }
-                    disabled={saveMutation.isPending}
-                  />
-                </div>
-              </StepperContent>
+                }
+              />
+            </div>
+          </StepperContent>
 
-              <StepperContent
-                value={2}
-                forceMount
-                className="flex min-h-0 flex-1 flex-col px-6"
-              >
-                <div className="flex min-h-0 w-full flex-1 flex-col">
-                  <ContractFeeLinesEditor
-                    key={feeEditorKey}
-                    ref={feeLinesEditorRef}
-                    lines={feeLines}
-                    onChange={setFeeLines}
-                    currencyField={
-                      <ContractCurrencyField
-                        form={form}
-                        options={currencyCodeOptions}
-                      />
-                    }
-                  />
-                </div>
-              </StepperContent>
-
-              <StepperContent value={3} className="min-h-0 flex-1 px-6">
+          <StepperContent value={2} className="min-h-full">
+            <Card className="min-h-[32rem] overflow-hidden">
+              <CardHeader className="pb-3">
+                <CardHeading>
+                  <CardTitle>Xác nhận hợp đồng</CardTitle>
+                  <CardDescription>
+                    Kiểm tra thay đổi trước khi lưu hợp đồng.
+                  </CardDescription>
+                </CardHeading>
+              </CardHeader>
+              <CardContent className="min-h-[28rem] flex-1 p-0">
                 <ContractConfirmationProcessing
                   state={processingState}
                   chargeChanges={chargeChanges}
@@ -947,58 +821,58 @@ export function ContractCreatePage() {
                   plannedEffectiveFrom={plannedEffectiveFrom}
                   onPlannedEffectiveFromChange={setPlannedEffectiveFrom}
                 />
-              </StepperContent>
-            </StepperPanel>
-          </Stepper>
+              </CardContent>
+            </Card>
+          </StepperContent>
+        </StepperPanel>
+      </Stepper>
 
-          <div className="flex shrink-0 items-center justify-between px-6 pb-6 pt-5">
-            <Button type="button" variant="outline" onClick={handleCancel}>
-              Hủy
+      <div className="flex shrink-0 items-center justify-between border-t border-border pt-4">
+        <Button type="button" variant="outline" onClick={handleCancel}>
+          Hủy
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={step === 1}
+            onClick={() => setStep((current) => Math.max(1, current - 1))}
+          >
+            <ArrowLeft />
+            Bước trước
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={step === STEPS.length}
+            onClick={() => void handleNext()}
+          >
+            Bước tiếp theo
+            <ArrowRight />
+          </Button>
+          <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
+          <ShortcutTooltip
+            label={step === 2 ? 'Lưu hợp đồng' : 'Xem xác nhận'}
+            shortcut="Ctrl/Cmd + S"
+          >
+            <Button
+              type="button"
+              variant="primary"
+              disabled={
+                saveMutation.isPending ||
+                (step === 2 &&
+                  (processingState !== 'complete' || !versionCheck))
+              }
+              loading={saveMutation.isPending}
+              loadingText="Đang lưu..."
+              onClick={() => void handleSave()}
+            >
+              {step === 2 ? <Save /> : <ArrowRight />}
+              {step === 2 ? 'Xác nhận & lưu' : 'Xem xác nhận'}
             </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={step === 1}
-                onClick={() => setStep((current) => Math.max(1, current - 1))}
-              >
-                <ArrowLeft />
-                Bước trước
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={step === STEPS.length}
-                onClick={() => void handleNext()}
-              >
-                Bước tiếp theo
-                <ArrowRight />
-              </Button>
-              <div aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
-              <ShortcutTooltip
-                label={step === 3 ? 'Lưu hợp đồng' : 'Xem xác nhận'}
-                shortcut="Ctrl/Cmd + S"
-              >
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={
-                    saveMutation.isPending ||
-                    (step === 3 &&
-                      (processingState !== 'complete' || !versionCheck))
-                  }
-                  loading={saveMutation.isPending}
-                  loadingText="Đang lưu..."
-                  onClick={() => void handleSave()}
-                >
-                  {step === 3 ? <Save /> : <ArrowRight />}
-                  {step === 3 ? 'Xác nhận & lưu' : 'Xem xác nhận'}
-                </Button>
-              </ShortcutTooltip>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </ShortcutTooltip>
+        </div>
+      </div>
     </div>
   );
 }

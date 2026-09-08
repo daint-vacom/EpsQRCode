@@ -17,16 +17,6 @@ const spec: FormSpec = {
       required: true,
     },
     {
-      kind: 'multiselect',
-      name: 'responsibleEmployeeIds',
-      label: 'Nhân viên phụ trách',
-      width: 'full',
-      optionsFrom: 'prop',
-      placeholder: 'Chọn nhân viên phụ trách',
-      searchPlaceholder: 'Tìm nhân viên...',
-      emptyMessage: 'Không tìm thấy nhân viên',
-    },
-    {
       kind: 'tagSelect',
       name: 'tagIds',
       label: 'Nhãn',
