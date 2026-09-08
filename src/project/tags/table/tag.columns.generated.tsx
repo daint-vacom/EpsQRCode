@@ -101,7 +101,7 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
             className={
               row.isGroup
                 ? 'flex min-w-0 items-center gap-2 font-semibold'
-                : 'flex min-w-0 items-center gap-2 ps-6'
+                : 'flex min-w-0 items-center gap-2'
             }
           >
             {row.isGroup ? (

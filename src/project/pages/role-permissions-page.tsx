@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Eye,
   Pencil,
+  Plus,
   RotateCcw,
   Save,
   ShieldCheck,
@@ -192,6 +193,18 @@ export function RolePermissionsPage() {
       description: role.description,
     });
     setDialogOpen(true);
+  };
+
+  const openCreateRole = () => {
+    openRoleDialog({
+      id: '',
+      code: '',
+      name: '',
+      color: 'blue',
+      description: '',
+      userCount: 0,
+      scope: 'all',
+    });
   };
 
   useEffect(() => {
@@ -436,7 +449,24 @@ export function RolePermissionsPage() {
       <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
         <Card className="max-h-[220px] w-full max-w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
-            <CardTitle className="text-[15px]">Vai trò</CardTitle>
+            <div className="flex w-full items-center justify-between gap-2">
+              <CardTitle className="text-[15px]">Vai trò</CardTitle>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    mode="icon"
+                    size="sm"
+                    aria-label="Thêm vai trò"
+                    onClick={openCreateRole}
+                  >
+                    <Plus className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="light">Thêm vai trò</TooltipContent>
+              </Tooltip>
+            </div>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-auto p-3 xl:flex xl:flex-col">
             {roles.map((role) => (
@@ -485,23 +515,6 @@ export function RolePermissionsPage() {
                 </Badge>
               </button>
             ))}
-            <Button
-              variant="outline"
-              className="mt-auto justify-center"
-              onClick={() =>
-                openRoleDialog({
-                  id: '',
-                  code: '',
-                  name: '',
-                  color: 'blue',
-                  description: '',
-                  userCount: 0,
-                  scope: 'all',
-                })
-              }
-            >
-              + Thêm vai trò
-            </Button>
           </CardContent>
         </Card>
 

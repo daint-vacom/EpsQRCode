@@ -30,8 +30,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { tagGroupFormSchema, type TagGroupFormValues } from '../model/tag';
 
 export const tagGroupDefaultValues: TagGroupFormValues = {
-  name: '',
   code: '',
+  name: '',
   description: '',
 };
 
@@ -73,11 +73,11 @@ export function TagGroupForm({
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
           <FormField
             control={form.control}
-            name="name"
+            name="code"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Tên nhóm<span className="text-destructive"> *</span>
+                  Mã nhóm<span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />
@@ -89,11 +89,11 @@ export function TagGroupForm({
 
           <FormField
             control={form.control}
-            name="code"
+            name="name"
             render={({ field }) => (
-              <FormItem className="md:col-span-6">
+              <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Mã nhóm<span className="text-destructive"> *</span>
+                  Tên nhóm<span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />

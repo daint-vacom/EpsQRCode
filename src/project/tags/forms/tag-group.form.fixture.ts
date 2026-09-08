@@ -10,16 +10,16 @@ const spec: FormSpec = {
   fields: [
     {
       kind: 'text',
-      name: 'name',
-      label: 'Tên nhóm',
+      name: 'code',
+      label: 'Mã nhóm',
       width: 'full',
       required: true,
     },
     {
       kind: 'text',
-      name: 'code',
-      label: 'Mã nhóm',
-      width: 'normal',
+      name: 'name',
+      label: 'Tên nhóm',
+      width: 'full',
       required: true,
     },
     {

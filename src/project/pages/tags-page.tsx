@@ -1,14 +1,23 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { FolderPlus, Plus, Tags, TriangleAlert } from 'lucide-react';
+import {
+  FolderPlus,
+  Pencil,
+  Plus,
+  Tags,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTable,
@@ -35,6 +44,7 @@ import {
   updateTag,
   updateTagGroup,
 } from '../tags/api/tags.api';
+import { TagGroupIcon } from '../tags/components/tag-group-icon';
 import { TagFormDialog, useTagForm } from '../tags/forms/tag-form.generated';
 import {
   TagGroupFormDialog,
@@ -47,11 +57,7 @@ import {
   type TagGroup,
   type TagGroupFormValues,
 } from '../tags/model/tag';
-import {
-  buildTagGroupedRows,
-  toggleTagGroup,
-  useTagColumns,
-} from '../tags/table/tag.columns.generated';
+import { useTagColumns } from '../tags/table/tag.columns.generated';
 
 const EMPTY_GROUPS: TagGroup[] = [];
 const EMPTY_TAGS: Tag[] = [];
@@ -84,36 +90,18 @@ export function TagsPage() {
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
     null,
   );
-  const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   const workspace = workspaceQuery.data;
   const groups = workspace?.groups ?? EMPTY_GROUPS;
   const tags = workspace?.tags ?? EMPTY_TAGS;
+  const activeGroupId = groups.some((group) => group.id === selectedGroupId)
+    ? selectedGroupId
+    : (groups[0]?.id ?? null);
+  const selectedGroup = groups.find((group) => group.id === activeGroupId);
   const tableRows = useMemo(
-    () =>
-      buildTagGroupedRows(groups, tags, collapsedGroupIds, {
-        getGroupId: (group) => group.id,
-        toGroupRow: (group, isExpanded) => ({
-          id: group.id,
-          tenantId: group.tenantId,
-          groupId: group.id,
-          code: group.code,
-          name: group.name,
-          sortOrder: group.sortOrder,
-          isActive: group.isActive,
-          groupName: '',
-          assignmentCount: group.tagCount,
-          description: '',
-          groupDescription: group.description,
-          moduleCode: group.moduleCode,
-          isSystem: group.isSystem,
-          isGroup: true,
-          isExpanded,
-        }),
-      }),
-    [collapsedGroupIds, groups, tags],
+    () => tags.filter((tag) => tag.groupId === activeGroupId),
+    [activeGroupId, tags],
   );
 
   const invalidateWorkspace = () =>
@@ -184,39 +172,12 @@ export function TagsPage() {
   });
 
   const columns = useTagColumns({
-    onAddTag: (row) => openCreateTag(row.id),
-    onEdit: (row) => {
-      if (row.isGroup) {
-        if (row.isSystem) {
-          toast.error('Không thể sửa hoặc xóa nhóm nhãn hệ thống.');
-          return;
-        }
-        const group = groups.find((item) => item.id === row.id);
-        if (group) openEditGroup(group);
-        return;
-      }
-
-      openEditTag(row);
-    },
-    onToggleGroup: (groupId) => {
-      setCollapsedGroupIds((current) => toggleTagGroup(current, groupId));
-    },
+    onAddTag: (row) => openCreateTag(row.groupId),
+    onEdit: openEditTag,
     onDelete: (row) => {
-      if (row.isGroup) {
-        if (row.isSystem) {
-          toast.error('Không thể sửa hoặc xóa nhóm nhãn hệ thống.');
-          return;
-        }
-        if (row.assignmentCount > 0) {
-          toast.error('Hãy xóa các nhãn con trước khi xóa nhóm.');
-          return;
-        }
-        setPendingDelete({ kind: 'group', id: row.id, name: row.name });
-        return;
-      }
-
       setPendingDelete({ kind: 'tag', id: row.id, name: row.name });
     },
+    onToggleGroup: () => undefined,
   });
   const table = useReactTable({
     data: tableRows,
@@ -264,8 +225,8 @@ export function TagsPage() {
     setGroupDialogOpen(true);
   }
 
-  function openCreateTag(groupId?: string) {
-    if (groupId && !tagCreateForm.getValues('groupId')) {
+  function openCreateTag(groupId = activeGroupId ?? undefined) {
+    if (groupId) {
       tagCreateForm.setValue('groupId', groupId);
     }
     setTagCreateDialogOpen(true);
@@ -283,64 +244,164 @@ export function TagsPage() {
     setTagEditDialogOpen(true);
   }
 
+  function requestDeleteGroup(group: TagGroup) {
+    if (group.isSystem) {
+      toast.error('Không thể sửa hoặc xóa nhóm nhãn hệ thống.');
+      return;
+    }
+    if (group.tagCount > 0) {
+      toast.error('Hãy xóa các nhãn trong nhóm trước khi xóa nhóm.');
+      return;
+    }
+    setPendingDelete({ kind: 'group', id: group.id, name: group.name });
+  }
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
       <PageHeader title="Quản lý nhãn" icon={Tags} className="shrink-0" />
-      <DataGrid
-        table={table}
-        recordCount={tableRows.length}
-        isLoading={workspaceQuery.isLoading}
-        isFetching={workspaceQuery.isFetching}
-        emptyMessage="Chưa có nhóm nhãn hoặc nhãn"
-        isRowClickable={(row) => Boolean(row.isGroup)}
-        getRowClassName={(row) => (row.isGroup ? undefined : '[&>td]:!py-2')}
-        onRowClick={(row) => {
-          if (row.isGroup) {
-            setCollapsedGroupIds((current) => {
-              return toggleTagGroup(current, row.id);
-            });
-          }
-        }}
-      >
-        <Card className="min-h-0 flex-1 overflow-hidden">
-          <CardHeader className="justify-between">
-            <CardTitle>Danh sách nhãn</CardTitle>
-            <CardToolbar>
+      <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
+        <Card className="max-h-[220px] w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
+          <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
+            <div className="flex w-full items-center justify-between gap-2">
+              <CardTitle className="text-[15px]">Nhóm nhãn</CardTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
+                    mode="icon"
+                    size="sm"
+                    aria-label="Thêm nhóm nhãn"
                     onClick={openCreateGroup}
                   >
                     <FolderPlus className="size-4" />
-                    Thêm nhóm
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Thêm nhóm nhãn</TooltipContent>
               </Tooltip>
-              <ShortcutTooltip label="Thêm nhãn" shortcut="Alt + N">
-                <Button
-                  type="button"
-                  variant="primary"
-                  disabled={groups.length === 0}
-                  onClick={openCreateTag}
-                  data-shortcut-action="create"
-                >
-                  <Plus className="size-4" />
-                  Thêm nhãn
-                </Button>
-              </ShortcutTooltip>
-            </CardToolbar>
+            </div>
           </CardHeader>
-          <CardTable className="min-h-0 flex-1">
-            <ScrollArea className="h-full">
-              <DataGridTable />
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </CardTable>
+          <CardContent className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-3 sm:grid-cols-3 xl:flex xl:flex-col">
+            {groups.length === 0 ? (
+              <div className="flex min-h-20 items-center justify-center rounded-md border border-dashed px-3 text-center text-sm text-muted-foreground sm:col-span-3 xl:min-h-24">
+                Chưa có nhóm nhãn
+              </div>
+            ) : (
+              groups.map((group) => {
+                const isSelected = group.id === activeGroupId;
+
+                return (
+                  <button
+                    key={group.id}
+                    type="button"
+                    className={`flex w-full items-center gap-3 rounded-md border px-3 py-2 text-left transition-colors ${
+                      isSelected
+                        ? 'border-primary bg-primary/8 text-foreground'
+                        : 'border-border bg-background hover:bg-field'
+                    }`}
+                    onClick={() => setSelectedGroupId(group.id)}
+                  >
+                    <TagGroupIcon
+                      groupCode={group.code}
+                      moduleCode={group.moduleCode}
+                      isSystem={group.isSystem}
+                      className="size-4 shrink-0 text-muted-foreground"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+                      {group.name}
+                    </span>
+                    <Badge
+                      size="sm"
+                      shape="circle"
+                      variant={isSelected ? 'primary' : 'secondary'}
+                      appearance={isSelected ? 'default' : 'light'}
+                      className="ms-auto shrink-0"
+                    >
+                      {group.tagCount}
+                    </Badge>
+                  </button>
+                );
+              })
+            )}
+          </CardContent>
         </Card>
-      </DataGrid>
+
+        <DataGrid
+          table={table}
+          recordCount={tableRows.length}
+          isLoading={workspaceQuery.isLoading}
+          isFetching={workspaceQuery.isFetching}
+          emptyMessage={
+            selectedGroup
+              ? `Nhóm "${selectedGroup.name}" chưa có nhãn`
+              : 'Chưa có nhóm nhãn'
+          }
+        >
+          <Card className="min-h-0 w-full min-w-0 flex-1 overflow-hidden">
+            <CardHeader className="justify-between">
+              <CardTitle>
+                Danh sách nhãn
+                {selectedGroup ? (
+                  <span className="font-semibold text-primary">
+                    : {selectedGroup.name}
+                  </span>
+                ) : null}
+              </CardTitle>
+              <CardToolbar>
+                <ShortcutTooltip label="Thêm nhãn" shortcut="Alt + N">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={!activeGroupId}
+                    onClick={openCreateTag}
+                    data-shortcut-action="create"
+                  >
+                    <Plus className="size-4" />
+                    Thêm nhãn
+                  </Button>
+                </ShortcutTooltip>
+                {selectedGroup && !selectedGroup.isSystem ? (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openEditGroup(selectedGroup)}
+                        >
+                          <Pencil className="size-4" />
+                          Chỉnh sửa
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Chỉnh sửa nhóm nhãn</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          mode="icon"
+                          aria-label="Xóa nhóm nhãn"
+                          onClick={() => requestDeleteGroup(selectedGroup)}
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Xóa nhóm nhãn</TooltipContent>
+                    </Tooltip>
+                  </>
+                ) : null}
+              </CardToolbar>
+            </CardHeader>
+            <CardTable className="min-h-0 flex-1">
+              <ScrollArea className="h-full">
+                <DataGridTable />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </CardTable>
+          </Card>
+        </DataGrid>
+      </div>
 
       <TagGroupFormDialog
         open={groupDialogOpen}
