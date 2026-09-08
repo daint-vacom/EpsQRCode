@@ -46,6 +46,9 @@
   --admin-neutral-bg: #f4f4f6;
   --admin-surface: #ffffff;
   --admin-surface-alt: #fafafb;
+  --admin-shell-deep: #181c24;
+  --admin-shell-surface: #20252e;
+  --admin-shell-border: #353b45;
   --admin-amber-dark: #bb4d00;
   --admin-amber-primary: #fe9a00;
   --admin-amber-light: #ffcc80;
@@ -185,6 +188,9 @@
   --color-admin-neutral-600: var(--admin-neutral-600);
   --color-admin-neutral-500: var(--admin-neutral-500);
   --color-admin-neutral-100: var(--admin-neutral-100);
+  --color-admin-shell-deep: var(--admin-shell-deep);
+  --color-admin-shell-surface: var(--admin-shell-surface);
+  --color-admin-shell-border: var(--admin-shell-border);
   --color-admin-page: var(--admin-neutral-bg);
   --color-admin-surface: var(--admin-surface);
   --color-admin-surface-alt: var(--admin-surface-alt);
@@ -340,6 +346,53 @@ html {
   :root {
     --admin-page-section-gap: 1rem;
   }
+}
+
+.contract-detail-hero {
+  isolation: isolate;
+  background:
+    radial-gradient(
+      ellipse 72% 120% at 78% 18%,
+      rgb(31 78 121 / 38%),
+      transparent 68%
+    ),
+    linear-gradient(
+      132deg,
+      #0d1725 0%,
+      var(--admin-shell-deep) 58%,
+      #0b1422 100%
+    );
+}
+
+.contract-detail-hero::before,
+.contract-detail-hero::after {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.contract-detail-hero::before {
+  z-index: -1;
+  background-image:
+    linear-gradient(rgb(132 174 214 / 8%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(132 174 214 / 8%) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(90deg, transparent 0%, black 42%, black 100%);
+  opacity: 0.7;
+}
+
+.contract-detail-hero::after {
+  z-index: -1;
+  background: repeating-radial-gradient(
+    ellipse at 82% 28%,
+    transparent 0 24px,
+    rgb(132 174 214 / 12%) 25px 26px,
+    transparent 27px 48px
+  );
+  mask-image: linear-gradient(90deg, transparent 24%, black 62%, black 100%);
+  opacity: 0.7;
+  transform: rotate(-12deg) scale(1.25);
 }
 
 /* Metronic Configs */

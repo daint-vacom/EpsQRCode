@@ -223,7 +223,7 @@ export function Header() {
       className={cn(
         'fixed end-0 start-0 top-0 z-10 flex h-(--header-height-mobile) shrink-0 items-center justify-between border-b px-3 transition-[inset-inline-start] duration-200 ease-out lg:h-(--header-height) lg:px-4',
         isDark
-          ? 'border-white/10 bg-admin-neutral-900 text-white'
+          ? 'border-admin-shell-border/70 bg-admin-shell-deep text-white'
           : 'border-border bg-card',
         'lg:start-[var(--sidebar-current-width)]',
       )}

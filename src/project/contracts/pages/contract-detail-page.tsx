@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { PageLoading } from '@/components/ui/loading';
+import { PageBackButton } from '@/components/ui/page-back-button';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   Tooltip,
@@ -75,24 +76,24 @@ function formatDate(value: string | null) {
 function ContractHero({
   contract,
   actions,
+  onBack,
 }: {
   contract: ContractDetail;
   actions: ReactNode;
+  onBack: () => void;
 }) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-accent to-admin-primary-bright text-white">
-      <img
-        src="/media/app/contract-hero-pattern.svg"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 size-full object-bottom object-cover opacity-35 mix-blend-screen hue-rotate-[140deg] saturate-150"
-      />
-      <div className="pointer-events-none absolute -end-24 -top-36 size-[28rem] rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-48 start-1/3 size-[32rem] rounded-full bg-cyan-300/10 blur-3xl" />
+    <section className="contract-detail-hero relative overflow-hidden text-white">
+      <div className="pointer-events-none absolute -end-32 -top-44 size-[30rem] rounded-full bg-admin-primary/10 blur-3xl" />
       <div className="relative mx-auto flex min-h-[220px] max-w-[1600px] flex-col justify-end gap-7 px-4 pb-20 pt-4 sm:px-5 lg:px-6">
+        <PageBackButton
+          label="Quay lại danh sách hợp đồng"
+          onClick={onBack}
+          className="absolute start-4 top-4 border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:start-5 lg:start-6"
+        />
         <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/15 shadow-lg backdrop-blur-sm sm:size-20">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl border border-primary bg-primary text-primary-foreground shadow-lg shadow-black/20 sm:size-20">
               <FileText className="size-8 sm:size-10" />
             </div>
             <div className="min-w-0">
@@ -254,19 +255,21 @@ function ContractHeroActions({
 function ContractDetailShell({
   contract,
   heroActions,
+  onBack,
   onManageResponsibles,
   canManageResponsibles,
   tabs,
 }: {
   contract: ContractDetail;
   heroActions: ReactNode;
+  onBack: () => void;
   onManageResponsibles: () => void;
   canManageResponsibles: boolean;
   tabs: EntityDetailTab[];
 }) {
   return (
     <div className="flex min-h-full flex-col bg-muted/30">
-      <ContractHero contract={contract} actions={heroActions} />
+      <ContractHero contract={contract} actions={heroActions} onBack={onBack} />
       <main className="mx-auto w-full max-w-[1600px] px-4 pb-admin-page-section sm:px-5 lg:px-6">
         <ContractSummaryCard
           contract={contract}
@@ -542,6 +545,7 @@ export function ContractDetailPage() {
     <>
       <ContractDetailShell
         contract={contract}
+        onBack={() => navigate(ROUTES.PROJECT.CONTRACTS)}
         heroActions={
           <ContractHeroActions
             contract={contract}

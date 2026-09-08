@@ -27,7 +27,7 @@ export function SidebarSecondary() {
       className={cn(
         'flex w-(--sidebar-menu-width) min-w-0 flex-col border-s',
         isDark
-          ? 'border-white/15 bg-admin-neutral-900 text-white'
+          ? 'border-admin-shell-border/80 bg-admin-shell-deep text-white'
           : 'border-border bg-card text-foreground',
       )}
     >

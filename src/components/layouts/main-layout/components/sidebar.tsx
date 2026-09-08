@@ -12,7 +12,7 @@ export function Sidebar() {
       className={cn(
         'fixed inset-y-0 start-0 z-20 flex w-(--sidebar-current-width) shrink-0 overflow-hidden transition-[width] duration-200 ease-out',
         isDark
-          ? 'border-e border-white/10 bg-admin-neutral-900'
+          ? 'border-e border-admin-shell-border/70 bg-admin-shell-deep'
           : 'border-e border-border bg-card',
       )}
     >

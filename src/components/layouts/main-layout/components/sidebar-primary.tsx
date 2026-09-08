@@ -41,7 +41,7 @@ export function SidebarPrimary() {
     pinnedItems.length > 0 || secondaryRailItems.length > 0;
 
   return (
-    <div className="flex w-(--sidebar-collapsed-width) shrink-0 flex-col items-center bg-admin-neutral-900 py-4 text-white">
+    <div className="flex w-(--sidebar-collapsed-width) shrink-0 flex-col items-center bg-admin-shell-deep py-4 text-white">
       <Link
         to={shell.homePath}
         className="flex size-8 items-center justify-center rounded-lg bg-white text-primary shadow-sm"

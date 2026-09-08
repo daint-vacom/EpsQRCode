@@ -12,7 +12,7 @@ export function SidebarHeader() {
       className={cn(
         'flex h-(--header-height-mobile) shrink-0 items-center border-b px-4 lg:h-(--header-height)',
         isDark
-          ? 'border-white/10 bg-admin-neutral-900'
+          ? 'border-admin-shell-border/80 bg-admin-shell-deep'
           : 'border-border bg-card',
       )}
     >
