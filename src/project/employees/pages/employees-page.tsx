@@ -49,7 +49,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
-  createEmployee,
   deleteEmployee,
   loadEmployeeCustomFields,
   loadEmployeeCustomFieldValues,
@@ -57,6 +56,7 @@ import {
   updateEmployee,
   uploadEmployeeAvatar,
 } from '../api/employees.api';
+import { EmployeeCreateDialog } from '../components/employee-create-dialog';
 import {
   EmployeeFilterDrawer,
   type EmployeeFilterDraft,
@@ -67,7 +67,6 @@ import {
 } from '../forms/employee-form.generated';
 import { useEmployeeList } from '../hooks/use-employee-list';
 import {
-  emptyEmployeeForm,
   mapEmployeeToFormValues,
   type Employee,
   type EmployeeFormValues,
@@ -92,6 +91,7 @@ export function EmployeesPage() {
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
@@ -179,9 +179,9 @@ export function EmployeesPage() {
     mutationFn: async (values: EmployeeFormValues) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
-      let savedEmployee = editingEmployee
-        ? await updateEmployee(editingEmployee.id, values)
-        : await createEmployee(tenantId, values);
+      if (!editingEmployee) throw new Error('Chưa chọn nhân viên cần sửa.');
+
+      let savedEmployee = await updateEmployee(editingEmployee.id, values);
 
       if (employeeImageFile) {
         const imageUrl = await uploadEmployeeAvatar(
@@ -204,9 +204,7 @@ export function EmployeesPage() {
       return savedEmployee;
     },
     onSuccess: async () => {
-      toast.success(
-        editingEmployee ? 'Đã cập nhật nhân viên.' : 'Đã tạo nhân viên.',
-      );
+      toast.success('Đã cập nhật nhân viên.');
       setDialogOpen(false);
       setEmployeeImageFile(null);
       await invalidateEmployees();
@@ -238,10 +236,7 @@ export function EmployeesPage() {
   });
 
   function openCreate() {
-    setEditingEmployee(null);
-    setEmployeeImageFile(null);
-    form.reset(emptyEmployeeForm);
-    setDialogOpen(true);
+    setCreateDialogOpen(true);
   }
 
   function openEdit(employee: Employee) {
@@ -601,7 +596,7 @@ export function EmployeesPage() {
       <EmployeeFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        mode={editingEmployee ? 'edit' : 'create'}
+        mode="edit"
         form={form}
         onSubmit={handleEmployeeSubmit}
         onImageUrlFileChange={setEmployeeImageFile}
@@ -612,7 +607,11 @@ export function EmployeesPage() {
         }}
         isReloadingCustomFields={employeeCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
-        title={editingEmployee ? 'Sửa nhân viên' : 'Thêm nhân viên'}
+        title="Sửa nhân viên"
+      />
+      <EmployeeCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
       <SavedViewFormDialog
         open={viewDialogOpen}

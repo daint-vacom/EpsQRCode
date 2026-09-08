@@ -56,7 +56,6 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
-  createCustomer,
   deleteCustomer,
   loadCustomerCustomFields,
   loadCustomerCustomFieldValues,
@@ -67,6 +66,7 @@ import {
   uploadCustomerImage,
 } from '../api/customers.api';
 import { CustomerBulkStatusDialog } from '../components/customer-bulk-status-dialog';
+import { CustomerCreateDialog } from '../components/customer-create-dialog';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
 import {
@@ -79,7 +79,6 @@ import {
 } from '../forms/customer-saved-view-form.generated';
 import { useCustomerList } from '../hooks/use-customer-list';
 import {
-  emptyCustomerForm,
   mapCustomerToFormValues,
   type Customer,
   type CustomerFilterFormValues,
@@ -116,6 +115,7 @@ export function CustomersPage() {
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(
     null,
@@ -410,35 +410,20 @@ export function CustomersPage() {
     mutationFn: async (values: CustomerFormValues) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
-      let savedCustomer: Customer;
-      if (editingCustomer) {
-        const imageUrl = customerImageFile
-          ? await uploadCustomerImage(
-              tenantId,
-              editingCustomer.id,
-              customerImageFile,
-            )
-          : values.imageUrl;
+      if (!editingCustomer) throw new Error('Chưa chọn khách hàng cần sửa.');
 
-        savedCustomer = await updateCustomer(editingCustomer.id, {
-          ...values,
-          imageUrl,
-        });
-      } else {
-        savedCustomer = await createCustomer(tenantId, values);
-
-        if (customerImageFile) {
-          const imageUrl = await uploadCustomerImage(
+      const imageUrl = customerImageFile
+        ? await uploadCustomerImage(
             tenantId,
-            savedCustomer.id,
+            editingCustomer.id,
             customerImageFile,
-          );
-          savedCustomer = await updateCustomer(savedCustomer.id, {
-            ...values,
-            imageUrl,
-          });
-        }
-      }
+          )
+        : values.imageUrl;
+
+      const savedCustomer = await updateCustomer(editingCustomer.id, {
+        ...values,
+        imageUrl,
+      });
 
       await saveCustomerCustomFieldValues(
         tenantId,
@@ -449,9 +434,7 @@ export function CustomersPage() {
       return savedCustomer;
     },
     onSuccess: async () => {
-      toast.success(
-        editingCustomer ? 'Đã cập nhật khách hàng.' : 'Đã tạo khách hàng.',
-      );
+      toast.success('Đã cập nhật khách hàng.');
       setDialogOpen(false);
       setCustomerImageFile(null);
       await invalidateCustomers();
@@ -507,10 +490,7 @@ export function CustomersPage() {
   });
 
   function openCreate() {
-    setEditingCustomer(null);
-    setCustomerImageFile(null);
-    form.reset(emptyCustomerForm);
-    setDialogOpen(true);
+    setCreateDialogOpen(true);
   }
 
   const openEdit = useCallback(
@@ -833,7 +813,7 @@ export function CustomersPage() {
       <CustomerFormDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        mode={editingCustomer ? 'edit' : 'create'}
+        mode="edit"
         form={form}
         onSubmit={handleCustomerSubmit}
         onImageUrlFileChange={setCustomerImageFile}
@@ -845,7 +825,11 @@ export function CustomersPage() {
         }}
         isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
-        title={editingCustomer ? 'Sửa khách hàng' : 'Thêm khách hàng'}
+        title="Sửa khách hàng"
+      />
+      <CustomerCreateDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
       />
       <CustomerSavedViewFormDialog
         open={viewDialogOpen}

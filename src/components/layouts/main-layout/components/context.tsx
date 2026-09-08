@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useUiStore } from '@/stores/ui.store';
+import type { LucideIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { resolveMenuTarget, type MenuGroupConfig } from '@/config/menu.types';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,6 +20,7 @@ export interface LayoutShellConfig {
   breadcrumbRootPath: string;
   breadcrumbCurrent: string;
   breadcrumbItems?: LayoutBreadcrumbItem[];
+  quickCreateItems?: QuickCreateItem[];
   secondarySidebarVariant: LayoutSurfaceVariant;
   headerVariant: LayoutSurfaceVariant;
 }
@@ -26,6 +28,13 @@ export interface LayoutShellConfig {
 export interface LayoutBreadcrumbItem {
   label: string;
   path?: string;
+}
+
+export interface QuickCreateItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  onSelect: () => void;
 }
 
 interface LayoutState {
@@ -65,6 +74,7 @@ export function LayoutProvider({
     breadcrumbRootLabel: 'Tổ chức',
     breadcrumbRootPath: '/',
     breadcrumbCurrent: 'Nhân viên',
+    quickCreateItems: [],
     secondarySidebarVariant: 'light',
     headerVariant: 'light',
     ...customShell,

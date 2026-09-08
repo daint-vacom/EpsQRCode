@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { PROJECT_MENU_GROUPS } from '@/config/project-menu.config';
 import { useAppSettings } from '@/providers/app-settings-provider';
 import { useTenant } from '@/providers/tenant-provider';
@@ -8,10 +9,27 @@ import { useUser } from '@/providers/user-provider';
 import { MainLayout } from '@/components/layouts/main-layout';
 import { loadContractDetail } from '../contracts/api/contracts.api';
 import { loadCustomerDetail } from '../customers/api/customers.api';
+import { CustomerCreateDialog } from '../customers/components/customer-create-dialog';
+import { EmployeeCreateDialog } from '../employees/components/employee-create-dialog';
+
+function getProjectMenuIcon(path: string) {
+  const menuItem = PROJECT_MENU_GROUPS.flatMap((group) => group.items).find(
+    (item) => item.path === path,
+  );
+
+  if (!menuItem) {
+    throw new Error(`Không tìm thấy icon menu cho route: ${path}`);
+  }
+
+  return menuItem.icon;
+}
 
 export function ProjectMainLayout() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
+  const [employeeCreateOpen, setEmployeeCreateOpen] = useState(false);
   const { userId } = useUser();
   const { tenantId, tenantName, roleNames } = useTenant();
   const { appearance } = useAppSettings();
@@ -88,83 +106,124 @@ export function ProjectMainLayout() {
                             ? 'Nhãn'
                             : 'Tổng quan';
 
+  const quickCreateItems = [
+    {
+      id: 'customer',
+      label: 'Thêm khách hàng',
+      icon: getProjectMenuIcon(ROUTES.PROJECT.CUSTOMERS),
+      onSelect: () => setCustomerCreateOpen(true),
+    },
+    {
+      id: 'contract',
+      label: 'Thêm hợp đồng',
+      icon: getProjectMenuIcon(ROUTES.PROJECT.CONTRACTS),
+      onSelect: () => navigate(ROUTES.PROJECT.CONTRACT_CREATE),
+    },
+    {
+      id: 'contract-template',
+      label: 'Thêm mẫu hợp đồng',
+      icon: getProjectMenuIcon(ROUTES.PROJECT.CONTRACT_TEMPLATES),
+      onSelect: () => navigate(ROUTES.PROJECT.CONTRACT_TEMPLATE_CREATE),
+    },
+    {
+      id: 'employee',
+      label: 'Thêm nhân viên',
+      icon: getProjectMenuIcon(ROUTES.PROJECT.EMPLOYEES),
+      onSelect: () => setEmployeeCreateOpen(true),
+    },
+  ];
+
   return (
-    <MainLayout
-      shell={{
-        menuGroups: PROJECT_MENU_GROUPS,
-        homePath: '/',
-        brandName: 'VACOM | KẾ TOÁN DỊCH VỤ',
-        headerTitle: headerTenantName,
-        accountRoles,
-        secondarySidebarVariant: appearance.sidebarTheme,
-        headerVariant: appearance.sidebarTheme,
-        breadcrumbRootLabel: 'Trang chủ',
-        breadcrumbRootPath: '/',
-        breadcrumbCurrent,
-        ...(isCustomerDetail
-          ? {
-              breadcrumbItems: [
-                { label: 'Trang chủ', path: '/' },
-                { label: 'Khách hàng', path: ROUTES.PROJECT.CUSTOMERS },
-                { label: breadcrumbCurrent },
-              ],
-            }
-          : isContractDetail
+    <>
+      <MainLayout
+        shell={{
+          menuGroups: PROJECT_MENU_GROUPS,
+          homePath: '/',
+          brandName: 'VACOM | KẾ TOÁN DỊCH VỤ',
+          headerTitle: headerTenantName,
+          accountRoles,
+          secondarySidebarVariant: appearance.sidebarTheme,
+          headerVariant: appearance.sidebarTheme,
+          quickCreateItems,
+          breadcrumbRootLabel: 'Trang chủ',
+          breadcrumbRootPath: '/',
+          breadcrumbCurrent,
+          ...(isCustomerDetail
             ? {
                 breadcrumbItems: [
                   { label: 'Trang chủ', path: '/' },
-                  { label: 'Hợp đồng', path: ROUTES.PROJECT.CONTRACTS },
+                  { label: 'Khách hàng', path: ROUTES.PROJECT.CUSTOMERS },
                   { label: breadcrumbCurrent },
                 ],
               }
-            : isContractTemplateDetail ||
-                isContractTemplateEdit ||
-                isContractTemplateCreate
+            : isContractDetail
               ? {
                   breadcrumbItems: [
                     { label: 'Trang chủ', path: '/' },
-                    {
-                      label: 'Mẫu hợp đồng',
-                      path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
-                    },
-                    ...(isContractTemplateDetail
-                      ? [{ label: breadcrumbCurrent }]
-                      : isContractTemplateEdit
-                        ? [{ label: 'Chỉnh sửa' }]
-                        : [{ label: 'Thêm mẫu hợp đồng' }]),
+                    { label: 'Hợp đồng', path: ROUTES.PROJECT.CONTRACTS },
+                    { label: breadcrumbCurrent },
                   ],
                 }
-              : isContractEdit
+              : isContractTemplateDetail ||
+                  isContractTemplateEdit ||
+                  isContractTemplateCreate
                 ? {
                     breadcrumbItems: [
                       { label: 'Trang chủ', path: '/' },
                       {
-                        label: 'Hợp đồng',
-                        path: ROUTES.PROJECT.CONTRACTS,
+                        label: 'Mẫu hợp đồng',
+                        path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
                       },
-                      ...(contractDetailQuery.data
-                        ? [
-                            {
-                              label: contractDetailQuery.data.name,
-                              path: buildPath(ROUTES.PROJECT.CONTRACT_DETAIL, {
-                                id: contractDetailQuery.data.id,
-                              }),
-                            },
-                          ]
-                        : [{ label: 'Đang tải hợp đồng...' }]),
-                      { label: 'Chỉnh sửa' },
+                      ...(isContractTemplateDetail
+                        ? [{ label: breadcrumbCurrent }]
+                        : isContractTemplateEdit
+                          ? [{ label: 'Chỉnh sửa' }]
+                          : [{ label: 'Thêm mẫu hợp đồng' }]),
                     ],
                   }
-                : isContractCreate
+                : isContractEdit
                   ? {
                       breadcrumbItems: [
                         { label: 'Trang chủ', path: '/' },
-                        { label: 'Hợp đồng', path: ROUTES.PROJECT.CONTRACTS },
-                        { label: 'Thêm hợp đồng' },
+                        {
+                          label: 'Hợp đồng',
+                          path: ROUTES.PROJECT.CONTRACTS,
+                        },
+                        ...(contractDetailQuery.data
+                          ? [
+                              {
+                                label: contractDetailQuery.data.name,
+                                path: buildPath(
+                                  ROUTES.PROJECT.CONTRACT_DETAIL,
+                                  {
+                                    id: contractDetailQuery.data.id,
+                                  },
+                                ),
+                              },
+                            ]
+                          : [{ label: 'Đang tải hợp đồng...' }]),
+                        { label: 'Chỉnh sửa' },
                       ],
                     }
-                  : {}),
-      }}
-    />
+                  : isContractCreate
+                    ? {
+                        breadcrumbItems: [
+                          { label: 'Trang chủ', path: '/' },
+                          { label: 'Hợp đồng', path: ROUTES.PROJECT.CONTRACTS },
+                          { label: 'Thêm hợp đồng' },
+                        ],
+                      }
+                    : {}),
+        }}
+      />
+      <CustomerCreateDialog
+        open={customerCreateOpen}
+        onOpenChange={setCustomerCreateOpen}
+      />
+      <EmployeeCreateDialog
+        open={employeeCreateOpen}
+        onOpenChange={setEmployeeCreateOpen}
+      />
+    </>
   );
 }

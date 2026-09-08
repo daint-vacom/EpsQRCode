@@ -203,6 +203,7 @@ export function Header() {
     { label: shell.breadcrumbRootLabel, path: shell.breadcrumbRootPath },
     { label: shell.breadcrumbCurrent },
   ];
+  const quickCreateItems = shell.quickCreateItems ?? [];
 
   const handleLogout = async () => {
     try {
@@ -339,10 +340,38 @@ export function Header() {
           orientation="vertical"
           className={cn('h-6', isDark && 'bg-white/15')}
         />
-        <Button variant="light" size="md" aria-label="Thêm">
-          <Plus />
-          Thêm
-        </Button>
+        {quickCreateItems.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="light" size="md" aria-label="Thêm">
+                <Plus />
+                Thêm
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              <DropdownMenuGroup>
+                {quickCreateItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <DropdownMenuItem
+                      key={item.id}
+                      onSelect={() => item.onSelect()}
+                    >
+                      <Icon />
+                      {item.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button variant="light" size="md" aria-label="Thêm">
+            <Plus />
+            Thêm
+          </Button>
+        )}
         <Popover>
           <PopoverTrigger asChild>
             <Button
