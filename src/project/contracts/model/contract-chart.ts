@@ -1,3 +1,8 @@
+import { addMonths, format, parseISO, startOfMonth } from 'date-fns';
+import type {
+  PaymentPlanChartPoint,
+  PaymentPlanDateRange,
+} from '../../shared/model/payment-plan';
 import type { ContractVersionLine } from './contract';
 import type { ContractChargeBalance } from './receivable';
 
@@ -15,8 +20,23 @@ export interface ContractFeeReceivableChartPoint {
   outstandingAmount: number;
 }
 
+export interface ContractFeePaymentProgressPoint {
+  feeName: string;
+  paidAmount: number;
+  totalAmount: number;
+}
+
 function clampPaidAmount(charge: ContractChargeBalance) {
   return Math.max(0, Math.min(charge.amount, charge.paidAmount));
+}
+
+function normalizeFeeName(value: string) {
+  return value
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase();
 }
 
 function getTodayIso() {
@@ -33,6 +53,54 @@ function formatPeriodDate(value: string) {
     month: '2-digit',
     year: '2-digit',
   }).format(new Date(`${value}T00:00:00`));
+}
+
+export function buildContractPaymentPlanData(
+  charges: ContractChargeBalance[],
+  range: PaymentPlanDateRange,
+): PaymentPlanChartPoint[] {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const fromMonth = startOfMonth(parseISO(range.from));
+  const toMonth = startOfMonth(parseISO(range.to));
+  const months = new Map<string, PaymentPlanChartPoint>();
+
+  for (let month = fromMonth; month <= toMonth; month = addMonths(month, 1)) {
+    const monthStart = format(month, 'yyyy-MM-dd');
+    months.set(monthStart, {
+      monthStart,
+      monthLabel: format(month, 'MM/yyyy'),
+      paidAmount: 0,
+      currentOutstanding: 0,
+      overdueOutstanding: 0,
+      futureOutstanding: 0,
+    });
+  }
+
+  charges
+    .filter(
+      (charge) =>
+        charge.direction === 'receivable' &&
+        charge.status !== 'voided' &&
+        charge.dueDate >= range.from &&
+        charge.dueDate <= range.to,
+    )
+    .forEach((charge) => {
+      const monthStart = `${charge.dueDate.slice(0, 7)}-01`;
+      const current = months.get(monthStart);
+      if (!current) return;
+
+      const outstandingAmount = Math.max(0, charge.outstandingAmount);
+      current.paidAmount += clampPaidAmount(charge);
+      if (charge.dueDate > todayIso) {
+        current.futureOutstanding += outstandingAmount;
+      } else if (charge.dueDate < todayIso) {
+        current.overdueOutstanding += outstandingAmount;
+      } else {
+        current.currentOutstanding += outstandingAmount;
+      }
+    });
+
+  return [...months.values()];
 }
 
 export function buildContractPaymentPeriodChartData(
@@ -129,6 +197,43 @@ export function buildContractFeeReceivableChartData(
     .sort(
       (a, b) =>
         b.outstandingAmount - a.outstandingAmount ||
+        b.paidAmount - a.paidAmount ||
+        a.feeName.localeCompare(b.feeName),
+    )
+    .slice(0, limit);
+}
+
+export function buildContractFeePaymentProgressData(
+  charges: ContractChargeBalance[],
+  lines: ContractVersionLine[],
+  limit = 8,
+): ContractFeePaymentProgressPoint[] {
+  const lineNameById = new Map(lines.map((line) => [line.id, line.name]));
+  const fees = new Map<string, ContractFeePaymentProgressPoint>();
+
+  charges
+    .filter(
+      (charge) =>
+        charge.direction === 'receivable' && charge.status !== 'voided',
+    )
+    .forEach((charge) => {
+      const feeName =
+        lineNameById.get(charge.contractVersionLineId) ?? 'Khoản phí';
+      const current = fees.get(normalizeFeeName(feeName)) ?? {
+        feeName,
+        paidAmount: 0,
+        totalAmount: 0,
+      };
+
+      current.totalAmount += Math.max(0, charge.amount);
+      current.paidAmount += clampPaidAmount(charge);
+      fees.set(normalizeFeeName(feeName), current);
+    });
+
+  return [...fees.values()]
+    .sort(
+      (a, b) =>
+        b.totalAmount - a.totalAmount ||
         b.paidAmount - a.paidAmount ||
         a.feeName.localeCompare(b.feeName),
     )

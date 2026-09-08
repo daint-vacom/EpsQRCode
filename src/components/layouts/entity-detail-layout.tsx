@@ -136,7 +136,11 @@ export function EntityDetailTabs({
         })}
       </TabsList>
       {tabs.map((tab) => (
-        <TabsContent key={tab.value} value={tab.value}>
+        <TabsContent
+          key={tab.value}
+          value={tab.value}
+          className="mt-admin-page-section"
+        >
           {tab.content}
         </TabsContent>
       ))}
@@ -158,11 +162,11 @@ export function EntityDetailLayout({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col gap-5 overflow-y-auto p-6',
+        'flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5',
         className,
       )}
     >
-      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid gap-admin-page-section xl:grid-cols-[280px_minmax(0,1fr)]">
         {profile}
         {information}
       </div>

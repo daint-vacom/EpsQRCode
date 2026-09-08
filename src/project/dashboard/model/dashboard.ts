@@ -6,25 +6,19 @@ import {
   startOfMonth,
 } from 'date-fns';
 import type { ContractStatus } from '../../contracts/model/contract';
+import type {
+  PaymentPlanChartPoint,
+  PaymentPlanDateRange,
+} from '../../shared/model/payment-plan';
 
 export interface DashboardContractStatusCount {
   status: ContractStatus;
   count: number;
 }
 
-export interface DashboardMonthlyReceivable {
-  monthStart: string;
-  monthLabel: string;
-  paidAmount: number;
-  currentOutstanding: number;
-  overdueOutstanding: number;
-  futureOutstanding: number;
-}
+export type DashboardMonthlyReceivable = PaymentPlanChartPoint;
 
-export interface DashboardPaymentPlanRange {
-  from: string;
-  to: string;
-}
+export type DashboardPaymentPlanRange = PaymentPlanDateRange;
 
 export function getDashboardPaymentPlanRange(
   today = new Date(),

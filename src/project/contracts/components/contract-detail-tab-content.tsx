@@ -16,6 +16,7 @@ import {
   FileText,
   Grid2X2,
   List,
+  ReceiptText,
   Trash2,
   TriangleAlert,
   Upload,
@@ -55,6 +56,7 @@ import {
   type FileUploadContentHandle,
 } from '@/components/ui/file-upload/file-upload-content';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { Progress, ProgressCircle } from '@/components/ui/progress';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -71,6 +73,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { getDashboardPaymentPlanRange } from '../../dashboard/model/dashboard';
+import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import {
   activateContract,
   deleteContractAttachment,
@@ -80,8 +84,6 @@ import {
   uploadContractAttachments,
 } from '../api/contracts.api';
 import type { ContractDetail } from '../api/contracts.api';
-import { ContractFeeReceivableChart } from '../charts/contract-fee-receivable.chart.generated';
-import { ContractPaymentPeriodChart } from '../charts/contract-payment-period.chart.generated';
 import {
   useContractReceivableList,
   type ContractReceivableListFilters,
@@ -89,8 +91,8 @@ import {
 } from '../hooks/use-contract-receivable-list';
 import type { ContractVersion } from '../model/contract';
 import {
-  buildContractFeeReceivableChartData,
-  buildContractPaymentPeriodChartData,
+  buildContractFeePaymentProgressData,
+  buildContractPaymentPlanData,
 } from '../model/contract-chart';
 import {
   CONTRACT_CHARGE_DISPLAY_STATUS_LABELS,
@@ -178,46 +180,30 @@ function PaymentMetric({
   label,
   value,
   emphasis = false,
+  className = '',
 }: {
   icon: LucideIcon;
   iconTone: keyof typeof PAYMENT_METRIC_TONE_CLASSES;
   label: string;
   value: string;
   emphasis?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3 px-4 py-3.5">
+    <div className={`flex min-w-0 items-center gap-3 ${className}`}>
       <span
         className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${PAYMENT_METRIC_TONE_CLASSES[iconTone]}`}
       >
         <Icon className="size-4" />
       </span>
-      <div className="min-w-0">
-        <p className="truncate text-xs text-muted-foreground">{label}</p>
-        <p
-          className={`mt-1 truncate text-sm font-semibold tabular-nums ${emphasis ? 'text-primary' : 'text-foreground'}`}
-        >
-          {value}
-        </p>
-      </div>
+      <p className="min-w-0 flex-1 truncate text-xs text-foreground">{label}</p>
+      <p
+        className={`shrink-0 truncate text-sm font-semibold tabular-nums ${emphasis ? 'text-primary' : 'text-foreground'}`}
+      >
+        {value}
+      </p>
     </div>
   );
-}
-
-function getLatestFinancialUpdate(contract: ContractDetail) {
-  return [
-    contract.updatedAt,
-    ...contract.charges.map((charge) => charge.createdAt),
-    ...contract.payments.flatMap((payment) => [
-      payment.receivedAt,
-      payment.createdAt,
-    ]),
-  ].reduce((latest, value) => (value > latest ? value : latest), '');
-}
-
-function formatTimestampDate(value: string) {
-  if (!value) return 'Chưa cập nhật';
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(value));
 }
 
 function ContractFinancialOverview({ contract }: { contract: ContractDetail }) {
@@ -232,28 +218,59 @@ function ContractFinancialOverview({ contract }: { contract: ContractDetail }) {
   const formattedProgress = new Intl.NumberFormat('vi-VN', {
     maximumFractionDigits: 2,
   }).format(progress);
-  const latestFinancialUpdate = getLatestFinancialUpdate(contract);
 
   return (
-    <Card className="mt-6 overflow-hidden">
+    <Card className="min-w-0 overflow-hidden xl:h-72">
       <CardHeader>
         <CardHeading>
-          <CardTitle className="text-lg">Tình hình thanh toán</CardTitle>
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <WalletCards className="size-4" />
+            </span>
+            <CardTitle>Tình hình thanh toán</CardTitle>
+          </div>
         </CardHeading>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0">
-        <div className="grid overflow-hidden rounded-lg border border-border sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-border">
+      <CardContent className="flex flex-col gap-5 pt-1 lg:flex-row lg:items-start">
+        <div
+          className="flex shrink-0 justify-center lg:justify-start"
+          aria-label={`Đã thanh toán ${formattedProgress}%`}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progress}
+        >
+          <ProgressCircle
+            value={progress}
+            size={148}
+            strokeWidth={11}
+            indicatorClassName="text-emerald-500"
+            trackClassName="text-muted"
+          >
+            <div className="flex flex-col items-center text-center">
+              <span className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formattedProgress}%
+              </span>
+              <span className="mt-0.5 text-xs text-muted-foreground">
+                Đã thanh toán
+              </span>
+            </div>
+          </ProgressCircle>
+        </div>
+        <div className="min-w-0 flex-1 divide-y divide-border">
           <PaymentMetric
             icon={FileText}
             iconTone="info"
             label={headlineLabel}
             value={formatCurrency(headlineTotal, contract.currencyCode)}
+            className="py-2.5 first:pt-0 last:pb-0"
           />
           <PaymentMetric
             icon={CircleCheck}
             iconTone="success"
             label="Đã thanh toán"
             value={formatCurrency(summary.totalPaid, contract.currencyCode)}
+            className="py-2.5 first:pt-0 last:pb-0"
           />
           <PaymentMetric
             icon={WalletCards}
@@ -264,6 +281,7 @@ function ContractFinancialOverview({ contract }: { contract: ContractDetail }) {
               contract.currencyCode,
             )}
             emphasis
+            className="py-2.5 first:pt-0 last:pb-0"
           />
           <PaymentMetric
             icon={TriangleAlert}
@@ -273,31 +291,95 @@ function ContractFinancialOverview({ contract }: { contract: ContractDetail }) {
               summary.overdueOutstanding,
               contract.currencyCode,
             )}
+            className="py-2.5 first:pt-0 last:pb-0"
           />
         </div>
-        <div
-          className="h-2.5 w-full overflow-hidden rounded-full bg-muted"
-          aria-label={`Đã thanh toán ${formattedProgress}%`}
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progress}
-        >
-          <div
-            className="h-full rounded-full bg-emerald-500 transition-[width]"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>
-            <strong className="font-semibold text-emerald-600">
-              {formattedProgress}%
-            </strong>{' '}
-            đã thanh toán /{' '}
-            {formatCurrency(headlineTotal, contract.currencyCode)}
-          </span>
-          <span>Cập nhật đến {formatTimestampDate(latestFinancialUpdate)}</span>
-        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ContractFeePaymentOverview({
+  contract,
+}: {
+  contract: ContractDetail;
+}) {
+  const { formatCurrency } = useNumberFormat();
+  const feeData = buildContractFeePaymentProgressData(
+    contract.charges,
+    contract.lines,
+  );
+
+  return (
+    <Card className="min-w-0 overflow-hidden xl:h-72">
+      <CardHeader>
+        <CardHeading>
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+              <ReceiptText className="size-4" />
+            </span>
+            <CardTitle>Công nợ theo khoản phí</CardTitle>
+          </div>
+        </CardHeading>
+      </CardHeader>
+      <CardContent className="min-h-0 grow overflow-y-auto pt-1">
+        {feeData.length > 0 ? (
+          <div className="space-y-4">
+            {feeData.map((fee) => {
+              const progress =
+                fee.totalAmount > 0
+                  ? Math.min(100, (fee.paidAmount / fee.totalAmount) * 100)
+                  : 0;
+              const formattedProgress = new Intl.NumberFormat('vi-VN', {
+                maximumFractionDigits: 2,
+              }).format(progress);
+
+              return (
+                <div key={fee.feeName} className="flex min-w-0 gap-3">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <ReceiptText className="size-3.5" />
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate font-medium text-foreground">
+                        {fee.feeName}
+                      </span>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        <span className="font-medium text-primary">
+                          {formatCurrency(
+                            fee.paidAmount,
+                            contract.currencyCode,
+                          )}{' '}
+                          /{' '}
+                          {formatCurrency(
+                            fee.totalAmount,
+                            contract.currencyCode,
+                          )}
+                        </span>{' '}
+                        <span className="text-muted-foreground">
+                          ({formattedProgress}%)
+                        </span>
+                      </span>
+                    </div>
+                    <Progress
+                      value={progress}
+                      aria-label={`${fee.feeName}: đã thanh toán ${formattedProgress}%`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={progress}
+                      className="h-2 bg-muted"
+                      indicatorClassName="bg-emerald-500"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+            Chưa có dữ liệu khoản phí để hiển thị.
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -309,7 +391,7 @@ function ContractChartCard({
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
@@ -317,7 +399,9 @@ function ContractChartCard({
       <CardHeader>
         <CardHeading>
           <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          {description ? (
+            <CardDescription>{description}</CardDescription>
+          ) : null}
         </CardHeading>
       </CardHeader>
       <CardContent className="pt-0">{children}</CardContent>
@@ -339,12 +423,9 @@ export function ContractOverviewContent({
   contract: ContractDetail;
 }) {
   const { formatCompactCurrency } = useNumberFormat();
-  const paymentPeriodData = buildContractPaymentPeriodChartData(
+  const paymentPlanData = buildContractPaymentPlanData(
     contract.charges,
-  );
-  const feeReceivableData = buildContractFeeReceivableChartData(
-    contract.charges,
-    contract.lines,
+    getDashboardPaymentPlanRange(),
   );
   const valueFormatter = (value: number) =>
     formatCompactCurrency(value, contract.currencyCode);
@@ -353,33 +434,20 @@ export function ContractOverviewContent({
 
   return (
     <>
-      <ContractFinancialOverview contract={contract} />
-      <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-2">
-        <ContractChartCard
-          title="Tình hình thu theo kỳ"
-          description="Theo dõi số đã thu, còn phải thu, quá hạn và chưa đến hạn theo từng kỳ."
-        >
-          {paymentPeriodData.length > 0 ? (
-            <ContractPaymentPeriodChart
-              data={paymentPeriodData}
+      <div className="grid min-w-0 items-start gap-admin-page-section xl:grid-cols-2">
+        <ContractFinancialOverview contract={contract} />
+        <ContractFeePaymentOverview contract={contract} />
+      </div>
+      <div className="mt-admin-page-section">
+        <ContractChartCard title="Kế hoạch thu tiền">
+          {paymentPlanData.length > 0 ? (
+            <PaymentPlanChart
+              data={paymentPlanData}
               valueFormatter={valueFormatter}
               axisValueFormatter={axisValueFormatter}
             />
           ) : (
-            <ContractChartEmptyState message="Chưa có dữ liệu kỳ thanh toán để hiển thị." />
-          )}
-        </ContractChartCard>
-        <ContractChartCard
-          title="Công nợ theo khoản phí"
-          description="So sánh số đã thu và số còn phải thu đã đến hạn của từng khoản phí."
-        >
-          {feeReceivableData.length > 0 ? (
-            <ContractFeeReceivableChart
-              data={feeReceivableData}
-              valueFormatter={valueFormatter}
-            />
-          ) : (
-            <ContractChartEmptyState message="Chưa có dữ liệu khoản phí để hiển thị." />
+            <ContractChartEmptyState message="Chưa có dữ liệu kế hoạch thu tiền để hiển thị." />
           )}
         </ContractChartCard>
       </div>

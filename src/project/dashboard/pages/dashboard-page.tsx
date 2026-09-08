@@ -35,9 +35,9 @@ import {
   CONTRACT_STATUS_LABELS,
   type ContractStatus,
 } from '../../contracts/model/contract';
+import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import { DashboardContractStatusChart } from '../charts/dashboard-contract-status.chart.generated';
 import { DashboardReceivableAgingChart } from '../charts/dashboard-receivable-aging.chart.generated';
-import { DashboardReceivableTrendChart } from '../charts/dashboard-receivable-trend.chart.generated';
 import { useDashboard } from '../hooks/use-dashboard';
 import {
   formatDashboardPaymentPlanRange,
@@ -472,7 +472,7 @@ export function DashboardPage() {
                 </div>
               ) : paymentPlan?.length ? (
                 <CardContent className="pt-4">
-                  <DashboardReceivableTrendChart
+                  <PaymentPlanChart
                     data={paymentPlan}
                     valueFormatter={(value) => formatCurrencyVND(value)}
                     axisValueFormatter={(value) =>

@@ -267,7 +267,7 @@ function ContractDetailShell({
   return (
     <div className="flex min-h-full flex-col bg-muted/30">
       <ContractHero contract={contract} actions={heroActions} />
-      <main className="mx-auto w-full max-w-[1600px] px-4 pb-6 sm:px-5 lg:px-6">
+      <main className="mx-auto w-full max-w-[1600px] px-4 pb-admin-page-section sm:px-5 lg:px-6">
         <ContractSummaryCard
           contract={contract}
           onManageResponsibles={onManageResponsibles}
