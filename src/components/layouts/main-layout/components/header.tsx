@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
+import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   Bell,
@@ -40,7 +41,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SearchInput } from '@/components/ui/inputs/search-input';
 import {
   Popover,
   PopoverContent,
@@ -330,12 +330,7 @@ export function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-3">
-        <SearchInput
-          variant="header"
-          placeholder="Tìm kiếm..."
-          aria-label="Tìm kiếm"
-          className="w-52 sm:w-64 lg:w-72"
-        />
+        <GlobalSearch />
         <Separator
           orientation="vertical"
           className={cn('h-6', isDark && 'bg-white/15')}
