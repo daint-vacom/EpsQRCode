@@ -1,6 +1,7 @@
 import { ROUTES } from '@/constants/routes';
 import {
   FileText,
+  FolderOpen,
   Layers3,
   LayoutDashboard,
   ListTree,
@@ -41,6 +42,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Mẫu hợp đồng',
         icon: Layers3,
         path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
+      },
+      {
+        label: 'Tệp lưu trữ',
+        icon: FolderOpen,
+        path: ROUTES.PROJECT.FILES,
       },
       {
         label: 'Nhân viên',

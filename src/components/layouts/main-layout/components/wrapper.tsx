@@ -30,6 +30,14 @@ export function Wrapper() {
       )
       ?.click();
   });
+  useKeyboardShortcut('alt+u', () => {
+    if (document.querySelector('[data-slot="dialog-content"]')) return;
+    document
+      .querySelector<HTMLButtonElement>(
+        '[data-shortcut-action="upload"]:not([disabled])',
+      )
+      ?.click();
+  });
   useKeyboardShortcut('alt+e', () => {
     if (document.querySelector('[data-slot="dialog-content"]')) return;
     document

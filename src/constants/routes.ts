@@ -40,6 +40,7 @@ export const ROUTES = {
     ROLE_PERMISSIONS: '/permissions',
     DATA_CONFIGURATION: '/data-configuration',
     TAGS: '/tags',
+    FILES: '/files',
   },
 } as const;
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 export type KeyboardShortcut =
-  'mod+s' | 'mod+enter' | 'mod+/' | 'slash' | 'alt+n' | 'alt+e';
+  'mod+s' | 'mod+enter' | 'mod+/' | 'slash' | 'alt+n' | 'alt+u' | 'alt+e';
 
 export const APP_KEYBOARD_SHORTCUTS = [
   { shortcut: 'Ctrl/Cmd + S', label: 'Lưu biểu mẫu đang mở' },
@@ -9,6 +9,7 @@ export const APP_KEYBOARD_SHORTCUTS = [
   { shortcut: 'Esc', label: 'Đóng hoặc hủy dialog/popover' },
   { shortcut: '/', label: 'Focus ô tìm kiếm của trang' },
   { shortcut: 'Alt + N', label: 'Tạo bản ghi mới' },
+  { shortcut: 'Alt + U', label: 'Tải tệp lên' },
   { shortcut: 'Alt + E', label: 'Chỉnh sửa bản ghi hiện tại' },
   { shortcut: 'Ctrl/Cmd + /', label: 'Mở danh sách phím tắt' },
 ] as const;
@@ -40,6 +41,8 @@ export function matchesKeyboardShortcut(
       return event.key === '/' && !event.shiftKey && !hasMod && !event.altKey;
     case 'alt+n':
       return event.altKey && key === 'n' && !hasMod;
+    case 'alt+u':
+      return event.altKey && key === 'u' && !hasMod;
     case 'alt+e':
       return event.altKey && key === 'e' && !hasMod;
   }

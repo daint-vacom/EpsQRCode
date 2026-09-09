@@ -44,6 +44,23 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Reuse `src/components/ui` before creating new base components.
 - Style shared admin defaults at the component/token root, not with per-page class patches. See `docs/06-component-usage-guide.md` when changing shared look.
 
+## Import and Runtime Symbol Rules
+
+- When adding or renaming a JSX component, hook, icon, helper, or type, update its import in the same patch. Do not rely on Vite HMR or a previous import being present in a nearby file.
+- Before browser verification, run `npx tsc --noEmit` after the final code edit. A passing build from an earlier intermediate state does not count.
+- For every newly referenced symbol in a changed file, verify that it is either locally declared or imported from its real module. Use targeted `rg` searches when needed; specifically check UI wrappers such as `Tooltip`, `ShortcutTooltip`, dialogs, form fields, and icons.
+- Run the focused undefined-symbol check on changed TypeScript files: `npm run lint:imports -- path/to/changed-file.tsx`. This intentionally enables ESLint `no-undef` only for the supplied files because the legacy template has unrelated baseline lint errors across the full source tree.
+- If a runtime `ReferenceError` occurs, fix the missing import first, then reload the route and rerun TypeScript plus the focused test/build checks before continuing with visual verification.
+- Generated UI output remains subject to the same import checks after regeneration or manual scaffold-and-own reconciliation.
+
+## Database Migration Rules
+
+- Remote Supabase migrations should be applied through a direct PostgreSQL connection using `SUPABASE_DB_URL` from `.env.development.local`; do not assume `supabase db push` is the working path for this project.
+- Never print the connection string or password. When the password contains reserved URL characters such as `@`, percent-encode it before constructing the driver connection string.
+- Before applying, query `supabase_migrations.schema_migrations` and confirm the target migration version is not already recorded. Apply the requested migration in a transaction, then record its version only after the SQL commits successfully.
+- The direct `db.<project>.supabase.co` endpoint may be IPv6-only. If the current machine has no IPv6 route, derive the Supavisor session-pooler endpoint from the same project (port `5432`) and reuse the credentials from `SUPABASE_DB_URL`; do not modify `.env` unless explicitly requested.
+- Verify the result after applying: migration history, expected tables/views/columns, relevant storage bucket settings, and any seeded records. Report unrelated pending migrations separately instead of silently applying them.
+
 ## Verification
 
 Before claiming work is complete, run the narrowest useful checks:

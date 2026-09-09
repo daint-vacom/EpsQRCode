@@ -47,4 +47,17 @@ describe('keyboard shortcuts', () => {
       true,
     );
   });
+
+  it('matches the upload shortcut only with Alt', () => {
+    expect(matchesKeyboardShortcut(key('u', { altKey: true }), 'alt+u')).toBe(
+      true,
+    );
+    expect(matchesKeyboardShortcut(key('u'), 'alt+u')).toBe(false);
+    expect(
+      matchesKeyboardShortcut(
+        key('u', { altKey: true, ctrlKey: true }),
+        'alt+u',
+      ),
+    ).toBe(false);
+  });
 });

@@ -104,7 +104,9 @@ export function ProjectMainLayout() {
                           ? 'Cấu hình dữ liệu'
                           : pathname === ROUTES.PROJECT.TAGS
                             ? 'Nhãn'
-                            : 'Tổng quan';
+                            : pathname === ROUTES.PROJECT.FILES
+                              ? 'Tệp lưu trữ'
+                              : 'Tổng quan';
 
   const quickCreateItems = [
     {

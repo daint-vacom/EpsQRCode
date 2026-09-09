@@ -51,6 +51,7 @@ import { CustomerDetailPage } from '@/project/customers/pages/customer-detail-pa
 import { CustomersPage } from '@/project/customers/pages/customers-page';
 import { DashboardPage } from '@/project/dashboard/pages/dashboard-page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
+import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
@@ -227,6 +228,7 @@ export function AppRoutingSetup() {
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
           <Route path={ROUTES.PROJECT.CUSTOMERS} element={<CustomersPage />} />
           <Route path={ROUTES.PROJECT.CONTRACTS} element={<ContractsPage />} />
+          <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />
           <Route
             path={ROUTES.PROJECT.CONTRACT_TEMPLATES}
             element={<ContractTemplatesPage />}
