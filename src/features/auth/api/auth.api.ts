@@ -56,3 +56,21 @@ export async function signOutFromSupabase(): Promise<void> {
 
   await supabaseAuthApi.post('/logout');
 }
+
+export async function changeSupabasePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const verificationSession = await signInWithPassword(email, currentPassword);
+
+  await supabaseAuthApi.put(
+    '/user',
+    { password: newPassword },
+    {
+      headers: {
+        Authorization: `Bearer ${verificationSession.access_token}`,
+      },
+    },
+  );
+}

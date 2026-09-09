@@ -5,12 +5,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { AccountSettings } from '@/features/users/components/account-settings';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Building2,
   Palette,
   Save,
   Settings,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
@@ -60,6 +62,7 @@ import { toCurrencyOptions } from '../model/currency';
 import type { TenantSettingsValues } from '../model/tenant-settings';
 
 const tabs = [
+  { value: 'account', label: 'Tài khoản', icon: UserRound },
   { value: 'organization', label: 'Tổ chức', icon: Building2 },
   { value: 'appearance', label: 'Giao diện', icon: Palette },
 ] as const;
@@ -69,7 +72,7 @@ type SettingsTab = (typeof tabs)[number]['value'];
 function resolveSettingsTab(value: string | null): SettingsTab {
   return tabs.some((tab) => tab.value === value)
     ? (value as SettingsTab)
-    : 'organization';
+    : 'account';
 }
 
 export function ProjectSettingsPage() {
@@ -301,6 +304,10 @@ export function ProjectSettingsPage() {
 
         <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">
           <div className="min-w-0 space-y-3 px-4 pb-4 pt-4 lg:space-y-4 lg:ps-0 lg:pe-5 lg:pb-5 lg:pt-5">
+            <TabsContent value="account" className="mt-0">
+              <AccountSettings />
+            </TabsContent>
+
             <TabsContent value="organization" className="mt-0 space-y-4">
               <Card>
                 <CardHeader className="p-5">

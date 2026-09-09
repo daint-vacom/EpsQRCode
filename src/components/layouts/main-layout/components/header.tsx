@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
+import { useCurrentEmployeeProfile } from '@/project/employees/hooks/use-current-employee-profile';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
 import {
@@ -25,7 +26,7 @@ import { useTheme } from 'next-themes';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -151,14 +152,27 @@ const MOCK_NOTIFICATIONS = [
   },
 ] as const;
 
-function AccountMenuHeader({ name, email }: { name: string; email: string }) {
+function AccountMenuHeader({
+  name,
+  email,
+  avatarUrl,
+}: {
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+}) {
+  const initial = name.trim().charAt(0).toUpperCase() || 'T';
+
   return (
     <>
       <DropdownMenuLabel className="px-2 py-1.5">
         <div className="flex items-center gap-3">
           <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt="Ảnh đại diện" />
+            ) : null}
             <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
-              T
+              {initial}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
@@ -184,6 +198,7 @@ export function Header() {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const employeeQuery = useCurrentEmployeeProfile({ enabled: isProjectShell });
   const { theme, setTheme } = useTheme();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [language, setLanguage] = useState('vi');
@@ -198,8 +213,12 @@ export function Header() {
   const unreadNotificationCount = notifications.filter(
     (notification) => notification.unread,
   ).length;
-  const accountName = authUser?.name ?? 'Thanh Hiếu';
+  const accountName =
+    (isProjectShell && employeeQuery.data?.displayName) ||
+    authUser?.name ||
+    'Thanh Hiếu';
   const accountEmail = authUser?.email ?? 'thanh.hieu@admin.vn';
+  const accountAvatar = isProjectShell ? employeeQuery.data?.avatarUrl : null;
   const accountInitial = accountName.trim().charAt(0).toUpperCase() || 'T';
   const breadcrumbItems = shell.breadcrumbItems ?? [
     { label: shell.breadcrumbRootLabel, path: shell.breadcrumbRootPath },
@@ -478,6 +497,9 @@ export function Header() {
               aria-label="Mở menu tài khoản"
             >
               <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
+                {accountAvatar ? (
+                  <AvatarImage src={accountAvatar} alt="Ảnh đại diện" />
+                ) : null}
                 <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
                   {accountInitial}
                 </AvatarFallback>
@@ -518,11 +540,21 @@ export function Header() {
             sideOffset={8}
             className="w-64 p-1.5"
           >
-            <AccountMenuHeader name={accountName} email={accountEmail} />
+            <AccountMenuHeader
+              name={accountName}
+              email={accountEmail}
+              avatarUrl={accountAvatar}
+            />
 
             <DropdownMenuGroup>
               <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={
+                  isProjectShell
+                    ? () => navigate(`${ROUTES.PROJECT.SETTINGS}?tab=account`)
+                    : undefined
+                }
+              >
                 <UserRound />
                 <span className="min-w-0 flex-1">Tài khoản</span>
                 <Tooltip>

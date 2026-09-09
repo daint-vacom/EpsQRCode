@@ -67,6 +67,19 @@ export interface EmployeeWorkspace {
   employees: Employee[];
 }
 
+export interface UpdateCurrentEmployeeProfileInput {
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  jobTitle: string;
+  department: string;
+  phone: string;
+  status: EmployeeStatus;
+  joinedAt: string | null;
+  note: string;
+  avatarUrl: string | null;
+}
+
 export async function loadEmployeeCustomFields(
   tenantId: string,
 ): Promise<CustomField[]> {
@@ -283,6 +296,58 @@ export async function loadEmployeeWorkspace(
       ),
     ),
   };
+}
+
+export async function loadCurrentEmployeeProfile(
+  tenantId: string,
+  userId: string,
+): Promise<Employee | null> {
+  assertSupabaseConfigured();
+
+  const rows = await request<EmployeeRow[]>(
+    supabaseApi.get(
+      '/employees',
+      queryParams({
+        select: '*',
+        tenant_id: `eq.${tenantId}`,
+        user_id: `eq.${userId}`,
+        limit: '1',
+      }),
+    ),
+  );
+
+  return rows[0] ? mapEmployeeRow(rows[0], rows[0].avatar_url) : null;
+}
+
+export async function updateCurrentEmployeeProfile(
+  tenantId: string,
+  employeeId: string,
+  values: UpdateCurrentEmployeeProfileInput,
+): Promise<Employee> {
+  assertSupabaseConfigured();
+
+  const rows = await request<EmployeeRow[]>(
+    supabaseApi.post('/rpc/update_my_employee_profile', {
+      p_tenant_id: tenantId,
+      p_employee_id: employeeId,
+      p_employee_code: values.employeeCode,
+      p_first_name: values.firstName,
+      p_last_name: values.lastName,
+      p_job_title: values.jobTitle,
+      p_department: values.department,
+      p_phone: values.phone,
+      p_status: values.status,
+      p_joined_at: values.joinedAt,
+      p_note: values.note,
+      p_avatar_url: values.avatarUrl,
+    }),
+  );
+
+  if (!rows[0]) {
+    throw new Error('Không tìm thấy hồ sơ nhân viên để cập nhật.');
+  }
+
+  return mapEmployeeRow(rows[0], rows[0].avatar_url);
 }
 
 function toPayload(values: EmployeeFormValues) {
