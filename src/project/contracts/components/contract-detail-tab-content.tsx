@@ -25,6 +25,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { createSignedStorageUrl } from '@/lib/storage';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getDashboardPaymentPlanRange } from '../../dashboard/model/dashboard';
+import { buildOfficeViewerUrl, isOfficeDocument } from '../../files/model/file';
 import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import {
   activateContract,
@@ -148,23 +150,6 @@ function formatFileSize(size: number) {
     return `${Math.max(1, Math.round(size / 1024))} KB`;
   }
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function getAttachmentOpenUrl(
-  attachment: ContractDetail['attachments'][number],
-) {
-  const isOfficeDocument =
-    attachment.mimeType.includes('msword') ||
-    attachment.mimeType.includes('wordprocessingml') ||
-    attachment.mimeType.includes('ms-excel') ||
-    attachment.mimeType.includes('spreadsheetml') ||
-    attachment.mimeType.includes('ms-powerpoint') ||
-    attachment.mimeType.includes('presentationml') ||
-    /\.(doc|docx|xls|xlsx|ppt|pptx)$/i.test(attachment.fileName);
-
-  if (!isOfficeDocument) return attachment.url;
-
-  return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(attachment.url)}&wdOrigin=BROWSELINK`;
 }
 
 const PAYMENT_METRIC_TONE_CLASSES = {
@@ -960,6 +945,9 @@ export function ContractAttachmentsContent({
   onChanged: () => Promise<void>;
 }) {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [openingAttachmentId, setOpeningAttachmentId] = useState<string | null>(
+    null,
+  );
   const fileUploadRef = useRef<FileUploadContentHandle>(null);
   const [attachmentToDelete, setAttachmentToDelete] = useState<
     ContractDetail['attachments'][number] | null
@@ -983,6 +971,38 @@ export function ContractAttachmentsContent({
     },
     onError: (deleteError) => toast.error(getApiErrorMessage(deleteError)),
   });
+
+  const handleOpenAttachment = async (
+    attachment: ContractDetail['attachments'][number],
+  ) => {
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      toast.error(
+        'Trình duyệt đang chặn cửa sổ xem tệp. Hãy cho phép popup rồi thử lại.',
+      );
+      return;
+    }
+
+    previewWindow.opener = null;
+    setOpeningAttachmentId(attachment.id);
+
+    try {
+      const signedUrl = await createSignedStorageUrl(
+        attachment.storageBucket,
+        attachment.storagePath,
+      );
+      const targetUrl = isOfficeDocument(attachment)
+        ? buildOfficeViewerUrl(signedUrl)
+        : signedUrl;
+
+      previewWindow.location.href = targetUrl;
+    } catch (error) {
+      previewWindow.close();
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setOpeningAttachmentId(null);
+    }
+  };
 
   return (
     <>
@@ -1056,17 +1076,19 @@ export function ContractAttachmentsContent({
                     {contract.attachments.map((attachment) => (
                       <TableRow key={attachment.id}>
                         <TableCell>
-                          <a
-                            href={getAttachmentOpenUrl(attachment)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex min-w-0 items-center gap-3 hover:text-primary"
+                          <button
+                            type="button"
+                            disabled={openingAttachmentId === attachment.id}
+                            className="flex min-w-0 items-center gap-3 text-left hover:text-primary disabled:cursor-wait disabled:opacity-60"
+                            onClick={() =>
+                              void handleOpenAttachment(attachment)
+                            }
                           >
                             <FileText className="size-4 shrink-0 text-muted-foreground" />
                             <span className="min-w-0 truncate font-medium">
                               {attachment.fileName}
                             </span>
-                          </a>
+                          </button>
                         </TableCell>
                         <TableCell className="text-foreground">
                           {formatFileSize(attachment.sizeBytes)}
@@ -1079,15 +1101,17 @@ export function ContractAttachmentsContent({
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex items-center gap-1">
-                            <a
-                              href={getAttachmentOpenUrl(attachment)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                            <button
+                              type="button"
+                              disabled={openingAttachmentId === attachment.id}
+                              className="inline-flex items-center gap-1.5 text-primary hover:underline disabled:cursor-wait disabled:opacity-60"
+                              onClick={() =>
+                                void handleOpenAttachment(attachment)
+                              }
                             >
                               <ExternalLink className="size-4" />
                               Mở file
-                            </a>
+                            </button>
                             <Button
                               type="button"
                               variant="ghost"
@@ -1126,11 +1150,11 @@ export function ContractAttachmentsContent({
                       key={attachment.id}
                       className="group overflow-hidden rounded-xl border border-border bg-background transition-shadow hover:shadow-sm"
                     >
-                      <a
-                        href={getAttachmentOpenUrl(attachment)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      <button
+                        type="button"
+                        disabled={openingAttachmentId === attachment.id}
+                        className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-60"
+                        onClick={() => void handleOpenAttachment(attachment)}
                       >
                         <div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-muted/40">
                           {isImage ? (
@@ -1143,17 +1167,17 @@ export function ContractAttachmentsContent({
                             <FileIcon className="size-16 text-muted-foreground" />
                           )}
                         </div>
-                      </a>
+                      </button>
                       <div className="space-y-2 p-3">
-                        <a
-                          href={getAttachmentOpenUrl(attachment)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block truncate text-sm font-semibold text-foreground hover:text-primary"
+                        <button
+                          type="button"
+                          disabled={openingAttachmentId === attachment.id}
+                          className="block w-full truncate text-left text-sm font-semibold text-foreground hover:text-primary disabled:cursor-wait disabled:opacity-60"
                           title={attachment.fileName}
+                          onClick={() => void handleOpenAttachment(attachment)}
                         >
                           {attachment.fileName}
-                        </a>
+                        </button>
                         <div className="flex items-center justify-between gap-2 text-xs text-foreground">
                           <span>{formatFileSize(attachment.sizeBytes)}</span>
                           <span>

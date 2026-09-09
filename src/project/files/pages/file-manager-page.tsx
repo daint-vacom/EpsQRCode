@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  buildOfficeViewerUrl,
+  isOfficeDocument,
+} from '@/project/files/model/file';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FileWarning,
@@ -16,6 +20,7 @@ import {
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { createSignedStorageUrl } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
@@ -150,11 +155,13 @@ function FileManagerTile({
   onOpen,
   onRename,
   onDelete,
+  isOpening,
 }: {
   item: FileManagerItem;
   onOpen: (item: FileManagerItem) => void;
   onRename: (item: FileManagerItem) => void;
   onDelete: (item: FileManagerItem) => void;
+  isOpening: boolean;
 }) {
   const isFolder = item.kind === 'folder';
 
@@ -169,7 +176,8 @@ function FileManagerTile({
       <div className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1">
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 text-start focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+          disabled={isOpening}
+          className="flex min-w-0 flex-1 items-center gap-2 text-start focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
           onDoubleClick={() => onOpen(item)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
@@ -210,7 +218,8 @@ function FileManagerTile({
         <>
           <button
             type="button"
-            className="mt-1 flex aspect-[1.55] w-full items-center justify-center rounded-lg bg-background p-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+            disabled={isOpening}
+            className="mt-1 flex aspect-[1.55] w-full items-center justify-center rounded-lg bg-background p-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
             onDoubleClick={() => onOpen(item)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
@@ -334,6 +343,7 @@ export function FileManagerPage() {
   const [deletingItem, setDeletingItem] = useState<FileManagerItem | null>(
     null,
   );
+  const [openingItemId, setOpeningItemId] = useState<string | null>(null);
   const folderForm = useFileFolderCreateForm();
 
   const foldersQuery = useQuery({
@@ -352,19 +362,10 @@ export function FileManagerPage() {
     enabled: Boolean(tenantId),
   });
 
-  const customRootId = useMemo(
-    () =>
-      foldersQuery.data?.find((folder) => folder.systemKey === 'custom')?.id ??
-      null,
-    [foldersQuery.data],
-  );
-  const beginCreateFolder = useCallback(
-    (parentId: string | null) => {
-      setNewFolderParentId(parentId ?? customRootId);
-      setIsCreatingFolder(true);
-    },
-    [customRootId],
-  );
+  const beginCreateFolder = useCallback((parentId: string | null) => {
+    setNewFolderParentId(parentId);
+    setIsCreatingFolder(true);
+  }, []);
 
   useEffect(() => {
     if (isCreatingFolder) folderForm.reset(fileFolderCreateDefaultValues);
@@ -393,7 +394,7 @@ export function FileManagerPage() {
       }
       return createCustomFileFolder(
         tenantId,
-        newFolderParentId ?? customRootId,
+        newFolderParentId,
         values.name,
         userId,
       );
@@ -415,8 +416,8 @@ export function FileManagerPage() {
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => {
-      if (!tenantId || !userId || !selectedFolderId) {
-        throw new Error('Hãy chọn thư mục trước khi tải tệp lên.');
+      if (!tenantId || !userId) {
+        throw new Error('Chưa xác định tenant hoặc người dùng.');
       }
       return uploadFilesToFolder(tenantId, selectedFolderId, userId, files);
     },
@@ -498,17 +499,50 @@ export function FileManagerPage() {
   const dropzone = useDropzone({
     onDrop,
     multiple: true,
-    disabled: !selectedFolderId || uploadMutation.isPending,
+    disabled: uploadMutation.isPending,
   });
 
-  const openItem = useCallback((item: FileManagerItem) => {
+  const openItem = useCallback(async (item: FileManagerItem) => {
     if (item.kind === 'folder') {
       setSelectedFolderId(item.id);
       setKeyword('');
       setIsSearchOpen(false);
       return;
     }
-    toast.info(`Đã chọn tệp “${item.name}”.`);
+
+    if (!item.storageBucket || !item.storagePath) {
+      toast.error('Không tìm thấy đường dẫn lưu trữ của tệp.');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      toast.error(
+        'Trình duyệt đang chặn cửa sổ xem tệp. Hãy cho phép popup rồi thử lại.',
+      );
+      return;
+    }
+
+    previewWindow.opener = null;
+    setOpeningItemId(item.id);
+
+    try {
+      const signedUrl = await createSignedStorageUrl(
+        item.storageBucket,
+        item.storagePath,
+      );
+      previewWindow.location.href = isOfficeDocument({
+        fileName: item.name,
+        mimeType: item.mimeType,
+      })
+        ? buildOfficeViewerUrl(signedUrl)
+        : signedUrl;
+    } catch (error) {
+      previewWindow.close();
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setOpeningItemId(null);
+    }
   }, []);
 
   const quota = quotaQuery.data;
@@ -611,14 +645,7 @@ export function FileManagerPage() {
                 <div className="flex shrink-0 items-center gap-1">
                   <div {...dropzone.getRootProps()}>
                     <input {...dropzone.getInputProps()} />
-                    <ShortcutTooltip
-                      label={
-                        !selectedFolderId
-                          ? 'Chọn thư mục để tải tệp lên'
-                          : 'Thêm tệp'
-                      }
-                      shortcut="Alt + U"
-                    >
+                    <ShortcutTooltip label={'Thêm tệp'} shortcut="Alt + U">
                       <Button
                         type="button"
                         variant="ghost"
@@ -627,7 +654,7 @@ export function FileManagerPage() {
                         aria-label="Thêm tệp"
                         aria-keyshortcuts="Alt+U"
                         data-shortcut-action="upload"
-                        disabled={!selectedFolderId || uploadMutation.isPending}
+                        disabled={uploadMutation.isPending}
                         loading={uploadMutation.isPending}
                       >
                         <Upload className="size-4" />
@@ -709,6 +736,7 @@ export function FileManagerPage() {
                       onOpen={openItem}
                       onRename={requestRename}
                       onDelete={requestDelete}
+                      isOpening={openingItemId === item.id}
                     />
                   ))}
                 </div>
@@ -722,6 +750,7 @@ export function FileManagerPage() {
                       onOpen={openItem}
                       onRename={requestRename}
                       onDelete={requestDelete}
+                      isOpening={openingItemId === item.id}
                     />
                   ))}
                 </div>
@@ -746,7 +775,7 @@ export function FileManagerPage() {
                   ? 'Thử tìm với từ khóa khác hoặc xóa bộ lọc tìm kiếm.'
                   : selectedFolderId
                     ? 'Tải tệp lên hoặc tạo thư mục con để bắt đầu lưu trữ.'
-                    : 'Chọn một thư mục để tải tệp lên hoặc mở một thư mục chức năng.'}
+                    : 'Tải tệp lên hoặc mở một thư mục chức năng để bắt đầu lưu trữ.'}
               </p>
             </div>
           )}

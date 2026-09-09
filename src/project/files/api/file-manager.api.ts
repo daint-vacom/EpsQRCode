@@ -227,7 +227,7 @@ function safeFileName(fileName: string) {
 
 export async function uploadFilesToFolder(
   tenantId: string,
-  folderId: string,
+  folderId: string | null,
   userId: string,
   files: File[],
 ) {

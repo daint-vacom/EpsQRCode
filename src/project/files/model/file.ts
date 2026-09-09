@@ -24,3 +24,21 @@ export interface FileAttachment {
   createdBy: string | null;
   createdAt: string;
 }
+
+export type FilePreviewSource = Pick<FileAttachment, 'fileName' | 'mimeType'>;
+
+export function isOfficeDocument(file: FilePreviewSource): boolean {
+  return (
+    file.mimeType.includes('msword') ||
+    file.mimeType.includes('wordprocessingml') ||
+    file.mimeType.includes('ms-excel') ||
+    file.mimeType.includes('spreadsheetml') ||
+    file.mimeType.includes('ms-powerpoint') ||
+    file.mimeType.includes('presentationml') ||
+    /\.(doc|docx|xls|xlsx|ppt|pptx)$/i.test(file.fileName)
+  );
+}
+
+export function buildOfficeViewerUrl(signedUrl: string): string {
+  return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(signedUrl)}&wdOrigin=BROWSELINK`;
+}
