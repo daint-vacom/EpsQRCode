@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { queryClient } from '@/lib/query-client';
 import {
@@ -65,12 +66,23 @@ const tabs = [
 
 type SettingsTab = (typeof tabs)[number]['value'];
 
+function resolveSettingsTab(value: string | null): SettingsTab {
+  return tabs.some((tab) => tab.value === value)
+    ? (value as SettingsTab)
+    : 'organization';
+}
+
 export function ProjectSettingsPage() {
   const { userId } = useUser();
   const { tenantId } = useTenant();
   const { theme, setTheme } = useTheme();
   const { appearance, saveAppearance } = useAppSettings();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('organization');
+  const [searchParams] = useSearchParams();
+  const settingsTabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
+    resolveSettingsTab(settingsTabParam),
+  );
+  const previousSettingsTabParamRef = useRef(settingsTabParam);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const tenantSettingsQuery = useQuery({
     queryKey: ['project', 'tenant-settings', userId, tenantId],
@@ -91,6 +103,13 @@ export function ProjectSettingsPage() {
   const currentSettingsRef = useRef<Record<string, unknown>>({});
   const [hydratedTenantId, setHydratedTenantId] = useState<string | null>(null);
   const navigationPromptOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (previousSettingsTabParamRef.current === settingsTabParam) return;
+
+    previousSettingsTabParamRef.current = settingsTabParam;
+    setActiveTab(resolveSettingsTab(settingsTabParam));
+  }, [settingsTabParam]);
 
   useEffect(() => {
     const data = tenantSettingsQuery.data;

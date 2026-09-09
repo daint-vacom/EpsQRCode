@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
+import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
@@ -178,6 +179,7 @@ function AccountMenuHeader({ name, email }: { name: string; email: string }) {
 export function Header() {
   const { isMobile, isSidebarOpen, sidebarToggle, shell } = useLayout();
   const isDark = shell.headerVariant === 'dark';
+  const isProjectShell = shell.homePath === ROUTES.HOME;
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
@@ -539,11 +541,21 @@ export function Header() {
                   </TooltipContent>
                 </Tooltip>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings />
-                Cài đặt
-              </DropdownMenuItem>
-              <DropdownMenuItem className="items-start py-2">
+              {!isProjectShell ? (
+                <DropdownMenuItem>
+                  <Settings />
+                  Cài đặt
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem
+                className="items-start py-2"
+                onSelect={
+                  isProjectShell
+                    ? () =>
+                        navigate(`${ROUTES.PROJECT.SETTINGS}?tab=organization`)
+                    : undefined
+                }
+              >
                 <Building2 className="mt-0.5" />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span>Tổ chức</span>
@@ -558,6 +570,14 @@ export function Header() {
 
             <DropdownMenuGroup>
               <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
+              {isProjectShell ? (
+                <DropdownMenuItem
+                  onSelect={() => navigate(ROUTES.PROJECT.SETTINGS)}
+                >
+                  <Settings />
+                  Cài đặt
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Palette />
@@ -584,54 +604,58 @@ export function Header() {
                   </DropdownMenuRadioGroup>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Languages />
-                  <span className="min-w-0 flex-1 truncate">Ngôn ngữ</span>
-                  <img
-                    src={currentLanguage.flag}
-                    alt={currentLanguage.label}
-                    className="h-3.5 w-5 shrink-0 rounded-sm object-cover"
-                  />
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-48">
-                  <DropdownMenuRadioGroup
-                    value={language}
-                    onValueChange={setLanguage}
-                  >
-                    {DISPLAY_LANGUAGES.map((item) => (
-                      <DropdownMenuRadioItem
-                        key={item.code}
-                        value={item.code}
-                        indicator="check"
-                        indicatorPosition="end"
-                        className="gap-2"
+              {!isProjectShell ? (
+                <>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Languages />
+                      <span className="min-w-0 flex-1 truncate">Ngôn ngữ</span>
+                      <img
+                        src={currentLanguage.flag}
+                        alt={currentLanguage.label}
+                        className="h-3.5 w-5 shrink-0 rounded-sm object-cover"
+                      />
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-48">
+                      <DropdownMenuRadioGroup
+                        value={language}
+                        onValueChange={setLanguage}
                       >
-                        <img
-                          src={item.flag}
-                          alt={item.label}
-                          className="h-3.5 w-5 rounded-sm object-cover"
-                        />
-                        {item.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuItem
-                className="justify-between"
-                onSelect={(event) => event.preventDefault()}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <Bell />
-                  <span className="truncate">Thông báo trên màn hình</span>
-                </span>
-                <Switch
-                  size="sm"
-                  checked={desktopNotificationsEnabled}
-                  onCheckedChange={setDesktopNotificationsEnabled}
-                />
-              </DropdownMenuItem>
+                        {DISPLAY_LANGUAGES.map((item) => (
+                          <DropdownMenuRadioItem
+                            key={item.code}
+                            value={item.code}
+                            indicator="check"
+                            indicatorPosition="end"
+                            className="gap-2"
+                          >
+                            <img
+                              src={item.flag}
+                              alt={item.label}
+                              className="h-3.5 w-5 rounded-sm object-cover"
+                            />
+                            {item.label}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem
+                    className="justify-between"
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Bell />
+                      <span className="truncate">Thông báo trên màn hình</span>
+                    </span>
+                    <Switch
+                      size="sm"
+                      checked={desktopNotificationsEnabled}
+                      onCheckedChange={setDesktopNotificationsEnabled}
+                    />
+                  </DropdownMenuItem>
+                </>
+              ) : null}
               <DropdownMenuItem>
                 <CircleHelp />
                 Trợ giúp
