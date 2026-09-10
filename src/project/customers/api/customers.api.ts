@@ -16,6 +16,11 @@ import type {
   CustomerStatus,
 } from '../model/customer';
 import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
+import type {
+  CustomerResponsibilityAssignmentInput,
+  CustomerResponsibilityFilterOptions,
+  CustomerResponsibilityWorkspace,
+} from '../model/customer-responsibility';
 
 interface TenantMembershipRow {
   tenant_id: string;
@@ -197,6 +202,7 @@ export async function loadCustomerList(
         p_statuses: params.statuses ?? [],
         p_tag_ids: params.tagIds ?? [],
         p_field_filters: params.fieldFilters ?? {},
+        p_responsible_employee_ids: params.responsibleEmployeeIds ?? [],
       },
       { signal },
     ),
@@ -206,6 +212,48 @@ export async function loadCustomerList(
     customers: response.items.map(mapCustomerRow),
     total: numberValue(response.total),
   };
+}
+
+export async function loadCustomerResponsibilityWorkspace(
+  tenantId: string,
+  customerId: string,
+): Promise<CustomerResponsibilityWorkspace> {
+  assertSupabaseConfigured();
+  return request<CustomerResponsibilityWorkspace>(
+    supabaseApi.post('/rpc/get_customer_responsibility_workspace', {
+      p_tenant_id: tenantId,
+      p_customer_id: customerId,
+    }),
+  );
+}
+
+export async function replaceCustomerResponsibilities(
+  tenantId: string,
+  customerId: string,
+  assignments: CustomerResponsibilityAssignmentInput[],
+): Promise<void> {
+  assertSupabaseConfigured();
+  await request(
+    supabaseApi.post('/rpc/replace_customer_responsibilities', {
+      p_tenant_id: tenantId,
+      p_customer_id: customerId,
+      p_assignments: assignments.map((assignment) => ({
+        employee_id: assignment.employeeId,
+        responsibility_role_ids: assignment.responsibilityRoleIds,
+      })),
+    }),
+  );
+}
+
+export async function loadCustomerResponsibilityFilterOptions(
+  tenantId: string,
+): Promise<CustomerResponsibilityFilterOptions> {
+  assertSupabaseConfigured();
+  return request<CustomerResponsibilityFilterOptions>(
+    supabaseApi.post('/rpc/list_customer_responsibility_filter_options', {
+      p_tenant_id: tenantId,
+    }),
+  );
 }
 
 export async function loadCustomerStatusStats(

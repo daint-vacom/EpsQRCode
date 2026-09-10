@@ -8,6 +8,7 @@ import {
   Save,
   Settings2,
   SlidersHorizontal,
+  UsersRound,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,8 @@ interface CustomerFilterViewControlProps {
   isSaving?: boolean;
   showInlineFilters: boolean;
   onShowInlineFiltersChange: (show: boolean) => void;
+  showResponsibilityFilters: boolean;
+  onShowResponsibilityFiltersChange: (show: boolean) => void;
   filters: CustomerListFilters;
   customFields?: CustomField[];
   onSelect: (viewId: string | null) => void;
@@ -64,6 +67,8 @@ export function CustomerFilterViewControl({
   isSaving = false,
   showInlineFilters,
   onShowInlineFiltersChange,
+  showResponsibilityFilters,
+  onShowResponsibilityFiltersChange,
   filters,
   customFields = [],
   onSelect,
@@ -101,7 +106,7 @@ export function CustomerFilterViewControl({
             className="rounded-e-none border-e-0"
           >
             <SlidersHorizontal />
-            Bộ lọc chi tiết
+            Lọc dữ liệu
           </Button>
         }
       />
@@ -195,13 +200,29 @@ export function CustomerFilterViewControl({
           >
             <span className="flex min-w-0 items-center gap-2">
               <SlidersHorizontal />
-              <span className="truncate">Hiển thị bộ lọc trên bảng</span>
+              <span className="truncate">Hiển thị bộ lọc theo cột</span>
             </span>
             <Switch
               size="sm"
               checked={showInlineFilters}
               onCheckedChange={onShowInlineFiltersChange}
-              aria-label="Hiển thị bộ lọc inline"
+              aria-label="Hiển thị bộ lọc theo cột"
+              onClick={(event) => event.stopPropagation()}
+            />
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="justify-between gap-3"
+            onSelect={(event) => event.preventDefault()}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <UsersRound />
+              <span className="truncate">Hiển thị lọc nhóm/nhân viên</span>
+            </span>
+            <Switch
+              size="sm"
+              checked={showResponsibilityFilters}
+              onCheckedChange={onShowResponsibilityFiltersChange}
+              aria-label="Hiển thị lọc nhóm/nhân viên"
               onClick={(event) => event.stopPropagation()}
             />
           </DropdownMenuItem>

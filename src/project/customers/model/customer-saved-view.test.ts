@@ -34,6 +34,7 @@ describe('customer saved view config', () => {
         addressDetail: '',
         statuses: ['active'],
         tagIds: ['tag-1'],
+        responsibleEmployeeIds: [],
         note: '',
         customFields: {},
       },

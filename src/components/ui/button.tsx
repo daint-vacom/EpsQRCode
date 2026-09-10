@@ -20,6 +20,8 @@ const buttonVariants = cva(
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 data-[state=open]:bg-destructive/90',
         light:
           'bg-primary/10 text-primary hover:bg-primary/15 data-[state=open]:bg-primary/15',
+        'light-neutral':
+          'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground data-[state=open]:bg-muted/80',
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/90 data-[state=open]:bg-secondary/90',
         outline:

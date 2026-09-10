@@ -16,6 +16,7 @@ export interface DataGridHeaderProps {
   description?: ReactNode;
   stats?: ReactNode;
   toolbar?: ReactNode;
+  secondaryRow?: ReactNode;
   className?: string;
 }
 
@@ -29,6 +30,7 @@ export function DataGridHeader({
   description,
   stats,
   toolbar,
+  secondaryRow,
   className,
 }: DataGridHeaderProps) {
   const leadingContent =
@@ -44,14 +46,18 @@ export function DataGridHeader({
   return (
     <CardHeader
       className={cn(
-        'flex-col items-stretch gap-4 xl:flex-row xl:items-center xl:justify-between',
+        'flex-col items-stretch',
+        secondaryRow ? 'gap-2' : 'gap-4',
         className,
       )}
     >
-      <div className="min-w-0">{leadingContent}</div>
-      {toolbar ? (
-        <CardToolbar className="flex-wrap">{toolbar}</CardToolbar>
-      ) : null}
+      <div className="flex flex-col items-stretch gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="min-w-0">{leadingContent}</div>
+        {toolbar ? (
+          <CardToolbar className="flex-wrap">{toolbar}</CardToolbar>
+        ) : null}
+      </div>
+      {secondaryRow ? <div className="w-full">{secondaryRow}</div> : null}
     </CardHeader>
   );
 }

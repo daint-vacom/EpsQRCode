@@ -17,7 +17,9 @@ export const segmentedControlSpecSchema = z
     optionsSource: optionsSourceSchema.default('static'),
     options: z.array(segmentedOptionSchema).min(1).optional(),
     size: z.enum(['sm', 'md', 'lg']).default('md'),
-    variant: z.enum(['default', 'outline']).default('outline'),
+    variant: z
+      .enum(['default', 'light', 'light-neutral', 'outline'])
+      .default('outline'),
     allowEmpty: z.boolean().default(false),
     itemClassName: z.string().optional(),
   })

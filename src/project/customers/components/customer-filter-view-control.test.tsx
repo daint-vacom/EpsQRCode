@@ -35,6 +35,7 @@ describe('CustomerFilterViewControl', () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
     const onSelect = vi.fn();
+    const onShowResponsibilityFiltersChange = vi.fn();
 
     render(
       <CustomerFilterViewControl
@@ -43,6 +44,8 @@ describe('CustomerFilterViewControl', () => {
         canManage
         showInlineFilters={false}
         onShowInlineFiltersChange={vi.fn()}
+        showResponsibilityFilters
+        onShowResponsibilityFiltersChange={onShowResponsibilityFiltersChange}
         filters={CUSTOMER_LIST_INITIAL_FILTERS}
         onSelect={onSelect}
         onCreate={vi.fn()}
@@ -53,11 +56,24 @@ describe('CustomerFilterViewControl', () => {
       />,
     );
 
+    expect(
+      screen.getByRole('button', { name: 'Lọc dữ liệu' }),
+    ).toBeInTheDocument();
+
     await user.click(
       screen.getByRole('button', {
         name: 'Chọn chế độ xem hoặc thao tác bộ lọc',
       }),
     );
+
+    expect(screen.getByText('Hiển thị bộ lọc theo cột')).toBeInTheDocument();
+    expect(
+      screen.getByRole('switch', { name: 'Hiển thị lọc nhóm/nhân viên' }),
+    ).toBeChecked();
+    await user.click(
+      screen.getByRole('switch', { name: 'Hiển thị lọc nhóm/nhân viên' }),
+    );
+    expect(onShowResponsibilityFiltersChange).toHaveBeenCalledWith(false);
 
     const viewItem = screen.getByRole('menuitem', { name: /View A/ });
     expect(viewItem.parentElement).toHaveClass('group');

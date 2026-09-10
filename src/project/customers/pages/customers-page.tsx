@@ -68,6 +68,7 @@ import {
 import { CustomerBulkStatusDialog } from '../components/customer-bulk-status-dialog';
 import { CustomerCreateDialog } from '../components/customer-create-dialog';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
+import { CustomerResponsibilityFilterRow } from '../components/customer-responsibility-filter-row';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
 import {
   CustomerFormDialog,
@@ -86,6 +87,7 @@ import {
   type CustomerListFilters,
   type CustomerStatus,
 } from '../model/customer';
+import type { CustomerResponsibilityFilterMode } from '../model/customer-responsibility';
 import {
   CUSTOMER_SAVED_VIEW_MANAGE_PERMISSION,
   CUSTOMER_SAVED_VIEW_RESOURCE,
@@ -133,6 +135,10 @@ export function CustomersPage() {
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(true);
+  const [showResponsibilityFilters, setShowResponsibilityFilters] =
+    useState(true);
+  const [responsibilityFilterMode, setResponsibilityFilterMode] =
+    useState<CustomerResponsibilityFilterMode>('group');
   const form = useCustomerForm();
   const savedViewForm = useCustomerSavedViewForm();
 
@@ -151,7 +157,9 @@ export function CustomersPage() {
     workspaceQuery,
     customerStatsQuery,
     customerPreviousMonthStatsQuery,
+    customerResponsibilityFilterOptionsQuery,
     customerTagsByCustomerId,
+    customerTagOptions,
   } = useCustomerList();
 
   const savedViewsQuery = useQuery({
@@ -319,6 +327,9 @@ export function CustomersPage() {
       businessTypes: [...config.filters.businessTypes],
       statuses: [...config.filters.statuses],
       tagIds: [...config.filters.tagIds],
+      responsibleEmployeeIds: [
+        ...(config.filters.responsibleEmployeeIds ?? []),
+      ],
       customFields: { ...config.filters.customFields },
     });
     applySavedViewTableState(config);
@@ -750,6 +761,10 @@ export function CustomersPage() {
                   isSaving={savedViewMutation.isPending}
                   showInlineFilters={showInlineFilters}
                   onShowInlineFiltersChange={onShowInlineFiltersChange}
+                  showResponsibilityFilters={showResponsibilityFilters}
+                  onShowResponsibilityFiltersChange={
+                    setShowResponsibilityFilters
+                  }
                   filters={filters}
                   customFields={customerCustomFieldsQuery.data ?? []}
                   onSelect={selectSavedView}
@@ -757,7 +772,10 @@ export function CustomersPage() {
                   onEdit={openEditSavedView}
                   onSaveCurrent={() => saveCurrentView()}
                   onApply={(values: CustomerFilterFormValues) =>
-                    setFilters(values)
+                    setFilters({
+                      ...values,
+                      responsibleEmployeeIds: filters.responsibleEmployeeIds,
+                    })
                   }
                   onReset={() => resetAll()}
                   onSaveToView={
@@ -765,7 +783,11 @@ export function CustomersPage() {
                       ? (values) =>
                           saveCurrentView({
                             ...currentViewConfig,
-                            filters: values,
+                            filters: {
+                              ...values,
+                              responsibleEmployeeIds:
+                                filters.responsibleEmployeeIds,
+                            },
                           })
                       : undefined
                   }
@@ -781,6 +803,7 @@ export function CustomersPage() {
                     void workspaceQuery.refetch();
                     void customerStatsQuery.refetch();
                     void customerPreviousMonthStatsQuery.refetch();
+                    void customerResponsibilityFilterOptionsQuery.refetch();
                   }}
                 >
                   <RefreshCw />
@@ -796,6 +819,26 @@ export function CustomersPage() {
                   isSaving={savedViewMutation.isPending}
                 />
               </>
+            }
+            secondaryRow={
+              showResponsibilityFilters ? (
+                <CustomerResponsibilityFilterRow
+                  mode={responsibilityFilterMode}
+                  onModeChange={setResponsibilityFilterMode}
+                  tagOptions={customerTagOptions}
+                  selectedTagIds={filters.tagIds}
+                  onTagIdsChange={(value) => setFilter('tagIds', value)}
+                  employeeOptions={
+                    customerResponsibilityFilterOptionsQuery.data?.employees ??
+                    []
+                  }
+                  selectedEmployeeIds={filters.responsibleEmployeeIds ?? []}
+                  onEmployeeIdsChange={(value) =>
+                    setFilter('responsibleEmployeeIds', value)
+                  }
+                  disabled={customerResponsibilityFilterOptionsQuery.isPending}
+                />
+              ) : null
             }
           />
           <CardTable className="min-h-0 flex-1">

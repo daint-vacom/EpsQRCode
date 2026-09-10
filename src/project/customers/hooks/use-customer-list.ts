@@ -6,6 +6,7 @@ import { useTenant } from '@/providers/tenant-provider';
 import {
   loadCustomerList,
   loadCustomerPreviousMonthStats,
+  loadCustomerResponsibilityFilterOptions,
   loadCustomerStats,
 } from '../api/customers.api';
 import {
@@ -65,6 +66,11 @@ export function useCustomerList() {
       tagIds: {
         param: 'tagIds',
         serialize: (value) => (value.length > 0 ? value.join(',') : undefined),
+      },
+      responsibleEmployeeIds: {
+        param: 'responsibleEmployeeIds',
+        serialize: (value) =>
+          value && value.length > 0 ? value.join(',') : undefined,
       },
       note: { omit: [''] },
       customFields: {
@@ -134,6 +140,10 @@ export function useCustomerList() {
       typeof queryParams.tagIds === 'string'
         ? queryParams.tagIds.split(',').filter(Boolean)
         : undefined,
+    responsibleEmployeeIds:
+      typeof queryParams.responsibleEmployeeIds === 'string'
+        ? queryParams.responsibleEmployeeIds.split(',').filter(Boolean)
+        : undefined,
   };
 
   const subjectTagFilterQuery = useSubjectTagFilter('customer', {
@@ -164,6 +174,19 @@ export function useCustomerList() {
     enabled: Boolean(tenantState.tenantId),
   });
 
+  const customerResponsibilityFilterOptionsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'responsibility-filter-options',
+      tenantState.tenantId,
+    ],
+    queryFn: () =>
+      loadCustomerResponsibilityFilterOptions(tenantState.tenantId!),
+    enabled: Boolean(tenantState.tenantId),
+    staleTime: 60 * 1000,
+  });
+
   const customerPreviousMonthStatsQuery = useQuery({
     queryKey: [
       'project',
@@ -183,6 +206,7 @@ export function useCustomerList() {
     workspaceQuery: listQuery,
     customerStatsQuery,
     customerPreviousMonthStatsQuery,
+    customerResponsibilityFilterOptionsQuery,
     customers: listQuery.data?.customers ?? [],
     total: listQuery.data?.total ?? 0,
     customerTagOptions: subjectTagFilterQuery.data?.options ?? [],

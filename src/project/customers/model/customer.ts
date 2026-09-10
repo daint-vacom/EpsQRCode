@@ -125,6 +125,7 @@ export interface CustomerListParams {
   businessTypes?: BusinessType[];
   statuses?: CustomerStatus[];
   tagIds?: string[];
+  responsibleEmployeeIds?: string[];
   fieldFilters?: Partial<CustomerListFieldFilters>;
 }
 
@@ -141,6 +142,7 @@ export interface CustomerListFilters {
   addressDetail: string;
   statuses: CustomerStatus[];
   tagIds: string[];
+  responsibleEmployeeIds?: string[];
   note: string;
   customFields: Record<string, string>;
 }
@@ -189,6 +191,7 @@ export const CUSTOMER_LIST_INITIAL_FILTERS: CustomerListFilters = {
   addressDetail: '',
   statuses: [],
   tagIds: [],
+  responsibleEmployeeIds: [],
   note: '',
   customFields: {},
 };

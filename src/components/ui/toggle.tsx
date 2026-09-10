@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Toggle as TogglePrimitive } from 'radix-ui';
+import { cn } from '@/lib/utils';
 
 const toggleVariants = cva(
   'cursor-pointer inline-flex items-center justify-center rounded-md shrink-0 font-medium ring-offset-background transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0',
@@ -11,7 +11,12 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: 'bg-transparent',
-        outline: 'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
+        light:
+          'bg-transparent text-accent-foreground hover:bg-primary/10 hover:text-primary data-[state=on]:bg-primary/10 data-[state=on]:text-primary',
+        'light-neutral':
+          'bg-muted/50 text-muted-foreground hover:bg-muted/70 hover:text-foreground data-[state=on]:bg-background data-[state=on]:text-foreground',
+        outline:
+          'border border-input bg-transparent hover:bg-accent hover:text-accent-foreground',
       },
       size: {
         lg: 'h-10 min-w-10 rounded-md px-2.5 text-sm gap-1.5 [&_svg]:size-4',
@@ -31,9 +36,14 @@ function Toggle({
   variant,
   size,
   ...props
-}: React.ComponentProps<typeof TogglePrimitive.Root> & VariantProps<typeof toggleVariants>) {
+}: React.ComponentProps<typeof TogglePrimitive.Root> &
+  VariantProps<typeof toggleVariants>) {
   return (
-    <TogglePrimitive.Root data-slot="toggle" className={cn(toggleVariants({ variant, size, className }))} {...props} />
+    <TogglePrimitive.Root
+      data-slot="toggle"
+      className={cn(toggleVariants({ variant, size, className }))}
+      {...props}
+    />
   );
 }
 

@@ -83,7 +83,7 @@ export function SavedViewFilterControls<TFilters extends object>({
             className="rounded-e-none border-e-0"
           >
             <SlidersHorizontal />
-            Bộ lọc chi tiết
+            Lọc dữ liệu
           </Button>
         ),
       })}
@@ -177,13 +177,13 @@ export function SavedViewFilterControls<TFilters extends object>({
           >
             <span className="flex min-w-0 items-center gap-2">
               <SlidersHorizontal />
-              <span className="truncate">Hiển thị bộ lọc trên bảng</span>
+              <span className="truncate">Hiển thị bộ lọc theo cột</span>
             </span>
             <Switch
               size="sm"
               checked={showInlineFilters}
               onCheckedChange={onShowInlineFiltersChange}
-              aria-label="Hiển thị bộ lọc inline"
+              aria-label="Hiển thị bộ lọc theo cột"
               onClick={(event) => event.stopPropagation()}
             />
           </DropdownMenuItem>

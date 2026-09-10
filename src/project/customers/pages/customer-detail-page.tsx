@@ -55,6 +55,7 @@ import {
   CustomerDetailTabContent,
 } from '../components/customer-detail-tab-content';
 import { CustomerEditDialog } from '../components/customer-edit-dialog';
+import { CustomerResponsibilityPanel } from '../components/customer-responsibility-panel';
 import {
   BUSINESS_TYPE_LABELS,
   CUSTOMER_STATUS_LABELS,
@@ -219,6 +220,7 @@ export function CustomerDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const customerQuery = useCustomerQuery();
+  const { hasPermission } = useUser();
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -311,9 +313,9 @@ export function CustomerDetailPage() {
         }
         contractsContent={<CustomerContractsTable customerId={customer.id} />}
         employeesContent={
-          <CustomerDetailTabContent
+          <CustomerResponsibilityPanel
             customer={customer}
-            tab={CUSTOMER_DETAIL_TAB_CONTENT[1]}
+            canManage={hasPermission('customers:update')}
           />
         }
         reportsContent={

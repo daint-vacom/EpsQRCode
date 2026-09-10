@@ -108,6 +108,30 @@ Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Contro
 - Clickable card/item phải dùng được bằng touch và bàn phím (Enter/Space), có target đủ lớn và giữ thứ
   tự Tab tự nhiên. Khi đang loading hoặc action pending, giữ layout ổn định và chặn thao tác lặp.
 
+### Vai trò phụ trách khách hàng
+
+- `Vai trò phụ trách khách hàng` là phân loại nghiệp vụ theo từng quan hệ
+  `khách hàng - nhân viên`; không dùng chung entity `roles` hoặc `permission_groups` của module phân
+  quyền tenant.
+- Một nhân viên có thể có các vai trò khác nhau trên các khách hàng khác nhau và có thể giữ nhiều vai
+  trò trên cùng một khách hàng. Assignment luôn phải hiển thị đồng thời tên nhân viên và vai trò đang
+  phụ trách.
+- Trang phân quyền nhân viên chỉ quản lý quyền global. Các vai trò như `Hợp đồng` hoặc `Công nợ và
+  thanh toán` trong quan hệ khách hàng không được hiển thị hoặc chỉnh sửa tại ma trận quyền global.
+- Catalog vai trò phải lưu bằng ID/code ổn định; UI chỉ hiển thị `name`. Không lưu tên vai trò trực tiếp
+  trong bảng quan hệ và không dùng tên permission group làm khóa nghiệp vụ.
+- Khi phân công, một nhân viên đã chọn phải có ít nhất một vai trò. Nhân viên inactive có thể giữ
+  assignment cũ để bảo toàn lịch sử nhưng không được chọn mới.
+- Bộ lọc `Theo nhóm` và `Theo nhân viên` nằm trong một hàng full-width bên dưới header bảng. Khi đổi
+  chế độ, phải xóa lựa chọn quick-filter của chế độ cũ để không tạo bộ lọc ẩn.
+- Mỗi chế độ chỉ được chọn một chip view; chọn chip mới phải thay thế chip cũ. `Tất cả` là trạng thái
+  reset của chế độ hiện tại. Segment dùng variant `light-neutral`, chip đang chọn dùng kiểu solid; hàng
+  filter không dùng separator để ngăn với toolbar gốc của bảng.
+- Segment giữ dạng connected và có cùng chiều cao với chip; active dùng light-neutral với nền xám,
+  inactive giữ style nền/text bình thường. Chip inactive dùng light-neutral với nền xám. Danh sách chip
+  chiếm toàn bộ phần chiều rộng còn lại, luôn nằm trên một dòng và scroll ngang khi vượt quá viewport;
+  không wrap xuống dòng.
+
 ## Navigation And Interaction
 
 - Keep navigation placement stable across features.

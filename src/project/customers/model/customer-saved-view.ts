@@ -110,6 +110,7 @@ export function normalizeCustomerSavedViewConfig(
           ),
       ),
       tagIds: stringArray(rawFilters.tagIds),
+      responsibleEmployeeIds: stringArray(rawFilters.responsibleEmployeeIds),
       note: typeof rawFilters.note === 'string' ? rawFilters.note : '',
       customFields: stringRecord(rawFilters.customFields),
     },

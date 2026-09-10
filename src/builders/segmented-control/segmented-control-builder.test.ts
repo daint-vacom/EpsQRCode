@@ -39,6 +39,24 @@ describe('segmented-control-builder', () => {
     expect(source).not.toContain('RuntimeSwitcherOptions');
   });
 
+  it('supports the light variant', () => {
+    const source = buildSegmentedControlModule({
+      ...baseSpec,
+      variant: 'light',
+    });
+
+    expect(source).toContain("variant='light'");
+  });
+
+  it('supports the light-neutral variant', () => {
+    const source = buildSegmentedControlModule({
+      ...baseSpec,
+      variant: 'light-neutral',
+    });
+
+    expect(source).toContain("variant='light-neutral'");
+  });
+
   it('rejects duplicate values and invalid option source combinations', () => {
     expect(() =>
       segmentedControlSpecSchema.parse({
