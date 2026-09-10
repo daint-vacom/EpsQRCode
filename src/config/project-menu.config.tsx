@@ -44,14 +44,14 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
       },
       {
-        label: 'Tệp lưu trữ',
-        icon: FolderOpen,
-        path: ROUTES.PROJECT.FILES,
-      },
-      {
         label: 'Nhân viên',
         icon: Users,
         path: ROUTES.PROJECT.EMPLOYEES,
+      },
+      {
+        label: 'Tệp lưu trữ',
+        icon: FolderOpen,
+        path: ROUTES.PROJECT.FILES,
       },
       {
         label: 'Phân quyền',

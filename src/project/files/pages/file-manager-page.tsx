@@ -9,6 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   CircleAlert,
+  Copy,
+  FileText,
   FileWarning,
   FolderOpen,
   FolderPlus,
@@ -19,6 +21,7 @@ import {
   Search,
   Trash2,
   Upload,
+  UsersRound,
   X,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -53,6 +56,7 @@ import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { Progress } from '@/components/ui/progress';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
@@ -287,6 +291,24 @@ function FileManagerItemMenu({
   );
 }
 
+function getFolderIcon(item: FileManagerItem) {
+  const iconKey = item.systemKey ?? item.subjectType;
+
+  switch (iconKey) {
+    case 'customers':
+    case 'customer':
+      return UsersRound;
+    case 'contracts':
+    case 'contract':
+      return FileText;
+    case 'contract_templates':
+    case 'contract_template':
+      return Copy;
+    default:
+      return FolderOpen;
+  }
+}
+
 function FileManagerTile({
   item,
   onOpen,
@@ -301,6 +323,7 @@ function FileManagerTile({
   isOpening: boolean;
 }) {
   const isFolder = item.kind === 'folder';
+  const FolderIcon = getFolderIcon(item);
 
   return (
     <article
@@ -324,7 +347,7 @@ function FileManagerTile({
           }}
         >
           {isFolder ? (
-            <FolderOpen className="size-4 shrink-0 text-admin-blue-dark" />
+            <FolderIcon className="size-4 shrink-0 text-admin-blue-dark" />
           ) : (
             <FileIcon
               fileType={item.mimeType}
@@ -385,6 +408,41 @@ function FileManagerTile({
         </>
       ) : null}
     </article>
+  );
+}
+
+function FileManagerTileSkeleton({ isFolder }: { isFolder: boolean }) {
+  if (isFolder) {
+    return (
+      <Skeleton
+        aria-hidden="true"
+        className="h-14 min-w-0 self-start rounded-xl bg-muted/45"
+      />
+    );
+  }
+
+  return (
+    <div aria-hidden="true" className="relative min-h-56 min-w-0">
+      <Skeleton className="absolute inset-0 rounded-xl bg-muted/35" />
+      <Skeleton className="absolute inset-x-2 top-11 aspect-[1.55] rounded-lg bg-muted/65" />
+    </div>
+  );
+}
+
+function FileManagerLoadingSkeleton() {
+  return (
+    <div className="space-y-7" aria-label="Đang tải danh sách tệp">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <FileManagerTileSkeleton key={`folder-${index}`} isFolder />
+        ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <FileManagerTileSkeleton key={`file-${index}`} isFolder={false} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -505,6 +563,22 @@ export function FileManagerPage() {
     queryFn: () => getTenantStorageQuota(tenantId!),
     enabled: Boolean(tenantId),
   });
+
+  const selectedFolder = useMemo(
+    () =>
+      selectedFolderId
+        ? (foldersQuery.data?.find(
+            (folder) => folder.id === selectedFolderId,
+          ) ?? null)
+        : null,
+    [foldersQuery.data, selectedFolderId],
+  );
+  const canUploadToCurrentFolder =
+    selectedFolderId === null ||
+    selectedFolder?.folderType === 'entity' ||
+    selectedFolder?.folderType === 'custom';
+  const canCreateFolderInCurrentFolder =
+    selectedFolderId === null || selectedFolder?.folderType === 'custom';
 
   const beginCreateFolder = useCallback((parentId: string | null) => {
     setNewFolderParentId(parentId);
@@ -687,7 +761,7 @@ export function FileManagerPage() {
 
   const onDrop = useCallback(
     (files: File[]) => {
-      if (files.length === 0) return;
+      if (!canUploadToCurrentFolder || files.length === 0) return;
 
       const items = files.map<UploadQueueItem>((file) => ({
         id: crypto.randomUUID(),
@@ -699,7 +773,7 @@ export function FileManagerPage() {
       setIsUploadPanelExpanded(true);
       uploadMutation.mutate({ folderId: selectedFolderId, items });
     },
-    [selectedFolderId, uploadMutation],
+    [canUploadToCurrentFolder, selectedFolderId, uploadMutation],
   );
   const dropzone = useDropzone({
     onDrop,
@@ -813,11 +887,13 @@ export function FileManagerPage() {
             dropzone.isDragActive &&
               'border-primary bg-primary/5 ring-2 ring-primary/20',
           ),
-          'aria-label': 'Khu vực tải tệp lên',
+          'aria-label': canUploadToCurrentFolder
+            ? 'Khu vực tải tệp lên'
+            : 'Danh sách tệp',
         })}
       >
         <input {...dropzone.getInputProps()} />
-        {dropzone.isDragActive ? (
+        {dropzone.isDragActive && canUploadToCurrentFolder ? (
           <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-2 text-center text-primary">
               <Upload className="size-8" />
@@ -870,36 +946,6 @@ export function FileManagerPage() {
                   onSelect={setSelectedFolderId}
                 />
                 <div className="flex shrink-0 items-center gap-1">
-                  <ShortcutTooltip label="Thêm tệp" shortcut="Alt + U">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      mode="icon"
-                      size="lg"
-                      aria-label="Thêm tệp"
-                      aria-keyshortcuts="Alt+U"
-                      data-shortcut-action="upload"
-                      disabled={uploadMutation.isPending}
-                      loading={uploadMutation.isPending}
-                      onClick={dropzone.open}
-                    >
-                      <Upload className="size-4" />
-                    </Button>
-                  </ShortcutTooltip>
-                  <ShortcutTooltip label="Tạo thư mục" shortcut="Alt + N">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      mode="icon"
-                      size="lg"
-                      aria-label="Tạo thư mục"
-                      aria-keyshortcuts="Alt+N"
-                      data-shortcut-action="create"
-                      onClick={() => beginCreateFolder(selectedFolderId)}
-                    >
-                      <FolderPlus className="size-4" />
-                    </Button>
-                  </ShortcutTooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -915,6 +961,59 @@ export function FileManagerPage() {
                     </TooltipTrigger>
                     <TooltipContent variant="light">Tìm kiếm</TooltipContent>
                   </Tooltip>
+                  <ShortcutTooltip
+                    label={
+                      canUploadToCurrentFolder
+                        ? 'Thêm tệp'
+                        : 'Không thể thêm tệp trong thư mục hệ thống'
+                    }
+                    shortcut="Alt + U"
+                  >
+                    <span className="inline-flex">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        mode="icon"
+                        size="lg"
+                        aria-label="Thêm tệp"
+                        aria-keyshortcuts="Alt+U"
+                        data-shortcut-action="upload"
+                        disabled={
+                          !canUploadToCurrentFolder || uploadMutation.isPending
+                        }
+                        loading={uploadMutation.isPending}
+                        onClick={dropzone.open}
+                      >
+                        <Upload className="size-4" />
+                      </Button>
+                    </span>
+                  </ShortcutTooltip>
+                  <ShortcutTooltip
+                    label={
+                      canCreateFolderInCurrentFolder
+                        ? 'Tạo thư mục'
+                        : selectedFolder?.folderType === 'entity'
+                          ? 'Không thể tạo thư mục trong thư mục đối tượng'
+                          : 'Không thể tạo thư mục trong thư mục hệ thống'
+                    }
+                    shortcut="Alt + N"
+                  >
+                    <span className="inline-flex">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        mode="icon"
+                        size="lg"
+                        aria-label="Tạo thư mục"
+                        aria-keyshortcuts="Alt+N"
+                        data-shortcut-action="create"
+                        disabled={!canCreateFolderInCurrentFolder}
+                        onClick={() => beginCreateFolder(selectedFolderId)}
+                      >
+                        <FolderPlus className="size-4" />
+                      </Button>
+                    </span>
+                  </ShortcutTooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -942,14 +1041,7 @@ export function FileManagerPage() {
             )}
           </div>
           {itemsQuery.isLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="min-h-36 animate-pulse rounded-xl border border-border bg-muted/40"
-                />
-              ))}
-            </div>
+            <FileManagerLoadingSkeleton />
           ) : visibleItems.length > 0 ? (
             <div className="space-y-7">
               {visibleFolders.length > 0 ? (

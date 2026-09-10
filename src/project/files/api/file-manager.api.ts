@@ -151,6 +151,7 @@ export async function listFileManagerItems(
       modifiedAt: row.updated_at,
       modifiedAtLabel: formatDateTime(row.updated_at),
       folderType: row.folder_type,
+      systemKey: row.system_key,
       subjectType: row.subject_type,
       subjectId: row.subject_id,
       folderId: row.id,

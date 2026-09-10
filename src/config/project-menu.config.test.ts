@@ -15,6 +15,7 @@ describe('PROJECT_MENU_GROUPS', () => {
       'Hợp đồng',
       'Mẫu hợp đồng',
       'Nhân viên',
+      'Tệp lưu trữ',
       'Phân quyền',
       'Cấu hình dữ liệu',
       'Nhãn',

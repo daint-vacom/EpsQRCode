@@ -34,6 +34,7 @@ export interface FileManagerItem {
   modifiedAt: string;
   modifiedAtLabel: string;
   folderType?: FileFolderType;
+  systemKey?: string | null;
   subjectType?: FileSubjectType | null;
   subjectId?: string | null;
   linkedEntity?: string | null;
