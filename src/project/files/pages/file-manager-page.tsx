@@ -47,6 +47,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FileIcon } from '@/components/ui/files/file-icon';
+import { FileThumbnail } from '@/components/ui/files/file-thumbnail';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
@@ -265,7 +266,7 @@ function FileManagerItemMenu({
             </DropdownMenuTrigger>
           </span>
         </TooltipTrigger>
-        <TooltipContent variant="light">Tùy chọn</TooltipContent>
+        <TooltipContent>Tùy chọn</TooltipContent>
       </Tooltip>
       <DropdownMenuContent align="end" className="w-40">
         <DropdownMenuItem disabled={!canEdit} onSelect={() => onRename(item)}>
@@ -338,7 +339,7 @@ function FileManagerTile({
                 {item.name}
               </span>
             </TooltipTrigger>
-            <TooltipContent variant="light" className="max-w-sm break-all">
+            <TooltipContent className="max-w-sm break-all">
               {item.name}
             </TooltipContent>
           </Tooltip>
@@ -352,12 +353,16 @@ function FileManagerTile({
 
       {!isFolder ? (
         <>
-          <button
-            type="button"
-            disabled={isOpening}
-            className="mt-1 flex aspect-[1.55] w-full items-center justify-center rounded-lg bg-background p-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
-            onDoubleClick={() => onOpen(item)}
+          <div
+            role="button"
+            tabIndex={isOpening ? -1 : 0}
+            aria-disabled={isOpening}
+            className="mt-1 flex aspect-[1.55] w-full items-center justify-center rounded-lg bg-background p-5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring aria-disabled:cursor-wait aria-disabled:opacity-60"
+            onDoubleClick={() => {
+              if (!isOpening) onOpen(item);
+            }}
             onKeyDown={(event) => {
+              if (isOpening) return;
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 onOpen(item);
@@ -365,13 +370,14 @@ function FileManagerTile({
             }}
             aria-label={`Mở tệp ${item.name}`}
           >
-            <FileIcon
-              fileType={item.mimeType}
+            <FileThumbnail
+              mimeType={item.mimeType}
               fileName={item.name}
-              alt=""
-              className="size-16"
+              storageBucket={item.storageBucket}
+              storagePath={item.storagePath}
+              className="size-full"
             />
-          </button>
+          </div>
           <div className="flex items-center justify-between gap-2 px-1 pt-2 text-[11px] text-muted-foreground">
             <span className="truncate">{item.sizeLabel}</span>
             <span className="shrink-0">{item.modifiedAtLabel}</span>
