@@ -9,12 +9,12 @@ import {
   ChevronDown,
   ChevronUp,
   CircleAlert,
-  Copy,
   FileText,
   FileWarning,
   FolderOpen,
   FolderPlus,
   HardDrive,
+  Layers3,
   MoreVertical,
   Pencil,
   RefreshCw,
@@ -98,12 +98,23 @@ function StorageQuotaBadge({
   percent: number;
 }) {
   return (
-    <div className="inline-flex min-w-0 items-center gap-2 rounded-admin-control border border-border bg-muted/30 px-3 py-1.5 text-xs">
-      <HardDrive className="size-3.5 shrink-0 text-muted-foreground" />
-      <span className="shrink-0 font-medium">
-        {formatQuota(usedBytes, limitBytes)}
-      </span>
-      <Progress value={percent} className="w-16" />
+    <div className="flex w-56 max-w-full min-w-0 flex-none flex-col gap-1.5 text-xs">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <HardDrive className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="truncate font-medium">
+            {formatQuota(usedBytes, limitBytes)}
+          </span>
+        </div>
+        <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
+          {Math.round(percent)}%
+        </span>
+      </div>
+      <Progress
+        value={percent}
+        className="h-1.5 bg-border"
+        indicatorClassName="bg-primary"
+      />
     </div>
   );
 }
@@ -303,7 +314,7 @@ function getFolderIcon(item: FileManagerItem) {
       return FileText;
     case 'contract_templates':
     case 'contract_template':
-      return Copy;
+      return Layers3;
     default:
       return FolderOpen;
   }
@@ -591,13 +602,30 @@ export function FileManagerPage() {
 
   const visibleItems = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi');
-    if (!normalized) return itemsQuery.data ?? [];
-    return (itemsQuery.data ?? []).filter((item) =>
-      item.name.toLocaleLowerCase('vi').includes(normalized),
-    );
+    return [...(itemsQuery.data ?? [])]
+      .filter(
+        (item) =>
+          !normalized || item.name.toLocaleLowerCase('vi').includes(normalized),
+      )
+      .sort((left, right) =>
+        left.name.localeCompare(right.name, 'vi', {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      );
   }, [itemsQuery.data, keyword]);
-  const visibleFolders = useMemo(
-    () => visibleItems.filter((item) => item.kind === 'folder'),
+  const visibleSystemFolders = useMemo(
+    () =>
+      visibleItems.filter(
+        (item) => item.kind === 'folder' && item.folderType === 'system_root',
+      ),
+    [visibleItems],
+  );
+  const visibleOtherFolders = useMemo(
+    () =>
+      visibleItems.filter(
+        (item) => item.kind === 'folder' && item.folderType !== 'system_root',
+      ),
     [visibleItems],
   );
   const visibleFiles = useMemo(
@@ -1044,9 +1072,23 @@ export function FileManagerPage() {
             <FileManagerLoadingSkeleton />
           ) : visibleItems.length > 0 ? (
             <div className="space-y-7">
-              {visibleFolders.length > 0 ? (
+              {visibleSystemFolders.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-                  {visibleFolders.map((item) => (
+                  {visibleSystemFolders.map((item) => (
+                    <FileManagerTile
+                      key={item.id}
+                      item={item}
+                      onOpen={openItem}
+                      onRename={requestRename}
+                      onDelete={requestDelete}
+                      isOpening={openingItemId === item.id}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {visibleOtherFolders.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                  {visibleOtherFolders.map((item) => (
                     <FileManagerTile
                       key={item.id}
                       item={item}
