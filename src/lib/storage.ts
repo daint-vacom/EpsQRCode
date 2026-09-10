@@ -1,3 +1,4 @@
+import type { AxiosProgressEvent } from 'axios';
 import { env } from '@/config/env';
 import { assertSupabaseConfigured, supabaseStorageApi } from './supabase';
 
@@ -31,6 +32,7 @@ export interface StorageObjectInput {
   path: string;
   file: File;
   upsert?: boolean;
+  onProgress?: (progress: { loaded: number; total?: number }) => void;
 }
 
 export async function uploadStorageObject({
@@ -38,6 +40,7 @@ export async function uploadStorageObject({
   path,
   file,
   upsert = false,
+  onProgress,
 }: StorageObjectInput): Promise<void> {
   assertSupabaseConfigured();
 
@@ -45,6 +48,9 @@ export async function uploadStorageObject({
     headers: {
       'Content-Type': file.type || 'application/octet-stream',
       'x-upsert': String(upsert),
+    },
+    onUploadProgress: (event: AxiosProgressEvent) => {
+      onProgress?.({ loaded: event.loaded, total: event.total });
     },
   });
 }

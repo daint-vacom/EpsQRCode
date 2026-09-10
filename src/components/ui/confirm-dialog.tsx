@@ -18,6 +18,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   confirmVariant?: VariantProps<typeof AlertDialogAction>['variant'];
+  isConfirming?: boolean;
+  closeOnConfirm?: boolean;
   onConfirm: () => void;
 }
 
@@ -29,18 +31,35 @@ export function ConfirmDialog({
   confirmLabel = 'Xác nhận',
   cancelLabel = 'Hủy',
   confirmVariant = 'primary',
+  isConfirming = false,
+  closeOnConfirm = true,
   onConfirm,
 }: ConfirmDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && isConfirming) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-          <AlertDialogAction variant={confirmVariant} onClick={onConfirm}>
+          <AlertDialogCancel disabled={isConfirming}>
+            {cancelLabel}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            variant={confirmVariant}
+            loading={isConfirming}
+            onClick={(event) => {
+              if (!closeOnConfirm) event.preventDefault();
+              onConfirm();
+            }}
+          >
             {confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>

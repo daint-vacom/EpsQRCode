@@ -225,11 +225,16 @@ function safeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]+/g, '-');
 }
 
+export interface UploadFilesToFolderOptions {
+  onProgress?: (file: File, progress: number) => void;
+}
+
 export async function uploadFilesToFolder(
   tenantId: string,
   folderId: string | null,
   userId: string,
   files: File[],
+  options?: UploadFilesToFolderOptions,
 ) {
   assertSupabaseConfigured();
   const uploadedPaths: string[] = [];
@@ -240,10 +245,18 @@ export async function uploadFilesToFolder(
       const fileId = crypto.randomUUID();
       const storagePath = `${tenantId}/objects/${fileId}/${safeFileName(file.name)}`;
 
+      options?.onProgress?.(file, 0);
+
       await uploadStorageObject({
         bucket: TENANT_ASSETS_BUCKET,
         path: storagePath,
         file,
+        onProgress: ({ loaded, total }) => {
+          const progress = total
+            ? Math.min(99, Math.round((loaded / total) * 99))
+            : 0;
+          options?.onProgress?.(file, progress);
+        },
       });
       uploadedPaths.push(storagePath);
       fileIds.push(fileId);
@@ -265,6 +278,7 @@ export async function uploadFilesToFolder(
           { headers: { Prefer: 'return=minimal' } },
         ),
       );
+      options?.onProgress?.(file, 100);
     }
   } catch (error) {
     if (fileIds.length > 0) {

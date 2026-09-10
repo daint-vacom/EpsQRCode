@@ -5,6 +5,10 @@ import {
 } from '@/project/files/model/file';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  CircleAlert,
   FileWarning,
   FolderOpen,
   FolderPlus,
@@ -96,6 +100,138 @@ function StorageQuotaBadge({
       </span>
       <Progress value={percent} className="w-16" />
     </div>
+  );
+}
+
+type UploadQueueItemStatus = 'queued' | 'uploading' | 'success' | 'error';
+
+interface UploadQueueItem {
+  id: string;
+  file: File;
+  progress: number;
+  status: UploadQueueItemStatus;
+  error?: string;
+}
+
+function UploadQueuePanel({
+  items,
+  expanded,
+  onToggle,
+  onClose,
+}: {
+  items: UploadQueueItem[];
+  expanded: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const pendingCount = items.filter(
+    (item) => item.status === 'queued' || item.status === 'uploading',
+  ).length;
+  const successCount = items.filter((item) => item.status === 'success').length;
+  const errorCount = items.filter((item) => item.status === 'error').length;
+  const isComplete = pendingCount === 0;
+
+  const title = !isComplete
+    ? `Đang tải lên ${successCount}/${items.length} tệp`
+    : errorCount > 0
+      ? `Hoàn tất với ${errorCount} lỗi`
+      : `Đã tải lên ${items.length} tệp`;
+
+  return (
+    <section
+      className="fixed inset-x-4 bottom-4 z-50 overflow-hidden rounded-xl border border-border bg-card shadow-2xl sm:inset-x-auto sm:end-5 sm:w-[min(25rem,calc(100vw-2.5rem))]"
+      aria-label="Tiến trình tải tệp"
+    >
+      <header className="flex items-center gap-3 border-b border-border bg-muted/30 px-4 py-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          {isComplete ? (
+            errorCount > 0 ? (
+              <CircleAlert className="size-4" />
+            ) : (
+              <CheckCircle2 className="size-4" />
+            )
+          ) : (
+            <Upload className="size-4" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-foreground">
+            {title}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          mode="icon"
+          size="sm"
+          aria-label={
+            expanded ? 'Thu gọn tiến trình tải tệp' : 'Mở tiến trình tải tệp'
+          }
+          onClick={onToggle}
+        >
+          {expanded ? (
+            <ChevronDown className="size-4" />
+          ) : (
+            <ChevronUp className="size-4" />
+          )}
+        </Button>
+        {isComplete ? (
+          <Button
+            type="button"
+            variant="ghost"
+            mode="icon"
+            size="sm"
+            aria-label="Đóng tiến trình tải tệp"
+            onClick={onClose}
+          >
+            <X className="size-4" />
+          </Button>
+        ) : null}
+      </header>
+      {expanded ? (
+        <div className="max-h-80 space-y-3 overflow-y-auto p-3">
+          {items.map((item) => (
+            <div key={item.id} className="min-w-0 space-y-1.5">
+              <div className="flex min-w-0 items-center gap-2">
+                <FileIcon
+                  fileType={item.file.type}
+                  fileName={item.file.name}
+                  alt=""
+                  className="size-5 shrink-0"
+                />
+                <span
+                  className="min-w-0 flex-1 truncate text-xs font-medium text-foreground"
+                  title={item.file.name}
+                >
+                  {item.file.name}
+                </span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {item.status === 'queued' ? (
+                    'Đang chờ'
+                  ) : item.status === 'uploading' ? (
+                    `${item.progress}%`
+                  ) : item.status === 'success' ? (
+                    <CheckCircle2 className="size-4 text-emerald-600" />
+                  ) : (
+                    <CircleAlert className="size-4 text-destructive" />
+                  )}
+                </span>
+              </div>
+              {item.status === 'queued' || item.status === 'uploading' ? (
+                <Progress value={item.progress} className="h-1.5" />
+              ) : item.status === 'error' ? (
+                <p
+                  className="truncate text-[11px] text-destructive"
+                  title={item.error}
+                >
+                  {item.error ?? 'Không thể tải tệp lên.'}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -344,6 +480,8 @@ export function FileManagerPage() {
     null,
   );
   const [openingItemId, setOpeningItemId] = useState<string | null>(null);
+  const [uploadItems, setUploadItems] = useState<UploadQueueItem[]>([]);
+  const [isUploadPanelExpanded, setIsUploadPanelExpanded] = useState(true);
   const folderForm = useFileFolderCreateForm();
 
   const foldersQuery = useQuery({
@@ -414,29 +552,78 @@ export function FileManagerPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
+  const updateUploadItem = useCallback(
+    (itemId: string, update: Partial<UploadQueueItem>) => {
+      setUploadItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === itemId ? { ...item, ...update } : item,
+        ),
+      );
+    },
+    [],
+  );
+
+  interface UploadBatch {
+    folderId: string | null;
+    items: UploadQueueItem[];
+  }
+
   const uploadMutation = useMutation({
-    mutationFn: (files: File[]) => {
+    mutationFn: async ({ folderId, items }: UploadBatch) => {
       if (!tenantId || !userId) {
         throw new Error('Chưa xác định tenant hoặc người dùng.');
       }
-      return uploadFilesToFolder(tenantId, selectedFolderId, userId, files);
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const item of items) {
+        updateUploadItem(item.id, { status: 'uploading', progress: 0 });
+
+        try {
+          await uploadFilesToFolder(tenantId, folderId, userId, [item.file], {
+            onProgress: (_, progress) =>
+              updateUploadItem(item.id, { progress }),
+          });
+          updateUploadItem(item.id, { status: 'success', progress: 100 });
+          successCount += 1;
+        } catch (error) {
+          updateUploadItem(item.id, {
+            status: 'error',
+            error: getApiErrorMessage(error),
+          });
+          failedCount += 1;
+        }
+      }
+
+      return { folderId, successCount, failedCount };
     },
-    onSuccess: (_, files) => {
-      toast.success(`Đã tải lên ${files.length} tệp.`);
+    onSuccess: ({ folderId, successCount, failedCount }) => {
+      if (failedCount === 0) {
+        toast.success(`Đã tải lên ${successCount} tệp.`);
+      } else if (successCount > 0) {
+        toast.warning(
+          `Đã tải lên ${successCount} tệp, ${failedCount} tệp không thành công.`,
+        );
+      } else {
+        toast.error('Không thể tải các tệp đã chọn lên kho lưu trữ.');
+      }
       void queryClient.invalidateQueries({
-        queryKey: [
-          'project',
-          'file-manager',
-          'items',
-          tenantId,
-          selectedFolderId,
-        ],
+        queryKey: ['project', 'file-manager', 'items', tenantId, folderId],
       });
       void queryClient.invalidateQueries({
         queryKey: ['project', 'file-manager', 'quota', tenantId],
       });
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onError: (error, variables) => {
+      const errorMessage = getApiErrorMessage(error);
+      if (variables) {
+        variables.items.forEach((item) =>
+          updateUploadItem(item.id, { status: 'error', error: errorMessage }),
+        );
+      }
+      toast.error(errorMessage);
+    },
   });
 
   const renameMutation = useMutation({
@@ -461,11 +648,11 @@ export function FileManagerPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => {
-      if (!tenantId || !deletingItem) {
-        throw new Error('Không tìm thấy mục cần xóa.');
+    mutationFn: (item: FileManagerItem) => {
+      if (!tenantId) {
+        throw new Error('Chưa xác định tenant.');
       }
-      return deleteFileManagerItem(tenantId, deletingItem);
+      return deleteFileManagerItem(tenantId, item);
     },
     onSuccess: () => {
       toast.success('Đã xóa mục.');
@@ -493,12 +680,26 @@ export function FileManagerPage() {
   }, []);
 
   const onDrop = useCallback(
-    (files: File[]) => uploadMutation.mutate(files),
-    [uploadMutation],
+    (files: File[]) => {
+      if (files.length === 0) return;
+
+      const items = files.map<UploadQueueItem>((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        progress: 0,
+        status: 'queued',
+      }));
+      setUploadItems(items);
+      setIsUploadPanelExpanded(true);
+      uploadMutation.mutate({ folderId: selectedFolderId, items });
+    },
+    [selectedFolderId, uploadMutation],
   );
   const dropzone = useDropzone({
     onDrop,
     multiple: true,
+    noClick: true,
+    noKeyboard: true,
     disabled: uploadMutation.isPending,
   });
 
@@ -599,7 +800,27 @@ export function FileManagerPage() {
         }
       />
 
-      <Card className="min-h-0 flex-1 overflow-hidden">
+      <Card
+        {...dropzone.getRootProps({
+          className: cn(
+            'relative min-h-0 flex-1 overflow-hidden transition-colors',
+            dropzone.isDragActive &&
+              'border-primary bg-primary/5 ring-2 ring-primary/20',
+          ),
+          'aria-label': 'Khu vực tải tệp lên',
+        })}
+      >
+        <input {...dropzone.getInputProps()} />
+        {dropzone.isDragActive ? (
+          <div className="pointer-events-none absolute inset-2 z-20 flex items-center justify-center rounded-lg border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-2 text-center text-primary">
+              <Upload className="size-8" />
+              <span className="text-sm font-semibold">
+                Thả tệp hoặc thư mục để tải lên
+              </span>
+            </div>
+          </div>
+        ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
           <div className="mb-5 flex min-w-0 items-center justify-between gap-3">
             {isSearchOpen ? (
@@ -643,24 +864,22 @@ export function FileManagerPage() {
                   onSelect={setSelectedFolderId}
                 />
                 <div className="flex shrink-0 items-center gap-1">
-                  <div {...dropzone.getRootProps()}>
-                    <input {...dropzone.getInputProps()} />
-                    <ShortcutTooltip label={'Thêm tệp'} shortcut="Alt + U">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        mode="icon"
-                        size="lg"
-                        aria-label="Thêm tệp"
-                        aria-keyshortcuts="Alt+U"
-                        data-shortcut-action="upload"
-                        disabled={uploadMutation.isPending}
-                        loading={uploadMutation.isPending}
-                      >
-                        <Upload className="size-4" />
-                      </Button>
-                    </ShortcutTooltip>
-                  </div>
+                  <ShortcutTooltip label="Thêm tệp" shortcut="Alt + U">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      size="lg"
+                      aria-label="Thêm tệp"
+                      aria-keyshortcuts="Alt+U"
+                      data-shortcut-action="upload"
+                      disabled={uploadMutation.isPending}
+                      loading={uploadMutation.isPending}
+                      onClick={dropzone.open}
+                    >
+                      <Upload className="size-4" />
+                    </Button>
+                  </ShortcutTooltip>
                   <ShortcutTooltip label="Tạo thư mục" shortcut="Alt + N">
                     <Button
                       type="button"
@@ -781,6 +1000,14 @@ export function FileManagerPage() {
           )}
         </div>
       </Card>
+      {uploadItems.length > 0 ? (
+        <UploadQueuePanel
+          items={uploadItems}
+          expanded={isUploadPanelExpanded}
+          onToggle={() => setIsUploadPanelExpanded((expanded) => !expanded)}
+          onClose={() => setUploadItems([])}
+        />
+      ) : null}
       <FileFolderCreateFormDialog
         open={isCreatingFolder}
         onOpenChange={(open) => {
@@ -841,7 +1068,11 @@ export function FileManagerPage() {
         }
         confirmLabel="Xóa"
         confirmVariant="destructive"
-        onConfirm={() => deleteMutation.mutate()}
+        isConfirming={deleteMutation.isPending}
+        closeOnConfirm={false}
+        onConfirm={() => {
+          if (deletingItem) deleteMutation.mutate(deletingItem);
+        }}
       />
     </div>
   );
