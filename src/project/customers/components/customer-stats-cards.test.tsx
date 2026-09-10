@@ -36,6 +36,20 @@ describe('CustomerStatsCards', () => {
     expect(onFilterChange).toHaveBeenNthCalledWith(2, null);
   });
 
+  it('shows clickable styling and a search icon on every stat card', () => {
+    render(<CustomerStatsCards stats={stats} onFilterChange={vi.fn()} />);
+
+    expect(screen.getAllByRole('button')).toHaveLength(4);
+    expect(
+      screen
+        .getAllByRole('button')
+        .every((card) => card.classList.contains('cursor-pointer')),
+    ).toBe(true);
+    expect(
+      document.querySelectorAll('[data-slot="customer-stat-filter-icon"]'),
+    ).toHaveLength(4);
+  });
+
   it('dims non-selected indicators while a status filter is active', () => {
     render(
       <CustomerStatsCards

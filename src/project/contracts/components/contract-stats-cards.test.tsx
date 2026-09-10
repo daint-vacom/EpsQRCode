@@ -51,6 +51,27 @@ describe('ContractStatsCards', () => {
     expect(onExpiringFilterChange).toHaveBeenCalledOnce();
   });
 
+  it('shows a pointer cursor and search icon for every status count', () => {
+    render(
+      <ContractStatsCards
+        stats={stats}
+        onStatusFilterChange={vi.fn()}
+        onExpiringFilterChange={vi.fn()}
+      />,
+    );
+
+    const statusButtons = ['Đang hiệu lực', 'Sắp hết hạn', 'Đã hết hạn'].map(
+      (label) => screen.getByRole('button', { name: `Lọc hợp đồng: ${label}` }),
+    );
+
+    expect(
+      statusButtons.every((card) => card.classList.contains('cursor-pointer')),
+    ).toBe(true);
+    expect(
+      document.querySelectorAll('[data-slot="contract-stat-filter-icon"]'),
+    ).toHaveLength(3);
+  });
+
   it('shows only the expiring stat as selected when its active-status filter is applied', () => {
     render(
       <ContractStatsCards

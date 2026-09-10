@@ -3,6 +3,7 @@ import {
   CalendarClock,
   CalendarX2,
   FileCheck2,
+  Search,
   TrendingDown,
   TrendingUp,
   type LucideIcon,
@@ -320,7 +321,7 @@ function StatusSummaryRow({
       aria-pressed={isActive}
       aria-label={`Lọc hợp đồng: ${config.label}`}
       className={cn(
-        'flex w-full items-center gap-3 px-4 py-2 text-start transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        'relative flex w-full cursor-pointer items-center gap-3 px-4 py-2 pe-10 text-start transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         isActive ? 'bg-primary/5' : null,
         isInactive ? 'opacity-70' : null,
       )}
@@ -333,6 +334,11 @@ function StatusSummaryRow({
       }}
     >
       {rowContent}
+      <Search
+        className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden="true"
+        data-slot="contract-stat-filter-icon"
+      />
     </button>
   );
 }

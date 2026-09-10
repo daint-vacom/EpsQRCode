@@ -89,6 +89,25 @@ Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Contro
 - Success feedback is concise; failure feedback explains the next useful action.
 - Empty states explain what is absent and offer an action only when one is available.
 
+### Clickable stat cards
+
+- Chỉ biến stat card hoặc item count trong card tổng hợp thành clickable khi thao tác có ý nghĩa rõ
+  ràng, thường là lọc danh sách hoặc mở trang/chi tiết liên quan; stat chỉ để đọc thì không dùng
+  `cursor-pointer` hoặc icon hành động.
+- Toàn bộ card hoặc item count clickable là một target duy nhất. Ưu tiên semantic `button` cho
+  filter/action và semantic `a` cho điều hướng; nếu primitive card không hỗ trợ phần tử semantic thì
+  phải cung cấp đầy đủ button semantics và không đặt thêm control tương tác bên trong.
+- Filter card/item phải có affordance nhất quán: con trỏ pointer, hover state nhẹ (đổi nền hoặc
+  elevation), focus ring nhìn thấy được, và icon filter/search ở vị trí cố định. Không dùng màu sắc
+  đơn lẻ để truyền đạt card có thể click.
+- Tên accessible phải mô tả hành động và đối tượng, ví dụ `Lọc hợp đồng: Đang hiệu lực`. Card/item
+  có lựa chọn trạng thái dùng `aria-pressed`; trạng thái đang chọn phải phân biệt được, còn trạng thái
+  không chọn có thể giảm emphasis nhưng vẫn phải đọc được và vẫn dùng được.
+- Card/item đang chọn phải click lại được để bỏ lựa chọn hoặc reset đúng theo contract của bộ lọc. Hành
+  vi này phải nhất quán giữa các stat card cùng nhóm.
+- Clickable card/item phải dùng được bằng touch và bàn phím (Enter/Space), có target đủ lớn và giữ thứ
+  tự Tab tự nhiên. Khi đang loading hoặc action pending, giữ layout ổn định và chặn thao tác lặp.
+
 ## Navigation And Interaction
 
 - Keep navigation placement stable across features.

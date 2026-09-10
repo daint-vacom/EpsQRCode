@@ -1,6 +1,7 @@
 import {
   MessageCircleOff,
   Minus,
+  Search,
   TrendingDown,
   TrendingUp,
   UserCheck,
@@ -178,7 +179,7 @@ export function CustomerStatsCards({
               aria-pressed={isActive}
               aria-label={`Lọc khách hàng: ${label}`}
               className={cn(
-                'group relative overflow-visible border-0 bg-transparent shadow-none transition-transform duration-300 ease-out before:pointer-events-none before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:transition-colors before:duration-300 before:ease-out before:content-[""] hover:-translate-y-1.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                'group relative cursor-pointer overflow-visible border-0 bg-transparent shadow-none transition-transform duration-300 ease-out before:pointer-events-none before:absolute before:inset-0 before:z-0 before:rounded-[inherit] before:transition-colors before:duration-300 before:ease-out before:content-[""] hover:-translate-y-1.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 isCardInactive
                   ? 'before:bg-muted-foreground/30'
                   : toneIndicatorClasses[tone],
@@ -195,10 +196,15 @@ export function CustomerStatsCards({
             >
               <CardContent
                 className={cn(
-                  'relative z-10 mt-1 flex min-h-28 items-center gap-3 rounded-[inherit] border border-border bg-card p-4 shadow-xs transition-[box-shadow,opacity] duration-300 ease-out group-hover:shadow-md',
+                  'relative z-10 mt-1 flex min-h-28 items-center gap-3 rounded-[inherit] border border-border bg-card p-4 pr-12 shadow-xs transition-[box-shadow,opacity] duration-300 ease-out group-hover:shadow-md',
                   isCardInactive ? 'opacity-70' : 'opacity-100',
                 )}
               >
+                <Search
+                  className="pointer-events-none absolute right-4 top-4 size-4 text-muted-foreground transition-colors duration-300 group-hover:text-foreground"
+                  aria-hidden="true"
+                  data-slot="customer-stat-filter-icon"
+                />
                 <span
                   className={cn(
                     'inline-flex size-12 shrink-0 items-center justify-center rounded-xl transition-colors duration-300 ease-out',
