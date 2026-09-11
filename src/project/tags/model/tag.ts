@@ -5,11 +5,11 @@ export const CUSTOMER_TAG_GROUP_CODE = 'customers' as const;
 export const CONTRACT_TAG_GROUP_CODE = 'contracts' as const;
 
 export const tagGroupFormSchema = z.object({
-  name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm nhãn.'),
+  name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm danh mục.'),
   code: z
     .string()
     .trim()
-    .min(1, 'Vui lòng nhập mã nhóm nhãn.')
+    .min(1, 'Vui lòng nhập mã nhóm danh mục.')
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       'Mã chỉ gồm chữ thường, số và dấu gạch ngang.',
@@ -18,13 +18,13 @@ export const tagGroupFormSchema = z.object({
 });
 
 export const tagFormSchema = z.object({
-  groupId: z.string().uuid('Vui lòng chọn nhóm nhãn.'),
-  name: z.string().trim().min(1, 'Vui lòng nhập tên nhãn.'),
+  groupId: z.string().uuid('Vui lòng chọn nhóm danh mục.'),
+  name: z.string().trim().min(1, 'Vui lòng nhập tên danh mục.'),
   description: z.string().trim().max(500, 'Mô tả không được quá 500 ký tự.'),
   code: z
     .string()
     .trim()
-    .min(1, 'Vui lòng nhập mã nhãn.')
+    .min(1, 'Vui lòng nhập mã danh mục.')
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       'Mã chỉ gồm chữ thường, số và dấu gạch ngang.',

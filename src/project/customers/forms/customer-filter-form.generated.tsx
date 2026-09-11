@@ -224,14 +224,14 @@ export function CustomerFilterForm({
             name="tagIds"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Nhóm/nhãn</FormLabel>
+                <FormLabel>Nhóm/danh mục</FormLabel>
                 <FormControl>
                   <TagSelect
                     value={field.value}
                     onChange={field.onChange}
                     moduleCodes={['customers']}
-                    placeholder="Chọn nhãn"
-                    searchPlaceholder="Tìm nhãn..."
+                    placeholder="Chọn danh mục"
+                    searchPlaceholder="Tìm danh mục..."
                   />
                 </FormControl>
                 <FormMessage />

@@ -64,7 +64,7 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.DATA_CONFIGURATION,
       },
       {
-        label: 'Nhãn',
+        label: 'Danh mục',
         icon: Tags,
         path: ROUTES.PROJECT.TAGS,
       },

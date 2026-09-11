@@ -13,7 +13,7 @@ const spec: TableSpec = {
     {
       kind: 'custom',
       id: 'name',
-      header: 'Nhãn',
+      header: 'Danh mục',
       headerClassName: 'min-w-[220px]',
     },
     {

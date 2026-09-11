@@ -113,13 +113,13 @@ export function useEmployeeColumns(
       }),
       col.custom({
         id: 'tags',
-        header: 'Nhóm/nhãn',
+        header: 'Nhóm/danh mục',
         headerFilter: (
           <TagColumnFilter
             value={params.tagIds}
             onChange={params.onTagIdsChange}
             moduleCodes={['organization']}
-            ariaLabel="Nhóm/nhãn nhân viên"
+            ariaLabel="Nhóm/danh mục nhân viên"
           />
         ),
         headerClassName: 'min-w-[220px]',

@@ -149,12 +149,12 @@ export function ContractTemplateFilterDrawer({
             }
           />
         </Field>
-        <Field label="Nhóm/nhãn">
+        <Field label="Nhóm/danh mục">
           <TagColumnFilter
             value={draft.tagIds}
             onChange={(value) => update({ tagIds: value })}
             moduleCodes={['contracts']}
-            ariaLabel="Nhóm/nhãn mẫu hợp đồng"
+            ariaLabel="Nhóm/danh mục mẫu hợp đồng"
           />
         </Field>
         <Field label="Số khoản phí">

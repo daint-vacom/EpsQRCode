@@ -20,9 +20,9 @@ export function TagSelect({
   value = [],
   moduleCodes = [],
   allowCustomGroups = true,
-  placeholder = 'Chọn nhãn',
-  searchPlaceholder = 'Tìm nhãn...',
-  emptyMessage = 'Không tìm thấy nhãn',
+  placeholder = 'Chọn danh mục',
+  searchPlaceholder = 'Tìm danh mục...',
+  emptyMessage = 'Không tìm thấy danh mục',
   disabled = false,
   ...props
 }: TagSelectProps) {
@@ -115,7 +115,7 @@ export function TagSelect({
         query.isError ? getApiErrorMessage(query.error) : emptyMessage
       }
       loading={query.isPending}
-      loadingMessage="Đang tải danh sách nhãn..."
+      loadingMessage="Đang tải danh sách danh mục..."
       disabled={disabled || !userId}
       renderSelectedOption={(option, onRemove) => {
         const tag = option.data;
@@ -128,7 +128,7 @@ export function TagSelect({
             <span
               role="button"
               tabIndex={0}
-              aria-label={`Bỏ nhãn ${name}`}
+              aria-label={`Bỏ danh mục ${name}`}
               className="inline-flex size-3.5 shrink-0 cursor-pointer items-center justify-center rounded-full text-white transition-opacity hover:opacity-75"
               style={{ backgroundColor: color }}
               onMouseDown={(event) => {

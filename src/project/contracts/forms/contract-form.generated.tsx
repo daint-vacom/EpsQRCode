@@ -181,15 +181,15 @@ export function ContractForm({
                   name="tagIds"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Nhãn</FormLabel>
+                      <FormLabel>Danh mục</FormLabel>
                       <FormControl>
                         <TagSelect
                           value={field.value}
                           onChange={field.onChange}
                           moduleCodes={['contracts']}
-                          placeholder="Chọn nhãn"
-                          searchPlaceholder="Tìm nhãn..."
-                          emptyMessage="Không tìm thấy nhãn"
+                          placeholder="Chọn danh mục"
+                          searchPlaceholder="Tìm danh mục..."
+                          emptyMessage="Không tìm thấy danh mục"
                         />
                       </FormControl>
                       <FormMessage />

@@ -17,7 +17,7 @@ export function TagPicker({
   options,
   onChange,
   disabled,
-  placeholder = 'Chọn nhãn',
+  placeholder = 'Chọn danh mục',
 }: TagPickerProps) {
   return (
     <MultiSelect
@@ -26,8 +26,8 @@ export function TagPicker({
       onChange={onChange}
       disabled={disabled}
       placeholder={placeholder}
-      searchPlaceholder="Tìm nhãn..."
-      emptyMessage="Không tìm thấy nhãn"
+      searchPlaceholder="Tìm danh mục..."
+      emptyMessage="Không tìm thấy danh mục"
     />
   );
 }

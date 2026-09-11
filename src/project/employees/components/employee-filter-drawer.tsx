@@ -166,12 +166,12 @@ export function EmployeeFilterDrawer({
             renderOption={(option) => option.label}
           />
         </Field>
-        <Field label="Nhóm/nhãn">
+        <Field label="Nhóm/danh mục">
           <TagColumnFilter
             value={draft.filters.tagIds}
             onChange={(value) => updateFilters({ tagIds: value })}
             moduleCodes={['organization']}
-            ariaLabel="Nhóm/nhãn nhân viên"
+            ariaLabel="Nhóm/danh mục nhân viên"
           />
         </Field>
       </div>

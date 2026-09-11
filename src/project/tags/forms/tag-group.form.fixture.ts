@@ -5,7 +5,7 @@ const spec: FormSpec = {
   schemaImport: '../model/tag',
   schemaName: 'tagGroupFormSchema',
   valuesType: 'TagGroupFormValues',
-  title: 'Nhóm nhãn',
+  title: 'Nhóm danh mục',
   specPath: 'src/project/tags/forms/tag-group.form.fixture.ts',
   fields: [
     {

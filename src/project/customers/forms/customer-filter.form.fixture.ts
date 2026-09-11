@@ -86,10 +86,10 @@ const spec: FormSpec = {
     {
       kind: 'tagSelect',
       name: 'tagIds',
-      label: 'Nhóm/nhãn',
+      label: 'Nhóm/danh mục',
       width: 'full',
-      placeholder: 'Chọn nhãn',
-      searchPlaceholder: 'Tìm nhãn...',
+      placeholder: 'Chọn danh mục',
+      searchPlaceholder: 'Tìm danh mục...',
       moduleCodes: ['customers'],
       allowCustomGroups: true,
     },

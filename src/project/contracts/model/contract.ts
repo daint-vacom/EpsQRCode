@@ -141,7 +141,7 @@ export const contractFormSchema = z
     responsibleEmployeeIds: z.array(
       z.string().uuid('Nhân viên phụ trách không hợp lệ.'),
     ),
-    tagIds: z.array(z.string().uuid('Nhãn hợp đồng không hợp lệ.')),
+    tagIds: z.array(z.string().uuid('Danh mục hợp đồng không hợp lệ.')),
     contractCode: z
       .string()
       .trim()

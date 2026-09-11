@@ -17,7 +17,7 @@ export function TagColumnFilter({
   moduleCodes,
   disabled = false,
   className,
-  ariaLabel = 'Nhóm/nhãn',
+  ariaLabel = 'Nhóm/danh mục',
 }: TagColumnFilterProps) {
   return (
     <TagSelect
@@ -26,7 +26,7 @@ export function TagColumnFilter({
       moduleCodes={moduleCodes}
       allowCustomGroups
       placeholder=""
-      searchPlaceholder="Tìm nhãn..."
+      searchPlaceholder="Tìm danh mục..."
       ariaLabel={ariaLabel}
       size="sm"
       disabled={disabled}

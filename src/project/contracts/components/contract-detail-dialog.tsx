@@ -194,7 +194,7 @@ function buildGeneralSearchText(contract: ContractDetail) {
       employee.employeeCode,
     ]),
     responsiblePermissions,
-    'nhãn',
+    'danh mục',
     contract.tags.map((tag) => tag.name),
     'ghi chú',
     contract.note,
@@ -489,7 +489,7 @@ function ContractGeneralFields({
       ),
     },
     {
-      label: 'Nhãn',
+      label: 'Danh mục',
       value:
         contract.tags.length > 0 ? (
           <div className="flex flex-wrap gap-1.5">

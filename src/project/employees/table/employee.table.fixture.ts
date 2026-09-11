@@ -23,7 +23,7 @@ const spec: TableSpec = {
     {
       kind: 'custom',
       id: 'tags',
-      header: 'Nhóm/nhãn',
+      header: 'Nhóm/danh mục',
       headerClassName: 'min-w-[220px]',
       size: 240,
     },

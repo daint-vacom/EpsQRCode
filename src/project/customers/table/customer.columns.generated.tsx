@@ -196,13 +196,13 @@ export function useCustomerColumns(
       }),
       col.custom({
         id: 'tags',
-        header: 'Nhóm/nhãn',
+        header: 'Nhóm/danh mục',
         headerFilter: (
           <TagColumnFilter
             value={params.tagIds}
             onChange={params.onTagIdsChange}
             moduleCodes={['customers']}
-            ariaLabel="Nhóm/nhãn khách hàng"
+            ariaLabel="Nhóm/danh mục khách hàng"
           />
         ),
         headerClassName: 'min-w-[220px]',

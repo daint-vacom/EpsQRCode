@@ -65,7 +65,9 @@ export function CustomerResponsibilityFilterRow({
       <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
       <div
         className="min-w-0 flex-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        aria-label={isGroupMode ? 'Lọc theo nhóm nhãn' : 'Lọc theo nhân viên'}
+        aria-label={
+          isGroupMode ? 'Lọc theo nhóm danh mục' : 'Lọc theo nhân viên'
+        }
       >
         <div className="flex min-w-full w-max flex-nowrap items-center gap-1.5">
           <Button
@@ -133,7 +135,7 @@ export function CustomerResponsibilityFilterRow({
           {options.length === 0 ? (
             <span className="shrink-0 px-1 text-xs text-muted-foreground">
               {isGroupMode
-                ? 'Chưa có nhóm nhãn.'
+                ? 'Chưa có nhóm danh mục.'
                 : 'Chưa có nhân viên phụ trách.'}
             </span>
           ) : null}

@@ -107,13 +107,13 @@ export function useContractTemplateColumns(
       }),
       col.custom({
         id: 'tags',
-        header: 'Nhóm/nhãn',
+        header: 'Nhóm/danh mục',
         headerFilter: (
           <TagColumnFilter
             value={params.tagIds}
             onChange={params.onTagIdsChange}
             moduleCodes={['contracts']}
-            ariaLabel="Nhóm/nhãn mẫu hợp đồng"
+            ariaLabel="Nhóm/danh mục mẫu hợp đồng"
           />
         ),
         headerClassName: 'min-w-[220px]',

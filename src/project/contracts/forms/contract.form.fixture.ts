@@ -19,12 +19,12 @@ const spec: FormSpec = {
     {
       kind: 'tagSelect',
       name: 'tagIds',
-      label: 'Nhãn',
+      label: 'Danh mục',
       width: 'full',
       moduleCodes: ['contracts'],
-      placeholder: 'Chọn nhãn',
-      searchPlaceholder: 'Tìm nhãn...',
-      emptyMessage: 'Không tìm thấy nhãn',
+      placeholder: 'Chọn danh mục',
+      searchPlaceholder: 'Tìm danh mục...',
+      emptyMessage: 'Không tìm thấy danh mục',
     },
     {
       kind: 'text',

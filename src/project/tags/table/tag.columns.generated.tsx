@@ -93,7 +93,7 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
     return [
       col.custom({
         id: 'name',
-        header: 'Nhãn',
+        header: 'Danh mục',
         headerClassName: 'min-w-[220px]',
         enableSorting: false,
         cell: (row) => (
@@ -172,14 +172,14 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
             {row.isGroup ? (
               <DataGridActionButton
                 action="other"
-                tooltip="Thêm nhãn"
+                tooltip="Thêm danh mục"
                 type="button"
                 size="sm"
-                aria-label={`Thêm nhãn cho nhóm ${row.name}`}
+                aria-label={`Thêm danh mục cho nhóm ${row.name}`}
                 onClick={() => params.onAddTag(row)}
               >
                 <Plus className="size-3.5" />
-                Thêm nhãn
+                Thêm danh mục
               </DataGridActionButton>
             ) : null}
             {!row.isSystem ? (
@@ -190,7 +190,7 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
                   type="button"
                   mode="icon"
                   size="sm"
-                  aria-label={`Sửa ${row.isGroup ? 'nhóm' : 'nhãn'} ${row.name}`}
+                  aria-label={`Sửa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
                   onClick={() => params.onEdit(row)}
                 >
                   <Pencil className="size-4" />
@@ -201,7 +201,7 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
                   type="button"
                   mode="icon"
                   size="sm"
-                  aria-label={`Xóa ${row.isGroup ? 'nhóm' : 'nhãn'} ${row.name}`}
+                  aria-label={`Xóa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
                   onClick={() => params.onDelete(row)}
                 >
                   <Trash2 className="size-4" />

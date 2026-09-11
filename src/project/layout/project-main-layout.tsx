@@ -103,7 +103,7 @@ export function ProjectMainLayout() {
                         : pathname === ROUTES.PROJECT.DATA_CONFIGURATION
                           ? 'Cấu hình dữ liệu'
                           : pathname === ROUTES.PROJECT.TAGS
-                            ? 'Nhãn'
+                            ? 'Danh mục'
                             : pathname === ROUTES.PROJECT.FILES
                               ? 'Tệp lưu trữ'
                               : 'Tổng quan';

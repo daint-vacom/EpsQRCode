@@ -156,7 +156,7 @@ export function TagGroupFormDialog({
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-          <DialogTitle>{title ?? 'Nhóm nhãn'}</DialogTitle>
+          <DialogTitle>{title ?? 'Nhóm danh mục'}</DialogTitle>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">

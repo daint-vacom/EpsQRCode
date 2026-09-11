@@ -18,7 +18,7 @@ describe('PROJECT_MENU_GROUPS', () => {
       'Tệp lưu trữ',
       'Phân quyền',
       'Cấu hình dữ liệu',
-      'Nhãn',
+      'Danh mục',
     ]);
     expect(PROJECT_ENTITY_ORDER).toEqual(['customer', 'contract', 'employee']);
   });

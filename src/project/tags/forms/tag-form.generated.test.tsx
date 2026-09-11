@@ -29,7 +29,7 @@ describe('TagForm color field', () => {
 
     expect(
       screen
-        .getByRole('textbox', { name: /Tên nhãn/ })
+        .getByRole('textbox', { name: /Tên danh mục/ })
         .closest('[data-slot="form-item"]'),
     ).toHaveClass('md:col-span-12');
   });

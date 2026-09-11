@@ -74,6 +74,7 @@ interface TagFormProps {
   onSubmit: (values: TagFormValues) => void;
   id?: string;
   groupIdOptions: { value: string; label: string }[];
+  autoFocusName?: boolean;
 }
 
 export function TagForm({
@@ -81,6 +82,7 @@ export function TagForm({
   onSubmit,
   id = 'tag-form',
   groupIdOptions,
+  autoFocusName = false,
 }: TagFormProps) {
   return (
     <Form {...form}>
@@ -92,12 +94,12 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Nhóm nhãn<span className="text-destructive"> *</span>
+                  Nhóm danh mục<span className="text-destructive"> *</span>
                 </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn nhóm nhãn" />
+                      <SelectValue placeholder="Chọn nhóm danh mục" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -119,10 +121,10 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Tên nhãn<span className="text-destructive"> *</span>
+                  Tên danh mục<span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  <Input variant="md" {...field} />
+                  <Input variant="md" autoFocus={autoFocusName} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -149,7 +151,7 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-6">
                 <FormLabel>
-                  Mã nhãn<span className="text-destructive"> *</span>
+                  Mã danh mục<span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />
@@ -245,7 +247,7 @@ export function TagFormDialog({
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-            <DialogTitle>{title ?? 'Nhãn'}</DialogTitle>
+            <DialogTitle>{title ?? 'Danh mục'}</DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -254,6 +256,7 @@ export function TagFormDialog({
               onSubmit={onSubmit}
               id="tag-form"
               groupIdOptions={groupIdOptions}
+              autoFocusName={mode === 'create'}
             />
           </div>
 
