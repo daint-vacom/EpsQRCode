@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { replaceSubjectTags } from '@/project/tags/api/tags.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -67,6 +68,13 @@ export function CustomerCreateDialog({
         });
       }
 
+      await replaceSubjectTags(
+        tenantId,
+        savedCustomer.id,
+        'customer',
+        values.customerGroupTagIds,
+      );
+
       await saveCustomerCustomFieldValues(
         tenantId,
         savedCustomer.id,
@@ -82,6 +90,9 @@ export function CustomerCreateDialog({
       onOpenChange(false);
       await queryClient.invalidateQueries({
         queryKey: ['project', 'customers'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'tags', 'subject-filter'],
       });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),

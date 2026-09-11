@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { replaceSubjectTags } from '@/project/tags/api/tags.api';
+import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter';
+import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -58,16 +61,40 @@ export function CustomerEditDialog({
       loadCustomerCustomFieldValues(customer.tenantId, customer.id),
     enabled: Boolean(open),
   });
+  const customerTagFilterQuery = useSubjectTagFilter('customer', {
+    moduleCodes: [CUSTOMER_TAG_GROUP_CODE],
+    allowCustomGroups: false,
+  });
 
   useEffect(() => {
-    if (!open) return;
+    if (
+      !open ||
+      customerCustomDataQuery.isLoading ||
+      customerTagFilterQuery.isLoading
+    ) {
+      return;
+    }
+
+    const customerGroupTagIds =
+      customerTagFilterQuery.data?.tagsBySubjectId[customer.id]
+        ?.filter((tag) => tag.moduleCode === CUSTOMER_TAG_GROUP_CODE)
+        .map((tag) => tag.id) ?? [];
 
     form.reset({
       ...mapCustomerToFormValues(customer),
       customFields: customerCustomDataQuery.data ?? {},
+      customerGroupTagIds,
     });
     setCustomerImageFile(null);
-  }, [customer, customerCustomDataQuery.data, form, open]);
+  }, [
+    customer,
+    customerCustomDataQuery.data,
+    customerCustomDataQuery.isLoading,
+    customerTagFilterQuery.data,
+    customerTagFilterQuery.isLoading,
+    form,
+    open,
+  ]);
 
   const saveMutation = useMutation({
     mutationFn: async (values: CustomerFormValues) => {
@@ -83,6 +110,12 @@ export function CustomerEditDialog({
         ...values,
         imageUrl,
       });
+      await replaceSubjectTags(
+        customer.tenantId,
+        savedCustomer.id,
+        'customer',
+        values.customerGroupTagIds,
+      );
       await saveCustomerCustomFieldValues(
         customer.tenantId,
         customer.id,
@@ -95,6 +128,9 @@ export function CustomerEditDialog({
       setCustomerImageFile(null);
       await queryClient.invalidateQueries({
         queryKey: ['project', 'customers'],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'tags', 'subject-filter'],
       });
       onOpenChange(false);
     },

@@ -216,11 +216,14 @@ export async function loadTagSelectOptions(
 
   if (!allowCustomGroups && moduleCodes.length === 0) return [];
 
-  const groupFilter = allowCustomGroups
-    ? moduleCodes.length > 0
-      ? `(module_code.is.null,module_code.in.(${moduleCodes.join(',')}))`
-      : 'module_code.is.null'
-    : `module_code.in.(${moduleCodes.join(',')})`;
+  const groupFilterParams = allowCustomGroups
+    ? {
+        or:
+          moduleCodes.length > 0
+            ? `(module_code.is.null,module_code.in.(${moduleCodes.join(',')}))`
+            : 'module_code.is.null',
+      }
+    : { module_code: `in.(${moduleCodes.join(',')})` };
 
   const groups = await request<TagGroupRow[]>(
     supabaseApi.get(
@@ -229,7 +232,7 @@ export async function loadTagSelectOptions(
         select: 'id,name,module_code,is_system,is_active',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
-        or: groupFilter,
+        ...groupFilterParams,
         order: 'sort_order.asc,name.asc',
       }),
     ),
@@ -281,11 +284,18 @@ export async function loadSubjectTagFilter(
     ),
   );
   const allowCustomGroups = config.allowCustomGroups ?? true;
-  const groupFilter = allowCustomGroups
-    ? moduleCodes.length > 0
-      ? `(module_code.is.null,module_code.in.(${moduleCodes.join(',')}))`
-      : 'module_code.is.null'
-    : `module_code.in.(${moduleCodes.join(',')})`;
+  if (!allowCustomGroups && moduleCodes.length === 0) {
+    return { options: [], tagsBySubjectId: {} };
+  }
+
+  const groupFilterParams = allowCustomGroups
+    ? {
+        or:
+          moduleCodes.length > 0
+            ? `(module_code.is.null,module_code.in.(${moduleCodes.join(',')}))`
+            : 'module_code.is.null',
+      }
+    : { module_code: `in.(${moduleCodes.join(',')})` };
 
   const groups = await request<TagGroupRow[]>(
     supabaseApi.get(
@@ -294,7 +304,7 @@ export async function loadSubjectTagFilter(
         select: 'id,name,module_code,is_system,is_active',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
-        or: groupFilter,
+        ...groupFilterParams,
         order: 'sort_order.asc,name.asc',
       }),
     ),

@@ -4,7 +4,11 @@ import { COUNTRY_OPTIONS } from '@/lib/countries';
 export const CUSTOMER_STATUSES = ['active', 'inactive', 'uncontacted'] as const;
 export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
 
-export const BUSINESS_TYPES = ['individual', 'organization'] as const;
+export const BUSINESS_TYPES = [
+  'individual',
+  'household',
+  'organization',
+] as const;
 export type BusinessType = (typeof BUSINESS_TYPES)[number];
 
 export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
@@ -13,8 +17,27 @@ export const CUSTOMER_STATUS_LABELS: Record<CustomerStatus, string> = {
   uncontacted: 'Chưa liên hệ',
 };
 
+export const VAT_DECLARATION_PERIODS = [
+  'monthly',
+  'quarterly',
+  'yearly',
+] as const;
+export type VatDeclarationPeriod = (typeof VAT_DECLARATION_PERIODS)[number];
+export type StoredVatDeclarationPeriod = VatDeclarationPeriod | 'unspecified';
+
+export const VAT_DECLARATION_PERIOD_LABELS: Record<
+  StoredVatDeclarationPeriod,
+  string
+> = {
+  unspecified: 'Chưa cập nhật',
+  monthly: 'Theo tháng',
+  quarterly: 'Theo quý',
+  yearly: 'Theo năm',
+};
+
 export const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
   individual: 'Cá nhân',
+  household: 'Hộ kinh doanh',
   organization: 'Doanh nghiệp',
 };
 
@@ -54,11 +77,26 @@ export const customerFormSchema = z.object({
     .regex(/^[A-Z]{2}$/, 'Mã quốc gia phải gồm 2 chữ cái viết hoa.'),
   regionCode: z.string().trim(),
   regionName: z.string().trim(),
+  districtName: z.string().trim(),
+  wardName: z.string().trim(),
+  streetAddress: z.string().trim(),
   phone: z.string().trim(),
   email: z.string().trim().email('Email không hợp lệ.').or(z.literal('')),
   addressDetail: z.string().trim(),
+  contactName: z.string().trim(),
+  contactTitle: z.string().trim(),
+  establishedDate: z.date().nullable(),
+  vatDeclarationPeriod: z
+    .string()
+    .refine(
+      (value): value is VatDeclarationPeriod =>
+        VAT_DECLARATION_PERIODS.includes(value as VatDeclarationPeriod),
+      'Vui lòng chọn kỳ kê khai thuế GTGT.',
+    ),
+  customerGroupTagIds: z.array(
+    z.string().uuid('Nhóm khách hàng không hợp lệ.'),
+  ),
   status: z.enum(CUSTOMER_STATUSES),
-  note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
   customFields: customerCustomFieldValuesSchema,
 });
 
@@ -75,9 +113,16 @@ export interface Customer {
   countryCode: string;
   regionCode: string | null;
   regionName: string;
+  districtName: string;
+  wardName: string;
+  streetAddress: string;
   phone: string;
   email: string;
   addressDetail: string;
+  contactName: string;
+  contactTitle: string;
+  establishedDate: string | null;
+  vatDeclarationPeriod: StoredVatDeclarationPeriod;
   status: CustomerStatus;
   note: string;
   customFields: Record<string, string>;
@@ -94,9 +139,16 @@ export interface CustomerRow {
   country_code: string;
   region_code: string | null;
   region_name: string;
+  district_name: string;
+  ward_name: string;
+  street_address: string;
   phone: string;
   email: string;
   address_detail: string;
+  contact_name: string;
+  contact_title: string;
+  established_date: string | null;
+  vat_declaration_period: StoredVatDeclarationPeriod;
   status: CustomerStatus;
   note: string;
   created_at?: string;
@@ -214,11 +266,18 @@ export const emptyCustomerForm: CustomerFormValues = {
   countryCode: 'VN',
   regionCode: '',
   regionName: '',
+  districtName: '',
+  wardName: '',
+  streetAddress: '',
   phone: '',
   email: '',
   addressDetail: '',
+  contactName: '',
+  contactTitle: '',
+  establishedDate: null,
+  vatDeclarationPeriod: '',
+  customerGroupTagIds: [],
   status: 'active',
-  note: '',
   customFields: {},
 };
 
@@ -234,9 +293,16 @@ export function mapCustomerRow(row: CustomerRow): Customer {
     countryCode: row.country_code ?? 'VN',
     regionCode: row.region_code,
     regionName: row.region_name ?? '',
+    districtName: row.district_name ?? '',
+    wardName: row.ward_name ?? '',
+    streetAddress: row.street_address ?? '',
     phone: row.phone,
     email: row.email,
     addressDetail: row.address_detail,
+    contactName: row.contact_name ?? '',
+    contactTitle: row.contact_title ?? '',
+    establishedDate: row.established_date ?? null,
+    vatDeclarationPeriod: row.vat_declaration_period ?? 'unspecified',
     status: row.status,
     note: row.note,
     customFields: normalizeCustomFieldValues(row.custom_fields),
@@ -266,11 +332,23 @@ export function mapCustomerToFormValues(
     countryCode: customer.countryCode,
     regionCode: customer.regionCode ?? '',
     regionName: customer.regionName,
+    districtName: customer.districtName,
+    wardName: customer.wardName,
+    streetAddress: customer.streetAddress,
     phone: customer.phone,
     email: customer.email,
     addressDetail: customer.addressDetail,
+    contactName: customer.contactName,
+    contactTitle: customer.contactTitle,
+    establishedDate: customer.establishedDate
+      ? new Date(`${customer.establishedDate}T00:00:00`)
+      : null,
+    vatDeclarationPeriod:
+      customer.vatDeclarationPeriod === 'unspecified'
+        ? ''
+        : customer.vatDeclarationPeriod,
+    customerGroupTagIds: [],
     status: customer.status,
-    note: customer.note,
     customFields: customer.customFields,
   };
 }

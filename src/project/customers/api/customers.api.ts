@@ -384,11 +384,18 @@ function toPayload(values: CustomerFormValues) {
     country_code: values.countryCode,
     region_code: values.regionCode || null,
     region_name: values.regionName,
+    district_name: values.districtName,
+    ward_name: values.wardName,
+    street_address: values.streetAddress,
     phone: values.phone,
     email: values.email,
     address_detail: values.addressDetail,
+    contact_name: values.contactName,
+    contact_title: values.contactTitle,
+    established_date:
+      values.establishedDate?.toISOString().slice(0, 10) ?? null,
+    vat_declaration_period: values.vatDeclarationPeriod,
     status: values.status,
-    note: values.note,
   };
 }
 

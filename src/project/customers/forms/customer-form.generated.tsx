@@ -10,8 +10,9 @@
 import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
+import { TagSelect } from '@/project/tags/components/tag-select';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Building2, MapPin, Plus, RefreshCw, UserRound } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import type {
   ControllerRenderProps,
@@ -38,6 +39,8 @@ import {
 } from '@/components/ui/form';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
 import { Input } from '@/components/ui/input';
+import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { VietnamRegionSelect } from '@/components/ui/region-select';
 import {
   Select,
@@ -48,7 +51,6 @@ import {
 } from '@/components/ui/select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
@@ -59,6 +61,7 @@ import {
 
 const businessTypeOptions = [
   { value: 'individual', label: 'Cá nhân' },
+  { value: 'household', label: 'Hộ kinh doanh' },
   { value: 'organization', label: 'Doanh nghiệp' },
 ];
 
@@ -97,6 +100,12 @@ const statusOptions = [
   { value: 'uncontacted', label: 'Chưa liên hệ' },
 ];
 
+const vatDeclarationPeriodOptions = [
+  { value: 'monthly', label: 'Theo tháng' },
+  { value: 'quarterly', label: 'Theo quý' },
+  { value: 'yearly', label: 'Theo năm' },
+];
+
 export const customerDefaultValues: CustomerFormValues = {
   customerCode: '',
   name: '',
@@ -106,11 +115,18 @@ export const customerDefaultValues: CustomerFormValues = {
   countryCode: 'VN',
   regionCode: '',
   regionName: '',
+  districtName: '',
+  wardName: '',
+  streetAddress: '',
   status: 'active',
   phone: '',
   email: '',
   addressDetail: '',
-  note: '',
+  contactName: '',
+  contactTitle: '',
+  establishedDate: null,
+  vatDeclarationPeriod: '',
+  customerGroupTagIds: [],
   customFields: {},
 };
 
@@ -134,11 +150,23 @@ export function mapCustomerToFormValues(entity: Customer): CustomerFormValues {
     countryCode: entity.countryCode,
     regionCode: entity.regionCode ?? '',
     regionName: entity.regionName,
+    districtName: entity.districtName,
+    wardName: entity.wardName,
+    streetAddress: entity.streetAddress,
     status: entity.status,
     phone: entity.phone,
     email: entity.email,
     addressDetail: entity.addressDetail,
-    note: entity.note,
+    contactName: entity.contactName,
+    contactTitle: entity.contactTitle,
+    establishedDate: entity.establishedDate
+      ? new Date(`${entity.establishedDate}T00:00:00`)
+      : null,
+    vatDeclarationPeriod:
+      entity.vatDeclarationPeriod === 'unspecified'
+        ? ''
+        : entity.vatDeclarationPeriod,
+    customerGroupTagIds: [],
     customFields: entity.customFields,
   };
 }
@@ -181,7 +209,7 @@ export function CustomerForm({
       >
         <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
-            <div className="space-y-5">
+            <div className="space-y-4 pb-5 lg:pb-6">
               <FormField
                 control={form.control}
                 name="imageUrl"
@@ -233,12 +261,12 @@ export function CustomerForm({
 
               <FormField
                 control={form.control}
-                name="phone"
+                name="businessRegistrationCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormLabel>Mã số thuế / QHNS / ĐKKD</FormLabel>
                     <FormControl>
-                      <Input type="tel" variant="md" {...field} />
+                      <Input variant="md" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -247,12 +275,20 @@ export function CustomerForm({
 
               <FormField
                 control={form.control}
-                name="email"
+                name="customerGroupTagIds"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Nhóm khách hàng</FormLabel>
                     <FormControl>
-                      <Input type="email" variant="md" {...field} />
+                      <TagSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        moduleCodes={['customers']}
+                        allowCustomGroups={false}
+                        placeholder="Chọn nhóm khách hàng"
+                        searchPlaceholder="Tìm nhóm khách hàng..."
+                        emptyMessage="Không tìm thấy nhóm khách hàng"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -275,15 +311,52 @@ export function CustomerForm({
                 value="general"
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
               >
-                <div className="space-y-5 px-1 pb-1">
-                  <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
-                    {mode === 'edit' && (
+                <div className="space-y-10 px-1 pb-6">
+                  <section className="space-y-4">
+                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
+                      <Building2 className="size-4" aria-hidden="true" />
+                      <span>Thông tin cơ bản</span>
+                    </h3>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                      {mode === 'edit' && (
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem className="md:col-span-2">
+                              <FormLabel>Trạng thái</FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {statusOptions.map((opt) => (
+                                    <SelectItem
+                                      key={opt.value}
+                                      value={opt.value}
+                                    >
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+
                       <FormField
                         control={form.control}
-                        name="status"
+                        name="businessType"
                         render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Trạng thái</FormLabel>
+                          <FormItem>
+                            <FormLabel>Loại hình đơn vị</FormLabel>
                             <Select
                               value={field.value}
                               onValueChange={field.onChange}
@@ -294,7 +367,7 @@ export function CustomerForm({
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {statusOptions.map((opt) => (
+                                {businessTypeOptions.map((opt) => (
                                   <SelectItem key={opt.value} value={opt.value}>
                                     {opt.label}
                                   </SelectItem>
@@ -305,138 +378,249 @@ export function CustomerForm({
                           </FormItem>
                         )}
                       />
-                    )}
 
-                    <FormField
-                      control={form.control}
-                      name="businessType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Loại hình đơn vị</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {businessTypeOptions.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="businessRegistrationCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mã số thuế / QHNS / ĐKKD</FormLabel>
-                          <FormControl>
-                            <Input variant="md" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="countryCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quốc gia</FormLabel>
-                          <FormControl>
-                            <CountrySelect
-                              value={field.value}
-                              options={countryCodeOptions}
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                form.setValue('regionCode', '');
-                                form.setValue('regionName', '');
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {countryCode === 'VN' ? (
                       <FormField
                         control={form.control}
-                        name="regionCode"
+                        name="establishedDate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tỉnh/Thành phố</FormLabel>
+                            <FormLabel>Ngày thành lập</FormLabel>
                             <FormControl>
-                              <VietnamRegionSelect
+                              <DatePickerInput
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                calendarLabel="Chọn ngày thành lập"
+                                valueMode="date"
+                                variant="md"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="vatDeclarationPeriod"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>
+                              Kỳ kê khai thuế GTGT
+                              <span className="text-destructive"> *</span>
+                            </FormLabel>
+                            <FormControl>
+                              <RadioGroup
                                 value={field.value}
                                 onValueChange={field.onChange}
-                                options={regionCodeOptions}
-                              />
+                                className="flex flex-wrap gap-x-6 gap-y-2"
+                                aria-label="Kỳ kê khai thuế GTGT"
+                              >
+                                {vatDeclarationPeriodOptions.map((opt) => (
+                                  <label
+                                    key={opt.value}
+                                    className="flex cursor-pointer items-center gap-2 text-sm"
+                                  >
+                                    <RadioGroupItem value={opt.value} />
+                                    <span>{opt.label}</span>
+                                  </label>
+                                ))}
+                              </RadioGroup>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    ) : (
+                    </div>
+                  </section>
+
+                  <section className="space-y-4">
+                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
+                      <UserRound className="size-4" aria-hidden="true" />
+                      <span>Thông tin người liên hệ</span>
+                    </h3>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
                       <FormField
                         control={form.control}
-                        name="regionName"
+                        name="contactName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Tỉnh/Bang/Khu vực</FormLabel>
+                            <FormLabel>Người liên hệ</FormLabel>
                             <FormControl>
-                              <Input
-                                placeholder="Nhập khu vực hành chính"
-                                variant="md"
-                                {...field}
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="contactTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Chức danh</FormLabel>
+                            <FormControl>
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Số điện thoại</FormLabel>
+                            <FormControl>
+                              <Input type="tel" variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </section>
+
+                  <section className="space-y-4">
+                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
+                      <MapPin className="size-4" aria-hidden="true" />
+                      <span>Thông tin địa chỉ</span>
+                    </h3>
+                    <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="countryCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quốc gia</FormLabel>
+                            <FormControl>
+                              <CountrySelect
+                                value={field.value}
+                                options={countryCodeOptions}
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  form.setValue('regionCode', '');
+                                  form.setValue('regionName', '');
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    )}
 
-                    <FormField
-                      control={form.control}
-                      name="addressDetail"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Địa chỉ chi tiết</FormLabel>
-                          <FormControl>
-                            <Input variant="md" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
+                      {countryCode === 'VN' ? (
+                        <FormField
+                          control={form.control}
+                          name="regionCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tỉnh/Thành phố</FormLabel>
+                              <FormControl>
+                                <VietnamRegionSelect
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  options={regionCodeOptions}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ) : (
+                        <FormField
+                          control={form.control}
+                          name="regionName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tỉnh/Bang/Khu vực</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Nhập khu vực hành chính"
+                                  variant="md"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       )}
-                    />
 
-                    <FormField
-                      control={form.control}
-                      name="note"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Ghi chú</FormLabel>
-                          <FormControl>
-                            <Textarea rows={3} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                      <FormField
+                        control={form.control}
+                        name="districtName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quận/Huyện</FormLabel>
+                            <FormControl>
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="wardName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phường/Xã</FormLabel>
+                            <FormControl>
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="streetAddress"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Số nhà, tên đường</FormLabel>
+                            <FormControl>
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="addressDetail"
+                        render={({ field }) => (
+                          <FormItem className="md:col-span-2">
+                            <FormLabel>Địa chỉ đầy đủ</FormLabel>
+                            <FormControl>
+                              <Input variant="md" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </section>
                 </div>
               </TabsContent>
 

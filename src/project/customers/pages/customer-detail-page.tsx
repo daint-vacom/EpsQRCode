@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Building2,
-  Info,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  Trash2,
-} from 'lucide-react';
+import { Building2, Info, Mail, Pencil, Phone, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
@@ -59,8 +51,15 @@ import { CustomerResponsibilityPanel } from '../components/customer-responsibili
 import {
   BUSINESS_TYPE_LABELS,
   CUSTOMER_STATUS_LABELS,
+  VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
 } from '../model/customer';
+
+function formatCustomerDate(value: string | null) {
+  if (!value) return 'Chưa cập nhật';
+
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));
+}
 
 function CustomerProfileCard({ customer }: { customer: Customer }) {
   const statusColor =
@@ -178,8 +177,36 @@ function CustomerInformationCard({
           value={customer.regionName}
         />
         <EntityDetailInformationItem
-          label="Địa chỉ chi tiết"
+          label="Quận/Huyện"
+          value={customer.districtName}
+        />
+        <EntityDetailInformationItem
+          label="Phường/Xã"
+          value={customer.wardName}
+        />
+        <EntityDetailInformationItem
+          label="Số nhà, tên đường"
+          value={customer.streetAddress}
+        />
+        <EntityDetailInformationItem
+          label="Địa chỉ đầy đủ"
           value={customer.addressDetail}
+        />
+        <EntityDetailInformationItem
+          label="Người liên hệ"
+          value={customer.contactName}
+        />
+        <EntityDetailInformationItem
+          label="Chức danh"
+          value={customer.contactTitle}
+        />
+        <EntityDetailInformationItem
+          label="Ngày thành lập"
+          value={formatCustomerDate(customer.establishedDate)}
+        />
+        <EntityDetailInformationItem
+          label="Kỳ kê khai thuế GTGT"
+          value={VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod]}
         />
         <EntityDetailInformationItem
           label="Số điện thoại"
@@ -187,14 +214,6 @@ function CustomerInformationCard({
         />
         <EntityDetailInformationItem label="Email" value={customer.email} />
       </EntityDetailInformationGrid>
-      {customer.note ? (
-        <div className="mt-6 flex gap-2.5 border-t border-border pt-5 text-sm">
-          <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          <p className="whitespace-pre-wrap text-muted-foreground">
-            {customer.note}
-          </p>
-        </div>
-      ) : null}
     </EntityDetailInformationCard>
   );
 }

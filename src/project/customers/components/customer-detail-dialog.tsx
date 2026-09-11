@@ -9,6 +9,7 @@ import {
 import {
   BUSINESS_TYPE_LABELS,
   CUSTOMER_STATUS_LABELS,
+  VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
 } from '../model/customer';
 import { CustomerAvatar } from './customer-avatar';
@@ -16,6 +17,12 @@ import { CustomerDetailDialogShell } from './customer-detail-dialog.generated';
 
 function displayValue(value: string | null | undefined) {
   return value?.trim() || 'Chưa cập nhật';
+}
+
+function formatCustomerDate(value: string | null) {
+  if (!value) return 'Chưa cập nhật';
+
+  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));
 }
 
 function joinSearchText(...values: unknown[]) {
@@ -74,9 +81,44 @@ function getCustomerGeneralFields(
       searchText: customer.regionName,
     },
     {
-      label: 'Địa chỉ chi tiết',
+      label: 'Quận/Huyện',
+      value: displayValue(customer.districtName),
+      searchText: customer.districtName,
+    },
+    {
+      label: 'Phường/Xã',
+      value: displayValue(customer.wardName),
+      searchText: customer.wardName,
+    },
+    {
+      label: 'Số nhà, tên đường',
+      value: displayValue(customer.streetAddress),
+      searchText: customer.streetAddress,
+    },
+    {
+      label: 'Địa chỉ đầy đủ',
       value: displayValue(customer.addressDetail),
       searchText: customer.addressDetail,
+    },
+    {
+      label: 'Người liên hệ',
+      value: displayValue(customer.contactName),
+      searchText: customer.contactName,
+    },
+    {
+      label: 'Chức danh',
+      value: displayValue(customer.contactTitle),
+      searchText: customer.contactTitle,
+    },
+    {
+      label: 'Ngày thành lập',
+      value: formatCustomerDate(customer.establishedDate),
+      searchText: customer.establishedDate,
+    },
+    {
+      label: 'Kỳ kê khai thuế GTGT',
+      value: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
+      searchText: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
     },
     {
       label: 'Số điện thoại',
@@ -92,11 +134,6 @@ function getCustomerGeneralFields(
       label: 'Trạng thái',
       value: CUSTOMER_STATUS_LABELS[customer.status],
       searchText: CUSTOMER_STATUS_LABELS[customer.status],
-    },
-    {
-      label: 'Ghi chú',
-      value: displayValue(customer.note),
-      searchText: customer.note,
     },
   ];
 }
@@ -138,11 +175,17 @@ function buildGeneralSearchText(customer: Customer) {
     customer.businessRegistrationCode,
     customer.countryCode,
     customer.regionName,
+    customer.districtName,
+    customer.wardName,
+    customer.streetAddress,
     customer.addressDetail,
+    customer.contactName,
+    customer.contactTitle,
+    customer.establishedDate,
+    VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
     customer.phone,
     customer.email,
     CUSTOMER_STATUS_LABELS[customer.status],
-    customer.note,
   );
 }
 
@@ -196,7 +239,7 @@ function CustomerCustomFieldsContent({
 }
 
 function countMatchingCustomFields({
-  data,
+  data: _data,
   matches,
   customFields,
   customFieldValues,

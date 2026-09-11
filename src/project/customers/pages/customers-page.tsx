@@ -7,6 +7,8 @@ import {
   updateTenantSavedView,
 } from '@/project/saved-views/api/saved-views.api';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
+import { replaceSubjectTags } from '@/project/tags/api/tags.api';
+import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -160,6 +162,7 @@ export function CustomersPage() {
     customerResponsibilityFilterOptionsQuery,
     customerTagsByCustomerId,
     customerTagOptions,
+    customerTagOptionsQuery,
   } = useCustomerList();
 
   const savedViewsQuery = useQuery({
@@ -205,17 +208,30 @@ export function CustomersPage() {
   });
 
   useEffect(() => {
-    if (!dialogOpen || !editingCustomer || customerCustomDataQuery.isLoading) {
+    if (
+      !dialogOpen ||
+      !editingCustomer ||
+      customerCustomDataQuery.isLoading ||
+      customerTagOptionsQuery.isLoading
+    ) {
       return;
     }
+
+    const customerGroupTagIds =
+      customerTagsByCustomerId[editingCustomer.id]
+        ?.filter((tag) => tag.moduleCode === CUSTOMER_TAG_GROUP_CODE)
+        .map((tag) => tag.id) ?? [];
 
     form.reset({
       ...mapCustomerToFormValues(editingCustomer),
       customFields: customerCustomDataQuery.data ?? {},
+      customerGroupTagIds,
     });
   }, [
     customerCustomDataQuery.data,
     customerCustomDataQuery.isLoading,
+    customerTagOptionsQuery.isLoading,
+    customerTagsByCustomerId,
     dialogOpen,
     editingCustomer,
     form,
@@ -292,9 +308,14 @@ export function CustomersPage() {
   );
 
   const invalidateCustomers = () =>
-    queryClient.invalidateQueries({
-      queryKey: ['project', 'customers'],
-    });
+    Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['project', 'customers'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['project', 'tags', 'subject-filter'],
+      }),
+    ]).then(() => undefined);
 
   const invalidateSavedViews = () =>
     queryClient.invalidateQueries({
@@ -435,6 +456,13 @@ export function CustomersPage() {
         ...values,
         imageUrl,
       });
+
+      await replaceSubjectTags(
+        tenantId,
+        savedCustomer.id,
+        'customer',
+        values.customerGroupTagIds,
+      );
 
       await saveCustomerCustomFieldValues(
         tenantId,
