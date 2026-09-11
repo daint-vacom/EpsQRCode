@@ -9,6 +9,8 @@ import {
   loadCustomerCustomFields,
   loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
+  loadCustomerSoftwareAccounts,
+  replaceCustomerSoftwareAccounts,
   saveCustomerCustomFieldValues,
   updateCustomer,
   uploadCustomerImage,
@@ -65,12 +67,24 @@ export function CustomerEditDialog({
     moduleCodes: [CUSTOMER_TAG_GROUP_CODE],
     allowCustomGroups: false,
   });
+  const customerSoftwareAccountsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'software-accounts',
+      customer.tenantId,
+      customer.id,
+    ],
+    queryFn: () => loadCustomerSoftwareAccounts(customer.id),
+    enabled: Boolean(open),
+  });
 
   useEffect(() => {
     if (
       !open ||
       customerCustomDataQuery.isLoading ||
-      customerTagFilterQuery.isLoading
+      customerTagFilterQuery.isLoading ||
+      customerSoftwareAccountsQuery.isLoading
     ) {
       return;
     }
@@ -84,6 +98,7 @@ export function CustomerEditDialog({
       ...mapCustomerToFormValues(customer),
       customFields: customerCustomDataQuery.data ?? {},
       customerGroupTagIds,
+      softwareAccounts: customerSoftwareAccountsQuery.data ?? [],
     });
     setCustomerImageFile(null);
   }, [
@@ -92,6 +107,8 @@ export function CustomerEditDialog({
     customerCustomDataQuery.isLoading,
     customerTagFilterQuery.data,
     customerTagFilterQuery.isLoading,
+    customerSoftwareAccountsQuery.data,
+    customerSoftwareAccountsQuery.isLoading,
     form,
     open,
   ]);
@@ -110,10 +127,14 @@ export function CustomerEditDialog({
         ...values,
         imageUrl,
       });
+      await replaceCustomerSoftwareAccounts(
+        savedCustomer.id,
+        values.softwareAccounts,
+      );
       await replaceSubjectTags(
         customer.tenantId,
-        savedCustomer.id,
         'customer',
+        savedCustomer.id,
         values.customerGroupTagIds,
       );
       await saveCustomerCustomFieldValues(

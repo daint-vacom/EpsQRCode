@@ -62,6 +62,8 @@ import {
   loadCustomerCustomFields,
   loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
+  loadCustomerSoftwareAccounts,
+  replaceCustomerSoftwareAccounts,
   saveCustomerCustomFieldValues,
   updateCustomer,
   updateCustomerStatus,
@@ -206,13 +208,25 @@ export function CustomersPage() {
       loadCustomerCustomFieldValues(tenantId!, editingCustomer!.id),
     enabled: Boolean(tenantId && dialogOpen && editingCustomer),
   });
+  const customerSoftwareAccountsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'software-accounts',
+      tenantId,
+      editingCustomer?.id,
+    ],
+    queryFn: () => loadCustomerSoftwareAccounts(editingCustomer!.id),
+    enabled: Boolean(tenantId && dialogOpen && editingCustomer),
+  });
 
   useEffect(() => {
     if (
       !dialogOpen ||
       !editingCustomer ||
       customerCustomDataQuery.isLoading ||
-      customerTagOptionsQuery.isLoading
+      customerTagOptionsQuery.isLoading ||
+      customerSoftwareAccountsQuery.isLoading
     ) {
       return;
     }
@@ -226,10 +240,13 @@ export function CustomersPage() {
       ...mapCustomerToFormValues(editingCustomer),
       customFields: customerCustomDataQuery.data ?? {},
       customerGroupTagIds,
+      softwareAccounts: customerSoftwareAccountsQuery.data ?? [],
     });
   }, [
     customerCustomDataQuery.data,
     customerCustomDataQuery.isLoading,
+    customerSoftwareAccountsQuery.data,
+    customerSoftwareAccountsQuery.isLoading,
     customerTagOptionsQuery.isLoading,
     customerTagsByCustomerId,
     dialogOpen,
@@ -457,10 +474,15 @@ export function CustomersPage() {
         imageUrl,
       });
 
+      await replaceCustomerSoftwareAccounts(
+        savedCustomer.id,
+        values.softwareAccounts,
+      );
+
       await replaceSubjectTags(
         tenantId,
-        savedCustomer.id,
         'customer',
+        savedCustomer.id,
         values.customerGroupTagIds,
       );
 

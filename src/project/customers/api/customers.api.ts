@@ -13,6 +13,7 @@ import type {
   CustomerListResult,
   CustomerListRpcRow,
   CustomerRow,
+  CustomerSoftwareAccount,
   CustomerStatus,
 } from '../model/customer';
 import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
@@ -38,6 +39,21 @@ interface CustomerListRpcResponse {
 
 interface EntityCustomDataRow {
   data: Record<string, unknown> | null;
+}
+
+interface CustomerSoftwareAccountRpcRow {
+  id: string;
+  tenant_id: string;
+  customer_id: string;
+  software_name: string;
+  access_url: string;
+  username: string;
+  account_type: string;
+  expires_at: string | null;
+  sort_order: number;
+  has_password: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CustomerStats {
@@ -372,6 +388,58 @@ export async function saveCustomerCustomFieldValues(
       },
     },
   );
+}
+
+function mapCustomerSoftwareAccount(
+  row: CustomerSoftwareAccountRpcRow,
+): CustomerSoftwareAccount {
+  return {
+    id: row.id,
+    softwareName: row.software_name,
+    accessUrl: row.access_url,
+    username: row.username,
+    password: '',
+    accountType: row.account_type,
+    expiresAt: row.expires_at,
+    hasPassword: row.has_password,
+  };
+}
+
+export async function loadCustomerSoftwareAccounts(
+  customerId: string,
+): Promise<CustomerSoftwareAccount[]> {
+  assertSupabaseConfigured();
+  const rows = await request<CustomerSoftwareAccountRpcRow[]>(
+    supabaseApi.post('/rpc/list_customer_software_accounts', {
+      p_customer_id: customerId,
+    }),
+  );
+
+  return rows.map(mapCustomerSoftwareAccount);
+}
+
+export async function replaceCustomerSoftwareAccounts(
+  customerId: string,
+  rows: CustomerSoftwareAccount[],
+): Promise<CustomerSoftwareAccount[]> {
+  assertSupabaseConfigured();
+  const savedRows = await request<CustomerSoftwareAccountRpcRow[]>(
+    supabaseApi.post('/rpc/replace_customer_software_accounts', {
+      p_customer_id: customerId,
+      p_rows: rows.map((row, sortOrder) => ({
+        ...(row.id ? { id: row.id } : {}),
+        softwareName: row.softwareName,
+        accessUrl: row.accessUrl,
+        username: row.username,
+        password: row.password,
+        accountType: row.accountType,
+        expiresAt: row.expiresAt,
+        sortOrder,
+      })),
+    }),
+  );
+
+  return savedRows.map(mapCustomerSoftwareAccount);
 }
 
 function toPayload(values: CustomerFormValues) {

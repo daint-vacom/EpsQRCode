@@ -9,6 +9,7 @@ import {
   createCustomer,
   loadCustomerCustomFields,
   loadCustomerRegionOptions,
+  replaceCustomerSoftwareAccounts,
   saveCustomerCustomFieldValues,
   updateCustomer,
   uploadCustomerImage,
@@ -68,10 +69,15 @@ export function CustomerCreateDialog({
         });
       }
 
+      await replaceCustomerSoftwareAccounts(
+        savedCustomer.id,
+        values.softwareAccounts,
+      );
+
       await replaceSubjectTags(
         tenantId,
-        savedCustomer.id,
         'customer',
+        savedCustomer.id,
         values.customerGroupTagIds,
       );
 

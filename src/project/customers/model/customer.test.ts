@@ -45,6 +45,7 @@ describe('customer custom field values', () => {
       establishedDate: null,
       vatDeclarationPeriod: 'quarterly',
       customerGroupTagIds: [],
+      softwareAccounts: [],
       status: 'active',
       customFields: { education: undefined },
     });

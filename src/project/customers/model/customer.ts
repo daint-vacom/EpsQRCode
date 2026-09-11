@@ -57,6 +57,36 @@ const customerCustomFieldValuesSchema = z.preprocess(
   z.record(z.string(), z.string()),
 );
 
+const customerSoftwareAccountSchema = z.object({
+  id: z.string().uuid().optional(),
+  softwareName: z.string().trim().min(1, 'Vui lòng nhập tên phần mềm.'),
+  accessUrl: z
+    .string()
+    .trim()
+    .url('Địa chỉ truy cập không hợp lệ.')
+    .or(z.literal('')),
+  username: z.string().trim(),
+  password: z.string(),
+  accountType: z.string().trim(),
+  expiresAt: z.string().trim().nullable(),
+  hasPassword: z.boolean().optional(),
+});
+
+export type CustomerSoftwareAccount = z.infer<
+  typeof customerSoftwareAccountSchema
+>;
+
+export function createEmptyCustomerSoftwareAccount(): CustomerSoftwareAccount {
+  return {
+    softwareName: '',
+    accessUrl: '',
+    username: '',
+    password: '',
+    accountType: '',
+    expiresAt: null,
+  };
+}
+
 export const CUSTOMER_COUNTRY_OPTIONS = COUNTRY_OPTIONS.map(
   ({ value, label }) => ({ value, label }),
 );
@@ -96,6 +126,7 @@ export const customerFormSchema = z.object({
   customerGroupTagIds: z.array(
     z.string().uuid('Nhóm khách hàng không hợp lệ.'),
   ),
+  softwareAccounts: z.array(customerSoftwareAccountSchema),
   status: z.enum(CUSTOMER_STATUSES),
   customFields: customerCustomFieldValuesSchema,
 });
@@ -277,6 +308,7 @@ export const emptyCustomerForm: CustomerFormValues = {
   establishedDate: null,
   vatDeclarationPeriod: '',
   customerGroupTagIds: [],
+  softwareAccounts: [],
   status: 'active',
   customFields: {},
 };
@@ -348,6 +380,7 @@ export function mapCustomerToFormValues(
         ? ''
         : customer.vatDeclarationPeriod,
     customerGroupTagIds: [],
+    softwareAccounts: [],
     status: customer.status,
     customFields: customer.customFields,
   };

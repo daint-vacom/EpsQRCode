@@ -7,7 +7,7 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { TagSelect } from '@/project/tags/components/tag-select';
@@ -16,9 +16,13 @@ import { Building2, MapPin, Plus, RefreshCw, UserRound } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import type {
   ControllerRenderProps,
+  FieldErrors,
+  Path,
   UseFormProps,
   UseFormReturn,
 } from 'react-hook-form';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { CountrySelect } from '@/components/ui/country-select';
@@ -52,9 +56,16 @@ import {
 } from '@/components/ui/select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
+import { CustomerSoftwareAccountsEditorTable } from '../components/customer-software-accounts-editor.generated';
 import {
+  createEmptyCustomerSoftwareAccount,
   customerFormSchema,
   type Customer,
   type CustomerFormValues,
@@ -128,6 +139,7 @@ export const customerDefaultValues: CustomerFormValues = {
   establishedDate: null,
   vatDeclarationPeriod: '',
   customerGroupTagIds: [],
+  softwareAccounts: [],
   customFields: {},
 };
 
@@ -168,6 +180,7 @@ export function mapCustomerToFormValues(entity: Customer): CustomerFormValues {
         ? ''
         : entity.vatDeclarationPeriod,
     customerGroupTagIds: [],
+    softwareAccounts: [],
     customFields: entity.customFields,
   };
 }
@@ -175,6 +188,9 @@ export function mapCustomerToFormValues(entity: Customer): CustomerFormValues {
 interface CustomerFormProps {
   form: UseFormReturn<CustomerFormValues>;
   onSubmit: (values: CustomerFormValues) => void;
+  activeTab: CustomerFormTab;
+  onActiveTabChange: (tab: CustomerFormTab) => void;
+  onValidationError: (errors: FieldErrors<CustomerFormValues>) => void;
   id?: string;
   mode: 'create' | 'edit';
   regionCodeOptions: { value: string; label: string }[];
@@ -188,6 +204,9 @@ interface CustomerFormProps {
 export function CustomerForm({
   form,
   onSubmit,
+  activeTab,
+  onActiveTabChange,
+  onValidationError,
   id = 'customer-form',
   mode,
   regionCodeOptions,
@@ -197,6 +216,15 @@ export function CustomerForm({
   onReloadCustomFields,
   isReloadingCustomFields = false,
 }: CustomerFormProps) {
+  const formErrors = form.formState.errors;
+  const tabErrorCounts = {
+    general: getCustomerFormTabErrorCount(formErrors, 'general'),
+    custom: getCustomerFormTabErrorCount(formErrors, 'custom'),
+    softwareAccounts: getCustomerFormTabErrorCount(
+      formErrors,
+      'softwareAccounts',
+    ),
+  };
   const countryCode = form.watch('countryCode');
   const activeCustomFields = customFields.filter(
     (customField) => customField.isActive,
@@ -206,7 +234,7 @@ export function CustomerForm({
       <form
         id={id}
         className="min-h-0 lg:h-full"
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit, onValidationError)}
       >
         <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
@@ -300,12 +328,27 @@ export function CustomerForm({
 
           <div className="min-w-0 lg:min-h-0">
             <Tabs
-              defaultValue="general"
+              value={activeTab}
+              onValueChange={(value) =>
+                onActiveTabChange(value as CustomerFormTab)
+              }
               className="flex min-h-0 flex-col lg:h-full"
             >
               <TabsList variant="line" className="w-full justify-start">
-                <TabsTrigger value="general">Thông tin chung</TabsTrigger>
-                <TabsTrigger value="custom">Thông tin bổ sung</TabsTrigger>
+                <TabsTrigger value="general">
+                  Thông tin chung
+                  <CustomerFormTabErrorBadge count={tabErrorCounts.general} />
+                </TabsTrigger>
+                <TabsTrigger value="custom">
+                  Thông tin bổ sung
+                  <CustomerFormTabErrorBadge count={tabErrorCounts.custom} />
+                </TabsTrigger>
+                <TabsTrigger value="softwareAccounts">
+                  Tài khoản phần mềm
+                  <CustomerFormTabErrorBadge
+                    count={tabErrorCounts.softwareAccounts}
+                  />
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent
@@ -409,6 +452,7 @@ export function CustomerForm({
                             <FormControl>
                               <RadioGroup
                                 value={field.value}
+                                name={field.name}
                                 onValueChange={field.onChange}
                                 className="flex flex-wrap gap-x-6 gap-y-2"
                                 aria-label="Kỳ kê khai thuế GTGT"
@@ -675,6 +719,16 @@ export function CustomerForm({
                   )}
                 </div>
               </TabsContent>
+
+              <TabsContent
+                value="softwareAccounts"
+                className="mt-5 min-h-0 lg:flex-1 lg:overflow-hidden"
+              >
+                <CustomerSoftwareAccountsEditorTable
+                  form={form}
+                  createRow={createEmptyCustomerSoftwareAccount}
+                />
+              </TabsContent>
             </Tabs>
           </div>
         </div>
@@ -786,6 +840,112 @@ interface CustomerFormDialogProps {
   isReloadingCustomFields?: boolean;
 }
 
+type CustomerFormTab = 'general' | 'custom' | 'softwareAccounts';
+
+function collectCustomerFormErrorPaths(
+  errors: FieldErrors<CustomerFormValues>,
+  prefix = '',
+): string[] {
+  const paths: string[] = [];
+
+  for (const [key, value] of Object.entries(errors)) {
+    if (!value || typeof value !== 'object') continue;
+
+    const path = prefix ? `${prefix}.${key}` : key;
+    const fieldError = value as { message?: unknown; type?: unknown };
+    if (typeof fieldError.message === 'string' || fieldError.type) {
+      paths.push(path);
+      continue;
+    }
+
+    paths.push(
+      ...collectCustomerFormErrorPaths(
+        value as FieldErrors<CustomerFormValues>,
+        path,
+      ),
+    );
+  }
+
+  return paths;
+}
+
+function findFirstCustomerFormErrorPath(
+  errors: FieldErrors<CustomerFormValues>,
+  prefix = '',
+): string | undefined {
+  return collectCustomerFormErrorPaths(errors, prefix)[0];
+}
+
+function getCustomerFormTabForError(path: string): CustomerFormTab | undefined {
+  if (path.startsWith('customFields.')) return 'custom';
+  if (path.startsWith('softwareAccounts.')) return 'softwareAccounts';
+
+  const leftColumnFields = new Set([
+    'imageUrl',
+    'customerCode',
+    'name',
+    'businessRegistrationCode',
+    'customerGroupTagIds',
+  ]);
+  if (
+    leftColumnFields.has(path) ||
+    [...leftColumnFields].some((field) => path.startsWith(`${field}.`))
+  ) {
+    return undefined;
+  }
+
+  return 'general';
+}
+
+function getCustomerFormTabErrorCount(
+  errors: FieldErrors<CustomerFormValues>,
+  tab: CustomerFormTab,
+) {
+  return collectCustomerFormErrorPaths(errors).filter(
+    (path) => getCustomerFormTabForError(path) === tab,
+  ).length;
+}
+
+function CustomerFormTabErrorBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="destructive"
+          size="xs"
+          shape="circle"
+          className="size-4 min-w-4 p-0.5"
+          tabIndex={0}
+          aria-label={`Tab có ${count} lỗi`}
+        >
+          <span className="text-xs font-bold leading-none text-destructive-foreground!">
+            !
+          </span>
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent variant="destructive">
+        Có {count} lỗi cần kiểm tra
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function focusCustomerFormError(
+  form: UseFormReturn<CustomerFormValues>,
+  path: string,
+) {
+  form.setFocus(path as Path<CustomerFormValues>);
+
+  const focusSelector = `[name="${path.replaceAll('"', '\\"')}"]`;
+  window.setTimeout(() => {
+    window.setTimeout(() => {
+      document.querySelector<HTMLElement>(focusSelector)?.focus();
+    });
+  });
+}
+
 export function CustomerFormDialog({
   open,
   onOpenChange,
@@ -802,6 +962,44 @@ export function CustomerFormDialog({
   isReloadingCustomFields = false,
 }: CustomerFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<CustomerFormTab>('general');
+  const handledValidationErrorRef = useRef<string | null>(null);
+  const firstErrorPath = findFirstCustomerFormErrorPath(form.formState.errors);
+
+  const reportValidationError = useCallback(
+    (errors: FieldErrors<CustomerFormValues>) => {
+      const errorPath = findFirstCustomerFormErrorPath(errors);
+      if (!errorPath) return;
+
+      handledValidationErrorRef.current = errorPath;
+      const errorTab = getCustomerFormTabForError(errorPath);
+      if (errorTab) setActiveTab(errorTab);
+      toast.error('Vui lòng kiểm tra lại thông tin trong biểu mẫu.');
+      focusCustomerFormError(form, errorPath);
+    },
+    [form],
+  );
+
+  useEffect(() => {
+    if (!open) {
+      handledValidationErrorRef.current = null;
+      return;
+    }
+
+    setActiveTab('general');
+    handledValidationErrorRef.current = null;
+  }, [open]);
+
+  useEffect(() => {
+    if (!firstErrorPath) {
+      handledValidationErrorRef.current = null;
+      return;
+    }
+
+    if (handledValidationErrorRef.current === firstErrorPath) return;
+    reportValidationError(form.formState.errors);
+  }, [firstErrorPath, form.formState.errors, reportValidationError]);
+
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
 
@@ -809,7 +1007,7 @@ export function CustomerFormDialog({
     if (key !== 's' && key !== 'enter') return;
 
     event.preventDefault();
-    void form.handleSubmit(onSubmit)();
+    void form.handleSubmit(onSubmit, reportValidationError)();
   };
   const requestClose = (nextOpen: boolean) => {
     if (nextOpen) {
@@ -846,6 +1044,9 @@ export function CustomerFormDialog({
             <CustomerForm
               form={form}
               onSubmit={onSubmit}
+              activeTab={activeTab}
+              onActiveTabChange={setActiveTab}
+              onValidationError={reportValidationError}
               id="customer-form"
               mode={mode}
               regionCodeOptions={regionCodeOptions}

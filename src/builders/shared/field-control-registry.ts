@@ -1,6 +1,6 @@
 export const BUILDER_INPUT_VARIANTS = {
   form: 'md',
-  table: 'sm',
+  table: 'md',
 } as const;
 
 export const FIELD_ALIGNMENT_CLASS = {

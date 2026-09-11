@@ -60,6 +60,7 @@ describe('buildEditorTableModule', () => {
     expect(source).toContain('name={`items.${index}.sku`}');
     expect(source).toContain('name={`items.${index}.expiryDate`}');
     expect(source).toContain('name={`items.${index}.quantity`}');
+    expect(source).toContain('variant="md"');
     expect(source).toContain('type="number"');
     expect(source).toContain(
       "import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';",

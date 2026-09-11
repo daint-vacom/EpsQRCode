@@ -229,7 +229,7 @@ function emitHeaderBulkInput(
     kind: column.kind,
     surface: 'cell',
     valueExpression: `headerBulkValues.${column.name}`,
-    variant: 'sm',
+    variant: 'md',
     inputType: column.kind === 'text' ? column.inputType : undefined,
     format:
       column.kind === 'number' || column.kind === 'date'
@@ -422,7 +422,7 @@ function emitBulkActionBar() {
     surface: 'cell',
     valueExpression: 'bulkValue',
     onChangeExpression: 'setBulkValue',
-    variant: 'sm',
+    variant: 'md',
     ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
     calendarLabel: 'Chọn giá trị áp dụng hàng loạt',
   });
@@ -430,7 +430,7 @@ function emitBulkActionBar() {
     kind: 'number',
     surface: 'cell',
     valueExpression: 'bulkValue',
-    variant: 'sm',
+    variant: 'md',
     className: 'w-36 text-right tabular-nums',
     ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
     onChangeHandlerExpression: '(event) => setBulkValue(event.target.value)',
@@ -439,7 +439,7 @@ function emitBulkActionBar() {
     kind: 'text',
     surface: 'cell',
     valueExpression: 'bulkValue',
-    variant: 'sm',
+    variant: 'md',
     className: 'w-48',
     ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
     onChangeHandlerExpression: '(event) => setBulkValue(event.target.value)',

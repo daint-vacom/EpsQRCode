@@ -55,11 +55,13 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 
 ## Database Migration Rules
 
-- Remote Supabase migrations should be applied through a direct PostgreSQL connection using `SUPABASE_DB_URL` from `.env.development.local`; do not assume `supabase db push` is the working path for this project.
-- Never print the connection string or password. When the password contains reserved URL characters such as `@`, percent-encode it before constructing the driver connection string.
-- Before applying, query `supabase_migrations.schema_migrations` and confirm the target migration version is not already recorded. Apply the requested migration in a transaction, then record its version only after the SQL commits successfully.
-- The direct `db.<project>.supabase.co` endpoint may be IPv6-only. If the current machine has no IPv6 route, derive the Supavisor session-pooler endpoint from the same project (port `5432`) and reuse the credentials from `SUPABASE_DB_URL`; do not modify `.env` unless explicitly requested.
-- Verify the result after applying: migration history, expected tables/views/columns, relevant storage bucket settings, and any seeded records. Report unrelated pending migrations separately instead of silently applying them.
+- Apply remote Supabase migrations through a PostgreSQL connection using `SUPABASE_DB_URL` from `.env.development.local`. Do not default to the Supabase UI, REST API, or `supabase db push` when the task is to apply one specific migration. `supabase db push` applies every pending migration, so use it only when applying the full pending set is explicitly intended.
+- Never print the connection string, password, or derived pooler URL. Read the env value in-process. Passwords in this project may contain `@` and other reserved characters; parse the source URL first, decode the password once, then percent-encode the username/password when constructing a new driver URL. Do not use a naive `-split '@'` parser.
+- Always preflight `supabase_migrations.schema_migrations` and confirm the target version is absent before executing SQL. If it is already present, do not reapply the migration.
+- The direct `db.<project>.supabase.co:5432` endpoint can be IPv6-only. If the machine has no IPv6 route, `--dns-resolver https` does not make an IPv6-only endpoint reachable; switch to the Supavisor **session** pooler on port `5432`.
+- Do not guess a shared pooler host from the region. The pooler cluster index is independent of the region. Confirm the project ref from `SUPABASE_DB_URL`, then discover the project region/connection details with the Supabase project connector when available. For this project, the verified mapping is project ref `zkfyhonqhrgqcxznozoc`, region `ap-southeast-2`, session host `aws-0-ap-southeast-2.pooler.supabase.com`, username `postgres.<project-ref>`, port `5432`. Reconfirm the project ref before using this fallback; never apply to a different project.
+- When the Supabase CLI cannot connect to the IPv6 direct endpoint, use a temporary Node `pg` client over the verified session pooler: install with `npm install --no-save --package-lock=false pg`, run an inline script, and uninstall it afterward. The script must open a client, `begin`, execute the migration SQL, insert the migration version into `supabase_migrations.schema_migrations`, `commit`, and `rollback` on any error. Do not create a committed helper or change `.env` for this workaround.
+- Verify the result through the same PostgreSQL connection: migration history, expected tables/views/columns, functions/RPCs, relevant storage settings, and seeded records. Report unrelated pending migrations separately instead of silently applying them.
 
 ## Verification
 
