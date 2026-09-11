@@ -36,7 +36,7 @@ const formItemVariants = cva('flex flex-col', {
   },
 });
 
-const formLabelVariants = cva('font-medium text-foreground', {
+const formLabelVariants = cva('font-normal text-foreground', {
   variants: {
     variant: {
       default: '',
