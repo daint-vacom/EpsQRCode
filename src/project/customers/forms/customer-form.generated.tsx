@@ -37,6 +37,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { FormSection } from '@/components/ui/form-section';
 import { ImageUploadField } from '@/components/ui/image-upload-field';
 import { Input } from '@/components/ui/input';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
@@ -312,11 +313,7 @@ export function CustomerForm({
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
               >
                 <div className="space-y-10 px-1 pb-6">
-                  <section className="space-y-4">
-                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
-                      <Building2 className="size-4" aria-hidden="true" />
-                      <span>Thông tin cơ bản</span>
-                    </h3>
+                  <FormSection heading="Thông tin cơ bản" icon={Building2}>
                     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
                       {mode === 'edit' && (
                         <FormField
@@ -432,13 +429,12 @@ export function CustomerForm({
                         )}
                       />
                     </div>
-                  </section>
+                  </FormSection>
 
-                  <section className="space-y-4">
-                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
-                      <UserRound className="size-4" aria-hidden="true" />
-                      <span>Thông tin người liên hệ</span>
-                    </h3>
+                  <FormSection
+                    heading="Thông tin người liên hệ"
+                    icon={UserRound}
+                  >
                     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
                       <FormField
                         control={form.control}
@@ -496,13 +492,9 @@ export function CustomerForm({
                         )}
                       />
                     </div>
-                  </section>
+                  </FormSection>
 
-                  <section className="space-y-4">
-                    <h3 className="flex items-center gap-2 text-base font-semibold text-muted-foreground">
-                      <MapPin className="size-4" aria-hidden="true" />
-                      <span>Thông tin địa chỉ</span>
-                    </h3>
+                  <FormSection heading="Thông tin địa chỉ" icon={MapPin}>
                     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2">
                       <FormField
                         control={form.control}
@@ -620,7 +612,7 @@ export function CustomerForm({
                         )}
                       />
                     </div>
-                  </section>
+                  </FormSection>
                 </div>
               </TabsContent>
 
