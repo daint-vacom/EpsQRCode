@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { replaceSubjectTags } from '@/project/tags/api/tags.api';
 import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter';
 import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
@@ -10,6 +10,7 @@ import {
   loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
   loadCustomerSoftwareAccounts,
+  replaceCustomerResponsibilities,
   replaceCustomerSoftwareAccounts,
   saveCustomerCustomFieldValues,
   updateCustomer,
@@ -24,12 +25,14 @@ import {
   type Customer,
   type CustomerFormValues,
 } from '../model/customer';
+import type { CustomerResponsibilityAssignmentInput } from '../model/customer-responsibility';
 
 interface CustomerEditDialogProps {
   customer: Customer;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddCustomField?: () => void;
+  canManageResponsibility?: boolean;
 }
 
 export function CustomerEditDialog({
@@ -37,10 +40,32 @@ export function CustomerEditDialog({
   open,
   onOpenChange,
   onAddCustomField,
+  canManageResponsibility = false,
 }: CustomerEditDialogProps) {
   const queryClient = useQueryClient();
   const [customerImageFile, setCustomerImageFile] = useState<File | null>(null);
+  const [responsibilityAssignments, setResponsibilityAssignments] = useState<
+    CustomerResponsibilityAssignmentInput[] | null
+  >(null);
+  const responsibilityAssignmentsRef = useRef<
+    CustomerResponsibilityAssignmentInput[] | null
+  >(null);
+  const [responsibilityIsValid, setResponsibilityIsValid] = useState(true);
   const form = useCustomerForm();
+
+  useEffect(() => {
+    responsibilityAssignmentsRef.current = null;
+    setResponsibilityAssignments(null);
+    setResponsibilityIsValid(true);
+  }, [customer.id, open]);
+
+  const handleResponsibilityAssignmentsChange = useCallback(
+    (assignments: CustomerResponsibilityAssignmentInput[]) => {
+      responsibilityAssignmentsRef.current = assignments;
+      setResponsibilityAssignments(assignments);
+    },
+    [],
+  );
   const customerRegionQuery = useQuery({
     queryKey: ['project', 'customers', 'regions'],
     queryFn: loadCustomerRegionOptions,
@@ -142,11 +167,33 @@ export function CustomerEditDialog({
         customer.id,
         values.customFields,
       );
+      const latestResponsibilityAssignments =
+        responsibilityAssignmentsRef.current;
+      if (canManageResponsibility && latestResponsibilityAssignments) {
+        await replaceCustomerResponsibilities(
+          customer.tenantId,
+          savedCustomer.id,
+          latestResponsibilityAssignments,
+        );
+      }
       return savedCustomer;
     },
     onSuccess: async () => {
       toast.success('Đã cập nhật khách hàng.');
       setCustomerImageFile(null);
+      responsibilityAssignmentsRef.current = null;
+      setResponsibilityAssignments(null);
+      setResponsibilityIsValid(true);
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'project',
+          'customers',
+          'responsibility-workspace',
+          customer.tenantId,
+          customer.id,
+        ],
+        refetchType: 'all',
+      });
       await queryClient.invalidateQueries({
         queryKey: ['project', 'customers'],
       });
@@ -190,6 +237,20 @@ export function CustomerEditDialog({
       }}
       isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
       isSaving={saveMutation.isPending}
+      isSubmitDisabled={
+        canManageResponsibility &&
+        responsibilityAssignments !== null &&
+        !responsibilityIsValid
+      }
+      customerResponsibility={{
+        tenantId: customer.tenantId,
+        customerId: customer.id,
+        canManage: canManageResponsibility,
+        isValid: responsibilityIsValid,
+        draftAssignments: responsibilityAssignments,
+        onAssignmentsChange: handleResponsibilityAssignmentsChange,
+        onValidationChange: setResponsibilityIsValid,
+      }}
       title={
         <>
           Sửa khách hàng:{' '}

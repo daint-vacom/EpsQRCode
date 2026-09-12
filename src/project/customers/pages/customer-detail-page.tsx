@@ -325,6 +325,7 @@ export function CustomerDetailPage() {
         customer={customer}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+        canManageResponsibility={hasPermission('customers:update')}
         onAddCustomField={() => {
           window.open(
             `${ROUTES.PROJECT.DATA_CONFIGURATION}?entity=customer`,

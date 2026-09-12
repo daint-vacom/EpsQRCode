@@ -44,7 +44,7 @@ export function CustomerDetailLayout({
     },
     {
       value: 'employees',
-      label: 'Nhân viên',
+      label: 'Nhân viên phụ trách',
       icon: Users,
       content: employeesContent,
     },

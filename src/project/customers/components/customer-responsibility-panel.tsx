@@ -1,18 +1,25 @@
 import { useState } from 'react';
-import { Pencil, Plus, Users } from 'lucide-react';
+import { EmployeeRoleBadge } from '@/project/employees/components/employee-badges';
+import { EmployeeCell } from '@/project/employees/components/employee-cell';
+import { Pencil, Plus } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/errors';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardHeading,
+  CardTable,
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tag } from '@/components/ui/tag';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useCustomerResponsibilityWorkspace } from '../hooks/use-customer-responsibility-workspace';
 import type { Customer } from '../model/customer';
 import { CustomerResponsibilityDialog } from './customer-responsibility-dialog';
@@ -44,9 +51,6 @@ export function CustomerResponsibilityPanel({
         <CardHeader className="flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:justify-between">
           <CardHeading>
             <CardTitle>Nhân viên phụ trách</CardTitle>
-            <CardDescription>
-              Vai trò nghiệp vụ của từng nhân viên đối với khách hàng này.
-            </CardDescription>
           </CardHeading>
           {canManage ? (
             <Button
@@ -61,77 +65,83 @@ export function CustomerResponsibilityPanel({
             </Button>
           ) : null}
         </CardHeader>
-        <CardContent>
-          {workspaceQuery.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : workspaceQuery.isError ? (
-            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-              {getApiErrorMessage(workspaceQuery.error)}
-            </div>
-          ) : workspace?.assignments.length ? (
-            <div className="divide-y divide-border rounded-lg border">
-              {workspace.assignments.map((assignment) => {
-                const employee = employeeById.get(assignment.employeeId);
-                if (!employee) return null;
-
-                return (
-                  <div
-                    key={assignment.employeeId}
-                    className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+        <CardTable className="min-h-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[220px]">Nhân viên</TableHead>
+                <TableHead className="min-w-[200px]">
+                  Phụ trách vai trò
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {workspaceQuery.isLoading ? (
+                <TableRow>
+                  <TableCell>
+                    <Skeleton className="h-10 w-56" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-7 w-36" />
+                  </TableCell>
+                </TableRow>
+              ) : workspaceQuery.isError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={2}
+                    className="h-28 text-center text-sm text-destructive"
                   >
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                        <Users className="size-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {employee.displayName}
-                        </p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[employee.employeeCode, employee.jobTitle]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 sm:justify-end">
-                      {assignment.responsibilityRoleIds.map((roleId) => {
-                        const role = roleById.get(roleId);
-                        return role ? (
-                          <Tag
-                            key={role.id}
-                            size="sm"
-                            shape="circle"
-                            className={cn(
-                              employee.status === 'inactive' && 'opacity-60',
-                            )}
-                          >
-                            {role.name}
-                          </Tag>
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed text-center">
-              <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                <Users className="size-5" />
-              </span>
-              <div>
-                <p className="font-medium">Chưa có nhân viên phụ trách</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Phân công nhân viên và vai trò nghiệp vụ cho khách hàng này.
-                </p>
-              </div>
-            </div>
-          )}
-        </CardContent>
+                    {getApiErrorMessage(workspaceQuery.error)}
+                  </TableCell>
+                </TableRow>
+              ) : workspace?.assignments.length ? (
+                workspace.assignments.map((assignment) => {
+                  const employee = employeeById.get(assignment.employeeId);
+                  if (!employee) return null;
+
+                  const roles = assignment.responsibilityRoleIds
+                    .map((roleId) => roleById.get(roleId))
+                    .filter((role): role is NonNullable<typeof role> =>
+                      Boolean(role),
+                    );
+
+                  return (
+                    <TableRow key={assignment.employeeId}>
+                      <TableCell>
+                        <EmployeeCell employee={employee} />
+                      </TableCell>
+                      <TableCell>
+                        {roles.length ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {roles.map((role) => (
+                              <EmployeeRoleBadge
+                                key={role.id}
+                                role={{ name: role.name, color: 'blue' }}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            Chưa gán vai trò
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={2}
+                    className="h-28 text-center text-sm text-muted-foreground"
+                  >
+                    Chưa có nhân viên phụ trách
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardTable>
       </Card>
       {canManage ? (
         <CustomerResponsibilityDialog

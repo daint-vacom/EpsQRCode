@@ -63,6 +63,7 @@ import {
 } from '@/components/ui/tooltip';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
+import { CustomerResponsibilityTab } from '../components/customer-responsibility-tab';
 import { CustomerSoftwareAccountsEditorTable } from '../components/customer-software-accounts-editor.generated';
 import {
   createEmptyCustomerSoftwareAccount,
@@ -70,6 +71,7 @@ import {
   type Customer,
   type CustomerFormValues,
 } from '../model/customer';
+import type { CustomerResponsibilityAssignmentInput } from '../model/customer-responsibility';
 
 const businessTypeOptions = [
   { value: 'individual', label: 'Cá nhân' },
@@ -185,6 +187,18 @@ export function mapCustomerToFormValues(entity: Customer): CustomerFormValues {
   };
 }
 
+export interface CustomerResponsibilityFormContext {
+  tenantId: string;
+  customerId: string;
+  canManage: boolean;
+  isValid: boolean;
+  draftAssignments: CustomerResponsibilityAssignmentInput[] | null;
+  onAssignmentsChange: (
+    assignments: CustomerResponsibilityAssignmentInput[],
+  ) => void;
+  onValidationChange?: (isValid: boolean) => void;
+}
+
 interface CustomerFormProps {
   form: UseFormReturn<CustomerFormValues>;
   onSubmit: (values: CustomerFormValues) => void;
@@ -199,6 +213,7 @@ interface CustomerFormProps {
   onAddCustomField?: () => void;
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
+  customerResponsibility?: CustomerResponsibilityFormContext;
 }
 
 export function CustomerForm({
@@ -215,6 +230,7 @@ export function CustomerForm({
   onAddCustomField,
   onReloadCustomFields,
   isReloadingCustomFields = false,
+  customerResponsibility,
 }: CustomerFormProps) {
   const formErrors = form.formState.errors;
   const tabErrorCounts = {
@@ -343,6 +359,11 @@ export function CustomerForm({
                   Thông tin bổ sung
                   <CustomerFormTabErrorBadge count={tabErrorCounts.custom} />
                 </TabsTrigger>
+                {mode === 'edit' && customerResponsibility ? (
+                  <TabsTrigger value="responsibility">
+                    Nhân viên phụ trách
+                  </TabsTrigger>
+                ) : null}
                 <TabsTrigger value="softwareAccounts">
                   Tài khoản phần mềm
                   <CustomerFormTabErrorBadge
@@ -660,6 +681,26 @@ export function CustomerForm({
                 </div>
               </TabsContent>
 
+              {mode === 'edit' && customerResponsibility ? (
+                <TabsContent
+                  value="responsibility"
+                  className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
+                >
+                  <CustomerResponsibilityTab
+                    tenantId={customerResponsibility.tenantId}
+                    customerId={customerResponsibility.customerId}
+                    canManage={customerResponsibility.canManage}
+                    draftAssignments={customerResponsibility.draftAssignments}
+                    onAssignmentsChange={
+                      customerResponsibility.onAssignmentsChange
+                    }
+                    onValidationChange={
+                      customerResponsibility.onValidationChange
+                    }
+                  />
+                </TabsContent>
+              ) : null}
+
               <TabsContent
                 value="custom"
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
@@ -838,9 +879,12 @@ interface CustomerFormDialogProps {
   onAddCustomField?: () => void;
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
+  customerResponsibility?: CustomerResponsibilityFormContext;
+  isSubmitDisabled?: boolean;
 }
 
-type CustomerFormTab = 'general' | 'custom' | 'softwareAccounts';
+type CustomerFormTab =
+  'general' | 'custom' | 'responsibility' | 'softwareAccounts';
 
 function collectCustomerFormErrorPaths(
   errors: FieldErrors<CustomerFormValues>,
@@ -960,6 +1004,8 @@ export function CustomerFormDialog({
   onAddCustomField,
   onReloadCustomFields,
   isReloadingCustomFields = false,
+  customerResponsibility,
+  isSubmitDisabled = false,
 }: CustomerFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<CustomerFormTab>('general');
@@ -1001,7 +1047,9 @@ export function CustomerFormDialog({
   }, [firstErrorPath, form.formState.errors, reportValidationError]);
 
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (isSaving || !(event.ctrlKey || event.metaKey)) return;
+    if (isSaving || isSubmitDisabled || !(event.ctrlKey || event.metaKey)) {
+      return;
+    }
 
     const key = event.key.toLowerCase();
     if (key !== 's' && key !== 'enter') return;
@@ -1055,6 +1103,7 @@ export function CustomerFormDialog({
               onAddCustomField={onAddCustomField}
               onReloadCustomFields={onReloadCustomFields}
               isReloadingCustomFields={isReloadingCustomFields}
+              customerResponsibility={customerResponsibility}
             />
           </div>
 
@@ -1076,6 +1125,7 @@ export function CustomerFormDialog({
                 form="customer-form"
                 loading={isSaving}
                 loadingText="Đang lưu..."
+                disabled={isSubmitDisabled}
               >
                 Lưu
               </Button>

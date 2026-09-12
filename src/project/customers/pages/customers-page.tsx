@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import {
   createTenantSavedView,
@@ -63,6 +63,7 @@ import {
   loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
   loadCustomerSoftwareAccounts,
+  replaceCustomerResponsibilities,
   replaceCustomerSoftwareAccounts,
   saveCustomerCustomFieldValues,
   updateCustomer,
@@ -91,7 +92,10 @@ import {
   type CustomerListFilters,
   type CustomerStatus,
 } from '../model/customer';
-import type { CustomerResponsibilityFilterMode } from '../model/customer-responsibility';
+import type {
+  CustomerResponsibilityAssignmentInput,
+  CustomerResponsibilityFilterMode,
+} from '../model/customer-responsibility';
 import {
   CUSTOMER_SAVED_VIEW_MANAGE_PERMISSION,
   CUSTOMER_SAVED_VIEW_RESOURCE,
@@ -127,6 +131,13 @@ export function CustomersPage() {
     null,
   );
   const [customerImageFile, setCustomerImageFile] = useState<File | null>(null);
+  const [responsibilityAssignments, setResponsibilityAssignments] = useState<
+    CustomerResponsibilityAssignmentInput[] | null
+  >(null);
+  const responsibilityAssignmentsRef = useRef<
+    CustomerResponsibilityAssignmentInput[] | null
+  >(null);
+  const [responsibilityIsValid, setResponsibilityIsValid] = useState(true);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingView, setEditingView] = useState<CustomerSavedView | null>(
@@ -145,6 +156,14 @@ export function CustomersPage() {
     useState<CustomerResponsibilityFilterMode>('group');
   const form = useCustomerForm();
   const savedViewForm = useCustomerSavedViewForm();
+
+  const handleResponsibilityAssignmentsChange = useCallback(
+    (assignments: CustomerResponsibilityAssignmentInput[]) => {
+      responsibilityAssignmentsRef.current = assignments;
+      setResponsibilityAssignments(assignments);
+    },
+    [],
+  );
 
   const {
     customers,
@@ -253,6 +272,12 @@ export function CustomersPage() {
     editingCustomer,
     form,
   ]);
+
+  useEffect(() => {
+    responsibilityAssignmentsRef.current = null;
+    setResponsibilityAssignments(null);
+    setResponsibilityIsValid(true);
+  }, [dialogOpen, editingCustomer?.id]);
 
   const customerTableDefaultColumnVisibility = useMemo(
     () => ({
@@ -491,6 +516,18 @@ export function CustomersPage() {
         savedCustomer.id,
         values.customFields,
       );
+      const latestResponsibilityAssignments =
+        responsibilityAssignmentsRef.current;
+      if (
+        hasPermission('customers:update') &&
+        latestResponsibilityAssignments
+      ) {
+        await replaceCustomerResponsibilities(
+          tenantId,
+          savedCustomer.id,
+          latestResponsibilityAssignments,
+        );
+      }
 
       return savedCustomer;
     },
@@ -498,6 +535,21 @@ export function CustomersPage() {
       toast.success('Đã cập nhật khách hàng.');
       setDialogOpen(false);
       setCustomerImageFile(null);
+      responsibilityAssignmentsRef.current = null;
+      setResponsibilityAssignments(null);
+      setResponsibilityIsValid(true);
+      if (editingCustomer) {
+        await queryClient.invalidateQueries({
+          queryKey: [
+            'project',
+            'customers',
+            'responsibility-workspace',
+            tenantId,
+            editingCustomer.id,
+          ],
+          refetchType: 'all',
+        });
+      }
       await invalidateCustomers();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -918,6 +970,24 @@ export function CustomersPage() {
         }}
         isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
+        isSubmitDisabled={
+          hasPermission('customers:update') &&
+          responsibilityAssignments !== null &&
+          !responsibilityIsValid
+        }
+        customerResponsibility={
+          tenantId && editingCustomer
+            ? {
+                tenantId,
+                customerId: editingCustomer.id,
+                canManage: hasPermission('customers:update'),
+                isValid: responsibilityIsValid,
+                draftAssignments: responsibilityAssignments,
+                onAssignmentsChange: handleResponsibilityAssignmentsChange,
+                onValidationChange: setResponsibilityIsValid,
+              }
+            : undefined
+        }
         title={
           <>
             Sửa khách hàng:{' '}
