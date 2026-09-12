@@ -8,7 +8,7 @@
  * bypassed builder.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { TagSelect } from '@/project/tags/components/tag-select';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -831,7 +831,7 @@ interface CustomerFormDialogProps {
   form: UseFormReturn<CustomerFormValues>;
   onSubmit: (values: CustomerFormValues) => void;
   isSaving?: boolean;
-  title?: string;
+  title?: ReactNode;
   regionCodeOptions: { value: string; label: string }[];
   onImageUrlFileChange?: (file: File | null) => void;
   customFields?: CustomField[];

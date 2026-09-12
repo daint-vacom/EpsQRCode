@@ -61,6 +61,11 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 - Disable duplicate submit while pending and keep user input on recoverable failure.
 - Edit dialogs reset values when the selected record changes; create dialogs preserve their draft
   across close/reopen and reset only through an explicit new-task action.
+- Dialog chỉnh sửa phải hiển thị tên đối tượng ngay trong `DialogTitle`, theo mẫu
+  `Sửa [loại đối tượng]: [tên đối tượng]`. Tên đối tượng dùng `font-semibold text-primary` để
+  phân biệt ngữ cảnh đang chỉnh sửa; giữ toàn bộ nội dung trong một tiêu đề accessible và dùng
+  fallback tên loại đối tượng khi dữ liệu tên chưa sẵn sàng. Dialog thêm mới không áp dụng quy tắc
+  này vì chưa có đối tượng cụ thể.
 - Khi submit form nhiều tab thất bại do validation, tự chuyển tới tab chứa lỗi đầu tiên,
   focus vào field lỗi sau khi tab đã mount, vẫn hiển thị `FormMessage` tại field và hiển thị
   toast lỗi ngắn gọn. Quy tắc này áp dụng cả lỗi từ schema validation và lỗi nghiệp vụ được

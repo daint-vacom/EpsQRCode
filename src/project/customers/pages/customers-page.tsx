@@ -918,7 +918,14 @@ export function CustomersPage() {
         }}
         isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
-        title="Sửa khách hàng"
+        title={
+          <>
+            Sửa khách hàng:{' '}
+            <span className="font-semibold text-primary">
+              {editingCustomer?.name ?? 'Khách hàng'}
+            </span>
+          </>
+        }
       />
       <CustomerCreateDialog
         open={createDialogOpen}

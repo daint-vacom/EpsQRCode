@@ -67,7 +67,12 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 
 Before claiming work is complete, run the narrowest useful checks:
 
-- `npm run build` for TypeScript and production build validation.
+- Do not run `npm run build` after every small edit or UI text/style iteration. For changes that are
+  already validated in the dev server, prefer the narrowest relevant check (for example focused
+  import lint, TypeScript, targeted tests, or a direct browser check). Run a production build only
+  when a substantial editing session is complete, when the change touches shared primitives,
+  generated output, dependencies, configuration, bundling/runtime behavior, or when the user asks
+  for build/release validation.
 - Targeted tests for changed behavior; broader `npm run test:run` only when the blast radius justifies it.
 - `npm run lint` only when its auto-fix behavior is acceptable for the changed files.
 - For UI changes, prefer automated tests and focused DOM/assertion checks first.

@@ -190,7 +190,12 @@ export function CustomerEditDialog({
       }}
       isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
       isSaving={saveMutation.isPending}
-      title="Sửa khách hàng"
+      title={
+        <>
+          Sửa khách hàng:{' '}
+          <span className="font-semibold text-primary">{customer.name}</span>
+        </>
+      }
     />
   );
 }
