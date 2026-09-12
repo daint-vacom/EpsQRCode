@@ -20,7 +20,7 @@ export function getCustomerCustomFieldDisplayValue(
   field: CustomField,
   value: string,
 ): string {
-  if (!value) return 'Chưa có dữ liệu';
+  if (!value) return '';
   if (field.fieldType !== 'select') return value;
   return field.options.find((option) => option.value === value)?.label ?? value;
 }

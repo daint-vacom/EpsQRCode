@@ -20,6 +20,24 @@ const spec = {
       searchTextProp: 'customSearchText',
       searchMatchCountProp: 'customSearchMatchCount',
     },
+    {
+      value: 'responsibility',
+      label: 'Nhân viên phụ trách',
+      icon: 'Users',
+      contentMode: 'custom',
+      contentProp: 'responsibilityContent',
+      searchTextProp: 'responsibilitySearchText',
+      searchMatchCountProp: 'responsibilitySearchMatchCount',
+    },
+    {
+      value: 'softwareAccounts',
+      label: 'Tài khoản phần mềm',
+      icon: 'KeyRound',
+      contentMode: 'custom',
+      contentProp: 'softwareAccountsContent',
+      searchTextProp: 'softwareAccountsSearchText',
+      searchMatchCountProp: 'softwareAccountsSearchMatchCount',
+    },
   ],
 } as const;
 

@@ -118,7 +118,11 @@ function emitComponent(spec: ResolvedDetailDialogSpec): string {
 
   return [
     `export function ${spec.componentName}<TData>({`,
-    ...destructured.map((name) => `  ${name},`),
+    ...destructured.map((name) =>
+      name === 'searchPlaceholder'
+        ? `  ${name} = ${quote('Tìm kiếm dữ liệu')},`
+        : `  ${name},`,
+    ),
     `}: ${spec.componentName}Props<TData>) {`,
     emitTabDefinitions(spec),
     '',

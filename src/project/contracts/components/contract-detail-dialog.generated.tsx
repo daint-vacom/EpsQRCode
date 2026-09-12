@@ -47,7 +47,7 @@ export function ContractDetailDialogShell<TData>({
   title,
   data,
   isLoading,
-  searchPlaceholder,
+  searchPlaceholder = 'Tìm kiếm dữ liệu',
   generalFields,
   versionFields,
   feesContent,

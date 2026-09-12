@@ -31,6 +31,10 @@ npm run gen:detail -- src/project/customers/detail/customer-detail-layout.fixtur
 The generated wrapper receives `profile`, `information`, and tab content slots.
 It does not own API calls, mutations, permissions, or data mapping.
 
+Empty field values must remain empty by default. The builder and shared detail
+components do not add placeholder text such as `Chưa cập nhật`; a feature may
+provide explicit empty-state copy only when required by the product design.
+
 ## Runtime components
 
 Use the shared components directly when a generated wrapper is unnecessary:

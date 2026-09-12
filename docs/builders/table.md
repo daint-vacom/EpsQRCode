@@ -60,11 +60,39 @@ not in arbitrary shell spacing or button sizing.
 | `actions`        | no       | inline JSX stub, or semantic preset actions when `actionPresets` is configured |
 | `custom`         | optional | inline JSX stub                                                                |
 
-Common options include `headerClassName`, `cellClassName`, `size`, `visibility`, and `enableSorting`.
+Common options include `headerClassName`, `cellClassName`, `size`, `sizePreset`, `pin`, `visibility`,
+and `enableSorting`. Prefer `sizePreset` for standard layouts; use numeric `size` only when a column
+has a deliberate one-off width. Set `pin: 'left'` or `pin: 'right'` for a data column that must stay
+visible while the table scrolls horizontally.
+
+### Column size presets
+
+`sizePreset` keeps fixture sizing semantic and reusable. The builder emits the corresponding numeric
+`size` into the generated column module.
+
+| Preset      | Width | Use for                       |
+| ----------- | ----- | ----------------------------- |
+| `compact`   | 160px | Mã ngắn, quốc gia, mã đơn vị  |
+| `date`      | 150px | Ngày                          |
+| `number`    | 150px | Số lượng, số liệu ngắn        |
+| `badge`     | 170px | Trạng thái, badge đơn         |
+| `short`     | 180px | Thông tin ít, số điện thoại   |
+| `medium`    | 220px | Thông tin vừa, khu vực        |
+| `tags`      | 240px | Nhóm/danh mục, nhiều badge    |
+| `long`      | 280px | Email, ghi chú, thông tin dài |
+| `identity`  | 320px | Tên/định danh chính           |
+| `extraLong` | 360px | Địa chỉ hoặc nội dung rất dài |
+
+`size` and `sizePreset` are mutually exclusive. `actionCount` is also mutually exclusive with both;
+action columns derive their width from the number of icon actions.
 For icon-only action columns, set `actionCount` instead of `size`; the generated column uses
 `getDataGridActionsColumnSize(actionCount)` so its width follows the number of buttons.
 Generated columns have sorting disabled by default; set `enableSorting: true` only after the page
 connects sorting state and its data/API behavior.
+
+Empty cells remain empty by default. The table builder must not inject placeholder text such as
+`Chưa cập nhật` or `Chưa có dữ liệu`; provide explicit cell content only when the product requirement
+specifically calls for it. Empty-table messages are a separate table state and may be configured explicitly.
 
 ### System column pinning
 

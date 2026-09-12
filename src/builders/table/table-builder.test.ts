@@ -80,6 +80,49 @@ describe('buildColumnsModule', () => {
     expect(sortable).toContain('enableSorting: true,');
   });
 
+  it('emits semantic size presets and rejects conflicting width props', () => {
+    const sized = buildColumnsModule({
+      entity: 'Product',
+      modelImport: '../model/product',
+      columns: [
+        {
+          kind: 'text',
+          id: 'email',
+          header: 'Email',
+          field: 'email',
+          sizePreset: 'long',
+        },
+        {
+          kind: 'date',
+          id: 'createdAt',
+          header: 'Ngày tạo',
+          field: 'createdAt',
+          sizePreset: 'date',
+        },
+      ],
+    });
+
+    expect(sized).toContain('size: 280,');
+    expect(sized).toContain('size: 150,');
+
+    expect(() =>
+      buildColumnsModule({
+        entity: 'Product',
+        modelImport: '../model/product',
+        columns: [
+          {
+            kind: 'text',
+            id: 'email',
+            header: 'Email',
+            field: 'email',
+            size: 280,
+            sizePreset: 'long',
+          },
+        ],
+      }),
+    ).toThrow('Chỉ khai báo size hoặc sizePreset');
+  });
+
   it('emits a standalone badge config and references it', () => {
     expect(source).toContain(
       'const statusBadgeConfig: StatusBadgeConfig<string> = {',
@@ -168,6 +211,35 @@ describe('buildColumnsModule', () => {
     expect(out).toContain('col.select(),');
     expect(out).toContain("left: ['select'],");
     expect(out).toContain("right: ['rowActions'],");
+  });
+
+  it('emits explicit pinned data columns in the configured side', () => {
+    const out = buildColumnsModule({
+      entity: 'Product',
+      modelImport: '../model/product',
+      columns: [
+        {
+          kind: 'select',
+        },
+        {
+          kind: 'text',
+          id: 'name',
+          header: 'Tên',
+          field: 'name',
+          pin: 'left',
+        },
+        {
+          kind: 'text',
+          id: 'status',
+          header: 'Trạng thái',
+          field: 'status',
+          pin: 'right',
+        },
+      ],
+    });
+
+    expect(out).toContain("left: ['select', 'name'],");
+    expect(out).toContain("right: ['status'],");
   });
 
   it('quotes badge config keys that are not valid identifiers', () => {

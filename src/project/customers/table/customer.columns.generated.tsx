@@ -36,7 +36,7 @@ import {
 } from './customer-column-filters.generated';
 
 export const CUSTOMER_COLUMN_PINNING: ColumnPinningState = {
-  left: ['select'],
+  left: ['select', 'name'],
   right: ['actions'],
 };
 
@@ -127,6 +127,7 @@ export function useCustomerColumns(
             />
           ),
           headerClassName: 'min-w-[180px]',
+          size: 220,
           visibility: false,
           enableSorting: false,
           cell: (row) => (
@@ -165,6 +166,7 @@ export function useCustomerColumns(
           />
         ),
         headerClassName: 'min-w-[170px]',
+        size: 180,
         enableSorting: false,
         cell: (row) => (
           <span className="text-sm text-foreground">
@@ -182,6 +184,7 @@ export function useCustomerColumns(
           />
         ),
         headerClassName: 'min-w-[220px]',
+        size: 280,
         enableSorting: false,
         cell: (row) => (
           <div className="min-w-0">
@@ -222,6 +225,7 @@ export function useCustomerColumns(
           />
         ),
         headerClassName: 'min-w-[170px]',
+        size: 170,
         enableSorting: false,
       }),
       col.text({
@@ -234,6 +238,7 @@ export function useCustomerColumns(
           'Tìm theo mã số đăng ký',
         ),
         headerClassName: 'min-w-[170px]',
+        size: 180,
         enableSorting: false,
       }),
       col.custom({
@@ -253,6 +258,7 @@ export function useCustomerColumns(
           />
         ),
         headerClassName: 'min-w-[160px]',
+        size: 160,
         enableSorting: false,
         cell: (row) => (
           <span className="text-sm text-foreground">{row.countryCode}</span>
@@ -267,6 +273,7 @@ export function useCustomerColumns(
           'Tìm theo mã hoặc tên khu vực',
         ),
         headerClassName: 'min-w-[180px]',
+        size: 220,
         enableSorting: false,
         cell: (row) => (
           <div className="min-w-0">
@@ -291,6 +298,7 @@ export function useCustomerColumns(
           'Tìm theo số điện thoại',
         ),
         headerClassName: 'min-w-[170px]',
+        size: 180,
         enableSorting: false,
       }),
       col.text({
@@ -303,6 +311,7 @@ export function useCustomerColumns(
           'Tìm theo email',
         ),
         headerClassName: 'min-w-[220px]',
+        size: 280,
         enableSorting: false,
       }),
       col.text({
@@ -315,6 +324,7 @@ export function useCustomerColumns(
           'Tìm theo địa chỉ',
         ),
         headerClassName: 'min-w-[240px]',
+        size: 360,
         enableSorting: false,
       }),
       col.text({
@@ -327,6 +337,7 @@ export function useCustomerColumns(
           'Tìm theo ghi chú',
         ),
         headerClassName: 'min-w-[220px]',
+        size: 280,
         enableSorting: false,
       }),
       ...customColumns,

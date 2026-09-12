@@ -34,6 +34,7 @@ describe('detail-dialog-builder', () => {
     );
     expect(source).toContain('overviewSearchText?: (data: TData) => string;');
     expect(source).toContain('historyPanel:');
+    expect(source).toContain("searchPlaceholder = 'Tìm kiếm dữ liệu',");
     expect(source).toContain(
       'historySearchMatchCount?: (context: EntityDetailDialogTabContext<TData>) => number;',
     );

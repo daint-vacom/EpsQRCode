@@ -100,7 +100,7 @@ export function EntityDetailDialog<TData>({
   isLoading = false,
   tabs,
   defaultTab,
-  searchPlaceholder = 'Tìm trong thông tin chi tiết...',
+  searchPlaceholder = 'Tìm kiếm dữ liệu',
   className,
 }: EntityDetailDialogProps<TData>) {
   const initialTab = defaultTab ?? tabs[0]?.value ?? '';

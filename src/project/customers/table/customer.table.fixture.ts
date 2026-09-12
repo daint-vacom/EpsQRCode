@@ -15,26 +15,29 @@ const spec: TableSpec = {
       id: 'name',
       header: 'Khách hàng',
       headerClassName: 'min-w-[300px]',
-      size: 320,
+      sizePreset: 'identity',
+      pin: 'left',
     },
     {
       kind: 'custom',
       id: 'businessType',
       header: 'Loại hình đơn vị',
       headerClassName: 'min-w-[170px]',
+      sizePreset: 'short',
     },
     {
       kind: 'custom',
       id: 'contact',
       header: 'Liên hệ',
       headerClassName: 'min-w-[220px]',
+      sizePreset: 'long',
     },
     {
       kind: 'custom',
       id: 'tags',
       header: 'Nhóm/danh mục',
       headerClassName: 'min-w-[220px]',
-      size: 240,
+      sizePreset: 'tags',
     },
     {
       kind: 'badge',
@@ -61,6 +64,7 @@ const spec: TableSpec = {
           dotClassName: 'bg-admin-neutral-400 opacity-100',
         },
       },
+      sizePreset: 'badge',
     },
     {
       kind: 'text',
@@ -68,18 +72,21 @@ const spec: TableSpec = {
       header: 'Mã số đăng ký',
       field: 'businessRegistrationCode',
       headerClassName: 'min-w-[170px]',
+      sizePreset: 'short',
     },
     {
       kind: 'custom',
       id: 'countryCode',
       header: 'Quốc gia',
       headerClassName: 'min-w-[160px]',
+      sizePreset: 'compact',
     },
     {
       kind: 'custom',
       id: 'region',
       header: 'Khu vực',
       headerClassName: 'min-w-[180px]',
+      sizePreset: 'medium',
     },
     {
       kind: 'text',
@@ -87,6 +94,7 @@ const spec: TableSpec = {
       header: 'Số điện thoại',
       field: 'phone',
       headerClassName: 'min-w-[170px]',
+      sizePreset: 'short',
     },
     {
       kind: 'text',
@@ -94,6 +102,7 @@ const spec: TableSpec = {
       header: 'Email',
       field: 'email',
       headerClassName: 'min-w-[220px]',
+      sizePreset: 'long',
     },
     {
       kind: 'text',
@@ -101,6 +110,7 @@ const spec: TableSpec = {
       header: 'Địa chỉ chi tiết',
       field: 'addressDetail',
       headerClassName: 'min-w-[240px]',
+      sizePreset: 'extraLong',
     },
     {
       kind: 'text',
@@ -108,6 +118,7 @@ const spec: TableSpec = {
       header: 'Ghi chú',
       field: 'note',
       headerClassName: 'min-w-[220px]',
+      sizePreset: 'long',
     },
     {
       kind: 'actions',

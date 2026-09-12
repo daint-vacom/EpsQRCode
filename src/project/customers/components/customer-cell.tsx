@@ -8,7 +8,7 @@ export function CustomerCell({ customer }: { customer: Customer }) {
     <Link
       to={buildPath(ROUTES.PROJECT.CUSTOMER_DETAIL, { id: customer.id })}
       className="group flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-      aria-label={`Xem chi tiết khách hàng ${customer.name}`}
+      aria-label={`Tra cứu khách hàng ${customer.name}`}
     >
       <CustomerIdentity customer={customer} />
     </Link>

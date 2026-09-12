@@ -18,6 +18,39 @@ const FIELD_PATH = /^[a-zA-Z_$][\w$]*(\.[a-zA-Z_$][\w$]*)*$/;
 
 const columnId = identifierSchema;
 
+/** Semantic widths for repeatable dense admin-table column layouts. */
+export const TABLE_COLUMN_SIZE_PRESET_NAMES = [
+  'compact',
+  'date',
+  'number',
+  'badge',
+  'short',
+  'medium',
+  'tags',
+  'long',
+  'identity',
+  'extraLong',
+] as const;
+
+export type TableColumnSizePreset =
+  (typeof TABLE_COLUMN_SIZE_PRESET_NAMES)[number];
+
+export const TABLE_COLUMN_SIZE_PRESETS: Record<TableColumnSizePreset, number> =
+  {
+    compact: 160,
+    date: 150,
+    number: 150,
+    badge: 170,
+    short: 180,
+    medium: 220,
+    tags: 240,
+    long: 280,
+    identity: 320,
+    extraLong: 360,
+  };
+
+const sizePresetSchema = z.enum(TABLE_COLUMN_SIZE_PRESET_NAMES);
+
 const fieldPath = z
   .string()
   .regex(
@@ -30,6 +63,8 @@ const commonMeta = {
   headerClassName: z.string().optional(),
   cellClassName: z.string().optional(),
   size: z.number().int().positive().optional(),
+  sizePreset: sizePresetSchema.optional(),
+  pin: z.enum(['left', 'right']).optional(),
   visibility: z.boolean().optional(),
   enableSorting: z.boolean().optional(),
 };
@@ -180,6 +215,14 @@ export const tableSpecSchema = z
   })
   .superRefine((spec, ctx) => {
     spec.columns.forEach((column, index) => {
+      if (column.size !== undefined && column.sizePreset !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Chỉ khai báo size hoặc sizePreset, không dùng đồng thời',
+          path: ['columns', index, 'sizePreset'],
+        });
+      }
+
       if (
         column.kind === 'editableSelect' &&
         column.optionsFrom !== 'prop' &&
@@ -196,12 +239,13 @@ export const tableSpecSchema = z
       if (
         column.kind === 'actions' &&
         column.actionCount !== undefined &&
-        column.size !== undefined
+        (column.size !== undefined || column.sizePreset !== undefined)
       ) {
         ctx.addIssue({
           code: 'custom',
-          message: 'actionCount đã tự tính size, không khai báo size cùng lúc',
-          path: ['columns', index, 'size'],
+          message:
+            'actionCount đã tự tính size, không khai báo size hoặc sizePreset cùng lúc',
+          path: ['columns', index, 'sizePreset'],
         });
       }
     });

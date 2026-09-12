@@ -19,6 +19,7 @@ export interface CustomerDetailDialogProps<TData> {
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
   data: TData | null;
+  isLoading?: boolean;
   searchPlaceholder?: string;
   generalFields: (
     context: EntityDetailDialogTabContext<TData>,
@@ -36,7 +37,8 @@ export function CustomerDetailDialog<TData>({
   onOpenChange,
   title,
   data,
-  searchPlaceholder,
+  isLoading,
+  searchPlaceholder = 'Tìm kiếm dữ liệu',
   generalFields,
   contractsPanel,
   generalSearchText,
@@ -78,6 +80,7 @@ export function CustomerDetailDialog<TData>({
       onOpenChange={onOpenChange}
       title={title}
       data={data}
+      isLoading={isLoading}
       tabs={tabs}
       defaultTab="general"
       searchPlaceholder={searchPlaceholder}

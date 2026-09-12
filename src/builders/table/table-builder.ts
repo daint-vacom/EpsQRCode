@@ -1,6 +1,8 @@
 import {
+  TABLE_COLUMN_SIZE_PRESETS,
   tableSpecSchema,
   type ColumnSpec,
+  type TableColumnSizePreset,
   type TableSpec,
 } from './column-spec';
 import { COLUMN_KIND_REGISTRY } from './field-kinds';
@@ -76,15 +78,30 @@ function optionArrayType(): string {
 }
 
 function columnPinning(spec: TableSpec) {
-  const left = spec.columns.some((column) => column.kind === 'select')
-    ? ['select']
-    : [];
-  const right = spec.columns
-    .filter(
-      (column): column is Extract<ColumnSpec, { kind: 'actions' }> =>
-        column.kind === 'actions',
-    )
-    .map((column) => column.id ?? 'actions');
+  const left = spec.columns.flatMap((column) => {
+    if (column.kind === 'select') return ['select'];
+    if (
+      'pin' in column &&
+      column.pin === 'left' &&
+      'id' in column &&
+      column.id
+    ) {
+      return [column.id];
+    }
+    return [];
+  });
+  const right = spec.columns.flatMap((column) => {
+    if (column.kind === 'actions') return [column.id ?? 'actions'];
+    if (
+      'pin' in column &&
+      column.pin === 'right' &&
+      'id' in column &&
+      column.id
+    ) {
+      return [column.id];
+    }
+    return [];
+  });
 
   return { left, right };
 }
@@ -174,6 +191,7 @@ function commonMetaLines(
     headerClassName?: string;
     cellClassName?: string;
     size?: number;
+    sizePreset?: TableColumnSizePreset;
     visibility?: boolean;
     enableSorting?: boolean;
   },
@@ -185,6 +203,8 @@ function commonMetaLines(
   if (col.cellClassName)
     lines.push(`cellClassName: ${quote(col.cellClassName)},`);
   if (sizeExpression) lines.push(`size: ${sizeExpression},`);
+  else if (col.sizePreset !== undefined)
+    lines.push(`size: ${TABLE_COLUMN_SIZE_PRESETS[col.sizePreset]},`);
   else if (col.size !== undefined) lines.push(`size: ${col.size},`);
   if (col.visibility !== undefined)
     lines.push(`visibility: ${col.visibility},`);

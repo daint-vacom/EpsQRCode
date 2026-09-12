@@ -39,7 +39,7 @@ describe('CustomerCell', () => {
 
     expect(
       screen.getByRole('link', {
-        name: 'Xem chi tiết khách hàng Công ty Ánh Dương',
+        name: 'Tra cứu khách hàng Công ty Ánh Dương',
       }),
     ).toHaveAttribute('href', '/customers/customer-1');
     expect(screen.getByText('Công ty Ánh Dương')).toBeInTheDocument();

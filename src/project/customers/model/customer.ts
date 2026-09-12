@@ -29,7 +29,7 @@ export const VAT_DECLARATION_PERIOD_LABELS: Record<
   StoredVatDeclarationPeriod,
   string
 > = {
-  unspecified: 'Chưa cập nhật',
+  unspecified: '',
   monthly: 'Theo tháng',
   quarterly: 'Theo quý',
   yearly: 'Theo năm',

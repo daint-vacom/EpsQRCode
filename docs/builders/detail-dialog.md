@@ -39,6 +39,19 @@ Both receive:
 }
 ```
 
+Empty values are rendered as empty cells by default. The builder and the shared
+detail-dialog table do not inject placeholder text such as `Chưa cập nhật`;
+features may provide explicit copy only when the product requirement calls for it.
+
+Read-only entity dialogs use the `Tra cứu` wording by default. The title should
+follow `Tra cứu <đối tượng>: <tên đối tượng>` and the trigger that opens the
+dialog should be labeled `Tra cứu`. The builder owns the title slot but does not
+invent the entity name or prefix, so each feature must pass the composed title.
+
+The shared search input uses `Tìm kiếm dữ liệu` as its default placeholder.
+Feature dialogs should keep this default unless a more specific search scope is
+explicitly required.
+
 `matches` uses the shared accent-insensitive fuzzy matcher. All configured tabs
 remain visible while searching; table fields are filtered automatically and
 custom content remains responsible for its own row-level filtering.

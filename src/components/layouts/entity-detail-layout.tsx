@@ -80,7 +80,7 @@ export function EntityDetailInformationItem({
     <div className={cn('min-w-0 space-y-2', className)}>
       <p className="text-sm text-muted-foreground">{label}</p>
       <div className="min-w-0 text-sm font-semibold text-foreground">
-        {value || 'Chưa cập nhật'}
+        {value}
       </div>
     </div>
   );

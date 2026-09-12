@@ -36,6 +36,8 @@ import {
   loadCustomerCustomFields,
   loadCustomerCustomFieldValues,
   loadCustomerDetail,
+  loadCustomerResponsibilityWorkspace,
+  loadCustomerSoftwareAccounts,
 } from '../api/customers.api';
 import { CustomerAvatar } from '../components/customer-avatar';
 import { CustomerContractsTable } from '../components/customer-contracts-table';
@@ -114,7 +116,7 @@ function CustomerInformationCard({
         <>
           <Button type="button" variant="ghost" onClick={onShowDetails}>
             <Info />
-            Xem chi tiết
+            Tra cứu
           </Button>
           <ShortcutTooltip label="Sửa thông tin" shortcut="Alt + E">
             <Button
@@ -246,6 +248,34 @@ export function CustomerDetailPage() {
       ),
     enabled: Boolean(detailDialogOpen && customerQuery.data),
   });
+  const customerResponsibilityQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'responsibility-workspace',
+      customerQuery.data?.tenantId,
+      customerQuery.data?.id,
+    ],
+    queryFn: () =>
+      loadCustomerResponsibilityWorkspace(
+        customerQuery.data!.tenantId,
+        customerQuery.data!.id,
+      ),
+    enabled: Boolean(detailDialogOpen && customerQuery.data),
+    staleTime: 60 * 1000,
+  });
+  const customerSoftwareAccountsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'software-accounts',
+      customerQuery.data?.tenantId,
+      customerQuery.data?.id,
+    ],
+    queryFn: () => loadCustomerSoftwareAccounts(customerQuery.data!.id),
+    enabled: Boolean(detailDialogOpen && customerQuery.data),
+    staleTime: 60 * 1000,
+  });
 
   if (customerQuery.isPending) {
     return (
@@ -316,9 +346,13 @@ export function CustomerDetailPage() {
         customer={customer}
         customFields={customerCustomFieldsQuery.data ?? []}
         customFieldValues={customerCustomDataQuery.data ?? {}}
+        responsibilityWorkspace={customerResponsibilityQuery.data}
+        softwareAccounts={customerSoftwareAccountsQuery.data ?? []}
         isLoading={
           customerCustomFieldsQuery.isPending ||
-          customerCustomDataQuery.isPending
+          customerCustomDataQuery.isPending ||
+          customerResponsibilityQuery.isPending ||
+          customerSoftwareAccountsQuery.isPending
         }
       />
       <CustomerEditDialog

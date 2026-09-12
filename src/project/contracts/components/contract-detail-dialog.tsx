@@ -572,7 +572,7 @@ export function ContractDetailDialog({
       title="Chi tiết hợp đồng"
       data={contract}
       isLoading={isLoading}
-      searchPlaceholder="Tìm theo tên, mã, khách hàng..."
+      searchPlaceholder="Tìm kiếm dữ liệu"
       generalFields={({ data }) => ContractGeneralFields({ contract: data })}
       versionFields={({ data }) =>
         getVersionFields(getDisplayedVersion(data, selectedVersion))
