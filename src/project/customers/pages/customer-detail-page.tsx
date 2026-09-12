@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Info, Mail, Pencil, Phone, Trash2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { COUNTRY_OPTIONS } from '@/lib/countries';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
@@ -47,6 +46,7 @@ import {
   CustomerDetailTabContent,
 } from '../components/customer-detail-tab-content';
 import { CustomerEditDialog } from '../components/customer-edit-dialog';
+import { CustomerOverviewContent } from '../components/customer-overview-content';
 import { CustomerResponsibilityPanel } from '../components/customer-responsibility-panel';
 import {
   BUSINESS_TYPE_LABELS,
@@ -54,12 +54,6 @@ import {
   VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
 } from '../model/customer';
-
-function formatCustomerDate(value: string | null) {
-  if (!value) return 'Chưa cập nhật';
-
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));
-}
 
 function CustomerProfileCard({ customer }: { customer: Customer }) {
   const statusColor =
@@ -114,10 +108,6 @@ function CustomerInformationCard({
   onDelete: () => void;
   onShowDetails: () => void;
 }) {
-  const country = COUNTRY_OPTIONS.find(
-    (option) => option.value === customer.countryCode,
-  );
-
   return (
     <EntityDetailInformationCard
       actions={
@@ -157,20 +147,8 @@ function CustomerInformationCard({
     >
       <EntityDetailInformationGrid>
         <EntityDetailInformationItem
-          label="Mã khách hàng"
-          value={customer.customerCode}
-        />
-        <EntityDetailInformationItem
-          label="Loại hình đơn vị"
-          value={BUSINESS_TYPE_LABELS[customer.businessType]}
-        />
-        <EntityDetailInformationItem
           label="Mã số thuế / QHNS / ĐKKD"
           value={customer.businessRegistrationCode}
-        />
-        <EntityDetailInformationItem
-          label="Quốc gia"
-          value={country?.label ?? customer.countryCode}
         />
         <EntityDetailInformationItem
           label="Tỉnh/Thành phố"
@@ -189,10 +167,6 @@ function CustomerInformationCard({
           value={customer.streetAddress}
         />
         <EntityDetailInformationItem
-          label="Địa chỉ đầy đủ"
-          value={customer.addressDetail}
-        />
-        <EntityDetailInformationItem
           label="Người liên hệ"
           value={customer.contactName}
         />
@@ -201,18 +175,9 @@ function CustomerInformationCard({
           value={customer.contactTitle}
         />
         <EntityDetailInformationItem
-          label="Ngày thành lập"
-          value={formatCustomerDate(customer.establishedDate)}
-        />
-        <EntityDetailInformationItem
           label="Kỳ kê khai thuế GTGT"
           value={VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod]}
         />
-        <EntityDetailInformationItem
-          label="Số điện thoại"
-          value={customer.phone}
-        />
-        <EntityDetailInformationItem label="Email" value={customer.email} />
       </EntityDetailInformationGrid>
     </EntityDetailInformationCard>
   );
@@ -330,6 +295,7 @@ export function CustomerDetailPage() {
             onDelete={() => setDeleteDialogOpen(true)}
           />
         }
+        overviewContent={<CustomerOverviewContent customer={customer} />}
         contractsContent={<CustomerContractsTable customerId={customer.id} />}
         employeesContent={
           <CustomerResponsibilityPanel

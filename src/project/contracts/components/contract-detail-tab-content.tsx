@@ -361,7 +361,7 @@ function ContractFeePaymentOverview({
             })}
           </div>
         ) : (
-          <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex min-h-48 items-center justify-center text-center text-sm text-muted-foreground">
             Chưa có dữ liệu khoản phí để hiển thị.
           </div>
         )}
@@ -396,7 +396,7 @@ function ContractChartCard({
 
 function ContractChartEmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+    <div className="flex h-72 items-center justify-center text-center text-sm text-muted-foreground">
       {message}
     </div>
   );
