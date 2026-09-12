@@ -1,14 +1,6 @@
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   countMatchingEntityDetailDialogFields,
   EntityDetailDialogTable,
   type EntityDetailDialogField,
@@ -309,6 +301,32 @@ function getCustomerResponsibilityRows(
   });
 }
 
+function getCustomerResponsibilityFields(
+  rows: CustomerResponsibilityDetailRow[],
+): EntityDetailDialogField[] {
+  return rows.map((row) => ({
+    label: <EmployeeCell employee={row.employee} />,
+    labelSearchText: joinSearchText(
+      row.employee.displayName,
+      row.employee.employeeCode,
+    ),
+    value:
+      row.roles.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {row.roles.map((role) => (
+            <EmployeeRoleBadge
+              key={role.id}
+              role={{ name: role.name, color: 'blue' }}
+            />
+          ))}
+        </div>
+      ) : (
+        <span className="text-sm text-muted-foreground">Chưa gán vai trò</span>
+      ),
+    searchText: row.searchText,
+  }));
+}
+
 function CustomerResponsibilityContent({
   workspace,
   matches,
@@ -326,49 +344,11 @@ function CustomerResponsibilityContent({
     );
   }
 
-  const visibleRows = rows.filter((row) => matches(row.searchText));
-  if (visibleRows.length === 0) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Không có thông tin phù hợp trong mục này.
-      </div>
-    );
-  }
-
   return (
-    <Table className="min-w-[720px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead className="min-w-[280px]">Nhân viên</TableHead>
-          <TableHead className="min-w-[240px]">Phụ trách vai trò</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {visibleRows.map((row) => (
-          <TableRow key={row.employee.id}>
-            <TableCell>
-              <EmployeeCell employee={row.employee} />
-            </TableCell>
-            <TableCell>
-              {row.roles.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {row.roles.map((role) => (
-                    <EmployeeRoleBadge
-                      key={role.id}
-                      role={{ name: role.name, color: 'blue' }}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  Chưa gán vai trò
-                </span>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <EntityDetailDialogTable
+      fields={getCustomerResponsibilityFields(rows)}
+      matches={matches}
+    />
   );
 }
 
@@ -406,6 +386,49 @@ function getSoftwareAccountSearchText(account: CustomerSoftwareAccount) {
   );
 }
 
+function CustomerSoftwareAccountSubRows({
+  account,
+}: {
+  account: CustomerSoftwareAccount;
+}) {
+  const rows = [
+    { label: 'Địa chỉ truy cập', value: displayValue(account.accessUrl) },
+    { label: 'Tài khoản', value: displayValue(account.username) },
+    {
+      label: 'Mật khẩu',
+      value: account.hasPassword ? 'Đã lưu mật khẩu' : 'Chưa có mật khẩu',
+    },
+    { label: 'Loại tài khoản', value: displayValue(account.accountType) },
+    { label: 'Ngày hết hạn', value: formatCustomerDate(account.expiresAt) },
+  ];
+
+  return (
+    <table className="w-full text-sm">
+      <tbody>
+        {rows.map((row) => (
+          <tr key={row.label} className="border-b last:border-b-0">
+            <td className="w-[180px] py-2 pe-4 align-top text-muted-foreground">
+              {row.label}
+            </td>
+            <td className="py-2 align-top text-foreground">{row.value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function getSoftwareAccountFields(
+  accounts: CustomerSoftwareAccount[],
+): EntityDetailDialogField[] {
+  return accounts.map((account) => ({
+    label: displayValue(account.softwareName),
+    value: <CustomerSoftwareAccountSubRows account={account} />,
+    searchText: getSoftwareAccountSearchText(account),
+    valueClassName: 'p-0',
+  }));
+}
+
 function CustomerSoftwareAccountsContent({
   accounts,
   matches,
@@ -421,50 +444,11 @@ function CustomerSoftwareAccountsContent({
     );
   }
 
-  const visibleAccounts = accounts.filter((account) =>
-    matches(getSoftwareAccountSearchText(account)),
-  );
-  if (visibleAccounts.length === 0) {
-    return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
-        Không có thông tin phù hợp trong mục này.
-      </div>
-    );
-  }
-
   return (
-    <Table className="min-w-[1080px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead className="min-w-[220px]">Tên phần mềm</TableHead>
-          <TableHead className="min-w-[280px]">Địa chỉ truy cập</TableHead>
-          <TableHead className="min-w-[180px]">Tài khoản</TableHead>
-          <TableHead className="min-w-[170px]">Mật khẩu</TableHead>
-          <TableHead className="min-w-[180px]">Loại tài khoản</TableHead>
-          <TableHead className="min-w-[170px]">Ngày hết hạn</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {visibleAccounts.map((account) => (
-          <TableRow key={account.id ?? account.softwareName}>
-            <TableCell className="font-medium">
-              {displayValue(account.softwareName)}
-            </TableCell>
-            <TableCell className="max-w-[320px]">
-              <span className="block truncate">
-                {displayValue(account.accessUrl)}
-              </span>
-            </TableCell>
-            <TableCell>{displayValue(account.username)}</TableCell>
-            <TableCell>
-              {account.hasPassword ? 'Đã lưu mật khẩu' : 'Chưa có mật khẩu'}
-            </TableCell>
-            <TableCell>{displayValue(account.accountType)}</TableCell>
-            <TableCell>{formatCustomerDate(account.expiresAt)}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <EntityDetailDialogTable
+      fields={getSoftwareAccountFields(accounts)}
+      matches={matches}
+    />
   );
 }
 

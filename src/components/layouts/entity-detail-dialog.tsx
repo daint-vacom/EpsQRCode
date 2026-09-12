@@ -21,9 +21,19 @@ export interface EntityDetailDialogTabContext<TData> {
 }
 
 export interface EntityDetailDialogField {
-  label: string;
+  label: ReactNode;
+  labelSearchText?: unknown;
   value: ReactNode;
   searchText?: unknown;
+  valueClassName?: string;
+}
+
+function getEntityDetailDialogFieldSearchText(field: EntityDetailDialogField) {
+  const label =
+    field.labelSearchText ??
+    (typeof field.label === 'string' ? field.label : '');
+
+  return `${String(label)} ${String(field.searchText ?? '')}`;
 }
 
 export function countMatchingEntityDetailDialogFields(
@@ -31,7 +41,7 @@ export function countMatchingEntityDetailDialogFields(
   matches: (value: unknown) => boolean,
 ) {
   return fields.filter((field) =>
-    matches(`${field.label} ${String(field.searchText ?? '')}`),
+    matches(getEntityDetailDialogFieldSearchText(field)),
   ).length;
 }
 
@@ -43,7 +53,7 @@ export function EntityDetailDialogTable({
   matches: (value: unknown) => boolean;
 }) {
   const visibleFields = fields.filter((field) =>
-    matches(`${field.label} ${String(field.searchText ?? '')}`),
+    matches(getEntityDetailDialogFieldSearchText(field)),
   );
 
   if (visibleFields.length === 0) {
@@ -62,7 +72,14 @@ export function EntityDetailDialogTable({
             <td className="w-1/3 bg-muted/30 p-4 align-middle font-medium text-muted-foreground">
               {field.label}
             </td>
-            <td className="p-4 align-middle text-foreground">{field.value}</td>
+            <td
+              className={cn(
+                'p-4 align-middle text-foreground',
+                field.valueClassName,
+              )}
+            >
+              {field.value}
+            </td>
           </tr>
         ))}
       </tbody>
