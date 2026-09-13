@@ -6,7 +6,11 @@ const spec = {
     { value: 'overview', label: 'Tổng quan', icon: 'LayoutDashboard' },
     { value: 'contracts', label: 'Hợp đồng', icon: 'FileText' },
     { value: 'employees', label: 'Nhân viên phụ trách', icon: 'Users' },
-    { value: 'reports', label: 'Báo cáo', icon: 'BarChart3' },
+    {
+      value: 'softwareAccounts',
+      label: 'Tài khoản phần mềm',
+      icon: 'KeyRound',
+    },
   ],
 } as const;
 

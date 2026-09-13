@@ -54,6 +54,13 @@ export const FORM_FIELD_CONTROL = {
     optionType: 'SelectOption',
     importName: 'OptionSelect',
   },
+  autocomplete: {
+    binding: 'valueOnChange',
+    defaultLiteral: "''",
+    hasOptions: true,
+    optionType: 'AutocompleteOption',
+    importName: 'AutocompleteInput',
+  },
   searchSelect: {
     binding: 'valueOnChange',
     defaultLiteral: "''",
@@ -117,6 +124,11 @@ export const EDITOR_TABLE_FIELD_CONTROL = {
   },
   date: {
     importName: 'Input',
+    inputVariant: BUILDER_INPUT_VARIANTS.table,
+    align: 'left',
+  },
+  autocomplete: {
+    importName: 'AutocompleteInput',
     inputVariant: BUILDER_INPUT_VARIANTS.table,
     align: 'left',
   },

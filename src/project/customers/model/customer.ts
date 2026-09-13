@@ -57,8 +57,9 @@ const customerCustomFieldValuesSchema = z.preprocess(
   z.record(z.string(), z.string()),
 );
 
-const customerSoftwareAccountSchema = z.object({
+export const customerSoftwareAccountSchema = z.object({
   id: z.string().uuid().optional(),
+  catalogId: z.string().uuid().nullable().optional(),
   softwareName: z.string().trim().min(1, 'Vui lòng nhập tên phần mềm.'),
   accessUrl: z
     .string()
@@ -78,6 +79,7 @@ export type CustomerSoftwareAccount = z.infer<
 
 export function createEmptyCustomerSoftwareAccount(): CustomerSoftwareAccount {
   return {
+    catalogId: null,
     softwareName: '',
     accessUrl: '',
     username: '',

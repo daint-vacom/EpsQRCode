@@ -5,6 +5,10 @@
  */
 import type { ReactNode } from 'react';
 import {
+  getSoftwareAccountCatalogDefaultAccountType,
+  type SoftwareAccountCatalog,
+} from '@/project/tags/model/software-account-catalog';
+import {
   closestCenter,
   DndContext,
   KeyboardSensor,
@@ -23,6 +27,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
+import {
+  AutocompleteInput,
+  type AutocompleteOption,
+} from '@/components/ui/autocomplete-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
@@ -44,6 +52,7 @@ import type {
   CustomerFormValues,
   CustomerSoftwareAccount,
 } from '../model/customer';
+import { SoftwareAccountCatalogSuggestionInput } from './software-account-catalog-suggestion-input';
 
 function CustomerSoftwareAccountsEditorTableSortableRow({
   id,
@@ -72,11 +81,17 @@ function CustomerSoftwareAccountsEditorTableSortableRow({
 interface CustomerSoftwareAccountsEditorTableProps {
   form: UseFormReturn<CustomerFormValues>;
   createRow: () => CustomerSoftwareAccount;
+  toolbarContent?: ReactNode;
+  toolbarTitle?: ReactNode;
+  catalogs: SoftwareAccountCatalog[];
 }
 
 export function CustomerSoftwareAccountsEditorTable({
   form,
   createRow,
+  toolbarContent,
+  toolbarTitle,
+  catalogs,
 }: CustomerSoftwareAccountsEditorTableProps) {
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
@@ -84,7 +99,6 @@ export function CustomerSoftwareAccountsEditorTable({
     keyName: 'fieldId',
   });
   const watchedRows = form.watch('softwareAccounts') ?? [];
-
   const handleAddRow = () => {
     append(createRow());
   };
@@ -106,6 +120,24 @@ export function CustomerSoftwareAccountsEditorTable({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
+      <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 className="text-sm font-semibold text-foreground">
+            {toolbarTitle ?? 'Tài khoản phần mềm'}
+          </h2>
+          <div className="text-xs text-muted-foreground">
+            {fields.length} dòng
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <Button type="button" variant="outline" onClick={handleAddRow}>
+            <Plus />
+            Thêm tài khoản
+          </Button>
+
+          {toolbarContent}
+        </div>
+      </div>
       <ScrollArea
         type="always"
         className="min-w-0 min-h-[360px] min-h-0 flex-1"
@@ -124,45 +156,60 @@ export function CustomerSoftwareAccountsEditorTable({
               <table className="w-full caption-bottom text-foreground text-sm">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky top-0 z-20 w-12 bg-muted text-center"></TableHead>
-                    <TableHead className="sticky top-0 z-20 min-w-48 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted w-12 text-center"></TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-48">
                       Tên phần mềm *
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 min-w-56 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-56">
                       Địa chỉ truy cập
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 min-w-44 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-44">
                       Tài khoản
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 min-w-40 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-40">
                       Mật khẩu
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 w-40 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted w-40">
                       Loại tài khoản
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 w-44 bg-muted">
+                    <TableHead className="sticky top-0 z-20 bg-muted w-44">
                       Ngày hết hạn
                     </TableHead>
-                    <TableHead className="sticky top-0 right-0 z-30 w-16 bg-muted text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-16 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fields.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={8}
-                        className="h-20 text-center text-muted-foreground"
-                      >
-                        Chưa có dữ liệu
+                      <TableCell colSpan={8} className="h-28 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-muted-foreground">
+                            Chưa có dữ liệu
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAddRow}
+                          >
+                            <Plus />
+                            Thêm dòng
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
                     fields.map((field, index) => {
                       const row = watchedRows[index] as
-                        | CustomerSoftwareAccount
-                        | undefined;
+                        CustomerSoftwareAccount | undefined;
                       const errors =
                         form.formState.errors.softwareAccounts?.[index];
+                      const accountTypeOptions: AutocompleteOption[] =
+                        catalogs
+                          .find((catalog) => catalog.id === row?.catalogId)
+                          ?.accountTypes.map((accountType) => ({
+                            value: accountType.name,
+                            label: accountType.name,
+                          })) ?? [];
 
                       return (
                         <CustomerSoftwareAccountsEditorTableSortableRow
@@ -198,16 +245,52 @@ export function CustomerSoftwareAccountsEditorTable({
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
-                                            <Input
-                                              {...inputField}
+                                            <SoftwareAccountCatalogSuggestionInput
                                               aria-label={`Tên phần mềm * dòng ${index + 1}`}
                                               aria-invalid={
                                                 !!errors?.softwareName
                                               }
+                                              catalogs={catalogs}
+                                              onBlur={inputField.onBlur}
+                                              onChange={(value) => {
+                                                inputField.onChange(value);
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.catalogId`,
+                                                  null,
+                                                  { shouldDirty: true },
+                                                );
+                                              }}
+                                              onCatalogSelect={(catalog) => {
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.catalogId`,
+                                                  catalog.id,
+                                                  { shouldDirty: true },
+                                                );
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.accessUrl`,
+                                                  catalog.defaultAccessUrl,
+                                                );
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.username`,
+                                                  catalog.defaultUsername,
+                                                );
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.password`,
+                                                  catalog.defaultPassword,
+                                                );
+                                                form.setValue(
+                                                  `softwareAccounts.${index}.accountType`,
+                                                  getSoftwareAccountCatalogDefaultAccountType(
+                                                    catalog,
+                                                  ),
+                                                );
+                                              }}
                                               onPointerDown={(event) =>
                                                 event.stopPropagation()
                                               }
                                               variant="md"
+                                              value={inputField.value}
+                                              ref={inputField.ref}
                                             />
                                           </span>
                                         </TooltipTrigger>
@@ -223,14 +306,50 @@ export function CustomerSoftwareAccountsEditorTable({
                                       </Tooltip>
                                     ) : (
                                       <span className="block w-full">
-                                        <Input
-                                          {...inputField}
+                                        <SoftwareAccountCatalogSuggestionInput
                                           aria-label={`Tên phần mềm * dòng ${index + 1}`}
                                           aria-invalid={!!errors?.softwareName}
+                                          catalogs={catalogs}
+                                          onBlur={inputField.onBlur}
+                                          onChange={(value) => {
+                                            inputField.onChange(value);
+                                            form.setValue(
+                                              `softwareAccounts.${index}.catalogId`,
+                                              null,
+                                              { shouldDirty: true },
+                                            );
+                                          }}
+                                          onCatalogSelect={(catalog) => {
+                                            form.setValue(
+                                              `softwareAccounts.${index}.catalogId`,
+                                              catalog.id,
+                                              { shouldDirty: true },
+                                            );
+                                            form.setValue(
+                                              `softwareAccounts.${index}.accessUrl`,
+                                              catalog.defaultAccessUrl,
+                                            );
+                                            form.setValue(
+                                              `softwareAccounts.${index}.username`,
+                                              catalog.defaultUsername,
+                                            );
+                                            form.setValue(
+                                              `softwareAccounts.${index}.password`,
+                                              catalog.defaultPassword,
+                                            );
+                                            form.setValue(
+                                              `softwareAccounts.${index}.accountType`,
+                                              getSoftwareAccountCatalogDefaultAccountType(
+                                                catalog,
+                                              ),
+                                            );
+                                          }}
                                           onPointerDown={(event) =>
                                             event.stopPropagation()
                                           }
                                           variant="md"
+                                          value={inputField.value}
+                                          ref={inputField.ref}
                                         />
                                       </span>
                                     );
@@ -359,11 +478,6 @@ export function CustomerSoftwareAccountsEditorTable({
                                               {...inputField}
                                               aria-label={`Mật khẩu dòng ${index + 1}`}
                                               aria-invalid={!!errors?.password}
-                                              placeholder={
-                                                row?.hasPassword
-                                                  ? 'Đã lưu mật khẩu'
-                                                  : undefined
-                                              }
                                               onPointerDown={(event) =>
                                                 event.stopPropagation()
                                               }
@@ -387,11 +501,6 @@ export function CustomerSoftwareAccountsEditorTable({
                                           {...inputField}
                                           aria-label={`Mật khẩu dòng ${index + 1}`}
                                           aria-invalid={!!errors?.password}
-                                          placeholder={
-                                            row?.hasPassword
-                                              ? 'Đã lưu mật khẩu'
-                                              : undefined
-                                          }
                                           onPointerDown={(event) =>
                                             event.stopPropagation()
                                           }
@@ -416,12 +525,16 @@ export function CustomerSoftwareAccountsEditorTable({
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
-                                            <Input
-                                              {...inputField}
+                                            <AutocompleteInput
                                               aria-label={`Loại tài khoản dòng ${index + 1}`}
                                               aria-invalid={
                                                 !!errors?.accountType
                                               }
+                                              options={accountTypeOptions}
+                                              value={inputField.value}
+                                              onChange={inputField.onChange}
+                                              onBlur={inputField.onBlur}
+                                              ref={inputField.ref}
                                               onPointerDown={(event) =>
                                                 event.stopPropagation()
                                               }
@@ -441,10 +554,14 @@ export function CustomerSoftwareAccountsEditorTable({
                                       </Tooltip>
                                     ) : (
                                       <span className="block w-full">
-                                        <Input
-                                          {...inputField}
+                                        <AutocompleteInput
                                           aria-label={`Loại tài khoản dòng ${index + 1}`}
                                           aria-invalid={!!errors?.accountType}
+                                          options={accountTypeOptions}
+                                          value={inputField.value}
+                                          onChange={inputField.onChange}
+                                          onBlur={inputField.onBlur}
+                                          ref={inputField.ref}
                                           onPointerDown={(event) =>
                                             event.stopPropagation()
                                           }
@@ -472,13 +589,13 @@ export function CustomerSoftwareAccountsEditorTable({
                                             <DatePickerInput
                                               aria-label={`Ngày hết hạn dòng ${index + 1}`}
                                               aria-invalid={!!errors?.expiresAt}
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               calendarLabel={`Chọn ngày hết hạn dòng ${index + 1}`}
                                               value={inputField.value}
                                               valueMode="iso-date"
                                               variant="md"
-                                              onPointerDown={(event) =>
-                                                event.stopPropagation()
-                                              }
                                               onBlur={inputField.onBlur}
                                               onChange={inputField.onChange}
                                             />
@@ -499,13 +616,13 @@ export function CustomerSoftwareAccountsEditorTable({
                                         <DatePickerInput
                                           aria-label={`Ngày hết hạn dòng ${index + 1}`}
                                           aria-invalid={!!errors?.expiresAt}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
                                           calendarLabel={`Chọn ngày hết hạn dòng ${index + 1}`}
                                           value={inputField.value}
                                           valueMode="iso-date"
                                           variant="md"
-                                          onPointerDown={(event) =>
-                                            event.stopPropagation()
-                                          }
                                           onBlur={inputField.onBlur}
                                           onChange={inputField.onChange}
                                         />
@@ -536,18 +653,6 @@ export function CustomerSoftwareAccountsEditorTable({
                       );
                     })
                   )}
-                  <TableRow>
-                    <TableCell colSpan={8} className="px-2 py-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddRow}
-                      >
-                        <Plus />
-                        Thêm tài khoản
-                      </Button>
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </table>
             </SortableContext>

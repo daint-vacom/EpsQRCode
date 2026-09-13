@@ -43,13 +43,10 @@ import { CustomerAvatar } from '../components/customer-avatar';
 import { CustomerContractsTable } from '../components/customer-contracts-table';
 import { CustomerDetailDialog } from '../components/customer-detail-dialog';
 import { CustomerDetailLayout } from '../components/customer-detail-layout.generated';
-import {
-  CUSTOMER_DETAIL_TAB_CONTENT,
-  CustomerDetailTabContent,
-} from '../components/customer-detail-tab-content';
 import { CustomerEditDialog } from '../components/customer-edit-dialog';
 import { CustomerOverviewContent } from '../components/customer-overview-content';
 import { CustomerResponsibilityPanel } from '../components/customer-responsibility-panel';
+import { CustomerSoftwareAccountsPanel } from '../components/customer-software-accounts-panel';
 import {
   BUSINESS_TYPE_LABELS,
   CUSTOMER_STATUS_LABELS,
@@ -273,7 +270,7 @@ export function CustomerDetailPage() {
       customerQuery.data?.id,
     ],
     queryFn: () => loadCustomerSoftwareAccounts(customerQuery.data!.id),
-    enabled: Boolean(detailDialogOpen && customerQuery.data),
+    enabled: Boolean(customerQuery.data),
     staleTime: 60 * 1000,
   });
 
@@ -333,10 +330,14 @@ export function CustomerDetailPage() {
             canManage={hasPermission('customers:update')}
           />
         }
-        reportsContent={
-          <CustomerDetailTabContent
-            customer={customer}
-            tab={CUSTOMER_DETAIL_TAB_CONTENT[2]}
+        softwareAccountsContent={
+          <CustomerSoftwareAccountsPanel
+            tenantId={customer.tenantId}
+            customerId={customer.id}
+            customerName={customer.name}
+            accounts={customerSoftwareAccountsQuery.data ?? []}
+            isLoading={customerSoftwareAccountsQuery.isPending}
+            error={customerSoftwareAccountsQuery.error}
           />
         }
       />

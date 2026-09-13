@@ -45,13 +45,17 @@ function itemClass(field: FormFieldSpec): string {
 const LOCAL_OPTION_KINDS = new Set([
   'select',
   'combobox',
+  'autocomplete',
   'searchSelect',
   'multiselect',
 ]);
 
 type OptionFieldSpec = Extract<
   FormFieldSpec,
-  { kind: 'select' | 'combobox' | 'searchSelect' | 'multiselect' }
+  {
+    kind:
+      'select' | 'combobox' | 'autocomplete' | 'searchSelect' | 'multiselect';
+  }
 >;
 
 type InputSelectFieldSpec = Extract<FormFieldSpec, { kind: 'inputSelect' }>;
@@ -234,6 +238,7 @@ function controlJsx(field: FormFieldSpec): string {
         ? field.searchPlaceholder
         : undefined,
     emptyMessage:
+      field.kind === 'autocomplete' ||
       field.kind === 'searchSelect' ||
       field.kind === 'apiSearchSelect' ||
       field.kind === 'multiselect' ||
@@ -382,6 +387,7 @@ function emitImports(spec: FormSpec): string {
     );
   const hasOptionSelect =
     kinds.has('select') || kinds.has('combobox') || kinds.has('searchSelect');
+  const hasAutocomplete = kinds.has('autocomplete');
   const hasApiSearchSelect = kinds.has('apiSearchSelect');
   if (hasOptionSelect || hasApiSearchSelect) {
     const optionSelectImports = [
@@ -401,6 +407,14 @@ function emitImports(spec: FormSpec): string {
         `import type { ${optionSelectTypeImports.join(', ')} } from '@/components/ui/option-select';`,
       );
     }
+  }
+  if (hasAutocomplete) {
+    lines.push(
+      "import { AutocompleteInput } from '@/components/ui/autocomplete-input';",
+    );
+    lines.push(
+      "import type { AutocompleteOption } from '@/components/ui/autocomplete-input';",
+    );
   }
   if (kinds.has('customerSelect')) {
     lines.push(

@@ -4,10 +4,7 @@ import {
 } from './field-control-registry';
 
 export type FormFieldBinding =
-  | 'spread'
-  | 'select'
-  | 'valueOnChange'
-  | 'checked';
+  'spread' | 'select' | 'valueOnChange' | 'checked';
 
 export interface FormFieldControlOptions {
   kind: FormFieldControlKind;
@@ -221,6 +218,11 @@ export function buildFormFieldControl(
       );
       const emptyMessage = attribute('emptyMessage', options.emptyMessage);
       return `${controlOpen(options)}<OptionSelect value={${value}} onChange={${change}} options={${optionsExpression}} searchable${placeholder}${searchPlaceholder}${emptyMessage} />${controlClose(options)}`;
+    }
+    case 'autocomplete': {
+      const optionsExpression = options.optionsExpression ?? 'options';
+      const emptyMessage = attribute('emptyMessage', options.emptyMessage);
+      return `${controlOpen(options)}<AutocompleteInput value={${value}} onChange={${change}} options={${optionsExpression}}${placeholder}${emptyMessage} onBlur={${blur}} />${controlClose(options)}`;
     }
     case 'apiSearchSelect': {
       const searchPlaceholder = attribute(

@@ -12,6 +12,7 @@ export {
 } from './field-control-registry';
 export {
   dateFieldControlSchema,
+  autocompleteFieldControlSchema,
   apiSearchSelectFieldControlSchema,
   customerSelectFieldControlSchema,
   inputSelectFieldControlSchema,
@@ -27,6 +28,7 @@ export {
   textareaFieldControlSchema,
   textFieldControlSchema,
   type SharedDateFieldControl,
+  type SharedAutocompleteFieldControl,
   type SharedComboboxFieldControl,
   type SharedApiSearchSelectFieldControl,
   type SharedCustomerSelectFieldControl,

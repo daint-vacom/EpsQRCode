@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { loadSoftwareAccountCatalogs } from '@/project/tags/api/software-account-catalog.api';
 import { replaceSubjectTags } from '@/project/tags/api/tags.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -50,6 +51,11 @@ export function CustomerCreateDialog({
     queryFn: () => loadCustomerCustomFields(tenantId!),
     enabled: Boolean(tenantId),
     staleTime: 60 * 1000,
+  });
+  const softwareAccountCatalogsQuery = useQuery({
+    queryKey: ['project', 'tags', 'software-account-catalog', tenantId, 'all'],
+    queryFn: () => loadSoftwareAccountCatalogs(tenantId!, true),
+    enabled: Boolean(open && tenantId),
   });
 
   const saveMutation = useMutation({
@@ -145,6 +151,7 @@ export function CustomerCreateDialog({
         void customerCustomFieldsQuery.refetch();
       }}
       isReloadingCustomFields={customerCustomFieldsQuery.isFetching}
+      softwareAccountCatalogs={softwareAccountCatalogsQuery.data ?? []}
     />
   );
 }

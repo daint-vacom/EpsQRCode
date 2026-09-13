@@ -84,6 +84,38 @@ describe('buildFormModule', () => {
     ); // switch
   });
 
+  it('generates the shared autocomplete input and option type', () => {
+    const autocompleteSource = buildFormModule({
+      entity: 'SoftwareAccount',
+      schemaImport: './software-account.schema',
+      schemaName: 'softwareAccountSchema',
+      valuesType: 'SoftwareAccountValues',
+      title: 'Tài khoản phần mềm',
+      fields: [
+        {
+          kind: 'autocomplete',
+          name: 'softwareName',
+          label: 'Tên phần mềm',
+          optionsFrom: 'prop',
+          placeholder: 'Nhập tên phần mềm',
+        },
+      ],
+    });
+
+    expect(autocompleteSource).toContain(
+      "import { AutocompleteInput } from '@/components/ui/autocomplete-input';",
+    );
+    expect(autocompleteSource).toContain(
+      "import type { AutocompleteOption } from '@/components/ui/autocomplete-input';",
+    );
+    expect(autocompleteSource).toContain(
+      'softwareNameOptions: AutocompleteOption[];',
+    );
+    expect(autocompleteSource).toContain(
+      '<AutocompleteInput value={field.value} onChange={field.onChange} options={softwareNameOptions}',
+    );
+  });
+
   it('renders date fields through the shared date picker input', () => {
     const dateSource = buildFormModule({
       entity: 'Employee',

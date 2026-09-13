@@ -4,7 +4,7 @@
  * To change the tab structure, edit the spec and re-gen to a scratch path first.
  */
 import type { ReactNode } from 'react';
-import { BarChart3, FileText, LayoutDashboard, Users } from 'lucide-react';
+import { FileText, KeyRound, LayoutDashboard, Users } from 'lucide-react';
 import {
   EntityDetailLayout,
   EntityDetailTabs,
@@ -17,7 +17,7 @@ export interface CustomerDetailLayoutProps {
   overviewContent: ReactNode;
   contractsContent: ReactNode;
   employeesContent: ReactNode;
-  reportsContent: ReactNode;
+  softwareAccountsContent: ReactNode;
   className?: string;
 }
 export function CustomerDetailLayout({
@@ -26,7 +26,7 @@ export function CustomerDetailLayout({
   overviewContent,
   contractsContent,
   employeesContent,
-  reportsContent,
+  softwareAccountsContent,
   className,
 }: CustomerDetailLayoutProps) {
   const tabs: EntityDetailTab[] = [
@@ -49,10 +49,10 @@ export function CustomerDetailLayout({
       content: employeesContent,
     },
     {
-      value: 'reports',
-      label: 'Báo cáo',
-      icon: BarChart3,
-      content: reportsContent,
+      value: 'softwareAccounts',
+      label: 'Tài khoản phần mềm',
+      icon: KeyRound,
+      content: softwareAccountsContent,
     },
   ];
 

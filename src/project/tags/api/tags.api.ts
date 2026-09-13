@@ -67,6 +67,7 @@ function mapGroup(
       ? (moduleNameByCode.get(row.module_code) ?? null)
       : null,
     isSystem: row.is_system ?? false,
+    kind: row.kind ?? 'tag',
     sortOrder: row.sort_order,
     isActive: row.is_active,
     tagCount,
@@ -229,7 +230,8 @@ export async function loadTagSelectOptions(
     supabaseApi.get(
       '/tag_groups',
       queryParams({
-        select: 'id,name,module_code,is_system,is_active',
+        select: 'id,name,module_code,is_system,is_active,kind',
+        kind: 'eq.tag',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         ...groupFilterParams,
@@ -301,7 +303,8 @@ export async function loadSubjectTagFilter(
     supabaseApi.get(
       '/tag_groups',
       queryParams({
-        select: 'id,name,module_code,is_system,is_active',
+        select: 'id,name,module_code,is_system,is_active,kind',
+        kind: 'eq.tag',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         ...groupFilterParams,

@@ -93,7 +93,10 @@ function numberAttrs(
 }
 
 function inputVariant(
-  column: Extract<EditorTableColumnSpec, { kind: 'text' | 'number' | 'date' }>,
+  column: Extract<
+    EditorTableColumnSpec,
+    { kind: 'text' | 'number' | 'date' | 'autocomplete' }
+  >,
 ) {
   return EDITOR_TABLE_FIELD_CONTROL[column.kind].inputVariant;
 }
@@ -130,7 +133,7 @@ function emitBulkFieldOptions(columns: ReturnType<typeof bulkEditableColumns>) {
 }
 
 function tooltipRender(
-  column: Extract<EditorTableColumnSpec, { kind: 'text' | 'number' | 'date' }>,
+  column: Extract<EditorTableColumnSpec, { name: string }>,
   control: string,
 ): string {
   const warningName = `${column.name}Warning`;
@@ -162,7 +165,7 @@ ${indent(control, 10)}
 
 function editableCell(
   spec: NormalizedEditorTableSpec,
-  column: Extract<EditorTableColumnSpec, { kind: 'text' | 'number' | 'date' }>,
+  column: Extract<EditorTableColumnSpec, { name: string }>,
 ): string {
   const common = {
     kind: column.kind,
@@ -197,10 +200,16 @@ function editableCell(
             calendarLabelExpression: `\`Chọn ${ariaLabel(column).toLowerCase()} dòng \${index + 1}\``,
             format: column.format,
           })
-        : buildFormFieldControl({
-            ...common,
-            inputType: column.inputType,
-          });
+        : column.kind === 'autocomplete'
+          ? buildFormFieldControl({
+              ...common,
+              optionsExpression: `${column.name}Options`,
+              emptyMessage: 'Không có dữ liệu phù hợp',
+            })
+          : buildFormFieldControl({
+              ...common,
+              inputType: column.inputType,
+            });
 
   return `<TableCell className="px-2 py-2">
   <Controller
@@ -607,7 +616,8 @@ function hasEditableColumn(spec: NormalizedEditorTableSpec): boolean {
     (column) =>
       column.kind === 'text' ||
       column.kind === 'number' ||
-      column.kind === 'date',
+      column.kind === 'date' ||
+      column.kind === 'autocomplete',
   );
 }
 
@@ -622,6 +632,25 @@ function hasPlainInputColumn(spec: NormalizedEditorTableSpec): boolean {
       (column.kind === 'number' &&
         (!column.format || column.format === 'plain')),
   );
+}
+
+function hasAutocompleteColumn(spec: NormalizedEditorTableSpec): boolean {
+  return spec.columns.some((column) => column.kind === 'autocomplete');
+}
+
+function emitAutocompleteOptionConsts(spec: NormalizedEditorTableSpec): string {
+  return spec.columns
+    .filter((column) => column.kind === 'autocomplete')
+    .map((column) => {
+      const rows = column.options
+        .map(
+          (option) =>
+            `  { value: ${quote(option.value)}, label: ${quote(option.label)} },`,
+        )
+        .join('\n');
+      return `const ${column.name}Options: AutocompleteOption[] = [\n${rows}\n];`;
+    })
+    .join('\n\n');
 }
 
 function hasPasswordColumn(spec: NormalizedEditorTableSpec): boolean {
@@ -656,6 +685,7 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const editable = hasEditableColumn(spec);
   const computed = hasComputedColumn(spec);
   const plainInput = hasPlainInputColumn(spec);
+  const autocomplete = hasAutocompleteColumn(spec);
   const password = hasPasswordColumn(spec);
   const formattedNumber = hasFormattedNumberColumn(spec);
   const date = hasDateColumn(spec);
@@ -696,6 +726,14 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
     lines.push("import { Checkbox } from '@/components/ui/checkbox';");
   if (plainInput || multiEdit)
     lines.push("import { Input } from '@/components/ui/input';");
+  if (autocomplete) {
+    lines.push(
+      "import { AutocompleteInput } from '@/components/ui/autocomplete-input';",
+    );
+    lines.push(
+      "import type { AutocompleteOption } from '@/components/ui/autocomplete-input';",
+    );
+  }
   if (password)
     lines.push(
       "import { PasswordInput } from '@/components/ui/password-input';",
@@ -972,5 +1010,6 @@ ${returnClose}
   );
 }`;
 
-  return `${banner(spec.specPath)}\n${emitImports(spec)}\n\n${body}\n`;
+  const autocompleteOptions = emitAutocompleteOptionConsts(spec);
+  return `${banner(spec.specPath)}\n${emitImports(spec)}${autocompleteOptions ? `\n\n${autocompleteOptions}` : ''}\n\n${body}\n`;
 }

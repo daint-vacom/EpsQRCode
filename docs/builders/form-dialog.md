@@ -58,20 +58,21 @@ Static select-like options are emitted as module constants only when `optionsFro
 
 ## Field Kinds
 
-| Kind              | Project control       | Binding                                                      |
-| ----------------- | --------------------- | ------------------------------------------------------------ |
-| `text`            | `Input`               | `{...field}`                                                 |
-| `number`          | `Input type="number"` | `{...field}`; prefer `z.coerce.number()` for numeric schemas |
-| `date`            | `DatePickerInput`     | `value`, `onChange`, and `onBlur`                            |
-| `textarea`        | `Textarea`            | `{...field}`                                                 |
-| `select`          | `OptionSelect`        | `value` and `onChange`; local search is disabled              |
-| `combobox`        | `OptionSelect`        | `value` and `onChange`; searchable                            |
-| `searchSelect`    | `OptionSelect`        | `value` and `onChange`; searchable                            |
-| `apiSearchSelect` | `ApiOptionSelect`     | `value` and `onChange`, plus a generated server-side loader  |
-| `customerSelect`  | `CustomerSelect`      | `value` and `onChange`; the component owns customer fetching |
-| `inputSelect`     | `InputSelect`         | primary input field + secondary select field                 |
-| `multiselect`     | `MultiSelect`         | `value` and `onChange`                                       |
-| `switch`          | `Switch`              | `checked` and `onCheckedChange`                              |
+| Kind              | Project control       | Binding                                                           |
+| ----------------- | --------------------- | ----------------------------------------------------------------- |
+| `text`            | `Input`               | `{...field}`                                                      |
+| `number`          | `Input type="number"` | `{...field}`; prefer `z.coerce.number()` for numeric schemas      |
+| `date`            | `DatePickerInput`     | `value`, `onChange`, and `onBlur`                                 |
+| `textarea`        | `Textarea`            | `{...field}`                                                      |
+| `select`          | `OptionSelect`        | `value` and `onChange`; local search is disabled                  |
+| `combobox`        | `OptionSelect`        | `value` and `onChange`; searchable                                |
+| `autocomplete`    | `AutocompleteInput`   | `value` and `onChange`; inline suggestion with keyboard selection |
+| `searchSelect`    | `OptionSelect`        | `value` and `onChange`; searchable                                |
+| `apiSearchSelect` | `ApiOptionSelect`     | `value` and `onChange`, plus a generated server-side loader       |
+| `customerSelect`  | `CustomerSelect`      | `value` and `onChange`; the component owns customer fetching      |
+| `inputSelect`     | `InputSelect`         | primary input field + secondary select field                      |
+| `multiselect`     | `MultiSelect`         | `value` and `onChange`                                            |
+| `switch`          | `Switch`              | `checked` and `onCheckedChange`                                   |
 
 Date fields may set `format: 'display' | 'iso'`; number fields may set
 `format: 'plain' | 'currency' | 'percent'`. These semantic presets are defined once by the shared

@@ -43,6 +43,7 @@ For the current order edit pilot, prefer `remaining`.
 | ------------------ | ------------------------------------------------------------- |
 | `index`            | 1-based row number                                            |
 | `text`             | compact text/email/tel/url input cell                         |
+| `autocomplete`     | shared autocomplete input cell from declared options          |
 | `number`           | compact numeric input cell                                    |
 | `date`             | compact date input cell                                       |
 | `computedCurrency` | read-only VND cell stub for page-owned row calculations       |

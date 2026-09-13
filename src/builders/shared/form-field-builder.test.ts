@@ -43,6 +43,16 @@ describe('form-field builder', () => {
     ).toContain('options={regionOptions}');
     expect(
       buildFormFieldControl({
+        kind: 'autocomplete',
+        surface: 'form',
+        optionsExpression: 'softwareOptions',
+        emptyMessage: 'Không có phần mềm phù hợp',
+      }),
+    ).toContain(
+      '<AutocompleteInput value={field.value} onChange={field.onChange} options={softwareOptions} emptyMessage="Không có phần mềm phù hợp"',
+    );
+    expect(
+      buildFormFieldControl({
         kind: 'multiselect',
         surface: 'form',
         optionsExpression: 'tagOptions',

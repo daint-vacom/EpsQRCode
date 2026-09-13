@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const EMPLOYEE_TAG_GROUP_CODE = 'employees' as const;
 export const CUSTOMER_TAG_GROUP_CODE = 'customers' as const;
 export const CONTRACT_TAG_GROUP_CODE = 'contracts' as const;
+export const SOFTWARE_ACCOUNT_CATALOG_GROUP_CODE = 'software-accounts' as const;
+
+export const TAG_GROUP_KINDS = ['tag', 'software_account_catalog'] as const;
+export type TagGroupKind = (typeof TAG_GROUP_KINDS)[number];
 
 export const tagGroupFormSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm danh mục.'),
@@ -47,6 +51,7 @@ export interface TagGroup {
   moduleCode: string | null;
   moduleName: string | null;
   isSystem: boolean;
+  kind: TagGroupKind;
   sortOrder: number;
   isActive: boolean;
   tagCount: number;
@@ -121,6 +126,7 @@ export interface TagGroupRow {
   is_system: boolean;
   sort_order: number;
   is_active: boolean;
+  kind: TagGroupKind;
 }
 
 export interface TagRow {

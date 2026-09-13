@@ -7,6 +7,7 @@ import {
   updateTenantSavedView,
 } from '@/project/saved-views/api/saved-views.api';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
+import { loadSoftwareAccountCatalogs } from '@/project/tags/api/software-account-catalog.api';
 import { replaceSubjectTags } from '@/project/tags/api/tags.api';
 import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -219,6 +220,11 @@ export function CustomersPage() {
     queryFn: () => loadCustomerCustomFields(tenantId!),
     enabled: Boolean(tenantId),
     staleTime: 60 * 1000,
+  });
+  const softwareAccountCatalogsQuery = useQuery({
+    queryKey: ['project', 'tags', 'software-account-catalog', tenantId, 'all'],
+    queryFn: () => loadSoftwareAccountCatalogs(tenantId!, true),
+    enabled: Boolean(tenantId && dialogOpen),
   });
 
   const customerCustomDataQuery = useQuery({
@@ -1038,6 +1044,7 @@ export function CustomersPage() {
               }
             : undefined
         }
+        softwareAccountCatalogs={softwareAccountCatalogsQuery.data ?? []}
         title={
           <>
             Sửa khách hàng:{' '}

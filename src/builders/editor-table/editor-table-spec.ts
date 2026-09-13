@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import {
+  autocompleteFieldControlSchema,
   dateFieldControlSchema,
   numberFieldControlSchema,
   textFieldControlSchema,
 } from '../shared/form-field-spec';
-import { identifierSchema } from '../shared/schema-primitives';
+import { identifierSchema, optionSchema } from '../shared/schema-primitives';
 
 const identifier = identifierSchema;
 
@@ -32,6 +33,15 @@ const textColumn = textFieldControlSchema.extend({
   bulkEdit: z.boolean().default(false),
   ...fieldColumnBase,
 });
+
+const autocompleteColumn = autocompleteFieldControlSchema
+  .extend({
+    options: z.array(optionSchema).min(1),
+  })
+  .extend({
+    bulkEdit: z.boolean().default(false),
+    ...fieldColumnBase,
+  });
 
 const numberColumn = numberFieldControlSchema.extend({
   min: z.number().optional(),
@@ -68,6 +78,7 @@ const customColumn = z.object({
 export const editorTableColumnSchema = z.discriminatedUnion('kind', [
   indexColumn,
   textColumn,
+  autocompleteColumn,
   numberColumn,
   dateColumn,
   computedCurrencyColumn,

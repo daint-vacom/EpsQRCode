@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { loadSoftwareAccountCatalogs } from '@/project/tags/api/software-account-catalog.api';
 import { replaceSubjectTags } from '@/project/tags/api/tags.api';
 import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter';
 import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
@@ -101,6 +102,17 @@ export function CustomerEditDialog({
       customer.id,
     ],
     queryFn: () => loadCustomerSoftwareAccounts(customer.id),
+    enabled: Boolean(open),
+  });
+  const softwareAccountCatalogsQuery = useQuery({
+    queryKey: [
+      'project',
+      'tags',
+      'software-account-catalog',
+      customer.tenantId,
+      'all',
+    ],
+    queryFn: () => loadSoftwareAccountCatalogs(customer.tenantId, true),
     enabled: Boolean(open),
   });
 
@@ -251,6 +263,7 @@ export function CustomerEditDialog({
         onAssignmentsChange: handleResponsibilityAssignmentsChange,
         onValidationChange: setResponsibilityIsValid,
       }}
+      softwareAccountCatalogs={softwareAccountCatalogsQuery.data ?? []}
       title={
         <>
           Sửa khách hàng:{' '}

@@ -45,6 +45,7 @@ interface CustomerSoftwareAccountRpcRow {
   id: string;
   tenant_id: string;
   customer_id: string;
+  catalog_id: string | null;
   software_name: string;
   access_url: string;
   username: string;
@@ -396,6 +397,7 @@ function mapCustomerSoftwareAccount(
 ): CustomerSoftwareAccount {
   return {
     id: row.id,
+    catalogId: row.catalog_id,
     softwareName: row.software_name,
     accessUrl: row.access_url,
     username: row.username,
@@ -429,6 +431,7 @@ export async function replaceCustomerSoftwareAccounts(
       p_customer_id: customerId,
       p_rows: rows.map((row, sortOrder) => ({
         ...(row.id ? { id: row.id } : {}),
+        catalogId: row.catalogId ?? null,
         softwareName: row.softwareName,
         accessUrl: row.accessUrl,
         username: row.username,

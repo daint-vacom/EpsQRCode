@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { TagSelect } from '@/project/tags/components/tag-select';
+import type { SoftwareAccountCatalog } from '@/project/tags/model/software-account-catalog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, MapPin, Plus, RefreshCw, UserRound } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
@@ -214,6 +215,7 @@ interface CustomerFormProps {
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
   customerResponsibility?: CustomerResponsibilityFormContext;
+  softwareAccountCatalogs?: SoftwareAccountCatalog[];
 }
 
 export function CustomerForm({
@@ -231,6 +233,7 @@ export function CustomerForm({
   onReloadCustomFields,
   isReloadingCustomFields = false,
   customerResponsibility,
+  softwareAccountCatalogs = [],
 }: CustomerFormProps) {
   const formErrors = form.formState.errors;
   const tabErrorCounts = {
@@ -768,6 +771,7 @@ export function CustomerForm({
                 <CustomerSoftwareAccountsEditorTable
                   form={form}
                   createRow={createEmptyCustomerSoftwareAccount}
+                  catalogs={softwareAccountCatalogs}
                 />
               </TabsContent>
             </Tabs>
@@ -880,6 +884,7 @@ interface CustomerFormDialogProps {
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
   customerResponsibility?: CustomerResponsibilityFormContext;
+  softwareAccountCatalogs?: SoftwareAccountCatalog[];
   isSubmitDisabled?: boolean;
 }
 
@@ -1005,6 +1010,7 @@ export function CustomerFormDialog({
   onReloadCustomFields,
   isReloadingCustomFields = false,
   customerResponsibility,
+  softwareAccountCatalogs = [],
   isSubmitDisabled = false,
 }: CustomerFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -1104,6 +1110,7 @@ export function CustomerFormDialog({
               onReloadCustomFields={onReloadCustomFields}
               isReloadingCustomFields={isReloadingCustomFields}
               customerResponsibility={customerResponsibility}
+              softwareAccountCatalogs={softwareAccountCatalogs}
             />
           </div>
 

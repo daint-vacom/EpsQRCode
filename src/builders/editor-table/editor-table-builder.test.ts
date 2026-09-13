@@ -71,6 +71,32 @@ describe('buildEditorTableModule', () => {
     expect(source).toContain('formatCurrencyVND(lineTotal)');
   });
 
+  it('generates autocomplete cells from declared options', () => {
+    const autocompleteSource = buildEditorTableModule({
+      ...orderItemsSpec,
+      actions: { enabled: false },
+      columns: [
+        {
+          kind: 'autocomplete',
+          name: 'softwareName',
+          header: 'Tên phần mềm',
+          options: [
+            { value: 'vashop', label: 'Vashop' },
+            { value: 'misa', label: 'MISA' },
+          ],
+        },
+      ],
+    });
+
+    expect(autocompleteSource).toContain(
+      "import { AutocompleteInput } from '@/components/ui/autocomplete-input';",
+    );
+    expect(autocompleteSource).toContain(
+      'const softwareNameOptions: AutocompleteOption[]',
+    );
+    expect(autocompleteSource).toContain('options={softwareNameOptions}');
+  });
+
   it('emits feature-owned custom cell scaffolds', () => {
     const sourceWithCustomCell = buildEditorTableModule({
       ...orderItemsSpec,

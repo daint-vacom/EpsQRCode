@@ -4,6 +4,7 @@ import {
   Building2,
   FileText,
   Folder,
+  KeyRound,
   Settings2,
   ShoppingCart,
   Users,
@@ -25,6 +26,7 @@ const SYSTEM_MODULE_ICONS: Record<string, LucideIcon> = {
 
 const SYSTEM_GROUP_ICONS: Record<string, LucideIcon> = {
   employees: Users,
+  'software-accounts': KeyRound,
 };
 
 export interface TagGroupIconProps {

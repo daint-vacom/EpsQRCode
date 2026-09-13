@@ -53,6 +53,13 @@ export const comboboxFieldControlSchema = z.object({
   searchPlaceholder: z.string().optional(),
 });
 
+export const autocompleteFieldControlSchema = z.object({
+  kind: z.literal('autocomplete'),
+  options: z.array(optionSchema).optional(),
+  optionsFrom: optionsSourceSchema.optional(),
+  emptyMessage: z.string().optional(),
+});
+
 export const searchSelectFieldControlSchema = z.object({
   kind: z.literal('searchSelect'),
   options: z.array(optionSchema).optional(),
@@ -112,6 +119,7 @@ export const formFieldControlSchemas = {
   textarea: textareaFieldControlSchema,
   select: selectFieldControlSchema,
   combobox: comboboxFieldControlSchema,
+  autocomplete: autocompleteFieldControlSchema,
   searchSelect: searchSelectFieldControlSchema,
   apiSearchSelect: apiSearchSelectFieldControlSchema,
   customerSelect: customerSelectFieldControlSchema,
@@ -129,6 +137,7 @@ export const formFieldControlSchema = z.discriminatedUnion('kind', [
   textareaFieldControlSchema,
   selectFieldControlSchema,
   comboboxFieldControlSchema,
+  autocompleteFieldControlSchema,
   searchSelectFieldControlSchema,
   apiSearchSelectFieldControlSchema,
   customerSelectFieldControlSchema,
@@ -148,6 +157,9 @@ export type SharedTextareaFieldControl = z.infer<
 export type SharedSelectFieldControl = z.infer<typeof selectFieldControlSchema>;
 export type SharedComboboxFieldControl = z.infer<
   typeof comboboxFieldControlSchema
+>;
+export type SharedAutocompleteFieldControl = z.infer<
+  typeof autocompleteFieldControlSchema
 >;
 export type SharedSearchSelectFieldControl = z.infer<
   typeof searchSelectFieldControlSchema
