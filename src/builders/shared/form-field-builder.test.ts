@@ -95,6 +95,22 @@ describe('form-field builder', () => {
     );
   });
 
+  it('supports a password control and cell pointer isolation', () => {
+    const source = buildFormFieldControl({
+      kind: 'text',
+      surface: 'cell',
+      fieldExpression: 'inputField',
+      componentName: 'PasswordInput',
+      onPointerDownExpression: '(event) => event.stopPropagation()',
+    });
+
+    expect(source).toContain('<PasswordInput');
+    expect(source).toContain(
+      'onPointerDown={(event) => event.stopPropagation()}',
+    );
+    expect(source).not.toContain('type="password"');
+  });
+
   it('renders the API search select with its loader contract', () => {
     const source = buildFormFieldControl({
       kind: 'apiSearchSelect',

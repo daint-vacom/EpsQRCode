@@ -141,19 +141,21 @@ function tooltipRender(
       const ${warningName} = ${warningExpression};
       const ${messageName} = ${fieldError(column)}?.message ?? ${warningName};
 
-      return (
+      return ${messageName} ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="block w-full">
 ${indent(control, 14)}
             </span>
           </TooltipTrigger>
-          {${messageName} && (
-            <TooltipContent variant={${fieldError(column)} ? 'destructive' : 'warning'}>
-              {${messageName}}
-            </TooltipContent>
-          )}
+          <TooltipContent variant={${fieldError(column)} ? 'destructive' : 'warning'}>
+            {${messageName}}
+          </TooltipContent>
         </Tooltip>
+      ) : (
+        <span className="block w-full">
+${indent(control, 10)}
+        </span>
       );
     }}`;
 }
@@ -172,6 +174,11 @@ function editableCell(
     warningExpression: column.warningExpression
       ? `Boolean(${column.name}Warning)`
       : undefined,
+    onPointerDownExpression: '(event) => event.stopPropagation()',
+    componentName:
+      column.kind === 'text' && column.inputType === 'password'
+        ? 'PasswordInput'
+        : undefined,
   };
 
   const control =
@@ -608,12 +615,18 @@ function hasComputedColumn(spec: NormalizedEditorTableSpec): boolean {
   return spec.columns.some((column) => column.kind === 'computedCurrency');
 }
 
-function hasInputColumn(spec: NormalizedEditorTableSpec): boolean {
+function hasPlainInputColumn(spec: NormalizedEditorTableSpec): boolean {
   return spec.columns.some(
     (column) =>
-      column.kind === 'text' ||
+      (column.kind === 'text' && column.inputType !== 'password') ||
       (column.kind === 'number' &&
         (!column.format || column.format === 'plain')),
+  );
+}
+
+function hasPasswordColumn(spec: NormalizedEditorTableSpec): boolean {
+  return spec.columns.some(
+    (column) => column.kind === 'text' && column.inputType === 'password',
   );
 }
 
@@ -642,7 +655,8 @@ function hasMultiEdit(spec: NormalizedEditorTableSpec): boolean {
 function emitImports(spec: NormalizedEditorTableSpec): string {
   const editable = hasEditableColumn(spec);
   const computed = hasComputedColumn(spec);
-  const input = hasInputColumn(spec);
+  const plainInput = hasPlainInputColumn(spec);
+  const password = hasPasswordColumn(spec);
   const formattedNumber = hasFormattedNumberColumn(spec);
   const date = hasDateColumn(spec);
   const multiEdit = hasMultiEdit(spec);
@@ -680,8 +694,12 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   }
   if (multiEdit)
     lines.push("import { Checkbox } from '@/components/ui/checkbox';");
-  if (input || multiEdit)
+  if (plainInput || multiEdit)
     lines.push("import { Input } from '@/components/ui/input';");
+  if (password)
+    lines.push(
+      "import { PasswordInput } from '@/components/ui/password-input';",
+    );
   if (formattedNumber)
     lines.push(
       "import { NumericInput } from '@/components/ui/inputs/numeric-input';",
@@ -884,12 +902,6 @@ ${actionHandlers ? `\n${actionHandlers}` : ''}${reorderHandlers}${bulkEditSetup}
   return (
 ${returnOpen}
       <div className="${spec.tableMinWidthClass}">
-        <table className="w-full caption-bottom text-foreground text-sm">
-        <TableHeader>
-          <TableRow>
-${indent(emitHeaders(spec), 12)}
-          </TableRow>
-        </TableHeader>
 ${
   spec.reorder.enabled
     ? `        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -897,9 +909,15 @@ ${
             items={fields.map((field) => field.fieldId)}
             strategy={verticalListSortingStrategy}
           >
-            <TableBody>`
-    : '        <TableBody>'
-}
+`
+    : ''
+}        <table className="w-full caption-bottom text-foreground text-sm">
+        <TableHeader>
+          <TableRow>
+${indent(emitHeaders(spec), 12)}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {fields.length === 0 ? (
             <TableRow>
               <TableCell colSpan={${columnCount}} className="h-28 text-center">
@@ -940,13 +958,13 @@ ${indent(emitCells(spec), 18)}
             })
           )}
         </TableBody>
+        </table>
 ${
   spec.reorder.enabled
-    ? `          </SortableContext>
+    ? `        </SortableContext>
         </DndContext>`
     : ''
 }
-        </table>
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>

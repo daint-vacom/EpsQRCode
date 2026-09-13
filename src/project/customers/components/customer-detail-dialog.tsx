@@ -1,5 +1,6 @@
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
+import { Input } from '@/components/ui/input';
 import {
   countMatchingEntityDetailDialogFields,
   EntityDetailDialogTable,
@@ -396,7 +397,17 @@ function CustomerSoftwareAccountSubRows({
     { label: 'Tài khoản', value: displayValue(account.username) },
     {
       label: 'Mật khẩu',
-      value: account.hasPassword ? 'Đã lưu mật khẩu' : 'Chưa có mật khẩu',
+      value: account.hasPassword ? (
+        <Input
+          aria-label="Mật khẩu"
+          className="h-8.5 max-w-sm border-0 bg-transparent px-0 shadow-none [&[readonly]]:bg-transparent [&[readonly]]:cursor-default"
+          readOnly
+          type="password"
+          value={account.password || 'password'}
+        />
+      ) : (
+        ''
+      ),
     },
     { label: 'Loại tài khoản', value: displayValue(account.accountType) },
     { label: 'Ngày hết hạn', value: formatCustomerDate(account.expiresAt) },

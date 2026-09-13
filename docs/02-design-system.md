@@ -44,6 +44,19 @@ Use the live tokens as source of truth. This document does not duplicate a color
 - Align numeric values for scanning and use Vietnamese formatting utilities.
 - Keep row actions discoverable without flooding every row with text buttons.
 
+### Editor table có reorder và focus
+
+- Với editor table có kéo thả, `DndContext` và `SortableContext` phải bao quanh toàn bộ
+  `<table>` từ bên ngoài. Không đặt `DndContext` trực tiếp giữa `<table>` và `<thead>`/
+  `<tbody>` vì DnD có thể render node hỗ trợ dạng `div`, làm HTML không hợp lệ; trình duyệt
+  sẽ tự sửa cây DOM và gây lỗi layout hoặc làm focus bật về dialog.
+- Cell có input phải giữ control thật làm target tương tác. Chỉ bọc control bằng `Tooltip`
+  khi thực sự có message lỗi/cảnh báo; trạng thái bình thường không nên có wrapper tooltip
+  thừa can thiệp vào pointer/focus.
+- Sau mỗi thay đổi ở editor table, kiểm tra chuyển focus liên tiếp qua nhiều loại input trong
+  nhiều dòng, bao gồm text, URL, mật khẩu và date. Console không được có cảnh báo nested DOM
+  trong `<table>`, và cấu trúc con trực tiếp của bảng phải giữ đúng `THEAD` và `TBODY`.
+
 Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 
 ## Forms And Dialogs

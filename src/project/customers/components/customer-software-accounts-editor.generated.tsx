@@ -26,6 +26,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   TableBody,
@@ -111,40 +112,40 @@ export function CustomerSoftwareAccountsEditorTable({
         viewportClassName="h-full min-w-0 overflow-y-auto"
       >
         <div className="min-w-[1160px]">
-          <table className="w-full caption-bottom text-foreground text-sm">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky top-0 z-20 w-12 bg-muted text-center"></TableHead>
-                <TableHead className="sticky top-0 z-20 min-w-48 bg-muted">
-                  Tên phần mềm *
-                </TableHead>
-                <TableHead className="sticky top-0 z-20 min-w-56 bg-muted">
-                  Địa chỉ truy cập
-                </TableHead>
-                <TableHead className="sticky top-0 z-20 min-w-44 bg-muted">
-                  Tài khoản
-                </TableHead>
-                <TableHead className="sticky top-0 z-20 min-w-40 bg-muted">
-                  Mật khẩu
-                </TableHead>
-                <TableHead className="sticky top-0 z-20 w-40 bg-muted">
-                  Loại tài khoản
-                </TableHead>
-                <TableHead className="sticky top-0 z-20 w-44 bg-muted">
-                  Ngày hết hạn
-                </TableHead>
-                <TableHead className="sticky top-0 right-0 z-30 w-16 bg-muted text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={fields.map((field) => field.fieldId)}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={fields.map((field) => field.fieldId)}
-                strategy={verticalListSortingStrategy}
-              >
+              <table className="w-full caption-bottom text-foreground text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky top-0 z-20 w-12 bg-muted text-center"></TableHead>
+                    <TableHead className="sticky top-0 z-20 min-w-48 bg-muted">
+                      Tên phần mềm *
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 min-w-56 bg-muted">
+                      Địa chỉ truy cập
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 min-w-44 bg-muted">
+                      Tài khoản
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 min-w-40 bg-muted">
+                      Mật khẩu
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 w-40 bg-muted">
+                      Loại tài khoản
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 w-44 bg-muted">
+                      Ngày hết hạn
+                    </TableHead>
+                    <TableHead className="sticky top-0 right-0 z-30 w-16 bg-muted text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {fields.length === 0 ? (
                     <TableRow>
@@ -158,7 +159,8 @@ export function CustomerSoftwareAccountsEditorTable({
                   ) : (
                     fields.map((field, index) => {
                       const row = watchedRows[index] as
-                        CustomerSoftwareAccount | undefined;
+                        | CustomerSoftwareAccount
+                        | undefined;
                       const errors =
                         form.formState.errors.softwareAccounts?.[index];
 
@@ -192,7 +194,7 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.softwareName?.message ??
                                       softwareNameWarning;
 
-                                    return (
+                                    return softwareNameMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
@@ -202,22 +204,35 @@ export function CustomerSoftwareAccountsEditorTable({
                                               aria-invalid={
                                                 !!errors?.softwareName
                                               }
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               variant="md"
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {softwareNameMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.softwareName
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {softwareNameMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.softwareName
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {softwareNameMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <Input
+                                          {...inputField}
+                                          aria-label={`Tên phần mềm * dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.softwareName}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          variant="md"
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -232,7 +247,7 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.accessUrl?.message ??
                                       accessUrlWarning;
 
-                                    return (
+                                    return accessUrlMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
@@ -240,23 +255,37 @@ export function CustomerSoftwareAccountsEditorTable({
                                               {...inputField}
                                               aria-label={`Địa chỉ truy cập dòng ${index + 1}`}
                                               aria-invalid={!!errors?.accessUrl}
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               type="url"
                                               variant="md"
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {accessUrlMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.accessUrl
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {accessUrlMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.accessUrl
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {accessUrlMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <Input
+                                          {...inputField}
+                                          aria-label={`Địa chỉ truy cập dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.accessUrl}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          type="url"
+                                          variant="md"
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -271,7 +300,7 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.username?.message ??
                                       usernameWarning;
 
-                                    return (
+                                    return usernameMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
@@ -279,22 +308,35 @@ export function CustomerSoftwareAccountsEditorTable({
                                               {...inputField}
                                               aria-label={`Tài khoản dòng ${index + 1}`}
                                               aria-invalid={!!errors?.username}
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               variant="md"
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {usernameMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.username
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {usernameMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.username
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {usernameMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <Input
+                                          {...inputField}
+                                          aria-label={`Tài khoản dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.username}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          variant="md"
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -309,11 +351,11 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.password?.message ??
                                       passwordWarning;
 
-                                    return (
+                                    return passwordMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
-                                            <Input
+                                            <PasswordInput
                                               {...inputField}
                                               aria-label={`Mật khẩu dòng ${index + 1}`}
                                               aria-invalid={!!errors?.password}
@@ -322,23 +364,40 @@ export function CustomerSoftwareAccountsEditorTable({
                                                   ? 'Đã lưu mật khẩu'
                                                   : undefined
                                               }
-                                              type="password"
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               variant="md"
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {passwordMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.password
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {passwordMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.password
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {passwordMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <PasswordInput
+                                          {...inputField}
+                                          aria-label={`Mật khẩu dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.password}
+                                          placeholder={
+                                            row?.hasPassword
+                                              ? 'Đã lưu mật khẩu'
+                                              : undefined
+                                          }
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          variant="md"
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -353,7 +412,7 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.accountType?.message ??
                                       accountTypeWarning;
 
-                                    return (
+                                    return accountTypeMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
@@ -363,22 +422,35 @@ export function CustomerSoftwareAccountsEditorTable({
                                               aria-invalid={
                                                 !!errors?.accountType
                                               }
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               variant="md"
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {accountTypeMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.accountType
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {accountTypeMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.accountType
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {accountTypeMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <Input
+                                          {...inputField}
+                                          aria-label={`Loại tài khoản dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.accountType}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          variant="md"
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -393,7 +465,7 @@ export function CustomerSoftwareAccountsEditorTable({
                                       errors?.expiresAt?.message ??
                                       expiresAtWarning;
 
-                                    return (
+                                    return expiresAtMessage ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span className="block w-full">
@@ -404,23 +476,40 @@ export function CustomerSoftwareAccountsEditorTable({
                                               value={inputField.value}
                                               valueMode="iso-date"
                                               variant="md"
+                                              onPointerDown={(event) =>
+                                                event.stopPropagation()
+                                              }
                                               onBlur={inputField.onBlur}
                                               onChange={inputField.onChange}
                                             />
                                           </span>
                                         </TooltipTrigger>
-                                        {expiresAtMessage && (
-                                          <TooltipContent
-                                            variant={
-                                              errors?.expiresAt
-                                                ? 'destructive'
-                                                : 'warning'
-                                            }
-                                          >
-                                            {expiresAtMessage}
-                                          </TooltipContent>
-                                        )}
+                                        <TooltipContent
+                                          variant={
+                                            errors?.expiresAt
+                                              ? 'destructive'
+                                              : 'warning'
+                                          }
+                                        >
+                                          {expiresAtMessage}
+                                        </TooltipContent>
                                       </Tooltip>
+                                    ) : (
+                                      <span className="block w-full">
+                                        <DatePickerInput
+                                          aria-label={`Ngày hết hạn dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.expiresAt}
+                                          calendarLabel={`Chọn ngày hết hạn dòng ${index + 1}`}
+                                          value={inputField.value}
+                                          valueMode="iso-date"
+                                          variant="md"
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          onBlur={inputField.onBlur}
+                                          onChange={inputField.onChange}
+                                        />
+                                      </span>
                                     );
                                   }}
                                 />
@@ -460,9 +549,9 @@ export function CustomerSoftwareAccountsEditorTable({
                     </TableCell>
                   </TableRow>
                 </TableBody>
-              </SortableContext>
-            </DndContext>
-          </table>
+              </table>
+            </SortableContext>
+          </DndContext>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>

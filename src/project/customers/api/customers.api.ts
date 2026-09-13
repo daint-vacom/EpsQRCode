@@ -48,6 +48,7 @@ interface CustomerSoftwareAccountRpcRow {
   software_name: string;
   access_url: string;
   username: string;
+  password?: string | null;
   account_type: string;
   expires_at: string | null;
   sort_order: number;
@@ -398,7 +399,7 @@ function mapCustomerSoftwareAccount(
     softwareName: row.software_name,
     accessUrl: row.access_url,
     username: row.username,
-    password: '',
+    password: row.password ?? '',
     accountType: row.account_type,
     expiresAt: row.expires_at,
     hasPassword: row.has_password,
@@ -410,7 +411,7 @@ export async function loadCustomerSoftwareAccounts(
 ): Promise<CustomerSoftwareAccount[]> {
   assertSupabaseConfigured();
   const rows = await request<CustomerSoftwareAccountRpcRow[]>(
-    supabaseApi.post('/rpc/list_customer_software_accounts', {
+    supabaseApi.post('/rpc/list_customer_software_accounts_with_password', {
       p_customer_id: customerId,
     }),
   );

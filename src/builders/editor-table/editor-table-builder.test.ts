@@ -164,6 +164,34 @@ describe('buildEditorTableModule', () => {
     expect(sortable).toContain('const handleDragEnd = ({ active, over }');
     expect(sortable).toContain('move(oldIndex, newIndex);');
     expect(sortable).toContain('Kéo để sắp xếp dòng');
+    expect(sortable.indexOf('<DndContext')).toBeLessThan(
+      sortable.indexOf('<table'),
+    );
+    expect(sortable.indexOf('</table>')).toBeLessThan(
+      sortable.indexOf('</DndContext>'),
+    );
+  });
+
+  it('uses the password control and isolates cell pointer events', () => {
+    const source = buildEditorTableModule({
+      ...orderItemsSpec,
+      columns: [
+        {
+          kind: 'text',
+          name: 'password',
+          header: 'Mật khẩu',
+          inputType: 'password',
+        },
+      ],
+    });
+
+    expect(source).toContain(
+      "import { PasswordInput } from '@/components/ui/password-input';",
+    );
+    expect(source).toContain('<PasswordInput');
+    expect(source).toContain(
+      'onPointerDown={(event) => event.stopPropagation()}',
+    );
   });
 
   it('allows an editor table to keep only the configured row actions', () => {
@@ -290,6 +318,8 @@ describe('buildEditorTableModule', () => {
     expect(withWarning).toContain(
       "variant={errors?.sku ? 'destructive' : 'warning'}",
     );
+    expect(withWarning).toContain('return skuMessage ? (');
+    expect(withWarning).toContain('<span className="block w-full">');
     expect(withWarning).not.toContain(
       'className="mt-1 text-xs text-destructive"',
     );

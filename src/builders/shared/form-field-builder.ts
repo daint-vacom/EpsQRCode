@@ -4,7 +4,10 @@ import {
 } from './field-control-registry';
 
 export type FormFieldBinding =
-  'spread' | 'select' | 'valueOnChange' | 'checked';
+  | 'spread'
+  | 'select'
+  | 'valueOnChange'
+  | 'checked';
 
 export interface FormFieldControlOptions {
   kind: FormFieldControlKind;
@@ -16,6 +19,7 @@ export interface FormFieldControlOptions {
   onChangeExpression?: string;
   onChangeHandlerExpression?: string;
   onBlurExpression?: string;
+  onPointerDownExpression?: string;
   selectFieldExpression?: string;
   selectValueExpression?: string;
   selectChangeExpression?: string;
@@ -23,6 +27,7 @@ export interface FormFieldControlOptions {
   selectPlaceholder?: string;
   selectAriaInvalidExpression?: string;
   variant?: string;
+  componentName?: 'Input' | 'PasswordInput';
   placeholder?: string;
   inputType?: string;
   rows?: number;
@@ -90,6 +95,9 @@ function inputAttributes(options: FormFieldControlOptions): string {
     expressionAttribute('aria-invalid', options.ariaInvalidExpression),
     expressionAttribute('warning', options.warningExpression),
     expressionAttribute('disabled', options.disabledExpression),
+    options.onPointerDownExpression
+      ? ` onPointerDown={${options.onPointerDownExpression}}`
+      : '',
     attribute('className', options.className),
   ];
 
@@ -139,6 +147,8 @@ export function buildFormFieldControl(
         options.format !== 'plain';
       const type = options.kind === 'number' ? 'number' : options.inputType;
       const typeAttr = type && type !== 'text' ? ` type="${type}"` : '';
+      const inputTypeAttr =
+        options.componentName === 'PasswordInput' ? '' : typeAttr;
       const controlled =
         binding !== 'spread' ||
         options.valueExpression !== undefined ||
@@ -153,10 +163,10 @@ export function buildFormFieldControl(
       const input = isFormattedNumber
         ? `<NumericInput${attrs}${numberFormatSuffix(options.format)}${placeholder} value={${value}}${variant}\n        onBlur={${blur}}\n        onValueChange={${change}}\n      />`
         : controlled
-          ? `<Input${attrs}${typeAttr}${placeholder} value={${value}}${variant}\n        onBlur={${blur}}${changeAttribute}\n      />`
+          ? `<${options.componentName ?? 'Input'}${attrs}${inputTypeAttr}${placeholder} value={${value}}${variant}\n        onBlur={${blur}}${changeAttribute}\n      />`
           : options.surface === 'cell'
-            ? `<Input {...${field}}${attrs}${typeAttr}${variant} />`
-            : `<Input${typeAttr}${placeholder}${variant} {...${field}} />`;
+            ? `<${options.componentName ?? 'Input'} {...${field}}${attrs}${inputTypeAttr}${variant} />`
+            : `<${options.componentName ?? 'Input'}${inputTypeAttr}${placeholder}${variant} {...${field}} />`;
 
       return `${controlOpen(options)}${input}${controlClose(options)}`;
     }
