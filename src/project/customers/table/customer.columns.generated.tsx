@@ -10,7 +10,7 @@ import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, Search, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
@@ -62,6 +62,8 @@ const statusBadgeConfig: StatusBadgeConfig<string> = {
 };
 
 export interface UseCustomerColumnsParams {
+  onLookup: (customer: Customer) => void;
+  onOpenDetail: (customer: Customer) => void;
   onEdit: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
   customFields: CustomField[];
@@ -344,11 +346,33 @@ export function useCustomerColumns(
       col.actions({
         id: 'actions',
         header: '',
-        size: getDataGridActionsColumnSize(2),
+        size: getDataGridActionsColumnSize(4),
         cellClassName: 'text-right',
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
+            <DataGridActionButton
+              action="other"
+              tooltip="Mở trang chi tiết"
+              type="button"
+              mode="icon"
+              size="sm"
+              aria-label={`Mở trang chi tiết khách hàng ${row.name}`}
+              onClick={() => params.onOpenDetail(row)}
+            >
+              <ExternalLink className="size-4" />
+            </DataGridActionButton>
+            <DataGridActionButton
+              action="view"
+              tooltip="Tra cứu"
+              type="button"
+              mode="icon"
+              size="sm"
+              aria-label={`Tra cứu khách hàng ${row.name}`}
+              onClick={() => params.onLookup(row)}
+            >
+              <Search className="size-4" />
+            </DataGridActionButton>
             <DataGridActionButton
               action="edit"
               tooltip="Sửa"

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ROUTES } from '@/constants/routes';
+import { buildPath, ROUTES } from '@/constants/routes';
 import {
   createTenantSavedView,
   deleteTenantSavedView,
@@ -24,6 +24,7 @@ import {
   TriangleAlert,
   UserRoundSearch,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -62,6 +63,7 @@ import {
   loadCustomerCustomFields,
   loadCustomerCustomFieldValues,
   loadCustomerRegionOptions,
+  loadCustomerResponsibilityWorkspace,
   loadCustomerSoftwareAccounts,
   replaceCustomerResponsibilities,
   replaceCustomerSoftwareAccounts,
@@ -72,6 +74,7 @@ import {
 } from '../api/customers.api';
 import { CustomerBulkStatusDialog } from '../components/customer-bulk-status-dialog';
 import { CustomerCreateDialog } from '../components/customer-create-dialog';
+import { CustomerDetailDialog } from '../components/customer-detail-dialog';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
 import { CustomerResponsibilityFilterRow } from '../components/customer-responsibility-filter-row';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
@@ -121,11 +124,14 @@ const customerDefaultColumnVisibility = {
 };
 
 export function CustomersPage() {
+  const navigate = useNavigate();
   const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [lookupDialogOpen, setLookupDialogOpen] = useState(false);
+  const [lookupCustomer, setLookupCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(
     null,
@@ -237,6 +243,42 @@ export function CustomersPage() {
     ],
     queryFn: () => loadCustomerSoftwareAccounts(editingCustomer!.id),
     enabled: Boolean(tenantId && dialogOpen && editingCustomer),
+  });
+  const lookupCustomerCustomDataQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'lookup-custom-data',
+      tenantId,
+      lookupCustomer?.id,
+    ],
+    queryFn: () => loadCustomerCustomFieldValues(tenantId!, lookupCustomer!.id),
+    enabled: Boolean(tenantId && lookupDialogOpen && lookupCustomer),
+  });
+  const lookupCustomerResponsibilityQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'lookup-responsibility-workspace',
+      tenantId,
+      lookupCustomer?.id,
+    ],
+    queryFn: () =>
+      loadCustomerResponsibilityWorkspace(tenantId!, lookupCustomer!.id),
+    enabled: Boolean(tenantId && lookupDialogOpen && lookupCustomer),
+    staleTime: 60 * 1000,
+  });
+  const lookupCustomerSoftwareAccountsQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'lookup-software-accounts',
+      tenantId,
+      lookupCustomer?.id,
+    ],
+    queryFn: () => loadCustomerSoftwareAccounts(lookupCustomer!.id),
+    enabled: Boolean(lookupDialogOpen && lookupCustomer),
+    staleTime: 60 * 1000,
   });
 
   useEffect(() => {
@@ -606,6 +648,11 @@ export function CustomersPage() {
     setCreateDialogOpen(true);
   }
 
+  const openLookup = useCallback((customer: Customer) => {
+    setLookupCustomer(customer);
+    setLookupDialogOpen(true);
+  }, []);
+
   const openEdit = useCallback(
     (customer: Customer) => {
       setEditingCustomer(customer);
@@ -641,6 +688,9 @@ export function CustomersPage() {
   }
 
   const columns = useCustomerColumns({
+    onLookup: openLookup,
+    onOpenDetail: (customer) =>
+      navigate(buildPath(ROUTES.PROJECT.CUSTOMER_DETAIL, { id: customer.id })),
     onEdit: openEdit,
     onDelete: setDeletingCustomer,
     customFields: customerCustomFieldsQuery.data ?? [],
@@ -995,6 +1045,24 @@ export function CustomersPage() {
               {editingCustomer?.name ?? 'Khách hàng'}
             </span>
           </>
+        }
+      />
+      <CustomerDetailDialog
+        open={lookupDialogOpen}
+        onOpenChange={(open) => {
+          setLookupDialogOpen(open);
+          if (!open) setLookupCustomer(null);
+        }}
+        customer={lookupCustomer}
+        customFields={customerCustomFieldsQuery.data ?? []}
+        customFieldValues={lookupCustomerCustomDataQuery.data ?? {}}
+        responsibilityWorkspace={lookupCustomerResponsibilityQuery.data}
+        softwareAccounts={lookupCustomerSoftwareAccountsQuery.data ?? []}
+        isLoading={
+          customerCustomFieldsQuery.isPending ||
+          lookupCustomerCustomDataQuery.isPending ||
+          lookupCustomerResponsibilityQuery.isPending ||
+          lookupCustomerSoftwareAccountsQuery.isPending
         }
       />
       <CustomerCreateDialog
