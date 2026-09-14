@@ -463,6 +463,43 @@ export async function createFinanceAccount(
   });
 }
 
+export async function updateFinanceAccount(
+  tenantId: string,
+  accountId: string,
+  values: {
+    name: string;
+    accountType: 'cash' | 'bank';
+    bankName: string;
+    bankAccountNumber: string;
+    bankAccountHolder: string;
+  },
+) {
+  assertSupabaseConfigured();
+  await supabaseApi.patch(
+    '/finance_accounts',
+    {
+      name: values.name.trim(),
+      account_type: values.accountType,
+      bank_name: values.bankName.trim(),
+      bank_account_number: values.bankAccountNumber.trim(),
+      bank_account_holder: values.bankAccountHolder.trim(),
+    },
+    queryParams({ id: `eq.${accountId}`, tenant_id: `eq.${tenantId}` }),
+  );
+}
+
+export async function deactivateFinanceAccount(
+  tenantId: string,
+  accountId: string,
+): Promise<void> {
+  assertSupabaseConfigured();
+  await supabaseApi.patch(
+    '/finance_accounts',
+    { is_active: false },
+    queryParams({ id: `eq.${accountId}`, tenant_id: `eq.${tenantId}` }),
+  );
+}
+
 export async function createFinanceObligation(
   tenantId: string,
   values: {
