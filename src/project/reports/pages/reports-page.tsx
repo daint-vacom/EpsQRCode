@@ -18,6 +18,7 @@ import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -28,8 +29,14 @@ import {
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
+import { ReportPeriodSelect } from '../components/report-period-select';
+import {
+  resolveReportPeriod,
+  type ReportPeriodKey,
+} from '../model/report-period';
 import { FinanceAccountReportPage } from './finance-account-report-page';
 
 const reports = [
@@ -52,14 +59,27 @@ const reports = [
     icon: FileText,
   },
 ] as const;
-const dateToday = new Date().toISOString().slice(0, 10);
-const dateMonthStart = `${dateToday.slice(0, 8)}01`;
-
 function CashflowReport({ tenantId }: { tenantId: string }) {
-  const [from, setFrom] = useState(dateMonthStart);
-  const [to, setTo] = useState(dateToday);
+  const initialPeriod = resolveReportPeriod('current-month');
+  const [period, setPeriod] = useState<ReportPeriodKey | undefined>(
+    initialPeriod.key,
+  );
+  const [from, setFrom] = useState(initialPeriod.from);
+  const [to, setTo] = useState(initialPeriod.to);
+  const applyPeriod = (nextPeriod: ReportPeriodKey) => {
+    const nextRange = resolveReportPeriod(nextPeriod);
+    setPeriod(nextPeriod);
+    setFrom(nextRange.from);
+    setTo(nextRange.to);
+  };
   const [accountId, setAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [submittedFilters, setSubmittedFilters] = useState<{
+    from: string;
+    to: string;
+    accountId: string;
+    categoryId: string;
+  }>();
   const accountsQuery = useQuery({
     queryKey: ['project', 'finance', 'accounts', tenantId],
     queryFn: () => loadFinanceAccounts(tenantId),
@@ -68,6 +88,14 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
     queryKey: ['project', 'finance', 'categories', tenantId],
     queryFn: () => loadFinanceCategories(tenantId),
   });
+  const handleLoadData = () => {
+    if (!from || !to || from > to) return;
+    setSubmittedFilters({ from, to, accountId, categoryId });
+  };
+  const submittedFrom = submittedFilters?.from ?? '';
+  const submittedTo = submittedFilters?.to ?? '';
+  const submittedAccountId = submittedFilters?.accountId ?? '';
+  const submittedCategoryId = submittedFilters?.categoryId ?? '';
   const query = useQuery({
     queryKey: [
       'project',
@@ -75,19 +103,19 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
       'report',
       'cashflow',
       tenantId,
-      from,
-      to,
-      accountId,
-      categoryId,
+      submittedFrom,
+      submittedTo,
+      submittedAccountId,
+      submittedCategoryId,
     ],
     queryFn: () =>
       loadFinanceCashflowReport(tenantId, {
-        from,
-        to,
-        accountId: accountId || undefined,
-        categoryId: categoryId || undefined,
+        from: submittedFrom,
+        to: submittedTo,
+        accountId: submittedAccountId || undefined,
+        categoryId: submittedCategoryId || undefined,
       }),
-    enabled: Boolean(from && to),
+    enabled: Boolean(submittedFilters),
   });
   const rows = useMemo(() => query.data ?? [], [query.data]);
   const summary = useMemo(
@@ -131,73 +159,113 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
       title="Thu chi theo khoản mục"
       error={query.isError ? getApiErrorMessage(query.error) : undefined}
     >
-      <div className="grid gap-3 md:grid-cols-4">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Từ ngày</label>
-          <DatePickerInput
-            valueMode="iso-date"
-            variant="md"
-            calendarLabel="Chọn từ ngày"
-            value={from}
-            onChange={(value) =>
-              setFrom(typeof value === 'string' ? value : '')
-            }
+      <div className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <Label variant="secondary" className="mb-1.5 block">
+              Khoảng thời gian
+            </Label>
+            <ReportPeriodSelect
+              value={period}
+              onChange={applyPeriod}
+              size="md"
+            />
+          </div>
+          <div>
+            <Label variant="secondary" className="mb-1.5 block">
+              Từ ngày
+            </Label>
+            <DatePickerInput
+              valueMode="iso-date"
+              variant="md"
+              calendarLabel="Chọn từ ngày"
+              value={from}
+              max={to}
+              onChange={(value) => {
+                setPeriod(undefined);
+                setFrom(typeof value === 'string' ? value : '');
+              }}
+            />
+          </div>
+          <div>
+            <Label variant="secondary" className="mb-1.5 block">
+              Đến ngày
+            </Label>
+            <DatePickerInput
+              valueMode="iso-date"
+              variant="md"
+              calendarLabel="Chọn đến ngày"
+              value={to}
+              min={from}
+              onChange={(value) => {
+                setPeriod(undefined);
+                setTo(typeof value === 'string' ? value : '');
+              }}
+            />
+          </div>
+          <OptionSelect
+            value={accountId}
+            onChange={(value) => setAccountId(value || '')}
+            options={(accountsQuery.data ?? []).map((item) => ({
+              value: item.id,
+              label: `${item.code} - ${item.name}`,
+            }))}
+            searchable
+            placeholder="Tất cả tài khoản"
+          />
+          <OptionSelect
+            value={categoryId}
+            onChange={(value) => setCategoryId(value || '')}
+            options={(categoriesQuery.data ?? [])
+              .filter((item) => item.isActive)
+              .map((item) => ({ value: item.id, label: item.name }))}
+            searchable
+            placeholder="Tất cả khoản mục"
           />
         </div>
-        <div>
-          <label className="mb-1.5 block text-sm font-medium">Đến ngày</label>
-          <DatePickerInput
-            valueMode="iso-date"
-            variant="md"
-            calendarLabel="Chọn đến ngày"
-            value={to}
-            onChange={(value) => setTo(typeof value === 'string' ? value : '')}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            className="min-w-32"
+            onClick={handleLoadData}
+            disabled={!from || !to || from > to || query.isFetching}
+          >
+            Tải dữ liệu
+          </Button>
+        </div>
+      </div>
+      {submittedFilters ? (
+        <div className="grid gap-3 py-4 md:grid-cols-3">
+          <Metric
+            label="Tổng thu"
+            value={formatFinanceAmount(summary.receipt)}
+            tone="text-success"
+          />
+          <Metric
+            label="Tổng chi"
+            value={formatFinanceAmount(summary.payment)}
+            tone="text-destructive"
+          />
+          <Metric
+            label="Chênh lệch dòng tiền"
+            value={formatFinanceAmount(summary.receipt - summary.payment)}
           />
         </div>
-        <OptionSelect
-          value={accountId}
-          onChange={(value) => setAccountId(value || '')}
-          options={(accountsQuery.data ?? []).map((item) => ({
-            value: item.id,
-            label: `${item.code} - ${item.name}`,
-          }))}
-          searchable
-          placeholder="Tất cả tài khoản"
-        />
-        <OptionSelect
-          value={categoryId}
-          onChange={(value) => setCategoryId(value || '')}
-          options={(categoriesQuery.data ?? [])
-            .filter((item) => item.isActive)
-            .map((item) => ({ value: item.id, label: item.name }))}
-          searchable
-          placeholder="Tất cả khoản mục"
-        />
-      </div>
-      <div className="grid gap-3 py-4 md:grid-cols-3">
-        <Metric
-          label="Tổng thu"
-          value={formatFinanceAmount(summary.receipt)}
-          tone="text-success"
-        />
-        <Metric
-          label="Tổng chi"
-          value={formatFinanceAmount(summary.payment)}
-          tone="text-destructive"
-        />
-        <Metric
-          label="Chênh lệch dòng tiền"
-          value={formatFinanceAmount(summary.receipt - summary.payment)}
-        />
-      </div>
-      <DataGrid
-        table={table}
-        recordCount={rows.length}
-        isLoading={query.isLoading}
-        emptyMessage="Không có biến động trong khoảng đã chọn"
-      >
-        <DataGridTable />
-      </DataGrid>
+      ) : null}
+      {submittedFilters ? (
+        <DataGrid
+          table={table}
+          recordCount={rows.length}
+          isLoading={query.isLoading}
+          emptyMessage="Không có biến động trong khoảng đã chọn"
+        >
+          <DataGridTable />
+        </DataGrid>
+      ) : (
+        <div className="py-10 text-center text-sm text-muted-foreground">
+          Chọn bộ lọc và bấm “Tải dữ liệu” để xem báo cáo.
+        </div>
+      )}
     </ReportCard>
   );
 }
