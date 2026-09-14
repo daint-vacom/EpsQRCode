@@ -98,6 +98,7 @@ export function FinanceAccountsPage() {
         recordCount={rows.length}
         isLoading={query.isLoading}
         isFetching={query.isFetching}
+        tableLayout={{ dense: true }}
         emptyMessage={
           query.isError
             ? getApiErrorMessage(query.error)

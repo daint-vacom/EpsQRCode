@@ -11,6 +11,11 @@ import { loadContractDetail } from '../contracts/api/contracts.api';
 import { loadCustomerDetail } from '../customers/api/customers.api';
 import { CustomerCreateDialog } from '../customers/components/customer-create-dialog';
 import { EmployeeCreateDialog } from '../employees/components/employee-create-dialog';
+import {
+  loadFinanceAccounts,
+  loadFinanceObligationDetail,
+  loadFinanceVoucherDetail,
+} from '../finance/api/finance.api';
 
 function getProjectMenuIcon(path: string) {
   const menuItem = PROJECT_MENU_GROUPS.flatMap((group) => group.items).find(
@@ -51,6 +56,21 @@ export function ProjectMainLayout() {
     !isContractTemplateCreate &&
     !isContractTemplateEdit;
   const isFinanceRoute = pathname.startsWith('/finance/');
+  const isFinanceVoucherCreate =
+    pathname === ROUTES.PROJECT.FINANCE_VOUCHER_CREATE;
+  const isFinanceVoucherEdit =
+    pathname.startsWith(`${ROUTES.PROJECT.FINANCE_VOUCHERS}/`) &&
+    pathname.endsWith('/edit');
+  const isFinanceVoucherDetail =
+    pathname.startsWith(`${ROUTES.PROJECT.FINANCE_VOUCHERS}/`) &&
+    !isFinanceVoucherCreate &&
+    !isFinanceVoucherEdit;
+  const isFinanceObligationDetail = pathname.startsWith(
+    `${ROUTES.PROJECT.FINANCE_OBLIGATIONS}/`,
+  );
+  const isFinanceAccountDetail = pathname.startsWith(
+    `${ROUTES.PROJECT.FINANCE_ACCOUNTS}/`,
+  );
   const isReportsRoute = pathname.startsWith('/reports');
   const customerId = isCustomerDetail
     ? pathname.slice(`${ROUTES.PROJECT.CUSTOMERS}/`.length).split('/')[0]
@@ -58,6 +78,20 @@ export function ProjectMainLayout() {
   const contractId = isContractDetail
     ? pathname.slice(`${ROUTES.PROJECT.CONTRACTS}/`.length).split('/')[0]
     : contractEditId;
+  const financeAccountId = isFinanceAccountDetail
+    ? pathname.slice(`${ROUTES.PROJECT.FINANCE_ACCOUNTS}/`.length).split('/')[0]
+    : undefined;
+  const financeVoucherId =
+    isFinanceVoucherDetail || isFinanceVoucherEdit
+      ? pathname
+          .slice(`${ROUTES.PROJECT.FINANCE_VOUCHERS}/`.length)
+          .split('/')[0]
+      : undefined;
+  const financeObligationId = isFinanceObligationDetail
+    ? pathname
+        .slice(`${ROUTES.PROJECT.FINANCE_OBLIGATIONS}/`.length)
+        .split('/')[0]
+    : undefined;
   const customerDetailQuery = useQuery({
     queryKey: ['project', 'customers', 'detail', userId, customerId, tenantId],
     queryFn: () => {
@@ -77,6 +111,45 @@ export function ProjectMainLayout() {
     },
     enabled: Boolean(userId && contractId && tenantId),
   });
+  const financeAccountsQuery = useQuery({
+    queryKey: ['project', 'finance', 'accounts', tenantId],
+    queryFn: () => {
+      if (!tenantId) {
+        throw new Error('Thiếu thông tin tenant.');
+      }
+      return loadFinanceAccounts(tenantId);
+    },
+    enabled: Boolean(tenantId && financeAccountId),
+  });
+  const financeAccount = financeAccountsQuery.data?.find(
+    (item) => item.id === financeAccountId,
+  );
+  const financeVoucherQuery = useQuery({
+    queryKey: ['project', 'finance', 'voucher', tenantId, financeVoucherId],
+    queryFn: () => {
+      if (!tenantId || !financeVoucherId) {
+        throw new Error('Thiếu thông tin phiếu.');
+      }
+      return loadFinanceVoucherDetail(tenantId, financeVoucherId);
+    },
+    enabled: Boolean(tenantId && financeVoucherId),
+  });
+  const financeObligationQuery = useQuery({
+    queryKey: [
+      'project',
+      'finance',
+      'obligation',
+      tenantId,
+      financeObligationId,
+    ],
+    queryFn: () => {
+      if (!tenantId || !financeObligationId) {
+        throw new Error('Thiếu thông tin công nợ.');
+      }
+      return loadFinanceObligationDetail(tenantId, financeObligationId);
+    },
+    enabled: Boolean(tenantId && financeObligationId),
+  });
 
   const headerTenantName = tenantName ?? 'Đang tải tenant...';
   const accountRoles = roleNames;
@@ -84,39 +157,52 @@ export function ProjectMainLayout() {
     ? (customerDetailQuery.data?.name ?? 'Chi tiết khách hàng')
     : isContractDetail
       ? (contractDetailQuery.data?.name ?? 'Chi tiết hợp đồng')
-      : isContractTemplateCreate
-        ? 'Thêm mẫu hợp đồng'
-        : isContractTemplateEdit
-          ? 'Chỉnh sửa mẫu hợp đồng'
-          : isContractTemplateDetail
-            ? 'Chi tiết mẫu hợp đồng'
-            : isContractEdit
-              ? 'Chỉnh sửa'
-              : isContractCreate
-                ? 'Thêm hợp đồng'
-                : pathname === ROUTES.PROJECT.EMPLOYEES
-                  ? 'Nhân viên'
-                  : pathname === ROUTES.PROJECT.CUSTOMERS
-                    ? 'Khách hàng'
-                    : pathname === ROUTES.PROJECT.SETTINGS
-                      ? 'Cài đặt'
-                      : pathname === ROUTES.PROJECT.ROLE_PERMISSIONS
-                        ? 'Phân quyền'
-                        : pathname === ROUTES.PROJECT.DATA_CONFIGURATION
-                          ? 'Cấu hình dữ liệu'
-                          : pathname === ROUTES.PROJECT.TAGS
-                            ? 'Danh mục'
-                            : pathname === ROUTES.PROJECT.FILES
-                              ? 'Tệp lưu trữ'
-                              : isFinanceRoute
-                                ? pathname.includes('obligations')
-                                  ? 'Công nợ'
-                                  : pathname.includes('accounts')
-                                    ? 'Quỹ & Tài khoản'
-                                    : 'Sổ thu chi'
-                                : isReportsRoute
-                                  ? 'Báo cáo'
-                                  : 'Tổng quan';
+      : isFinanceVoucherCreate
+        ? searchParams.get('type') === 'payment'
+          ? 'Lập phiếu chi'
+          : 'Lập phiếu thu'
+        : isFinanceVoucherDetail
+          ? (financeVoucherQuery.data?.voucherNo ?? 'Chi tiết phiếu')
+          : isFinanceVoucherEdit
+            ? (financeVoucherQuery.data?.voucherNo ?? 'Chỉnh sửa phiếu')
+            : isFinanceObligationDetail
+              ? (financeObligationQuery.data?.code ?? 'Chi tiết công nợ')
+              : isFinanceAccountDetail
+                ? (financeAccount?.name ?? 'Chi tiết tài khoản')
+                : isContractTemplateCreate
+                  ? 'Thêm mẫu hợp đồng'
+                  : isContractTemplateEdit
+                    ? 'Chỉnh sửa mẫu hợp đồng'
+                    : isContractTemplateDetail
+                      ? 'Chi tiết mẫu hợp đồng'
+                      : isContractEdit
+                        ? 'Chỉnh sửa'
+                        : isContractCreate
+                          ? 'Thêm hợp đồng'
+                          : pathname === ROUTES.PROJECT.EMPLOYEES
+                            ? 'Nhân viên'
+                            : pathname === ROUTES.PROJECT.CUSTOMERS
+                              ? 'Khách hàng'
+                              : pathname === ROUTES.PROJECT.SETTINGS
+                                ? 'Cài đặt'
+                                : pathname === ROUTES.PROJECT.ROLE_PERMISSIONS
+                                  ? 'Phân quyền'
+                                  : pathname ===
+                                      ROUTES.PROJECT.DATA_CONFIGURATION
+                                    ? 'Cấu hình dữ liệu'
+                                    : pathname === ROUTES.PROJECT.TAGS
+                                      ? 'Danh mục'
+                                      : pathname === ROUTES.PROJECT.FILES
+                                        ? 'Tệp lưu trữ'
+                                        : isFinanceRoute
+                                          ? pathname.includes('obligations')
+                                            ? 'Công nợ'
+                                            : pathname.includes('accounts')
+                                              ? 'Quỹ & Tài khoản'
+                                              : 'Sổ thu chi'
+                                          : isReportsRoute
+                                            ? 'Báo cáo'
+                                            : 'Tổng quan';
 
   const quickCreateItems = [
     {
@@ -225,7 +311,63 @@ export function ProjectMainLayout() {
                           { label: 'Thêm hợp đồng' },
                         ],
                       }
-                    : {}),
+                    : isFinanceVoucherEdit
+                      ? {
+                          breadcrumbItems: [
+                            { label: 'Trang chủ', path: '/' },
+                            {
+                              label: 'Sổ thu chi',
+                              path: ROUTES.PROJECT.FINANCE_VOUCHERS,
+                            },
+                            { label: breadcrumbCurrent },
+                            { label: 'Chỉnh sửa' },
+                          ],
+                        }
+                      : isFinanceVoucherDetail
+                        ? {
+                            breadcrumbItems: [
+                              { label: 'Trang chủ', path: '/' },
+                              {
+                                label: 'Sổ thu chi',
+                                path: ROUTES.PROJECT.FINANCE_VOUCHERS,
+                              },
+                              { label: breadcrumbCurrent },
+                            ],
+                          }
+                        : isFinanceVoucherCreate
+                          ? {
+                              breadcrumbItems: [
+                                { label: 'Trang chủ', path: '/' },
+                                {
+                                  label: 'Sổ thu chi',
+                                  path: ROUTES.PROJECT.FINANCE_VOUCHERS,
+                                },
+                                { label: breadcrumbCurrent },
+                              ],
+                            }
+                          : isFinanceObligationDetail
+                            ? {
+                                breadcrumbItems: [
+                                  { label: 'Trang chủ', path: '/' },
+                                  {
+                                    label: 'Công nợ',
+                                    path: ROUTES.PROJECT.FINANCE_OBLIGATIONS,
+                                  },
+                                  { label: breadcrumbCurrent },
+                                ],
+                              }
+                            : isFinanceAccountDetail
+                              ? {
+                                  breadcrumbItems: [
+                                    { label: 'Trang chủ', path: '/' },
+                                    {
+                                      label: 'Quỹ & Tài khoản',
+                                      path: ROUTES.PROJECT.FINANCE_ACCOUNTS,
+                                    },
+                                    { label: breadcrumbCurrent },
+                                  ],
+                                }
+                              : {}),
         }}
       />
       <CustomerCreateDialog
