@@ -10,6 +10,7 @@ Start from the task, not from the document number. Read only the listed files an
 | Add a feature or wire API state | [`00-stack-and-architecture.md`](./00-stack-and-architecture.md) | Relevant sections of [`01-coding-convention.md`](./01-coding-convention.md) |
 | Change shared styling or UX rules | [`02-design-system.md`](./02-design-system.md), [`06-component-usage-guide.md`](./06-component-usage-guide.md) | Matching `components/*` |
 | Implement permissions | [`permissions/overview.md`](./permissions/overview.md) | One of `frontend.md`, `backend.md`, `admin-ui.md` |
+| Design or implement receipts, payments, and obligations | [`engineering/specs/2026-09-13-finance-vouchers-and-obligations.md`](./engineering/specs/2026-09-13-finance-vouchers-and-obligations.md) | Current contract payment code and migrations; UI/permission guides only for the implementation slice |
 | Create or extend a builder | [`builders/authoring.md`](./builders/authoring.md) | Existing builder source and tests |
 
 `reference/` and `engineering/` are opt-in. Do not read them for ordinary implementation tasks.

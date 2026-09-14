@@ -2,6 +2,7 @@
 
 ## Trạng thái
 
+- **Thiết kế mở rộng, chưa triển khai:** [Thu chi & Công nợ — phiếu thu/chi và công nợ dùng chung](../../engineering/specs/2026-09-13-finance-vouchers-and-obligations.md) xác định mô hình đích cho thanh toán và chuyển đổi dữ liệu. Các mô tả bên dưới vẫn cần đối chiếu code hiện hành; quy tắc hợp đồng ngoài phạm vi chuyển đổi được giữ nguyên.
 - **Đã chốt hướng kiến trúc:** hợp đồng, phiên bản, khoản phí, kỳ phải thu, thanh toán và phân bổ thanh toán là các thực thể tách biệt.
 - **Đã chốt hướng dòng tiền:** `direction` thuộc về từng khoản phí trong phiên bản hợp đồng, không thuộc toàn bộ hợp đồng.
 - **Phạm vi hiện tại:** triển khai luồng thu tiền khách hàng (`receivable`). Các khoản phí mới được lưu mặc định là `receivable`; UI chưa hiển thị bộ chọn thu/chi cho đến khi có nghiệp vụ chi.
