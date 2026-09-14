@@ -92,6 +92,8 @@ export function ProjectMainLayout() {
         .slice(`${ROUTES.PROJECT.FINANCE_OBLIGATIONS}/`.length)
         .split('/')[0]
     : undefined;
+  const isFinanceAccountReport =
+    pathname === ROUTES.PROJECT.FINANCE_ACCOUNT_REPORT;
   const customerDetailQuery = useQuery({
     queryKey: ['project', 'customers', 'detail', userId, customerId, tenantId],
     queryFn: () => {
@@ -169,40 +171,42 @@ export function ProjectMainLayout() {
               ? (financeObligationQuery.data?.code ?? 'Chi tiết công nợ')
               : isFinanceAccountDetail
                 ? (financeAccount?.name ?? 'Chi tiết tài khoản')
-                : isContractTemplateCreate
-                  ? 'Thêm mẫu hợp đồng'
-                  : isContractTemplateEdit
-                    ? 'Chỉnh sửa mẫu hợp đồng'
-                    : isContractTemplateDetail
-                      ? 'Chi tiết mẫu hợp đồng'
-                      : isContractEdit
-                        ? 'Chỉnh sửa'
-                        : isContractCreate
-                          ? 'Thêm hợp đồng'
-                          : pathname === ROUTES.PROJECT.EMPLOYEES
-                            ? 'Nhân viên'
-                            : pathname === ROUTES.PROJECT.CUSTOMERS
-                              ? 'Khách hàng'
-                              : pathname === ROUTES.PROJECT.SETTINGS
-                                ? 'Cài đặt'
-                                : pathname === ROUTES.PROJECT.ROLE_PERMISSIONS
-                                  ? 'Phân quyền'
-                                  : pathname ===
-                                      ROUTES.PROJECT.DATA_CONFIGURATION
-                                    ? 'Cấu hình dữ liệu'
-                                    : pathname === ROUTES.PROJECT.TAGS
-                                      ? 'Danh mục'
-                                      : pathname === ROUTES.PROJECT.FILES
-                                        ? 'Tệp lưu trữ'
-                                        : isFinanceRoute
-                                          ? pathname.includes('obligations')
-                                            ? 'Công nợ'
-                                            : pathname.includes('accounts')
-                                              ? 'Quỹ & Tài khoản'
-                                              : 'Sổ thu chi'
-                                          : isReportsRoute
-                                            ? 'Báo cáo'
-                                            : 'Tổng quan';
+                : isFinanceAccountReport
+                  ? 'Sổ quỹ & Tài khoản'
+                  : isContractTemplateCreate
+                    ? 'Thêm mẫu hợp đồng'
+                    : isContractTemplateEdit
+                      ? 'Chỉnh sửa mẫu hợp đồng'
+                      : isContractTemplateDetail
+                        ? 'Chi tiết mẫu hợp đồng'
+                        : isContractEdit
+                          ? 'Chỉnh sửa'
+                          : isContractCreate
+                            ? 'Thêm hợp đồng'
+                            : pathname === ROUTES.PROJECT.EMPLOYEES
+                              ? 'Nhân viên'
+                              : pathname === ROUTES.PROJECT.CUSTOMERS
+                                ? 'Khách hàng'
+                                : pathname === ROUTES.PROJECT.SETTINGS
+                                  ? 'Cài đặt'
+                                  : pathname === ROUTES.PROJECT.ROLE_PERMISSIONS
+                                    ? 'Phân quyền'
+                                    : pathname ===
+                                        ROUTES.PROJECT.DATA_CONFIGURATION
+                                      ? 'Cấu hình dữ liệu'
+                                      : pathname === ROUTES.PROJECT.TAGS
+                                        ? 'Danh mục'
+                                        : pathname === ROUTES.PROJECT.FILES
+                                          ? 'Tệp lưu trữ'
+                                          : isFinanceRoute
+                                            ? pathname.includes('obligations')
+                                              ? 'Công nợ'
+                                              : pathname.includes('accounts')
+                                                ? 'Quỹ & Tài khoản'
+                                                : 'Sổ thu chi'
+                                            : isReportsRoute
+                                              ? 'Báo cáo'
+                                              : 'Tổng quan';
 
   const quickCreateItems = [
     {
@@ -367,7 +371,18 @@ export function ProjectMainLayout() {
                                     { label: breadcrumbCurrent },
                                   ],
                                 }
-                              : {}),
+                              : isFinanceAccountReport
+                                ? {
+                                    breadcrumbItems: [
+                                      { label: 'Trang chủ', path: '/' },
+                                      {
+                                        label: 'Báo cáo',
+                                        path: ROUTES.PROJECT.REPORTS,
+                                      },
+                                      { label: breadcrumbCurrent },
+                                    ],
+                                  }
+                                : {}),
         }}
       />
       <CustomerCreateDialog

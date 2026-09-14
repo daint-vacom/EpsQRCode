@@ -22,6 +22,18 @@ This document owns shared UX decisions for Vietnamese admin applications. Compon
 
 Use the live tokens as source of truth. This document does not duplicate a color palette that can drift.
 
+### Component dùng chung theo nghiệp vụ
+
+- Với một khái niệm nghiệp vụ xuất hiện ở nhiều surface như bảng, select, detail và form, phải tạo
+  component nghiệp vụ dùng chung trước khi triển khai từng surface.
+- Component đó là nguồn duy nhất cho label, trạng thái, màu sắc, icon và cách trình bày của khái niệm;
+  không khai báo lại config tương đương ở từng bảng hoặc từng select.
+- Ví dụ `FinanceAccountStatusBadge` là nguồn duy nhất cho trạng thái quỹ/tài khoản. Bảng tài khoản,
+  account select và các màn hình tài chính khác phải dùng component này để giữ cùng label và kiểu badge
+  solid/outline.
+- Khi cần biến thể kích thước hoặc ngữ cảnh, mở rộng prop của component dùng chung; không tạo thêm
+  component/config cục bộ chỉ để thay đổi một surface.
+
 ## Density And Layout
 
 - Prefer compact controls and spacing without reducing readability or target size.
@@ -68,6 +80,8 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
   it as a visual replacement for a standard select.
 - Không ghi text description trừ khi được yêu cầu.
 - Không tự ý bọc card các input; gắn input vào form một cách bình thường như các input khác.
+- Placeholder và empty state không cần bọc trong `Card`; chỉ hiển thị text trực tiếp
+  trên nền trang, trừ khi nội dung đó cần một container có cấu trúc riêng.
 - Required state and Vietnamese validation messages are explicit.
 - Default to a compact two-column desktop grid and one column on narrow screens.
 - Place destructive actions away from the primary submit action.

@@ -1,7 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import {
-  loadFinanceAccountLedgerReport,
   loadFinanceAccounts,
   loadFinanceCashflowReport,
   loadFinanceCategories,
@@ -15,7 +14,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { BarChart3, FileText, WalletCards } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
@@ -28,9 +27,10 @@ import {
 } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridTable } from '@/components/ui/data-grid-table';
-import { Input } from '@/components/ui/input';
+import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
+import { FinanceAccountReportPage } from './finance-account-report-page';
 
 const reports = [
   {
@@ -89,7 +89,7 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
       }),
     enabled: Boolean(from && to),
   });
-  const rows = query.data ?? [];
+  const rows = useMemo(() => query.data ?? [], [query.data]);
   const summary = useMemo(
     () =>
       rows.reduce(
@@ -134,18 +134,24 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
       <div className="grid gap-3 md:grid-cols-4">
         <div>
           <label className="mb-1.5 block text-sm font-medium">Từ ngày</label>
-          <Input
-            type="date"
+          <DatePickerInput
+            valueMode="iso-date"
+            variant="md"
+            calendarLabel="Chọn từ ngày"
             value={from}
-            onChange={(event) => setFrom(event.target.value)}
+            onChange={(value) =>
+              setFrom(typeof value === 'string' ? value : '')
+            }
           />
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium">Đến ngày</label>
-          <Input
-            type="date"
+          <DatePickerInput
+            valueMode="iso-date"
+            variant="md"
+            calendarLabel="Chọn đến ngày"
             value={to}
-            onChange={(event) => setTo(event.target.value)}
+            onChange={(value) => setTo(typeof value === 'string' ? value : '')}
           />
         </div>
         <OptionSelect
@@ -197,117 +203,7 @@ function CashflowReport({ tenantId }: { tenantId: string }) {
 }
 
 function AccountLedgerReport({ tenantId }: { tenantId: string }) {
-  const [accountId, setAccountId] = useState('');
-  const [from, setFrom] = useState(dateMonthStart);
-  const [to, setTo] = useState(dateToday);
-  const accountsQuery = useQuery({
-    queryKey: ['project', 'finance', 'accounts', tenantId],
-    queryFn: () => loadFinanceAccounts(tenantId),
-  });
-  const query = useQuery({
-    queryKey: [
-      'project',
-      'finance',
-      'report',
-      'ledger',
-      tenantId,
-      accountId,
-      from,
-      to,
-    ],
-    queryFn: () =>
-      loadFinanceAccountLedgerReport(tenantId, accountId, from, to),
-    enabled: Boolean(accountId && from && to),
-  });
-  const rows = query.data ?? [];
-  const opening =
-    accountsQuery.data?.find((item) => item.id === accountId)?.openingBalance ??
-    0;
-  const closing =
-    opening +
-    rows.reduce(
-      (sum, row) => sum + (row.direction === 'in' ? row.amount : -row.amount),
-      0,
-    );
-  const helper = createColumnHelper<(typeof rows)[number]>();
-  const columns = useMemo(
-    () => [
-      helper.accessor('effectiveDate', { header: 'Ngày' }),
-      helper.accessor('voucherNo', {
-        header: 'Số phiếu',
-        cell: (info) => info.getValue() || '—',
-      }),
-      helper.accessor('partyName', {
-        header: 'Đối tượng',
-        cell: (info) => info.getValue() || '—',
-      }),
-      helper.accessor('direction', {
-        header: 'Chiều',
-        cell: (info) => (info.getValue() === 'in' ? 'Thu' : 'Chi'),
-      }),
-      helper.accessor('amount', {
-        header: 'Số tiền',
-        cell: (info) => formatFinanceAmount(info.getValue()),
-      }),
-      helper.accessor('description', {
-        header: 'Diễn giải',
-        cell: (info) => info.getValue() || '—',
-      }),
-    ],
-    [helper],
-  );
-  const table = useReactTable({
-    data: rows,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-  return (
-    <ReportCard
-      title="Sổ quỹ & Tài khoản"
-      error={query.isError ? getApiErrorMessage(query.error) : undefined}
-    >
-      <div className="grid gap-3 md:grid-cols-4">
-        <OptionSelect
-          value={accountId}
-          onChange={(value) => setAccountId(value || '')}
-          options={(accountsQuery.data ?? []).map((item) => ({
-            value: item.id,
-            label: `${item.code} - ${item.name}`,
-          }))}
-          searchable
-          placeholder="Chọn tài khoản"
-        />
-        <Input
-          type="date"
-          value={from}
-          onChange={(event) => setFrom(event.target.value)}
-        />
-        <Input
-          type="date"
-          value={to}
-          onChange={(event) => setTo(event.target.value)}
-        />
-      </div>
-      {accountId ? (
-        <div className="grid gap-3 py-4 md:grid-cols-2">
-          <Metric label="Số dư đầu kỳ" value={formatFinanceAmount(opening)} />
-          <Metric label="Số dư cuối kỳ" value={formatFinanceAmount(closing)} />
-        </div>
-      ) : (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          Chọn một tài khoản để xem sổ.
-        </div>
-      )}
-      <DataGrid
-        table={table}
-        recordCount={rows.length}
-        isLoading={query.isLoading}
-        emptyMessage="Không có biến động trong khoảng đã chọn"
-      >
-        <DataGridTable />
-      </DataGrid>
-    </ReportCard>
-  );
+  return <FinanceAccountReportPage tenantId={tenantId} />;
 }
 
 function ObligationReport({ tenantId }: { tenantId: string }) {
@@ -428,13 +324,67 @@ function Metric({
   );
 }
 
+function ReportPageFrame({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: typeof BarChart3;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 pb-8 xl:p-5 xl:pb-10">
+      <PageHeader title={title} icon={icon} />
+      {children}
+    </div>
+  );
+}
+
 export function ReportsPage() {
-  const { reportCode } = useParams();
-  const { tenantId } = useTenant();
+  const { reportCode: routeReportCode } = useParams();
+  const { pathname } = useLocation();
+  const reportCode =
+    routeReportCode ??
+    (pathname.startsWith(`${ROUTES.PROJECT.REPORTS}/`)
+      ? pathname.slice(`${ROUTES.PROJECT.REPORTS}/`.length).split('/')[0]
+      : undefined);
+  const {
+    tenantId,
+    isPending: isTenantPending,
+    isPermissionsPending,
+    isError: isTenantError,
+    error: tenantError,
+  } = useTenant();
   const { hasPermission } = useUser();
   const report = reports.find((item) => item.code === reportCode);
   const canViewReports = hasPermission('finance:report:view');
-  if (report && tenantId && canViewReports) {
+
+  if (report) {
+    if (isTenantPending || isPermissionsPending || !tenantId) {
+      return (
+        <ReportPageFrame title={report.name} icon={report.icon}>
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            {isTenantError
+              ? tenantError?.message || 'Không thể tải dữ liệu báo cáo.'
+              : 'Đang tải báo cáo...'}
+          </div>
+        </ReportPageFrame>
+      );
+    }
+
+    if (!canViewReports) {
+      return (
+        <ReportPageFrame title={report.name} icon={report.icon}>
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              Bạn chưa được cấp quyền xem báo cáo.
+            </CardContent>
+          </Card>
+        </ReportPageFrame>
+      );
+    }
+
     const content =
       report.code === 'finance-cashflow' ? (
         <CashflowReport tenantId={tenantId} />
@@ -444,27 +394,24 @@ export function ReportsPage() {
         <ObligationReport tenantId={tenantId} />
       );
     return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
-        <PageHeader title={report.name} icon={report.icon} />
+      <ReportPageFrame title={report.name} icon={report.icon}>
         {content}
-      </div>
+      </ReportPageFrame>
     );
   }
   if (!canViewReports) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
-        <PageHeader title="Báo cáo" icon={BarChart3} />
+      <ReportPageFrame title="Báo cáo" icon={BarChart3}>
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             Bạn chưa được cấp quyền xem báo cáo.
           </CardContent>
         </Card>
-      </div>
+      </ReportPageFrame>
     );
   }
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
-      <PageHeader title="Báo cáo" icon={BarChart3} />
+    <ReportPageFrame title="Báo cáo" icon={BarChart3}>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {reports.map((item) => (
           <Link
@@ -484,6 +431,6 @@ export function ReportsPage() {
           </Link>
         ))}
       </div>
-    </div>
+    </ReportPageFrame>
   );
 }

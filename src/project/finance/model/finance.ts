@@ -156,6 +156,30 @@ export interface FinanceAccount {
   isActive: boolean;
 }
 
+/**
+ * A normalized, posted movement row shared by account detail and reports.
+ * `openingBalance` is the balance immediately before the first row in a
+ * scoped data set; callers can therefore reuse the analytics helpers for one
+ * account or for an account-filtered report window.
+ */
+export interface FinanceAccountActivity {
+  movementId: string;
+  accountId: string;
+  accountCode: string;
+  accountName: string;
+  effectiveDate: string;
+  direction: 'in' | 'out';
+  amount: number;
+  eventType: string;
+  voucherId: string | null;
+  voucherNo: string | null;
+  voucherType: FinanceVoucherType | null;
+  partyName: string | null;
+  description: string | null;
+  categoryName?: string | null;
+  runningBalance?: number;
+}
+
 export interface FinanceCategory {
   id: string;
   tenantId: string;

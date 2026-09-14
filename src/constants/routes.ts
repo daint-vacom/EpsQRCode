@@ -50,6 +50,7 @@ export const ROUTES = {
     FINANCE_ACCOUNTS: '/finance/accounts',
     FINANCE_ACCOUNT_DETAIL: '/finance/accounts/:id',
     REPORTS: '/reports',
+    FINANCE_ACCOUNT_REPORT: '/reports/finance-account-ledger',
     REPORT_DETAIL: '/reports/:reportCode',
   },
 } as const;

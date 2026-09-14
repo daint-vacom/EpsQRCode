@@ -1,6 +1,7 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   FinanceAccount,
+  FinanceAccountActivity,
   FinanceCategory,
   FinanceObligation,
   FinanceVoucher,
@@ -73,6 +74,7 @@ export async function loadFinanceVouchers(
   filters: {
     voucherType?: 'all' | 'receipt' | 'payment';
     status?: string;
+    accountId?: string;
     keyword?: string;
     from?: string;
     to?: string;
@@ -88,6 +90,7 @@ export async function loadFinanceVouchers(
     params.voucher_type = `eq.${filters.voucherType}`;
   if (filters.status && filters.status !== 'all')
     params.status = `eq.${filters.status}`;
+  if (filters.accountId) params.account_id = `eq.${filters.accountId}`;
   if (filters.from && filters.to)
     params.and = `(voucher_date.gte.${filters.from},voucher_date.lte.${filters.to})`;
   else if (filters.from) params.voucher_date = `gte.${filters.from}`;
@@ -335,21 +338,7 @@ export async function loadFinanceCashflowReport(
   }));
 }
 
-export interface FinanceAccountLedgerReportRow {
-  movementId: string;
-  accountId: string;
-  accountCode: string;
-  accountName: string;
-  effectiveDate: string;
-  direction: 'in' | 'out';
-  amount: number;
-  eventType: string;
-  voucherId: string | null;
-  voucherNo: string | null;
-  voucherType: FinanceVoucher['voucherType'] | null;
-  partyName: string | null;
-  description: string | null;
-}
+export type FinanceAccountLedgerReportRow = FinanceAccountActivity;
 
 export async function loadFinanceAccountLedgerReport(
   tenantId: string,
@@ -363,7 +352,7 @@ export async function loadFinanceAccountLedgerReport(
     tenant_id: `eq.${tenantId}`,
     account_id: `eq.${accountId}`,
     and: `(effective_date.gte.${from},effective_date.lte.${to})`,
-    order: 'effective_date.asc,movement_id.asc',
+    order: 'effective_date.asc,voucher_no.asc,movement_id.asc',
   };
   const rows = await request<
     Array<{

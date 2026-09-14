@@ -48,16 +48,13 @@ const spec = {
       header: 'Số dư',
       sizePreset: 'number',
     },
+    // Render with the domain-owned FinanceAccountStatusBadge so table/select
+    // status labels and variants cannot drift apart.
     {
-      kind: 'badge',
+      kind: 'custom',
       id: 'isActive',
-      field: 'isActive',
       header: 'Trạng thái',
       sizePreset: 'badge',
-      config: {
-        true: { label: 'Đang dùng', variant: 'success' },
-        false: { label: 'Ngừng dùng', variant: 'outline' },
-      },
     },
     {
       kind: 'actions',

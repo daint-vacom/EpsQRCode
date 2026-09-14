@@ -16,6 +16,7 @@ export interface TenantContextValue {
   tenantName: string | null;
   roleNames: string[];
   isPending: boolean;
+  isPermissionsPending: boolean;
   isError: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
@@ -62,6 +63,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       tenantName: tenantQuery.data?.tenantName ?? null,
       roleNames: tenantQuery.data?.roleNames ?? [],
       isPending: tenantQuery.isPending,
+      isPermissionsPending: Boolean(tenantId) && permissionQuery.isPending,
       isError: tenantQuery.isError,
       error: tenantQuery.error instanceof Error ? tenantQuery.error : null,
       refetch: tenantQuery.refetch,
@@ -73,6 +75,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       tenantQuery.isPending,
       tenantQuery.refetch,
       tenantId,
+      permissionQuery.isPending,
     ],
   );
 

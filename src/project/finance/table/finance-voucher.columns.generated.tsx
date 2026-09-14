@@ -34,15 +34,18 @@ const statusBadgeConfig: StatusBadgeConfig<string> = {
 
 export interface UseFinanceVoucherColumnsParams {
   onView: (row: FinanceVoucher) => void;
-  onEdit: (row: FinanceVoucher) => void;
+  onEdit?: (row: FinanceVoucher) => void;
+  showEdit?: boolean;
 }
 
 export function useFinanceVoucherColumns(
   params: UseFinanceVoucherColumnsParams,
 ): ColumnDef<FinanceVoucher>[] {
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
+  const { onView, onEdit, showEdit: showEditProp } = params;
 
   return useMemo(() => {
+    const showEdit = showEditProp ?? true;
     const col = createColumnHelpers<FinanceVoucher>({
       formatNumber,
       formatCurrency,
@@ -111,7 +114,7 @@ export function useFinanceVoucherColumns(
       col.actions({
         id: 'actions',
         header: '',
-        size: getDataGridActionsColumnSize(2),
+        size: getDataGridActionsColumnSize(showEdit ? 2 : 1),
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
@@ -122,21 +125,23 @@ export function useFinanceVoucherColumns(
               type="button"
               mode="icon"
               size="sm"
-              onClick={() => params.onView(row)}
+              onClick={() => onView(row)}
             >
               <Eye className="size-4" />
             </DataGridActionButton>
-            <DataGridActionButton
-              action="edit"
-              tooltip="Sửa"
-              aria-label="Sửa"
-              type="button"
-              mode="icon"
-              size="sm"
-              onClick={() => params.onEdit(row)}
-            >
-              <Pencil className="size-4" />
-            </DataGridActionButton>
+            {showEdit ? (
+              <DataGridActionButton
+                action="edit"
+                tooltip="Sửa"
+                aria-label="Sửa"
+                type="button"
+                mode="icon"
+                size="sm"
+                onClick={() => onEdit?.(row)}
+              >
+                <Pencil className="size-4" />
+              </DataGridActionButton>
+            ) : null}
           </div>
         ),
       }),
@@ -145,7 +150,8 @@ export function useFinanceVoucherColumns(
     formatNumber,
     formatCurrency,
     formatPercent,
-    params.onView,
-    params.onEdit,
+    onView,
+    onEdit,
+    showEditProp,
   ]);
 }

@@ -15,6 +15,7 @@ import {
   getDataGridActionsColumnSize,
   type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
+import { FinanceAccountStatusBadge } from '../components/finance-account-status-badge';
 
 export const FINANCE_ACCOUNT_COLUMN_PINNING: ColumnPinningState = {
   right: ['actions'],
@@ -25,11 +26,6 @@ const accountTypeBadgeConfig: StatusBadgeConfig<string> = {
   bank: { label: 'Ngân hàng' },
 };
 
-const isActiveBadgeConfig: StatusBadgeConfig<string> = {
-  true: { label: 'Đang dùng', variant: 'success' },
-  false: { label: 'Ngừng dùng', variant: 'outline' },
-};
-
 export interface UseFinanceAccountColumnsParams {
   onView: (row: FinanceAccount) => void;
 }
@@ -38,6 +34,7 @@ export function useFinanceAccountColumns(
   params: UseFinanceAccountColumnsParams,
 ): ColumnDef<FinanceAccount>[] {
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
+  const { onView } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<FinanceAccount>({
@@ -90,13 +87,12 @@ export function useFinanceAccountColumns(
         size: 150,
         enableSorting: false,
       }),
-      col.badge({
+      col.custom({
         id: 'isActive',
         header: 'Trạng thái',
-        get: (row) => row.isActive,
-        config: isActiveBadgeConfig,
         size: 170,
         enableSorting: false,
+        cell: (row) => <FinanceAccountStatusBadge isActive={row.isActive} />,
       }),
       col.actions({
         id: 'actions',
@@ -112,7 +108,7 @@ export function useFinanceAccountColumns(
               type="button"
               mode="icon"
               size="sm"
-              onClick={() => params.onView(row)}
+              onClick={() => onView(row)}
             >
               <Eye className="size-4" />
             </DataGridActionButton>
@@ -120,5 +116,5 @@ export function useFinanceAccountColumns(
         ),
       }),
     ];
-  }, [formatNumber, formatCurrency, formatPercent, params.onView]);
+  }, [formatNumber, formatCurrency, formatPercent, onView]);
 }
