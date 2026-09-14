@@ -7,7 +7,7 @@ import {
 import { vi } from 'date-fns/locale/vi';
 import { getValidationLocale } from './validation';
 
-export type DateInput = Date | string | number | undefined;
+export type DateInput = Date | string | number | null | undefined;
 
 const DATE_LOCALES: Partial<Record<Locale, typeof vi>> = {
   vi,
@@ -18,7 +18,7 @@ function getDateLocale(): typeof vi {
 }
 
 function toValidDate(value: DateInput): Date | null {
-  if (value === undefined) return null;
+  if (value === null || value === undefined) return null;
 
   const date =
     value instanceof Date ? new Date(value.getTime()) : new Date(value);

@@ -41,6 +41,16 @@ export const ROUTES = {
     DATA_CONFIGURATION: '/data-configuration',
     TAGS: '/tags',
     FILES: '/files',
+    FINANCE_VOUCHERS: '/finance/vouchers',
+    FINANCE_VOUCHER_DETAIL: '/finance/vouchers/:id',
+    FINANCE_VOUCHER_EDIT: '/finance/vouchers/:id/edit',
+    FINANCE_VOUCHER_CREATE: '/finance/vouchers/new',
+    FINANCE_OBLIGATIONS: '/finance/obligations',
+    FINANCE_OBLIGATION_DETAIL: '/finance/obligations/:id',
+    FINANCE_ACCOUNTS: '/finance/accounts',
+    FINANCE_ACCOUNT_DETAIL: '/finance/accounts/:id',
+    REPORTS: '/reports',
+    REPORT_DETAIL: '/reports/:reportCode',
   },
 } as const;
 

@@ -50,6 +50,8 @@ export function ProjectMainLayout() {
     pathname.startsWith(`${ROUTES.PROJECT.CONTRACT_TEMPLATES}/`) &&
     !isContractTemplateCreate &&
     !isContractTemplateEdit;
+  const isFinanceRoute = pathname.startsWith('/finance/');
+  const isReportsRoute = pathname.startsWith('/reports');
   const customerId = isCustomerDetail
     ? pathname.slice(`${ROUTES.PROJECT.CUSTOMERS}/`.length).split('/')[0]
     : undefined;
@@ -106,7 +108,15 @@ export function ProjectMainLayout() {
                             ? 'Danh mục'
                             : pathname === ROUTES.PROJECT.FILES
                               ? 'Tệp lưu trữ'
-                              : 'Tổng quan';
+                              : isFinanceRoute
+                                ? pathname.includes('obligations')
+                                  ? 'Công nợ'
+                                  : pathname.includes('accounts')
+                                    ? 'Quỹ & Tài khoản'
+                                    : 'Sổ thu chi'
+                                : isReportsRoute
+                                  ? 'Báo cáo'
+                                  : 'Tổng quan';
 
   const quickCreateItems = [
     {

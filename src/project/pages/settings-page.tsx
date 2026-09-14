@@ -13,10 +13,11 @@ import {
   Save,
   Settings,
   UserRound,
+  WalletCards,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { queryClient } from '@/lib/query-client';
 import {
@@ -65,6 +66,7 @@ const tabs = [
   { value: 'account', label: 'Tài khoản', icon: UserRound },
   { value: 'organization', label: 'Tổ chức', icon: Building2 },
   { value: 'appearance', label: 'Giao diện', icon: Palette },
+  { value: 'finance', label: 'Tài chính', icon: WalletCards },
 ] as const;
 
 type SettingsTab = (typeof tabs)[number]['value'];
@@ -449,6 +451,35 @@ export function ProjectSettingsPage() {
                   </label>
                 </div>
               </SettingsSection>
+            </TabsContent>
+
+            <TabsContent value="finance" className="mt-0 space-y-4">
+              <Card>
+                <CardHeader className="p-5">
+                  <CardHeading>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <WalletCards className="size-4 text-primary" />
+                      Cấu hình tài chính
+                    </CardTitle>
+                  </CardHeading>
+                </CardHeader>
+                <CardContent className="space-y-4 p-5">
+                  <p className="text-sm text-muted-foreground">
+                    Quản lý quỹ, tài khoản và khoản mục thu chi được tách theo
+                    từng nghiệp vụ để không làm thay đổi chứng từ đã ghi nhận.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild variant="outline">
+                      <Link to="/finance/accounts">Quỹ & Tài khoản</Link>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <Link to="/tags?group=finance-categories">
+                        Khoản mục thu chi
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </div>
         </ScrollArea>

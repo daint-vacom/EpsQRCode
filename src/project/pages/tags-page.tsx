@@ -9,6 +9,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -35,6 +36,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { loadFinanceCategories } from '../finance/api/finance.api';
+import { FinanceCategoryPanel } from '../finance/components/finance-category-panel';
 import { loadSoftwareAccountCatalogs } from '../tags/api/software-account-catalog.api';
 import {
   createTag,
@@ -72,7 +75,7 @@ type PendingDelete = {
 };
 
 export function TagsPage() {
-  const { userId } = useUser();
+  const { userId, hasPermission } = useUser();
   const { tenantId } = useTenant();
   const queryClient = useQueryClient();
   const workspaceQuery = useQuery({
@@ -90,6 +93,11 @@ export function TagsPage() {
     queryFn: () => loadSoftwareAccountCatalogs(tenantId!),
     enabled: Boolean(tenantId),
   });
+  const financeCategoryQuery = useQuery({
+    queryKey: ['project', 'finance', 'categories', tenantId],
+    queryFn: () => loadFinanceCategories(tenantId!),
+    enabled: Boolean(tenantId && hasPermission('finance:category:view')),
+  });
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [tagCreateDialogOpen, setTagCreateDialogOpen] = useState(false);
   const [tagEditDialogOpen, setTagEditDialogOpen] = useState(false);
@@ -99,21 +107,27 @@ export function TagsPage() {
     null,
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const workspace = workspaceQuery.data;
   const groups = workspace?.groups ?? EMPTY_GROUPS;
   const orderedGroups = useMemo(() => sortTagGroups(groups), [groups]);
   const tags = workspace?.tags ?? EMPTY_TAGS;
+  const queryGroupCode = searchParams.get('group');
+  const queryGroupId = orderedGroups.find(
+    (group) => group.code === queryGroupCode,
+  )?.id;
   const activeGroupId = orderedGroups.some(
     (group) => group.id === selectedGroupId,
   )
     ? selectedGroupId
-    : (orderedGroups[0]?.id ?? null);
+    : (queryGroupId ?? orderedGroups[0]?.id ?? null);
   const selectedGroup = orderedGroups.find(
     (group) => group.id === activeGroupId,
   );
   const isSoftwareAccountCatalogGroup =
     selectedGroup?.kind === 'software_account_catalog';
+  const isFinanceCategoryGroup = selectedGroup?.kind === 'finance_category';
   const tagGroups = orderedGroups.filter((group) => group.kind === 'tag');
   const tableRows = useMemo(
     () => tags.filter((tag) => tag.groupId === activeGroupId),
@@ -317,7 +331,10 @@ export function TagsPage() {
                         ? 'border-primary bg-primary/8 text-foreground'
                         : 'border-border bg-background hover:bg-field'
                     }`}
-                    onClick={() => setSelectedGroupId(group.id)}
+                    onClick={() => {
+                      setSelectedGroupId(group.id);
+                      setSearchParams({ group: group.code });
+                    }}
                   >
                     <TagGroupIcon
                       groupCode={group.code}
@@ -337,7 +354,9 @@ export function TagsPage() {
                     >
                       {group.kind === 'software_account_catalog'
                         ? (softwareAccountCatalogQuery.data?.length ?? 0)
-                        : group.tagCount}
+                        : group.kind === 'finance_category'
+                          ? (financeCategoryQuery.data?.length ?? 0)
+                          : group.tagCount}
                     </Badge>
                   </button>
                 );
@@ -355,6 +374,11 @@ export function TagsPage() {
             onRefresh={() => {
               void softwareAccountCatalogQuery.refetch();
             }}
+          />
+        ) : isFinanceCategoryGroup ? (
+          <FinanceCategoryPanel
+            categories={financeCategoryQuery.data ?? []}
+            isLoading={financeCategoryQuery.isLoading}
           />
         ) : (
           <DataGrid

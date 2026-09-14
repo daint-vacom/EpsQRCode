@@ -249,10 +249,10 @@ export function createColumnHelpers<TRow extends object>(
           }
 
           if (options.mode === 'datetime') {
-            return formatDateTime(value);
+            return formatDateTime(value) || '—';
           }
 
-          return formatDate(value);
+          return formatDate(value) || '—';
         },
       });
     },

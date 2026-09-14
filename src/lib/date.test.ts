@@ -26,6 +26,7 @@ describe('date helpers', () => {
   });
 
   it('returns an empty string for invalid or missing input', () => {
+    expect(formatDate(null)).toBe('');
     expect(formatDate(undefined)).toBe('');
     expect(formatDateTime('not-a-date')).toBe('');
     expect(formatRelative(Number.NaN)).toBe('');

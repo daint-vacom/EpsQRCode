@@ -1,7 +1,9 @@
 import { ROUTES } from '@/constants/routes';
 import {
+  CircleDollarSign,
   FileText,
   FolderOpen,
+  Landmark,
   Layers3,
   LayoutDashboard,
   ListTree,
@@ -10,6 +12,7 @@ import {
   Tags,
   UserRoundSearch,
   Users,
+  WalletCards,
 } from 'lucide-react';
 import type { MenuGroupConfig } from './menu.types';
 
@@ -47,6 +50,26 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Nhân viên',
         icon: Users,
         path: ROUTES.PROJECT.EMPLOYEES,
+      },
+      {
+        label: 'Sổ thu chi',
+        icon: WalletCards,
+        path: ROUTES.PROJECT.FINANCE_VOUCHERS,
+      },
+      {
+        label: 'Công nợ',
+        icon: CircleDollarSign,
+        path: ROUTES.PROJECT.FINANCE_OBLIGATIONS,
+      },
+      {
+        label: 'Quỹ & Tài khoản',
+        icon: Landmark,
+        path: ROUTES.PROJECT.FINANCE_ACCOUNTS,
+      },
+      {
+        label: 'Báo cáo',
+        icon: FileText,
+        path: ROUTES.PROJECT.REPORTS,
       },
       {
         label: 'Tệp lưu trữ',
