@@ -29,7 +29,7 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     ],
   },
   {
-    title: 'Quản trị',
+    title: 'Kinh doanh',
     items: [
       {
         label: 'Khách hàng',
@@ -46,11 +46,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         icon: Layers3,
         path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
       },
-      {
-        label: 'Nhân viên',
-        icon: Users,
-        path: ROUTES.PROJECT.EMPLOYEES,
-      },
+    ],
+  },
+  {
+    title: 'Tài chính',
+    items: [
       {
         label: 'Sổ thu chi',
         icon: WalletCards,
@@ -66,10 +66,25 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         icon: Landmark,
         path: ROUTES.PROJECT.FINANCE_ACCOUNTS,
       },
+    ],
+  },
+  {
+    title: 'Báo cáo & phân tích',
+    items: [
       {
         label: 'Báo cáo',
         icon: FileText,
         path: ROUTES.PROJECT.REPORTS,
+      },
+    ],
+  },
+  {
+    title: 'Quản trị tổ chức',
+    items: [
+      {
+        label: 'Nhân viên',
+        icon: Users,
+        path: ROUTES.PROJECT.EMPLOYEES,
       },
       {
         label: 'Tệp lưu trữ',

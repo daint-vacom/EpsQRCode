@@ -13,7 +13,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { BarChart3, FileText, WalletCards } from 'lucide-react';
+import { ArrowUpRight, BarChart3, FileText, WalletCards } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -32,6 +32,12 @@ import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
+import { ReportFilterBar } from '../components/report-filter-bar.generated';
+import {
+  REPORT_GROUP_OPTIONS,
+  ReportGroupFilter,
+  type ReportGroupFilterValue,
+} from '../components/report-group-filter';
 import { ReportPeriodSelect } from '../components/report-period-select';
 import {
   resolveReportPeriod,
@@ -45,18 +51,21 @@ const reports = [
     name: 'Thu chi theo khoản mục',
     description: 'Theo dõi tiền thu, chi theo ngày, tài khoản và khoản mục.',
     icon: WalletCards,
+    group: 'finance',
   },
   {
     code: 'finance-account-ledger',
     name: 'Sổ quỹ & Tài khoản',
     description: 'Xem các biến động và số dư chạy của từng tài khoản.',
     icon: BarChart3,
+    group: 'finance',
   },
   {
     code: 'finance-obligations',
     name: 'Công nợ theo đối tượng',
     description: 'Tổng hợp nghĩa vụ, đã thanh toán, còn nợ và quá hạn.',
     icon: FileText,
+    group: 'finance',
   },
 ] as const;
 function CashflowReport({ tenantId }: { tenantId: string }) {
@@ -395,15 +404,17 @@ function Metric({
 function ReportPageFrame({
   title,
   icon,
+  actions,
   children,
 }: {
   title: string;
   icon: typeof BarChart3;
+  actions?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 pb-8 xl:p-5 xl:pb-10">
-      <PageHeader title={title} icon={icon} />
+      <PageHeader title={title} icon={icon} actions={actions} />
       {children}
     </div>
   );
@@ -425,6 +436,8 @@ export function ReportsPage() {
     error: tenantError,
   } = useTenant();
   const { hasPermission } = useUser();
+  const [keyword, setKeyword] = useState('');
+  const [group, setGroup] = useState<ReportGroupFilterValue>('all');
   const report = reports.find((item) => item.code === reportCode);
   const canViewReports = hasPermission('finance:report:view');
 
@@ -467,6 +480,20 @@ export function ReportsPage() {
       </ReportPageFrame>
     );
   }
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase();
+  const visibleReports = reports.filter((item) => {
+    const matchesKeyword =
+      !normalizedKeyword ||
+      `${item.name} ${item.description}`
+        .toLocaleLowerCase()
+        .includes(normalizedKeyword);
+    const matchesGroup = group === 'all' || item.group === group;
+    return matchesKeyword && matchesGroup;
+  });
+  const visibleReportGroups = REPORT_GROUP_OPTIONS.map((option) => ({
+    ...option,
+    reports: visibleReports.filter((item) => item.group === option.value),
+  })).filter((option) => option.reports.length > 0);
   if (!canViewReports) {
     return (
       <ReportPageFrame title="Báo cáo" icon={BarChart3}>
@@ -479,25 +506,80 @@ export function ReportsPage() {
     );
   }
   return (
-    <ReportPageFrame title="Báo cáo" icon={BarChart3}>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {reports.map((item) => (
-          <Link
-            key={item.code}
-            to={`${ROUTES.PROJECT.REPORTS}/${item.code}`}
-            className="group"
-          >
-            <Card className="h-full transition-colors group-hover:border-primary">
-              <CardHeader>
-                <div className="mb-2 flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <item.icon className="size-5" />
+    <ReportPageFrame
+      title="Báo cáo"
+      icon={BarChart3}
+      actions={
+        <ReportFilterBar
+          keyword={keyword}
+          onKeywordChange={setKeyword}
+          className="w-full sm:w-80"
+        />
+      }
+    >
+      <div className="space-y-5">
+        <ReportGroupFilter value={group} onValueChange={setGroup} />
+        {visibleReportGroups.length > 0 ? (
+          <div className="space-y-6">
+            {visibleReportGroups.map((reportGroup) => (
+              <section
+                key={reportGroup.value}
+                aria-labelledby={`report-group-${reportGroup.value}`}
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <h2
+                    id={`report-group-${reportGroup.value}`}
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    {reportGroup.label}
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    {reportGroup.reports.length} báo cáo
+                  </span>
+                  <div className="h-px flex-1 bg-border" aria-hidden="true" />
                 </div>
-                <CardTitle className="text-base">{item.name}</CardTitle>
-                <CardDescription>{item.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {reportGroup.reports.map((item) => (
+                    <Link
+                      key={item.code}
+                      to={`${ROUTES.PROJECT.REPORTS}/${item.code}`}
+                      className="group"
+                    >
+                      <Card className="h-full border-border/80 bg-card shadow-xs transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-md">
+                        <CardHeader className="h-full flex-col items-stretch gap-0 p-5">
+                          <div className="mb-6 flex w-full items-start justify-between gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                              <item.icon className="size-5" />
+                            </div>
+                            <ArrowUpRight
+                              className="mt-1 size-5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <CardTitle className="text-[15px] leading-6">
+                            {item.name}
+                          </CardTitle>
+                          <CardDescription className="mt-2 min-h-10 leading-6">
+                            {item.description}
+                          </CardDescription>
+                        </CardHeader>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-sm font-medium">Không tìm thấy báo cáo</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Thử đổi từ khóa hoặc chọn nhóm báo cáo khác.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </ReportPageFrame>
   );
