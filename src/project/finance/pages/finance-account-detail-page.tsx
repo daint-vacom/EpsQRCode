@@ -46,6 +46,7 @@ export function FinanceAccountDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [name, setName] = useState('');
   const [accountType, setAccountType] = useState<'cash' | 'bank'>('cash');
+  const [isActive, setIsActive] = useState(true);
   const [bankName, setBankName] = useState('');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [bankAccountHolder, setBankAccountHolder] = useState('');
@@ -93,6 +94,7 @@ export function FinanceAccountDetailPage() {
       return updateFinanceAccount(tenantId, id, {
         name,
         accountType,
+        isActive,
         bankName,
         bankAccountNumber,
         bankAccountHolder,
@@ -126,6 +128,7 @@ export function FinanceAccountDetailPage() {
     if (!account) return;
     setName(account.name);
     setAccountType(account.accountType);
+    setIsActive(account.isActive);
     setBankName(account.bankName);
     setBankAccountNumber(account.bankAccountNumber);
     setBankAccountHolder(account.bankAccountHolder);
@@ -344,6 +347,32 @@ export function FinanceAccountDetailPage() {
                       { value: 'bank', label: 'Ngân hàng' },
                     ]}
                     searchable={false}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium">
+                    Trạng thái
+                  </label>
+                  <OptionSelect
+                    value={String(isActive)}
+                    onChange={(value) => setIsActive(value !== 'false')}
+                    options={[
+                      { value: 'true', label: 'Đang hoạt động' },
+                      { value: 'false', label: 'Ngừng hoạt động' },
+                    ]}
+                    searchable={false}
+                    renderOption={(option) => (
+                      <FinanceAccountStatusBadge
+                        isActive={option.value === 'true'}
+                        size="sm"
+                      />
+                    )}
+                    triggerContent={() => (
+                      <FinanceAccountStatusBadge
+                        isActive={isActive}
+                        size="sm"
+                      />
+                    )}
                   />
                 </div>
                 {accountType === 'bank' ? (

@@ -35,13 +35,6 @@ const spec = {
       sizePreset: 'medium',
     },
     {
-      kind: 'text',
-      id: 'currencyCode',
-      field: 'currencyCode',
-      header: 'Loại tiền',
-      sizePreset: 'compact',
-    },
-    {
       kind: 'currency',
       id: 'balance',
       field: 'balance',

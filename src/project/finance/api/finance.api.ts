@@ -448,6 +448,7 @@ export async function createFinanceAccount(
     bankName: string;
     bankAccountNumber: string;
     bankAccountHolder: string;
+    isActive: boolean;
   },
 ) {
   assertSupabaseConfigured();
@@ -459,6 +460,7 @@ export async function createFinanceAccount(
     bank_name: values.bankName.trim(),
     bank_account_number: values.bankAccountNumber.trim(),
     bank_account_holder: values.bankAccountHolder.trim(),
+    is_active: values.isActive,
     currency_code: 'VND',
   });
 }
@@ -472,6 +474,7 @@ export async function updateFinanceAccount(
     bankName: string;
     bankAccountNumber: string;
     bankAccountHolder: string;
+    isActive: boolean;
   },
 ) {
   assertSupabaseConfigured();
@@ -483,6 +486,7 @@ export async function updateFinanceAccount(
       bank_name: values.bankName.trim(),
       bank_account_number: values.bankAccountNumber.trim(),
       bank_account_holder: values.bankAccountHolder.trim(),
+      is_active: values.isActive,
     },
     queryParams({ id: `eq.${accountId}`, tenant_id: `eq.${tenantId}` }),
   );

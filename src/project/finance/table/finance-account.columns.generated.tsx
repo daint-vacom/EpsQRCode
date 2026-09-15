@@ -73,13 +73,6 @@ export function useFinanceAccountColumns(
         size: 220,
         enableSorting: false,
       }),
-      col.text({
-        id: 'currencyCode',
-        header: 'Loại tiền',
-        get: (row) => row.currencyCode,
-        size: 160,
-        enableSorting: false,
-      }),
       col.currency({
         id: 'balance',
         header: 'Số dư',

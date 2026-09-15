@@ -8,7 +8,7 @@ type FinanceAccountStatusKey = 'true' | 'false';
 export const FINANCE_ACCOUNT_STATUS_BADGE_CONFIG: StatusBadgeConfig<FinanceAccountStatusKey> =
   {
     true: { label: 'Đang hoạt động', variant: 'success' },
-    false: { label: 'Ngừng hoạt động', variant: 'outline' },
+    false: { label: 'Ngừng hoạt động', variant: 'destructive' },
   };
 
 export function FinanceAccountStatusBadge({

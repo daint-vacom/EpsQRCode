@@ -11,9 +11,11 @@ describe('FinanceAccountStatusBadge', () => {
     expect(badge.className).toContain('bg-[var(--color-success-accent');
   });
 
-  it('keeps the inactive account label in the shared component', () => {
+  it('uses a solid destructive badge for inactive accounts', () => {
     render(<FinanceAccountStatusBadge isActive={false} />);
 
-    expect(screen.getByText('Ngừng hoạt động')).toBeInTheDocument();
+    const badge = screen.getByText('Ngừng hoạt động');
+    expect(badge).toBeInTheDocument();
+    expect(badge.className).toContain('bg-destructive');
   });
 });
