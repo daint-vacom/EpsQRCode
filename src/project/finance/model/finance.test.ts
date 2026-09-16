@@ -3,6 +3,7 @@ import {
   financeVoucherDefaultValues,
   financeVoucherFormSchema,
   formatFinanceAmount,
+  getFinanceVoucherLineAvailableAmount,
   mapFinanceVoucherToFormValues,
   type FinanceVoucherDetail,
 } from './finance';
@@ -46,5 +47,11 @@ describe('finance model', () => {
       accountId: 'account-1',
       partyName: 'Nhà cung cấp A',
     });
+  });
+
+  it('calculates remaining voucher-line availability after allocations and refunds', () => {
+    expect(getFinanceVoucherLineAvailableAmount(6000, 4000, 0)).toBe(2000);
+    expect(getFinanceVoucherLineAvailableAmount(6000, 6000, 0)).toBe(0);
+    expect(getFinanceVoucherLineAvailableAmount(6000, 7000, 0)).toBe(0);
   });
 });

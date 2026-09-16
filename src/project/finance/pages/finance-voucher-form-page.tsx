@@ -198,6 +198,14 @@ export function FinanceVoucherFormPage() {
       toast.error('Mỗi dòng cần có khoản mục và số tiền lớn hơn 0.');
       return;
     }
+    if (
+      !lines.every(
+        (line) => line.handlingType !== 'advance' || Boolean(line.advanceScope),
+      )
+    ) {
+      toast.error('Vui lòng chọn phạm vi cho khoản ứng trước.');
+      return;
+    }
     saveMutation.mutate(values);
   };
 
@@ -303,14 +311,19 @@ export function FinanceVoucherFormPage() {
                   </label>
                   <OptionSelect
                     value={line.handlingType}
-                    onChange={(value) =>
+                    onChange={(value) => {
+                      const handlingType = (value ||
+                        'direct') as FinanceHandlingType;
                       updateLine(index, {
-                        handlingType: (value ||
-                          'direct') as FinanceHandlingType,
+                        handlingType,
+                        advanceScope:
+                          handlingType === 'advance'
+                            ? line.advanceScope || 'party'
+                            : '',
                         allocations:
-                          value === 'settlement' ? line.allocations : [],
-                      })
-                    }
+                          handlingType === 'settlement' ? line.allocations : [],
+                      });
+                    }}
                     options={Object.entries(FINANCE_HANDLING_TYPE_LABELS)
                       .filter(([key]) => key !== 'refund')
                       .map(([value, label]) => ({ value, label }))}

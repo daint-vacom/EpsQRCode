@@ -1,14 +1,30 @@
+import { useState } from 'react';
 import { ROUTES } from '@/constants/routes';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, FileText, Link2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
+import { useUser } from '@/providers/user-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
-import { loadFinanceVoucherDetail } from '../api/finance.api';
+import {
+  allocateFinanceAdvance,
+  loadFinanceObligations,
+  loadFinanceVoucherDetail,
+} from '../api/finance.api';
 import {
   FINANCE_HANDLING_TYPE_LABELS,
   FINANCE_VOUCHER_STATUS_LABELS,
@@ -18,12 +34,70 @@ import {
 
 export function FinanceVoucherDetailPage() {
   const { tenantId } = useTenant();
+  const { hasPermission } = useUser();
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [allocationSourceLineId, setAllocationSourceLineId] = useState('');
+  const [allocationObligationId, setAllocationObligationId] = useState('');
+  const [allocationAmount, setAllocationAmount] = useState('');
   const query = useQuery({
     queryKey: ['project', 'finance', 'voucher', tenantId, id],
     queryFn: () => loadFinanceVoucherDetail(tenantId!, id!),
     enabled: Boolean(tenantId && id),
+  });
+  const voucher = query.data;
+  const obligationsQuery = useQuery({
+    queryKey: [
+      'project',
+      'finance',
+      'obligations',
+      tenantId,
+      'receivable',
+      voucher?.customerId,
+    ],
+    queryFn: () =>
+      loadFinanceObligations(tenantId!, 'receivable', voucher!.customerId!),
+    enabled: Boolean(
+      tenantId && voucher?.customerId && voucher.status === 'posted',
+    ),
+  });
+  const allocationMutation = useMutation({
+    mutationFn: () =>
+      allocateFinanceAdvance(tenantId!, {
+        voucherLineId: allocationSourceLineId,
+        obligationId: allocationObligationId,
+        amount: Number(allocationAmount),
+        effectiveDate: voucher!.voucherDate,
+      }),
+    onSuccess: async () => {
+      toast.success('Đã phân bổ tiền ứng trước vào công nợ.');
+      setAllocationSourceLineId('');
+      setAllocationObligationId('');
+      setAllocationAmount('');
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: ['project', 'finance', 'voucher', tenantId, id],
+          type: 'active',
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['project', 'finance', 'obligations', tenantId],
+          type: 'active',
+        }),
+        queryClient.refetchQueries({
+          queryKey: ['project', 'finance', 'report'],
+          type: 'active',
+        }),
+      ]);
+    },
+    onError: (error) => {
+      const message = getApiErrorMessage(error);
+      toast.error(
+        message.includes('Allocation exceeds the available advance amount')
+          ? 'Số tiền phân bổ vượt quá số ứng trước còn khả dụng.'
+          : message,
+      );
+    },
   });
   if (query.isLoading)
     return (
@@ -39,7 +113,14 @@ export function FinanceVoucherDetailPage() {
         </Card>
       </div>
     );
-  const voucher = query.data;
+  const allocationSourceLine = voucher.lines.find(
+    (line) => line.id === allocationSourceLineId,
+  );
+  const openAdvanceAllocation = (lineId: string, availableAmount: number) => {
+    setAllocationSourceLineId(lineId);
+    setAllocationObligationId('');
+    setAllocationAmount(String(availableAmount));
+  };
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
       <PageHeader
@@ -116,6 +197,7 @@ export function FinanceVoucherDetailPage() {
                     <th className="p-3">Cách xử lý</th>
                     <th className="p-3 text-right">Số tiền</th>
                     <th className="p-3 text-right">Còn khả dụng</th>
+                    <th className="p-3 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -135,6 +217,27 @@ export function FinanceVoucherDetailPage() {
                       <td className="p-3 text-right">
                         {formatFinanceAmount(line.availableAmount)}
                       </td>
+                      <td className="p-3 text-right">
+                        {voucher.status === 'posted' &&
+                        line.handlingType === 'advance' &&
+                        line.availableAmount > 0 &&
+                        hasPermission('finance:voucher:post') ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              openAdvanceAllocation(
+                                line.id,
+                                line.availableAmount,
+                              )
+                            }
+                          >
+                            <Link2 className="size-4" /> Dùng ứng trước
+                          </Button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -142,6 +245,86 @@ export function FinanceVoucherDetailPage() {
             </div>
           </CardContent>
         </Card>
+        <Dialog
+          open={Boolean(allocationSourceLineId)}
+          onOpenChange={(open) => {
+            if (!open && !allocationMutation.isPending) {
+              setAllocationSourceLineId('');
+              setAllocationObligationId('');
+              setAllocationAmount('');
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Dùng tiền ứng trước</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                Nguồn ứng trước còn khả dụng:{' '}
+                <span className="font-semibold text-foreground">
+                  {formatFinanceAmount(
+                    allocationSourceLine?.availableAmount ?? 0,
+                  )}
+                </span>
+              </p>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Công nợ đích
+                </label>
+                <OptionSelect
+                  value={allocationObligationId}
+                  onChange={(value) => setAllocationObligationId(value || '')}
+                  options={
+                    obligationsQuery.data
+                      ?.filter((item) => item.outstandingAmount > 0)
+                      .map((item) => ({
+                        value: item.id,
+                        label: `${item.code} - ${item.description} (${formatFinanceAmount(item.outstandingAmount)})`,
+                      })) ?? []
+                  }
+                  searchable
+                  placeholder={
+                    obligationsQuery.isLoading
+                      ? 'Đang tải công nợ...'
+                      : 'Chọn công nợ'
+                  }
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium">
+                  Số tiền phân bổ
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={allocationAmount}
+                  onChange={(event) => setAllocationAmount(event.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setAllocationSourceLineId('')}
+              >
+                Hủy
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                loading={allocationMutation.isPending}
+                disabled={
+                  !allocationObligationId || Number(allocationAmount) <= 0
+                }
+                onClick={() => allocationMutation.mutate()}
+              >
+                Phân bổ
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <div>
           <Button
             variant="outline"

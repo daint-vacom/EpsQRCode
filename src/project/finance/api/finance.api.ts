@@ -9,7 +9,10 @@ import type {
   FinanceVoucherFormValues,
   FinanceVoucherLineDraft,
 } from '../model/finance';
-import { numberValue } from '../model/finance';
+import {
+  getFinanceVoucherLineAvailableAmount,
+  numberValue,
+} from '../model/finance';
 
 function queryParams(params: Record<string, string>) {
   return { params };
@@ -443,6 +446,34 @@ export async function postFinanceVoucher(tenantId: string, id: string) {
   );
 }
 
+export async function allocateFinanceAdvance(
+  tenantId: string,
+  input: {
+    voucherLineId: string;
+    obligationId: string;
+    amount: number;
+    effectiveDate: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    voucherLineId: string;
+    obligationId: string;
+    amount: number | string;
+    effectiveDate: string;
+  }>(
+    supabaseApi.post('/rpc/allocate_finance_advance', {
+      p_tenant_id: tenantId,
+      p_voucher_line_id: input.voucherLineId,
+      p_obligation_id: input.obligationId,
+      p_amount: input.amount,
+      p_effective_date: input.effectiveDate,
+      p_request_key: crypto.randomUUID(),
+    }),
+  );
+}
+
 export async function createFinanceAccount(
   tenantId: string,
   values: {
@@ -601,23 +632,42 @@ export async function loadFinanceVoucherDetail(
   const voucher = voucherRows[0];
   if (!voucher) throw new Error('Không tìm thấy phiếu.');
   const voucherHead = voucherHeadRows[0];
-  const allocationDraftRows = lineRows.length
-    ? await request<
-        Array<{
-          voucher_line_id: string;
-          obligation_id: string;
-          amount: number | string;
-        }>
-      >(
-        supabaseApi.get(
-          '/finance_voucher_line_allocation_drafts',
-          queryParams({
-            select: 'voucher_line_id,obligation_id,amount',
-            tenant_id: `eq.${tenantId}`,
-            voucher_line_id: `in.(${lineRows.map((row) => row.id).join(',')})`,
-          }),
+  const allocationRows = lineRows.length
+    ? await Promise.all([
+        request<
+          Array<{
+            voucher_line_id: string;
+            obligation_id: string;
+            amount: number | string;
+          }>
+        >(
+          supabaseApi.get(
+            '/finance_allocations',
+            queryParams({
+              select: 'voucher_line_id,obligation_id,amount',
+              tenant_id: `eq.${tenantId}`,
+              voucher_line_id: `in.(${lineRows.map((row) => row.id).join(',')})`,
+              status: 'eq.active',
+            }),
+          ),
         ),
-      )
+        request<
+          Array<{
+            voucher_line_id: string;
+            obligation_id: string;
+            amount: number | string;
+          }>
+        >(
+          supabaseApi.get(
+            '/finance_voucher_line_allocation_drafts',
+            queryParams({
+              select: 'voucher_line_id,obligation_id,amount',
+              tenant_id: `eq.${tenantId}`,
+              voucher_line_id: `in.(${lineRows.map((row) => row.id).join(',')})`,
+            }),
+          ),
+        ),
+      ]).then(([postedRows, draftRows]) => [...postedRows, ...draftRows])
     : [];
   return {
     ...mapVoucher(voucher),
@@ -634,12 +684,18 @@ export async function loadFinanceVoucherDetail(
       handlingType: row.handling_type,
       relatedContractId: row.related_contract_id,
       advanceScope: row.advance_scope,
-      allocatedAmount: allocationDraftRows
+      allocatedAmount: allocationRows
         .filter((draft) => draft.voucher_line_id === row.id)
         .reduce((sum, draft) => sum + numberValue(draft.amount), 0),
       refundedAmount: 0,
-      availableAmount: numberValue(row.amount),
-      allocations: allocationDraftRows
+      availableAmount: getFinanceVoucherLineAvailableAmount(
+        row.amount,
+        allocationRows
+          .filter((draft) => draft.voucher_line_id === row.id)
+          .reduce((sum, draft) => sum + numberValue(draft.amount), 0),
+        0,
+      ),
+      allocations: allocationRows
         .filter((draft) => draft.voucher_line_id === row.id)
         .map((draft) => ({
           obligationId: draft.obligation_id,

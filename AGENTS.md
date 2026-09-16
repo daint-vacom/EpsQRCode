@@ -43,6 +43,7 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Prefer Lucide icons when a matching icon exists. Keep icon-only controls to familiar actions or provide accessible labels/tooltips.
 - Reuse `src/components/ui` before creating new base components.
 - Style shared admin defaults at the component/token root, not with per-page class patches. See `docs/06-component-usage-guide.md` when changing shared look.
+- Frontend is not a legacy compatibility layer: when a domain or data shape changes, add/update the required migration and backend/read-model contract, then make the frontend consume the canonical new shape only. Do not add legacy-field fallbacks, dual-shape reads, or client-side compatibility conversions unless the user explicitly approves them; compatibility belongs at the server/API boundary when it is required.
 
 ## Import and Runtime Symbol Rules
 

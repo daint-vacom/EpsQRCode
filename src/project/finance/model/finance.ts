@@ -265,3 +265,16 @@ export function numberValue(value: number | string | null | undefined) {
       ? value
       : Number(value) || 0;
 }
+
+export function getFinanceVoucherLineAvailableAmount(
+  amount: number | string | null | undefined,
+  allocatedAmount: number | string | null | undefined,
+  refundedAmount: number | string | null | undefined,
+) {
+  return Math.max(
+    0,
+    numberValue(amount) -
+      numberValue(allocatedAmount) -
+      numberValue(refundedAmount),
+  );
+}
