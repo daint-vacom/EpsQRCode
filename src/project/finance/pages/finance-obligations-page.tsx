@@ -66,24 +66,23 @@ export function FinanceObligationsPage() {
     enabled: Boolean(tenantId && hasPermission('finance:obligation:view')),
   });
   const mutation = useMutation({
-    mutationFn: () => {
-      const customer = customersQuery.data?.find(
-        (item) => item.id === customerId,
-      );
-      return createFinanceObligation(tenantId!, {
-        code,
-        description,
-        customerId,
-        partyNameSnapshot: customer?.name ?? '',
-        direction,
-        documentDate,
-        dueDate,
-        originalAmount: Number(originalAmount),
-      });
-    },
+    mutationFn: ({ requestKey }: { requestKey: string }) =>
+      createFinanceObligation(
+        tenantId!,
+        {
+          code,
+          description,
+          customerId,
+          direction,
+          documentDate,
+          dueDate,
+          originalAmount: Number(originalAmount),
+        },
+        requestKey,
+      ),
     onSuccess: async () => {
       setOpen(false);
-      toast.success('Đã tạo công nợ nháp.');
+      toast.success('Đã ghi nhận công nợ.');
       await queryClient.invalidateQueries({
         queryKey: ['project', 'finance', 'obligations', tenantId, direction],
       });
@@ -265,7 +264,7 @@ export function FinanceObligationsPage() {
                   );
                   return;
                 }
-                mutation.mutate();
+                mutation.mutate({ requestKey: crypto.randomUUID() });
               }}
             >
               Lưu

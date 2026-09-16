@@ -354,3 +354,19 @@ Phạm vi chưa đánh dấu Pass: kiểm thử bằng user thiếu quyền, sai
 - [Đặc tả Thu chi & Công nợ](../specs/2026-09-13-finance-vouchers-and-obligations.md)
 - [Kế hoạch Contract Receivable](../plans/2026-08-25-contract-receivable-plan.md)
 - [Đặc tả Contract và Receivables cũ](../../superpowers/specs/2026-08-15-contract-and-receivables-module-design.md)
+
+## 13. Kết quả kiểm tra sau hardening migration
+
+Ngày 16/09/2026, sau khi apply migration `20260916120000_harden_finance_write_contract.sql` vào dev database:
+
+| Hạng mục | Kết quả | Bằng chứng |
+| --- | --- | --- |
+| Canonical obligation shape | Pass | `effective_date` và `recognition_basis` tồn tại, đều `NOT NULL`; dữ liệu hiện hữu đã backfill. |
+| Direct write vào công nợ đã post | Pass | Authenticated role không còn `INSERT/UPDATE/DELETE`; trigger chặn update posted. |
+| RPC create obligation | Pass | Tạo được công nợ với snapshot đối tượng lấy từ server; test rollback không để lại probe data. |
+| Idempotent replay | Pass | Cùng `request_key` và payload trả cùng obligation ID; key khác payload bị thiết kế từ chối. |
+| Multi-line over-allocation | Pass | Hai dòng cùng phân bổ vượt tổng công nợ bị chặn; voucher giữ trạng thái `draft`. |
+| Sổ công nợ / sổ thu chi runtime | Pass | `/finance/obligations`, `/finance/vouchers` và form phiếu thu tải đúng trên port 5174. |
+| Regression/build | Pass | 8 test files / 21 tests; TypeScript, import lint và production build đều đạt. |
+
+Không phát hiện lỗi P0/P1 mới trong phạm vi hardening đã chạy. Các case concurrency, user thiếu quyền/sai tenant bằng nhiều phiên riêng, adjustment/reversal và kế toán tổng hợp vẫn là **Not run / phase tiếp theo**, không gắn nhãn Pass thay thế.

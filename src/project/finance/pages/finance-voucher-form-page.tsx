@@ -142,13 +142,20 @@ export function FinanceVoucherFormPage() {
     [lines],
   );
   const saveMutation = useMutation({
-    mutationFn: (values: Parameters<typeof saveFinanceVoucherDraft>[3]) =>
+    mutationFn: ({
+      values,
+      requestKey,
+    }: {
+      values: Parameters<typeof saveFinanceVoucherDraft>[3];
+      requestKey: string;
+    }) =>
       saveFinanceVoucherDraft(
         tenantId!,
         voucherId ?? null,
         revision,
         values,
         lines,
+        requestKey,
       ),
     onSuccess: (result) => {
       setRevision(result.revision);
@@ -161,7 +168,8 @@ export function FinanceVoucherFormPage() {
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
   const postMutation = useMutation({
-    mutationFn: () => postFinanceVoucher(tenantId!, voucherId!),
+    mutationFn: ({ requestKey }: { requestKey: string }) =>
+      postFinanceVoucher(tenantId!, voucherId!, requestKey),
     onSuccess: async (result) => {
       toast.success(`Đã ghi nhận phiếu ${result.voucherNo}.`);
       await Promise.all([
@@ -206,7 +214,7 @@ export function FinanceVoucherFormPage() {
       toast.error('Vui lòng chọn phạm vi cho khoản ứng trước.');
       return;
     }
-    saveMutation.mutate(values);
+    saveMutation.mutate({ values, requestKey: crypto.randomUUID() });
   };
 
   return (
@@ -399,7 +407,9 @@ export function FinanceVoucherFormPage() {
               disabled={
                 detailQuery.data?.status !== 'draft' || saveMutation.isPending
               }
-              onClick={() => postMutation.mutate()}
+              onClick={() =>
+                postMutation.mutate({ requestKey: crypto.randomUUID() })
+              }
             >
               Ghi nhận
             </Button>

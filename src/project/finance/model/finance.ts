@@ -206,7 +206,9 @@ export interface FinanceObligation {
   contractId: string | null;
   contractName: string;
   documentDate: string;
+  effectiveDate: string;
   dueDate: string | null;
+  recognitionBasis: string;
   originalAmount: number;
   adjustmentAmount: number;
   obligationAmount: number;

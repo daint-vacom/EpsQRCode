@@ -122,17 +122,26 @@ export function CustomerDebtsTab({ customer }: { customer: Customer }) {
   }, [paymentDebt, resetPaymentForm]);
 
   const createMutation = useMutation({
-    mutationFn: (values: CustomerDebtFormValues) =>
-      createFinanceObligation(tenantId!, {
-        code: values.code,
-        description: values.description,
-        customerId: customer.id,
-        partyNameSnapshot: customer.name,
-        direction: 'receivable',
-        documentDate: values.documentDate,
-        dueDate: values.dueDate,
-        originalAmount: values.originalAmount,
-      }),
+    mutationFn: ({
+      values,
+      requestKey,
+    }: {
+      values: CustomerDebtFormValues;
+      requestKey: string;
+    }) =>
+      createFinanceObligation(
+        tenantId!,
+        {
+          code: values.code,
+          description: values.description,
+          customerId: customer.id,
+          direction: 'receivable',
+          documentDate: values.documentDate,
+          dueDate: values.dueDate,
+          originalAmount: values.originalAmount,
+        },
+        requestKey,
+      ),
     onSuccess: async () => {
       setCreateOpen(false);
       toast.success('Đã tạo công nợ.');
@@ -297,7 +306,12 @@ export function CustomerDebtsTab({ customer }: { customer: Customer }) {
         onOpenChange={setCreateOpen}
         mode="create"
         form={createForm}
-        onSubmit={(values) => createMutation.mutate(values)}
+        onSubmit={(values) =>
+          createMutation.mutate({
+            values,
+            requestKey: crypto.randomUUID(),
+          })
+        }
         isSaving={createMutation.isPending}
         title={
           <>

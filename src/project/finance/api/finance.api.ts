@@ -201,8 +201,10 @@ interface ObligationRow {
   contract_name: string | null;
   document_date: string;
   due_date: string | null;
+  effective_date: string;
   original_amount: number | string;
   currency_code: string;
+  recognition_basis: string;
   status: FinanceObligation['status'];
   settled_amount: number | string;
   outstanding_amount: number | string;
@@ -224,6 +226,8 @@ function mapObligation(row: ObligationRow): FinanceObligation {
     contractName: row.contract_name ?? '',
     documentDate: row.document_date,
     dueDate: row.due_date,
+    effectiveDate: row.effective_date,
+    recognitionBasis: row.recognition_basis,
     originalAmount: numberValue(row.original_amount),
     adjustmentAmount: 0,
     obligationAmount: numberValue(row.original_amount),
@@ -401,6 +405,7 @@ export async function saveFinanceVoucherDraft(
   revision: number,
   values: FinanceVoucherFormValues,
   lines: FinanceVoucherLineDraft[],
+  requestKey: string,
   currencyCode = 'VND',
 ) {
   assertSupabaseConfigured();
@@ -413,7 +418,7 @@ export async function saveFinanceVoucherDraft(
       p_tenant_id: tenantId,
       p_voucher_id: id,
       p_revision: revision,
-      p_request_key: crypto.randomUUID(),
+      p_request_key: requestKey,
       p_payload: {
         voucherType: values.voucherType,
         voucherDate: values.voucherDate,
@@ -435,13 +440,17 @@ export async function saveFinanceVoucherDraft(
   return response;
 }
 
-export async function postFinanceVoucher(tenantId: string, id: string) {
+export async function postFinanceVoucher(
+  tenantId: string,
+  id: string,
+  requestKey: string,
+) {
   assertSupabaseConfigured();
   return request<{ id: string; voucherNo: string; status: string }>(
     supabaseApi.post('/rpc/post_finance_voucher', {
       p_tenant_id: tenantId,
       p_voucher_id: id,
-      p_request_key: crypto.randomUUID(),
+      p_request_key: requestKey,
     }),
   );
 }
@@ -453,6 +462,7 @@ export async function allocateFinanceAdvance(
     obligationId: string;
     amount: number;
     effectiveDate: string;
+    requestKey: string;
   },
 ) {
   assertSupabaseConfigured();
@@ -469,7 +479,7 @@ export async function allocateFinanceAdvance(
       p_obligation_id: input.obligationId,
       p_amount: input.amount,
       p_effective_date: input.effectiveDate,
-      p_request_key: crypto.randomUUID(),
+      p_request_key: input.requestKey,
     }),
   );
 }
@@ -545,30 +555,34 @@ export async function createFinanceObligation(
     code: string;
     description: string;
     customerId: string;
-    partyNameSnapshot: string;
     direction: 'receivable' | 'payable';
     documentDate: string;
     dueDate: string;
     originalAmount: number;
   },
+  requestKey: string,
 ) {
   assertSupabaseConfigured();
-  await supabaseApi.post('/finance_obligations', {
-    tenant_id: tenantId,
-    code: values.code.trim(),
-    description: values.description.trim(),
-    party_type: 'customer',
-    customer_id: values.customerId,
-    party_name_snapshot: values.partyNameSnapshot.trim(),
-    direction: values.direction,
-    source_type: 'manual',
-    document_date: values.documentDate,
-    due_date: values.dueDate || null,
-    original_amount: values.originalAmount,
-    currency_code: 'VND',
-    status: 'posted',
-    posted_at: new Date().toISOString(),
-  });
+  await request(
+    supabaseApi.post('/rpc/create_finance_obligation', {
+      p_tenant_id: tenantId,
+      p_request_key: requestKey,
+      p_payload: {
+        code: values.code.trim(),
+        description: values.description.trim(),
+        partyType: 'customer',
+        customerId: values.customerId,
+        direction: values.direction,
+        sourceType: 'manual',
+        documentDate: values.documentDate,
+        effectiveDate: values.documentDate,
+        dueDate: values.dueDate || null,
+        originalAmount: values.originalAmount,
+        currencyCode: 'VND',
+        recognitionBasis: 'manual_claim',
+      },
+    }),
+  );
 }
 
 export async function loadFinanceVoucherDetail(

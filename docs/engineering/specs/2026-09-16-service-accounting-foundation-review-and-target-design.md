@@ -613,3 +613,32 @@ Một hạng mục mở rộng chỉ được xem là hoàn tất khi có đủ:
 - Audit trail.
 - Tài liệu rollback/forward-fix.
 - Xác nhận không làm thay đổi kết quả của bốn luồng nền tảng đã nghiệm thu.
+
+## 20. Trạng thái triển khai hardening lần 1
+
+Ngày triển khai: 16/09/2026. Môi trường: dev database, ứng dụng Vite dev trên port 5174.
+
+Đã triển khai migration additive [`20260916120000_harden_finance_write_contract.sql`](../../../supabase/migrations/20260916120000_harden_finance_write_contract.sql), không xóa bảng hoặc dữ liệu lịch sử. Migration đã được preflight, dry-run trong transaction rollback, apply chính thức và xác minh qua PostgreSQL session pooler của đúng project.
+
+Phạm vi đã hoàn thành:
+
+- Bổ sung bắt buộc `effective_date` và `recognition_basis`; backfill `effective_date` từ `document_date`.
+- Công nợ đã post không thể bị sửa/xóa trực tiếp; thay đổi phải đi qua adjustment/reversal ở phase mở rộng.
+- Đồng bộ công nợ từ contract charge không còn ghi đè obligation đã post; thay đổi sau post bị từ chối.
+- Ghi công nợ thủ công đi qua RPC `create_finance_obligation`; frontend không còn insert trực tiếp hoặc gửi `status`/`posted_at` do client tự quyết định.
+- Save/post voucher và phân bổ ứng trước nhận `request_key` từ intent thao tác; replay cùng key/cùng payload trả lại kết quả cũ, key dùng khác payload bị từ chối.
+- Post voucher kiểm tra tenant, tài khoản, khách hàng/nhân viên, chiều công nợ, loại tiền, phạm vi hợp đồng và tổng phân bổ trên toàn bộ voucher; không chỉ kiểm tra từng dòng riêng lẻ.
+- Read model công nợ dùng `effective_date`, hiển thị chênh lệch âm thay vì che bằng `greatest(..., 0)`; tổng hợp credit ứng trước chưa phân bổ được tách riêng.
+- Frontend chỉ đọc canonical shape mới, không có fallback field/dual-shape cho dữ liệu legacy.
+
+Bằng chứng xác minh:
+
+- `npx tsc --noEmit`: đạt.
+- Focused import lint cho các file finance/customer thay đổi: đạt.
+- Regression tests finance/customer: 8 test files, 21 tests đạt.
+- `npm run build`: đạt; chỉ còn cảnh báo kích thước bundle và annotation từ dependency Zod.
+- Runtime route `/finance/obligations`, `/finance/vouchers` và form lập phiếu thu trên port 5174 tải đúng dữ liệu; không có lỗi ứng dụng trong console.
+- DB invariant sau migration: không có obligation thiếu `effective_date`, obligation posted thiếu `posted_at`, advance contract thiếu contract hoặc outstanding âm.
+- Contract probe rollback: RPC create + replay tạo cùng một kết quả; update trực tiếp obligation posted bị chặn; phân bổ cùng một obligation qua hai dòng vượt tổng bị chặn và voucher vẫn ở trạng thái draft.
+
+Các phần chưa được đánh dấu hoàn tất của spec vẫn giữ nguyên: concurrency test bằng nhiều session thật, user thiếu quyền/sai tenant, adjustment/reversal, khóa kỳ, VAT/GL và các quyết định kế toán cần owner chốt. Đây là giới hạn kiểm thử/phase tiếp theo, không được coi là đã hoàn thành chỉ vì migration hardening đã apply.

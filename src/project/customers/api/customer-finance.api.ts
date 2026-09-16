@@ -60,13 +60,16 @@ export async function recordCustomerDebtPayment(
   if (remainingAmount > 0) {
     throw new Error('Số tiền thu vượt quá số còn phải thu của nhóm công nợ.');
   }
+  const saveRequestKey = crypto.randomUUID();
+  const postRequestKey = crypto.randomUUID();
   const draft = await saveFinanceVoucherDraft(
     tenantId,
     null,
     1,
     voucherValues,
     [line],
+    saveRequestKey,
     debt.currencyCode,
   );
-  return postFinanceVoucher(tenantId, draft.id);
+  return postFinanceVoucher(tenantId, draft.id, postRequestKey);
 }

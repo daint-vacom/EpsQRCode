@@ -63,12 +63,13 @@ export function FinanceVoucherDetailPage() {
     ),
   });
   const allocationMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: ({ requestKey }: { requestKey: string }) =>
       allocateFinanceAdvance(tenantId!, {
         voucherLineId: allocationSourceLineId,
         obligationId: allocationObligationId,
         amount: Number(allocationAmount),
         effectiveDate: voucher!.voucherDate,
+        requestKey,
       }),
     onSuccess: async () => {
       toast.success('Đã phân bổ tiền ứng trước vào công nợ.');
@@ -318,7 +319,9 @@ export function FinanceVoucherDetailPage() {
                 disabled={
                   !allocationObligationId || Number(allocationAmount) <= 0
                 }
-                onClick={() => allocationMutation.mutate()}
+                onClick={() =>
+                  allocationMutation.mutate({ requestKey: crypto.randomUUID() })
+                }
               >
                 Phân bổ
               </Button>
