@@ -281,6 +281,155 @@ export async function loadFinanceObligations(
   return rows.map(mapObligation);
 }
 
+export async function loadFinanceObligationsAsOf(
+  tenantId: string,
+  asOfDate: string,
+  options: {
+    direction?: 'receivable' | 'payable';
+    customerId?: string;
+    currencyCode?: string;
+  } = {},
+) {
+  assertSupabaseConfigured();
+  const rows = await request<ObligationRow[]>(
+    supabaseApi.post('/rpc/get_finance_obligation_balances_as_of', {
+      p_tenant_id: tenantId,
+      p_as_of_date: asOfDate,
+      p_direction: options.direction ?? null,
+      p_customer_id: options.customerId ?? null,
+      p_currency_code: options.currencyCode ?? null,
+    }),
+  );
+  return rows.map(mapObligation);
+}
+
+export interface FinanceAdvanceBalanceAsOf {
+  sourceLineId: string;
+  voucherId: string;
+  voucherNo: string | null;
+  effectiveDate: string;
+  customerId: string;
+  partyNameSnapshot: string;
+  relatedContractId: string | null;
+  advanceScope: 'party' | 'contract';
+  amount: number;
+  allocatedAmount: number;
+  refundedAmount: number;
+  availableAmount: number;
+  currencyCode: string;
+}
+
+export async function loadFinanceAdvanceBalancesAsOf(
+  tenantId: string,
+  asOfDate: string,
+  options: { customerId?: string; currencyCode?: string } = {},
+) {
+  assertSupabaseConfigured();
+  const rows = await request<
+    Array<{
+      source_line_id: string;
+      voucher_id: string;
+      voucher_no: string | null;
+      effective_date: string;
+      customer_id: string;
+      party_name_snapshot: string;
+      related_contract_id: string | null;
+      advance_scope: 'party' | 'contract';
+      amount: number | string;
+      allocated_amount: number | string;
+      refunded_amount: number | string;
+      available_amount: number | string;
+      currency_code: string;
+    }>
+  >(
+    supabaseApi.post('/rpc/get_finance_advance_balances_as_of', {
+      p_tenant_id: tenantId,
+      p_as_of_date: asOfDate,
+      p_customer_id: options.customerId ?? null,
+      p_currency_code: options.currencyCode ?? null,
+    }),
+  );
+  return rows.map<FinanceAdvanceBalanceAsOf>((row) => ({
+    sourceLineId: row.source_line_id,
+    voucherId: row.voucher_id,
+    voucherNo: row.voucher_no,
+    effectiveDate: row.effective_date,
+    customerId: row.customer_id,
+    partyNameSnapshot: row.party_name_snapshot,
+    relatedContractId: row.related_contract_id,
+    advanceScope: row.advance_scope,
+    amount: numberValue(row.amount),
+    allocatedAmount: numberValue(row.allocated_amount),
+    refundedAmount: numberValue(row.refunded_amount),
+    availableAmount: numberValue(row.available_amount),
+    currencyCode: row.currency_code,
+  }));
+}
+
+export interface CustomerFinanceSummarySnapshot {
+  currencyCode: string;
+  totalBilled: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  overdueOutstanding: number;
+  unappliedCredit: number;
+  cashReceived: number;
+  cashPaid: number;
+}
+
+export async function loadCustomerFinanceSummaryAsOf(
+  tenantId: string,
+  customerId: string,
+  asOfDate: string,
+  currencyCode = 'VND',
+) {
+  assertSupabaseConfigured();
+  const rows = await request<
+    Array<{
+      tenant_id: string;
+      customer_id: string;
+      currency_code: string;
+      total_billed: number | string;
+      total_paid: number | string;
+      total_outstanding: number | string;
+      overdue_outstanding: number | string;
+      unapplied_credit: number | string;
+      cash_received: number | string;
+      cash_paid: number | string;
+    }>
+  >(
+    supabaseApi.post('/rpc/get_customer_finance_summary_as_of', {
+      p_tenant_id: tenantId,
+      p_customer_id: customerId,
+      p_as_of_date: asOfDate,
+      p_currency_code: currencyCode,
+    }),
+  );
+  const row = rows[0];
+  if (!row) {
+    return {
+      currencyCode,
+      totalBilled: 0,
+      totalPaid: 0,
+      totalOutstanding: 0,
+      overdueOutstanding: 0,
+      unappliedCredit: 0,
+      cashReceived: 0,
+      cashPaid: 0,
+    } satisfies CustomerFinanceSummarySnapshot;
+  }
+  return {
+    currencyCode: row.currency_code,
+    totalBilled: numberValue(row.total_billed),
+    totalPaid: numberValue(row.total_paid),
+    totalOutstanding: numberValue(row.total_outstanding),
+    overdueOutstanding: numberValue(row.overdue_outstanding),
+    unappliedCredit: numberValue(row.unapplied_credit),
+    cashReceived: numberValue(row.cash_received),
+    cashPaid: numberValue(row.cash_paid),
+  } satisfies CustomerFinanceSummarySnapshot;
+}
+
 export interface FinanceCashflowReportRow {
   voucherId: string;
   voucherNo: string | null;

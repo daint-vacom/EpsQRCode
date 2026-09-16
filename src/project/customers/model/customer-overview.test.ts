@@ -91,6 +91,9 @@ describe('customer overview model', () => {
       totalPaid: 2_250_000,
       totalOutstanding: 750_000,
       overdueOutstanding: 750_000,
+      unappliedAdvance: 0,
+      cashReceived: 0,
+      cashPaid: 0,
       progressPercent: 75,
     });
     expect(result.contracts[0]).toMatchObject({
@@ -140,6 +143,42 @@ describe('customer overview model', () => {
     expect(
       result.contracts.every((contract) => contract.outstandingAmount === 0),
     ).toBe(true);
+  });
+
+  it('uses the as-of finance snapshot for credit and cash metrics', () => {
+    const result = buildCustomerOverviewData(
+      contracts,
+      [
+        debt({
+          originalAmount: 1_000_000,
+          obligationAmount: 1_000_000,
+          settledAmount: 250_000,
+          outstandingAmount: 750_000,
+        }),
+      ],
+      undefined,
+      [],
+      {
+        currencyCode: 'VND',
+        totalBilled: 1_000_000,
+        totalPaid: 250_000,
+        totalOutstanding: 750_000,
+        overdueOutstanding: 0,
+        unappliedCredit: 300_000,
+        cashReceived: 550_000,
+        cashPaid: 0,
+      },
+    );
+
+    expect(result.summary).toMatchObject({
+      totalBilled: 1_000_000,
+      totalPaid: 250_000,
+      totalOutstanding: 750_000,
+      overdueOutstanding: 0,
+      unappliedAdvance: 300_000,
+      cashReceived: 550_000,
+      cashPaid: 0,
+    });
   });
 
   it('treats manually recorded debt without a due date as incurred', () => {

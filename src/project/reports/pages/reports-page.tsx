@@ -2,9 +2,10 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import {
   loadFinanceAccounts,
+  loadFinanceAdvanceBalancesAsOf,
   loadFinanceCashflowReport,
   loadFinanceCategories,
-  loadFinanceObligations,
+  loadFinanceObligationsAsOf,
 } from '@/project/finance/api/finance.api';
 import { formatFinanceAmount } from '@/project/finance/model/finance';
 import { useQuery } from '@tanstack/react-query';
@@ -284,6 +285,9 @@ function AccountLedgerReport({ tenantId }: { tenantId: string }) {
 }
 
 function ObligationReport({ tenantId }: { tenantId: string }) {
+  const initialAsOfDate = new Date().toISOString().slice(0, 10);
+  const [asOfDate, setAsOfDate] = useState(initialAsOfDate);
+  const [submittedAsOfDate, setSubmittedAsOfDate] = useState(initialAsOfDate);
   const receivableQuery = useQuery({
     queryKey: [
       'project',
@@ -291,38 +295,81 @@ function ObligationReport({ tenantId }: { tenantId: string }) {
       'report',
       'obligations',
       tenantId,
-      'receivable',
+      submittedAsOfDate,
     ],
-    queryFn: () => loadFinanceObligations(tenantId, 'receivable'),
+    queryFn: () => loadFinanceObligationsAsOf(tenantId, submittedAsOfDate),
   });
-  const payableQuery = useQuery({
+  const advanceQuery = useQuery({
     queryKey: [
       'project',
       'finance',
       'report',
-      'obligations',
+      'advances',
       tenantId,
-      'payable',
+      submittedAsOfDate,
     ],
-    queryFn: () => loadFinanceObligations(tenantId, 'payable'),
+    queryFn: () =>
+      loadFinanceAdvanceBalancesAsOf(tenantId, submittedAsOfDate, {
+        currencyCode: 'VND',
+      }),
   });
-  const rows = [...(receivableQuery.data ?? []), ...(payableQuery.data ?? [])];
+  const rows = receivableQuery.data ?? [];
   const total = rows.reduce((sum, row) => sum + row.outstandingAmount, 0);
+  const unappliedCredit = (advanceQuery.data ?? []).reduce(
+    (sum, row) => sum + row.availableAmount,
+    0,
+  );
+  const hasNegativeBalance = rows.some((row) => row.outstandingAmount < 0);
   return (
     <ReportCard
       title="Công nợ theo đối tượng"
       error={
-        receivableQuery.isError || payableQuery.isError
-          ? getApiErrorMessage(receivableQuery.error || payableQuery.error)
+        receivableQuery.isError || advanceQuery.isError
+          ? getApiErrorMessage(receivableQuery.error || advanceQuery.error)
           : undefined
       }
     >
-      <div className="py-4">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <div>
+          <Label variant="secondary" className="mb-1.5 block">
+            Số liệu tại ngày
+          </Label>
+          <DatePickerInput
+            valueMode="iso-date"
+            variant="md"
+            calendarLabel="Chọn ngày chốt công nợ"
+            value={asOfDate}
+            onChange={(value) =>
+              setAsOfDate(typeof value === 'string' ? value : '')
+            }
+          />
+        </div>
+        <Button
+          type="button"
+          className="min-w-32"
+          disabled={!asOfDate}
+          onClick={() => setSubmittedAsOfDate(asOfDate)}
+        >
+          Tải dữ liệu
+        </Button>
+      </div>
+      <div className="grid gap-3 py-4 md:grid-cols-2">
         <Metric
-          label="Tổng còn phải thu/phải trả"
+          label={`Còn phải thu/phải trả đến ${submittedAsOfDate}`}
           value={formatFinanceAmount(total)}
         />
+        <Metric
+          label="Ứng trước chưa phân bổ"
+          value={formatFinanceAmount(unappliedCredit)}
+          tone={unappliedCredit < 0 ? 'text-destructive' : ''}
+        />
       </div>
+      {hasNegativeBalance || unappliedCredit < 0 ? (
+        <p className="mb-3 text-sm text-destructive">
+          Phát hiện số dư âm trong read model. Cần xử lý dữ liệu/điều chỉnh,
+          không tự động kẹp về 0.
+        </p>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

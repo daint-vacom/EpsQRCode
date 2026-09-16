@@ -278,7 +278,13 @@ export function FinanceVoucherDetailPage() {
                   onChange={(value) => setAllocationObligationId(value || '')}
                   options={
                     obligationsQuery.data
-                      ?.filter((item) => item.outstandingAmount > 0)
+                      ?.filter(
+                        (item) =>
+                          item.outstandingAmount > 0 &&
+                          (allocationSourceLine?.advanceScope !== 'contract' ||
+                            item.contractId ===
+                              allocationSourceLine.relatedContractId),
+                      )
                       .map((item) => ({
                         value: item.id,
                         label: `${item.code} - ${item.description} (${formatFinanceAmount(item.outstandingAmount)})`,

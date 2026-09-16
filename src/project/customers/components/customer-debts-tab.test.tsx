@@ -28,7 +28,7 @@ vi.mock('../../finance/api/finance.api', async () => {
     ...actual,
     loadFinanceAccounts: vi.fn().mockResolvedValue([]),
     loadFinanceCategories: vi.fn().mockResolvedValue([]),
-    loadFinanceObligations: vi.fn().mockResolvedValue([
+    loadFinanceObligationsAsOf: vi.fn().mockResolvedValue([
       {
         id: 'obligation-1',
         tenantId: 'tenant-1',

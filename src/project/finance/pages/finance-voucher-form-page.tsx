@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { loadContractList } from '@/project/contracts/api/contracts.api';
 import { loadCustomerSelectOptions } from '@/project/customers/api/customers.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
@@ -68,6 +69,8 @@ export function FinanceVoucherFormPage() {
       voucherType: isPayment ? 'payment' : 'receipt',
     },
   });
+  const selectedPartyType = form.watch('partyType');
+  const selectedCustomerId = form.watch('customerId');
   const [lines, setLines] = useState<FinanceVoucherLineDraft[]>([newLine()]);
   const [revision, setRevision] = useState(1);
   const accountsQuery = useQuery({
@@ -86,10 +89,39 @@ export function FinanceVoucherFormPage() {
     enabled: Boolean(userId && tenantId),
   });
   const obligationsQuery = useQuery({
-    queryKey: ['project', 'finance', 'obligations', tenantId, isPayment],
+    queryKey: [
+      'project',
+      'finance',
+      'obligations',
+      tenantId,
+      isPayment,
+      selectedCustomerId,
+    ],
     queryFn: () =>
-      loadFinanceObligations(tenantId!, isPayment ? 'payable' : 'receivable'),
-    enabled: Boolean(tenantId),
+      loadFinanceObligations(
+        tenantId!,
+        isPayment ? 'payable' : 'receivable',
+        selectedCustomerId || undefined,
+      ),
+    enabled: Boolean(tenantId && selectedCustomerId),
+  });
+  const contractsQuery = useQuery({
+    queryKey: [
+      'project',
+      'contracts',
+      'finance-options',
+      tenantId,
+      selectedCustomerId,
+    ],
+    queryFn: () =>
+      loadContractList(tenantId!, {
+        page: 1,
+        pageSize: 100,
+        customerId: selectedCustomerId,
+      }),
+    enabled: Boolean(
+      tenantId && selectedPartyType === 'customer' && selectedCustomerId,
+    ),
   });
   useEffect(() => {
     if (!detailQuery.data) return;
@@ -131,12 +163,31 @@ export function FinanceVoucherFormPage() {
       label: `${customer.customerCode} - ${customer.name}`,
     }),
   );
-  const obligationOptions: SelectOption[] = (obligationsQuery.data ?? [])
-    .filter((item) => item.outstandingAmount > 0)
-    .map((item) => ({
-      value: item.id,
-      label: `${item.code} - ${item.partyNameSnapshot} (${item.outstandingAmount.toLocaleString('vi-VN')} đ)`,
+  const contractOptions: SelectOption[] = (contractsQuery.data?.contracts ?? [])
+    .filter((contract) => contract.status !== 'draft')
+    .map((contract) => ({
+      value: contract.id,
+      label: `${contract.contractCode} - ${contract.name}`,
     }));
+  const getObligationOptions = (
+    line: FinanceVoucherLineDraft,
+    allocationIndex?: number,
+  ): SelectOption[] =>
+    (obligationsQuery.data ?? [])
+      .filter(
+        (item) =>
+          item.outstandingAmount > 0 &&
+          (!line.relatedContractId ||
+            item.contractId === line.relatedContractId) &&
+          !line.allocations.some(
+            (allocation, index) =>
+              index !== allocationIndex && allocation.obligationId === item.id,
+          ),
+      )
+      .map((item) => ({
+        value: item.id,
+        label: `${item.code} - ${item.partyNameSnapshot} (${item.outstandingAmount.toLocaleString('vi-VN')} đ)`,
+      }));
   const total = useMemo(
     () => lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0),
     [lines],
@@ -199,6 +250,66 @@ export function FinanceVoucherFormPage() {
         lineIndex === index ? { ...line, ...patch } : line,
       ),
     );
+  const updateLineAllocation = (
+    lineIndex: number,
+    allocationIndex: number,
+    patch: Partial<FinanceVoucherLineDraft['allocations'][number]>,
+  ) =>
+    setLines((current) =>
+      current.map((line, index) =>
+        index === lineIndex
+          ? {
+              ...line,
+              allocations: line.allocations.map((allocation, index) =>
+                index === allocationIndex
+                  ? { ...allocation, ...patch }
+                  : allocation,
+              ),
+            }
+          : line,
+      ),
+    );
+  const removeLineAllocation = (lineIndex: number, allocationIndex: number) =>
+    setLines((current) =>
+      current.map((line, index) =>
+        index === lineIndex
+          ? {
+              ...line,
+              allocations: line.allocations.filter(
+                (_, currentIndex) => currentIndex !== allocationIndex,
+              ),
+            }
+          : line,
+      ),
+    );
+  const addLineAllocation = (lineIndex: number) =>
+    setLines((current) =>
+      current.map((line, index) =>
+        index === lineIndex
+          ? {
+              ...line,
+              allocations: [
+                ...line.allocations,
+                {
+                  obligationId: '',
+                  amount: line.allocations.length === 0 ? line.amount : '0',
+                },
+              ],
+            }
+          : line,
+      ),
+    );
+  const setLineAllocationObligation = (
+    lineIndex: number,
+    allocationIndex: number,
+    obligationId: string,
+  ) => {
+    if (obligationId) {
+      updateLineAllocation(lineIndex, allocationIndex, { obligationId });
+    } else {
+      removeLineAllocation(lineIndex, allocationIndex);
+    }
+  };
   const handleSubmit = (
     values: Parameters<typeof saveFinanceVoucherDraft>[3],
   ) => {
@@ -212,6 +323,30 @@ export function FinanceVoucherFormPage() {
       )
     ) {
       toast.error('Vui lòng chọn phạm vi cho khoản ứng trước.');
+      return;
+    }
+    if (
+      lines.some(
+        (line) =>
+          line.handlingType === 'advance' &&
+          line.advanceScope === 'contract' &&
+          !line.relatedContractId,
+      )
+    ) {
+      toast.error('Ứng trước theo hợp đồng phải chọn hợp đồng.');
+      return;
+    }
+    if (
+      lines.some((line) => {
+        if (line.handlingType !== 'settlement') return false;
+        const allocationTotal = line.allocations.reduce(
+          (sum, allocation) => sum + (Number(allocation.amount) || 0),
+          0,
+        );
+        return allocationTotal > Number(line.amount);
+      })
+    ) {
+      toast.error('Tổng phân bổ không được vượt số tiền của dòng.');
       return;
     }
     saveMutation.mutate({ values, requestKey: crypto.randomUUID() });
@@ -301,7 +436,7 @@ export function FinanceVoucherFormPage() {
                         amount: event.target.value,
                         allocations:
                           line.handlingType === 'settlement' &&
-                          line.allocations[0]
+                          line.allocations.length === 1
                             ? [
                                 {
                                   ...line.allocations[0],
@@ -322,12 +457,19 @@ export function FinanceVoucherFormPage() {
                     onChange={(value) => {
                       const handlingType = (value ||
                         'direct') as FinanceHandlingType;
+                      const advanceScope: FinanceVoucherLineDraft['advanceScope'] =
+                        handlingType === 'advance'
+                          ? line.advanceScope || 'party'
+                          : '';
                       updateLine(index, {
                         handlingType,
-                        advanceScope:
-                          handlingType === 'advance'
-                            ? line.advanceScope || 'party'
-                            : '',
+                        advanceScope,
+                        relatedContractId:
+                          handlingType === 'direct' ||
+                          (handlingType === 'advance' &&
+                            advanceScope === 'party')
+                            ? ''
+                            : line.relatedContractId,
                         allocations:
                           handlingType === 'settlement' ? line.allocations : [],
                       });
@@ -338,28 +480,145 @@ export function FinanceVoucherFormPage() {
                     searchable={false}
                   />
                 </div>
-                {line.handlingType === 'settlement' ? (
+                {line.handlingType === 'advance' ? (
                   <div className="md:col-span-2">
                     <label className="mb-1.5 block text-xs font-semibold">
-                      Công nợ
+                      Phạm vi ứng trước
                     </label>
                     <OptionSelect
-                      value={line.allocations[0]?.obligationId ?? ''}
+                      value={line.advanceScope}
                       onChange={(value) =>
                         updateLine(index, {
-                          allocations: value
-                            ? [{ obligationId: value, amount: line.amount }]
-                            : [],
+                          advanceScope: (value || 'party') as
+                            'party' | 'contract',
+                          relatedContractId:
+                            value === 'party' ? '' : line.relatedContractId,
                         })
                       }
-                      options={obligationOptions}
-                      searchable
-                      placeholder="Chọn công nợ"
+                      options={[
+                        { value: 'party', label: 'Theo khách hàng' },
+                        { value: 'contract', label: 'Theo hợp đồng' },
+                      ]}
+                      searchable={false}
                     />
                   </div>
-                ) : (
-                  <div className="md:col-span-2" />
+                ) : null}
+                {(line.handlingType === 'settlement' ||
+                  (line.handlingType === 'advance' &&
+                    line.advanceScope === 'contract')) && (
+                  <div className="md:col-span-4">
+                    <label className="mb-1.5 block text-xs font-semibold">
+                      Hợp đồng
+                      {line.handlingType === 'settlement' ? ' (tùy chọn)' : ''}
+                    </label>
+                    <OptionSelect
+                      value={line.relatedContractId}
+                      onChange={(value) =>
+                        updateLine(index, {
+                          relatedContractId: value || '',
+                          allocations:
+                            line.handlingType === 'settlement'
+                              ? line.allocations.filter((allocation) => {
+                                  const obligation =
+                                    obligationsQuery.data?.find(
+                                      (item) =>
+                                        item.id === allocation.obligationId,
+                                    );
+                                  return (
+                                    !value || obligation?.contractId === value
+                                  );
+                                })
+                              : line.allocations,
+                        })
+                      }
+                      options={contractOptions}
+                      searchable
+                      placeholder={
+                        contractsQuery.isLoading
+                          ? 'Đang tải hợp đồng...'
+                          : 'Chọn hợp đồng'
+                      }
+                    />
+                  </div>
                 )}
+                {line.handlingType === 'settlement' ? (
+                  <div className="md:col-span-12 space-y-2 rounded-md bg-muted/40 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <span className="font-semibold">Phân bổ công nợ</span>
+                      <span
+                        className={
+                          line.allocations.reduce(
+                            (sum, allocation) =>
+                              sum + (Number(allocation.amount) || 0),
+                            0,
+                          ) === Number(line.amount)
+                            ? 'text-success'
+                            : 'text-destructive'
+                        }
+                      >
+                        Đã phân bổ{' '}
+                        {line.allocations
+                          .reduce(
+                            (sum, allocation) =>
+                              sum + (Number(allocation.amount) || 0),
+                            0,
+                          )
+                          .toLocaleString('vi-VN')}{' '}
+                        / {Number(line.amount || 0).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                    {line.allocations.map((allocation, allocationIndex) => (
+                      <div
+                        key={`${index}-${allocationIndex}`}
+                        className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_auto]"
+                      >
+                        <OptionSelect
+                          value={allocation.obligationId}
+                          onChange={(value) =>
+                            setLineAllocationObligation(
+                              index,
+                              allocationIndex,
+                              value || '',
+                            )
+                          }
+                          options={getObligationOptions(line, allocationIndex)}
+                          searchable
+                          placeholder="Chọn công nợ"
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          value={allocation.amount}
+                          onChange={(event) =>
+                            updateLineAllocation(index, allocationIndex, {
+                              amount: event.target.value,
+                            })
+                          }
+                          aria-label={`Số tiền phân bổ dòng ${allocationIndex + 1}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          mode="icon"
+                          aria-label="Xóa phân bổ"
+                          onClick={() =>
+                            removeLineAllocation(index, allocationIndex)
+                          }
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-fit"
+                      onClick={() => addLineAllocation(index)}
+                    >
+                      <Plus className="size-4" /> Thêm công nợ phân bổ
+                    </Button>
+                  </div>
+                ) : null}
                 {lines.length > 1 ? (
                   <Button
                     type="button"

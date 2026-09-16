@@ -24,7 +24,7 @@ import {
   createFinanceObligation,
   loadFinanceAccounts,
   loadFinanceCategories,
-  loadFinanceObligations,
+  loadFinanceObligationsAsOf,
 } from '../../finance/api/finance.api';
 import { recordCustomerDebtPayment } from '../api/customer-finance.api';
 import {
@@ -79,7 +79,12 @@ export function CustomerDebtsTab({ customer }: { customer: Customer }) {
       customer.id,
       asOfDate,
     ],
-    queryFn: () => loadFinanceObligations(tenantId!, 'receivable', customer.id),
+    queryFn: () =>
+      loadFinanceObligationsAsOf(tenantId!, asOfDate, {
+        direction: 'receivable',
+        customerId: customer.id,
+        currencyCode: 'VND',
+      }),
     enabled: Boolean(tenantId && customer.id && canView),
   });
   const accountsQuery = useQuery({

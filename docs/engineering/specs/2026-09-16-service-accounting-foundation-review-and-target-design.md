@@ -1,14 +1,14 @@
 # Nền tảng công nợ và kế toán dịch vụ — review, benchmark và thiết kế đích
 
 **Ngày:** 16/09/2026  
-**Trạng thái:** Spec đã chốt định hướng kiến trúc và contract nền tảng; chỉ cập nhật tài liệu, chưa triển khai migration/code/dữ liệu. Các quyết định chính sách kế toán được đánh dấu `ACCOUNTING-DECISION` vẫn cần người phụ trách kế toán phê duyệt trước khi bật nghiệp vụ tương ứng.
-**Phạm vi kiểm chứng:** Repo/worktree hiện tại và [báo cáo chạy thử bốn luồng](../reports/2026-09-16-service-accounting-business-and-data-design-review.md); không truy vấn lại database dev/production trong lượt review này.
+**Trạng thái:** Spec đã chốt định hướng kiến trúc và contract nền tảng. Phase hardening lõi và tranche nền tảng Phase 2 (khóa kỳ, read model as-of, phân bổ ứng trước theo ngày hiệu lực) đã triển khai trên dev; các quyết định chính sách kế toán được đánh dấu `ACCOUNTING-DECISION` vẫn cần người phụ trách kế toán phê duyệt trước khi bật nghiệp vụ tương ứng.
+**Phạm vi kiểm chứng:** Repo/worktree, [báo cáo chạy thử bốn luồng](../reports/2026-09-16-service-accounting-business-and-data-design-review.md) và migration đã apply trên dev database; không suy diễn trạng thái production từ dev.
 
 ## 1. Quyết định điều hành
 
 **Giữ lõi `finance_obligations` — `finance_vouchers`/`finance_voucher_lines` — `finance_allocations` — `finance_account_movements`, nhưng chưa đóng băng schema hay gọi đây là phần mềm kế toán đầy đủ.** Bốn luồng được báo cáo đã chạy (nợ thủ công, nợ hợp đồng đến hạn, thu nợ, nhận và phân bổ ứng trước) là bằng chứng cho một lát cắt vận hành, không chứng minh các trường hợp đảo, điều chỉnh, đồng thời, chốt kỳ hoặc tuân thủ kế toán. Các điểm dưới đây là điều kiện phải giải quyết trước khi mở rộng.
 
-1. **Không lấy ngày đến hạn làm mặc định ngày phát sinh phải thu kế toán.** Lịch kỳ thu, quyền đòi tiền đã vô điều kiện, hoàn thành dịch vụ, hóa đơn, doanh thu, dòng tiền và ngày quá hạn là những sự kiện khác nhau. Quy tắc hiện tại “đến hạn mới tạo obligation” chỉ được giữ như chính sách *công nợ vận hành hiện hành*, có nhãn và phạm vi rõ, không gọi là chính sách ghi nhận kế toán chung.
+1. **Không lấy ngày đến hạn làm mặc định ngày phát sinh phải thu kế toán.** Lịch kỳ thu, quyền đòi tiền đã vô điều kiện, hoàn thành dịch vụ, hóa đơn, doanh thu, dòng tiền và ngày quá hạn là những sự kiện khác nhau. Quy tắc hiện tại “đến hạn mới tạo obligation” chỉ được giữ như chính sách _công nợ vận hành hiện hành_, có nhãn và phạm vi rõ, không gọi là chính sách ghi nhận kế toán chung.
 2. **Bảo vệ chứng từ đã post ở cả write path và dữ liệu gốc.** Trigger hiện có thể ghi đè `original_amount`, `status`, `posted_at` của obligation theo thay đổi charge; cần chuyển sang phiên bản/adjustment có audit. Không dùng `greatest(..., 0)` để che khoản phân bổ vượt mức.
 3. **Gom mọi mutation tiền/nợ qua thao tác server nguyên tử, idempotent, cùng giao thức lock.** Chặn ghi trực tiếp posted obligation từ client; sửa lỗ hổng kiểm tra tổng phân bổ toàn phiếu, party/tenant/currency/scope và ngày hiệu lực. Kiểm tra lại quyền khi replay.
 4. **Tiền ứng trước chưa dùng là credit/advance riêng**, không tự thành khoản đã trả cho nợ, không tự thành doanh thu. Cần projection số dư theo đối tượng/hợp đồng/tiền tệ và lịch sử tại ngày báo cáo.
@@ -18,42 +18,42 @@ Phạm vi v1 được đề xuất là **subledger công nợ + thu/chi + quỹ*
 
 ## 2. Bằng chứng và mức độ chắc chắn
 
-| Nhận định | Bằng chứng repo/test | Đánh giá |
-| --- | --- | --- |
-| Bốn happy path đã được đối soát trong dev | [Biên bản test](../test-plans/2026-09-16-customer-debt-workflow-test-and-acceptance.md), [lỗi ứng trước đã retest](../../../test/customer-advance-allocation-missing.md), [lỗi khả dụng đã retest](../../../test/customer-debt-payment-detail-available-amount.md) | PASS theo phạm vi biên bản, không mở rộng thành toàn bộ FIN-001–026. |
-| Lõi phân tách nợ/tiền/phân bổ | [Migration finance core](../../../supabase/migrations/20260913030000_create_finance_core.sql), `finance_obligation_balances`, `finance_account_balances` | Đúng hướng cho subledger; implementation chưa đủ bất biến của [spec gốc](2026-09-13-finance-vouchers-and-obligations.md). |
-| Contract charge là lịch nguồn; obligation sinh khi `due_date <= current_date` | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql), [migration due-date](../../../supabase/migrations/20260916031840_enforce_due_contract_finance_obligations.sql) | Chính sách riêng hiện tại; có migration xóa **các obligation tương lai** khi chưa phân bổ và upsert thay đổi obligation đã post. |
-| Nợ thủ công đang post trực tiếp | [Finance API](../../../src/project/finance/api/finance.api.ts) `createFinanceObligation` | Frontend đặt `status='posted'`, `posted_at` bằng đồng hồ client; khác thông báo “nháp”. |
-| Phân bổ ứng trước có RPC | [Migration phân bổ](../../../supabase/migrations/20260916074019_finance_advance_allocation.sql) | Có kiểm tra cơ bản và lock; chưa có bằng chứng đủ về replay đồng thời, backdating, refund/reversal, tenant FK ở mọi đường ghi. |
-| Legacy payment đã bị drop | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql) cuối file | Bài học chống breaking change; **không** đề xuất tái tạo/xóa lại trong tài liệu này. |
+| Nhận định                                                                     | Bằng chứng repo/test                                                                                                                                                                                                                                               | Đánh giá                                                                                                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Bốn happy path đã được đối soát trong dev                                     | [Biên bản test](../test-plans/2026-09-16-customer-debt-workflow-test-and-acceptance.md), [lỗi ứng trước đã retest](../../../test/customer-advance-allocation-missing.md), [lỗi khả dụng đã retest](../../../test/customer-debt-payment-detail-available-amount.md) | PASS theo phạm vi biên bản, không mở rộng thành toàn bộ FIN-001–026.                                                                |
+| Lõi phân tách nợ/tiền/phân bổ                                                 | [Migration finance core](../../../supabase/migrations/20260913030000_create_finance_core.sql), `finance_obligation_balances`, `finance_account_balances`                                                                                                           | Đúng hướng cho subledger; implementation chưa đủ bất biến của [spec gốc](2026-09-13-finance-vouchers-and-obligations.md).           |
+| Contract charge là lịch nguồn; obligation sinh khi `due_date <= current_date` | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql), [migration due-date](../../../supabase/migrations/20260916031840_enforce_due_contract_finance_obligations.sql)                                  | Chính sách riêng hiện tại; có migration xóa **các obligation tương lai** khi chưa phân bổ và upsert thay đổi obligation đã post.    |
+| Nợ thủ công                                                                   | [Finance API](../../../src/project/finance/api/finance.api.ts) `createFinanceObligation`, [hardening migration](../../../supabase/migrations/20260916120000_harden_finance_write_contract.sql)                                                                     | Đã chuyển frontend sang RPC server-side; không nhận `status`/`posted_at` từ client, có request key và snapshot đối tượng từ server. |
+| Phân bổ ứng trước có RPC                                                      | [Migration phân bổ](../../../supabase/migrations/20260916074019_finance_advance_allocation.sql), [phase-2 migration](../../../supabase/migrations/20260916140000_finance_period_and_as_of_read_models.sql)                                                         | Đã bổ sung replay hash/lock, ngày source/target, kỳ khóa và read model as-of; refund/reversal vẫn để phase mở rộng.                 |
+| Legacy payment đã bị drop                                                     | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql) cuối file                                                                                                                                        | Bài học chống breaking change; **không** đề xuất tái tạo/xóa lại trong tài liệu này.                                                |
 
 Chỉ kết luận về **source ở worktree**, không mặc định migration chưa commit đã được triển khai trên mọi môi trường. Báo cáo test chứa dữ liệu dev; không chạy thử lại số dư, không xác nhận sản phẩm production. Cần đối chiếu deployed function/schema trước mọi thay đổi thực thi.
 Làm rõ tên bảng: migration được đọc **không xóa `contract_charges`**; bảng này vẫn làm nguồn lịch kỳ. Các bảng bị drop trong migration tích hợp là `customer_payments` và `customer_payment_allocations` (cùng RPC/type liên quan). Nếu môi trường khác đã xóa `contract_charges`, phải kiểm deployed schema riêng, không suy từ repo.
 
 ## 3. Benchmark nghiệp vụ và giới hạn suy diễn
 
-| Mốc đối chiếu | Thực hành được tài liệu hóa | Hàm ý đối với thiết kế này |
-| --- | --- | --- |
-| [IFRS 15, đoạn 105–109](https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ifrs-15-revenue-from-contracts-with-customers.pdf?bypass=on) | Phân biệt quyền nhận đối giá vô điều kiện (receivable), contract asset và contract liability khi khách trả/trở nên phải trả trước khi dịch vụ được chuyển giao. | **Không đồng nhất** `due_date`, hóa đơn, thu tiền và ghi nhận doanh thu; cần căn cứ entitlement/performance và chính sách áp dụng. IFRS là đối chiếu khái niệm, không khẳng định doanh nghiệp áp dụng IFRS. |
-| [ERPNext Payment Entry](https://docs.frappe.io/erpnext/payment-entry), [Advance Payment Entry](https://docs.frappe.io/erpnext/advance-payment-entry) | Phiếu thanh toán có party/tài khoản, có thể phân bổ nhiều hóa đơn hoặc để ứng trước chưa phân bổ; sau đó reconcile. | Tách voucher khỏi allocation, giữ phần chưa dùng, cho nhiều nợ/một phiếu, một nợ/nhiều phiếu; cần party ledger và kiểm soát currency/account. |
-| [ERPNext Payment Reconciliation](https://docs.frappe.io/erpnext/payment-reconciliation) | Match khoản tiền đã có với invoice về sau không tạo thêm bank movement. | `allocate_finance_advance` chỉ thêm hiệu lực phân bổ; giải phân bổ không được hoàn/đảo tiền gốc ngầm. |
-| [Odoo 19 Payments](https://www.odoo.com/documentation/19.0/applications/finance/accounting/payments/online.html), [Bank reconciliation](https://www.odoo.com/documentation/19.0/applications/finance/accounting/bank/reconciliation.html) | Payment đứng độc lập, outstanding credit và đối soát hóa đơn/sao kê là các trạng thái khác nhau; có thể khác thời điểm ghi nhận tiền ngân hàng. | Nếu chưa đối soát sao kê, màn “sổ tài khoản” là **sổ nội bộ theo phiếu**, không tuyên bố số dư ngân hàng đã xác nhận. |
-| [MISA AMIS — đối trừ/bỏ đối trừ công nợ khách hàng](https://helpact.misa.vn/kb/doi_tru_chung_tu_cong_no_cua_khach_hang/) | Chứng từ thanh toán và chứng từ công nợ có thể tồn tại độc lập rồi đối trừ theo cùng mã khách hàng; có nghiệp vụ bỏ đối trừ khi sai. | Allocation là quan hệ riêng có thể sửa sai có lịch sử, không xóa phiếu tiền hoặc đổi customer bằng tên hiển thị. Theo dõi đến cấp hóa đơn là chính sách triển khai, không mặc định chỉ có một invoice cho một contract. |
-| [Bộ Tài chính về TT 99/2025/TT-BTC](https://www.mof.gov.vn/tin-tuc-tai-chinh/tin-chinh-sach-tai-chinh/tap-huan-trien-khai-thong-tu-so-992025tt-btc) | Chế độ kế toán doanh nghiệp hiệu lực 01/01/2026 cho năm tài chính bắt đầu từ/sau mốc đó; doanh nghiệp cần quy chế hạch toán nội bộ. | Trước khi gọi sản phẩm là “phần mềm kế toán” tại Việt Nam, kế toán/đơn vị tư vấn phải chốt chế độ áp dụng, chứng từ, tài khoản, thuế, khóa sổ và lưu trữ. Tài liệu này không phải ý kiến pháp lý. |
+| Mốc đối chiếu                                                                                                                                                                                                                             | Thực hành được tài liệu hóa                                                                                                                                     | Hàm ý đối với thiết kế này                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [IFRS 15, đoạn 105–109](https://www.ifrs.org/content/dam/ifrs/publications/pdf-standards/english/2022/issued/part-a/ifrs-15-revenue-from-contracts-with-customers.pdf?bypass=on)                                                          | Phân biệt quyền nhận đối giá vô điều kiện (receivable), contract asset và contract liability khi khách trả/trở nên phải trả trước khi dịch vụ được chuyển giao. | **Không đồng nhất** `due_date`, hóa đơn, thu tiền và ghi nhận doanh thu; cần căn cứ entitlement/performance và chính sách áp dụng. IFRS là đối chiếu khái niệm, không khẳng định doanh nghiệp áp dụng IFRS.             |
+| [ERPNext Payment Entry](https://docs.frappe.io/erpnext/payment-entry), [Advance Payment Entry](https://docs.frappe.io/erpnext/advance-payment-entry)                                                                                      | Phiếu thanh toán có party/tài khoản, có thể phân bổ nhiều hóa đơn hoặc để ứng trước chưa phân bổ; sau đó reconcile.                                             | Tách voucher khỏi allocation, giữ phần chưa dùng, cho nhiều nợ/một phiếu, một nợ/nhiều phiếu; cần party ledger và kiểm soát currency/account.                                                                           |
+| [ERPNext Payment Reconciliation](https://docs.frappe.io/erpnext/payment-reconciliation)                                                                                                                                                   | Match khoản tiền đã có với invoice về sau không tạo thêm bank movement.                                                                                         | `allocate_finance_advance` chỉ thêm hiệu lực phân bổ; giải phân bổ không được hoàn/đảo tiền gốc ngầm.                                                                                                                   |
+| [Odoo 19 Payments](https://www.odoo.com/documentation/19.0/applications/finance/accounting/payments/online.html), [Bank reconciliation](https://www.odoo.com/documentation/19.0/applications/finance/accounting/bank/reconciliation.html) | Payment đứng độc lập, outstanding credit và đối soát hóa đơn/sao kê là các trạng thái khác nhau; có thể khác thời điểm ghi nhận tiền ngân hàng.                 | Nếu chưa đối soát sao kê, màn “sổ tài khoản” là **sổ nội bộ theo phiếu**, không tuyên bố số dư ngân hàng đã xác nhận.                                                                                                   |
+| [MISA AMIS — đối trừ/bỏ đối trừ công nợ khách hàng](https://helpact.misa.vn/kb/doi_tru_chung_tu_cong_no_cua_khach_hang/)                                                                                                                  | Chứng từ thanh toán và chứng từ công nợ có thể tồn tại độc lập rồi đối trừ theo cùng mã khách hàng; có nghiệp vụ bỏ đối trừ khi sai.                            | Allocation là quan hệ riêng có thể sửa sai có lịch sử, không xóa phiếu tiền hoặc đổi customer bằng tên hiển thị. Theo dõi đến cấp hóa đơn là chính sách triển khai, không mặc định chỉ có một invoice cho một contract. |
+| [Bộ Tài chính về TT 99/2025/TT-BTC](https://www.mof.gov.vn/tin-tuc-tai-chinh/tin-chinh-sach-tai-chinh/tap-huan-trien-khai-thong-tu-so-992025tt-btc)                                                                                       | Chế độ kế toán doanh nghiệp hiệu lực 01/01/2026 cho năm tài chính bắt đầu từ/sau mốc đó; doanh nghiệp cần quy chế hạch toán nội bộ.                             | Trước khi gọi sản phẩm là “phần mềm kế toán” tại Việt Nam, kế toán/đơn vị tư vấn phải chốt chế độ áp dụng, chứng từ, tài khoản, thuế, khóa sổ và lưu trữ. Tài liệu này không phải ý kiến pháp lý.                       |
 
 Benchmark là **nguyên tắc thiết kế có đối chiếu**, không sao chép nguyên trạng luồng Odoo/ERPNext hay gán một bút toán mẫu bắt buộc cho mọi doanh nghiệp. Đặc biệt, “khách đã trả trước” có thể cần được theo dõi như nghĩa vụ thực hiện dịch vụ/credit theo chính sách kế toán, còn phần công nợ vận hành là một phép chiếu khác.
 
 ## 4. Bản đồ sự kiện và định nghĩa số dư
 
-| Sự kiện | Bản ghi authoritative | Tác động ở subledger | Không tự suy ra |
-| --- | --- | --- | --- |
-| Ký hợp đồng/tạo lịch kỳ thu | `contracts`, `contract_charges` | Kế hoạch thu/chi tương lai | Công nợ đã ghi nhận; doanh thu. |
-| Xác lập quyền phải thu/phải trả theo chính sách | `finance_obligations` (+ sự kiện ghi nhận, nguồn) | Phải thu/phải trả gốc, ngày hiệu lực | Thu/chi tiền; doanh thu/VAT. |
-| Lập nháp phiếu | `finance_vouchers`, lines/drafts | Chưa thay đổi nợ hoặc tiền | Phiếu đã thu/chi. |
-| Post phiếu thu/chi | voucher/line + một movement nguyên tử | Tiền vào/ra; với settlement có thể phân bổ cùng transaction | Sao kê ngân hàng đã match. |
-| Phân bổ tiền cũ | `finance_allocations` | Giảm nợ, giảm credit khả dụng | Tiền mới, doanh thu mới. |
-| Điều chỉnh/đảo/hoàn | Sự kiện đối ứng có liên kết gốc | Thay đổi có ngày hiệu lực, giữ vết gốc | Xóa/chỉnh sửa lịch sử posted. |
-| Phát hành hóa đơn/ghi doanh thu/thuế | Lớp invoice/journal bổ sung | Liên kết một nghĩa vụ hiện hữu hoặc ghi nhận nghĩa vụ một lần | Một nợ thứ hai cho cùng khoản phí. |
+| Sự kiện                                         | Bản ghi authoritative                             | Tác động ở subledger                                          | Không tự suy ra                    |
+| ----------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------- |
+| Ký hợp đồng/tạo lịch kỳ thu                     | `contracts`, `contract_charges`                   | Kế hoạch thu/chi tương lai                                    | Công nợ đã ghi nhận; doanh thu.    |
+| Xác lập quyền phải thu/phải trả theo chính sách | `finance_obligations` (+ sự kiện ghi nhận, nguồn) | Phải thu/phải trả gốc, ngày hiệu lực                          | Thu/chi tiền; doanh thu/VAT.       |
+| Lập nháp phiếu                                  | `finance_vouchers`, lines/drafts                  | Chưa thay đổi nợ hoặc tiền                                    | Phiếu đã thu/chi.                  |
+| Post phiếu thu/chi                              | voucher/line + một movement nguyên tử             | Tiền vào/ra; với settlement có thể phân bổ cùng transaction   | Sao kê ngân hàng đã match.         |
+| Phân bổ tiền cũ                                 | `finance_allocations`                             | Giảm nợ, giảm credit khả dụng                                 | Tiền mới, doanh thu mới.           |
+| Điều chỉnh/đảo/hoàn                             | Sự kiện đối ứng có liên kết gốc                   | Thay đổi có ngày hiệu lực, giữ vết gốc                        | Xóa/chỉnh sửa lịch sử posted.      |
+| Phát hành hóa đơn/ghi doanh thu/thuế            | Lớp invoice/journal bổ sung                       | Liên kết một nghĩa vụ hiện hữu hoặc ghi nhận nghĩa vụ một lần | Một nợ thứ hai cho cùng khoản phí. |
 
 **Công thức tại ngày D và theo tenant–party–currency:**
 
@@ -61,7 +61,7 @@ Benchmark là **nguyên tắc thiết kế có đối chiếu**, không sao ché
 - `settled(D) = sum(allocation có hiệu lực tại D − phần bị đảo có hiệu lực tại D)`; `open(D) = gross − settled`, không âm nếu invariant được giữ.
 - `unapplied(D) = sum(line ứng trước/tiền chờ phân bổ đã post và hiệu lực) − allocations(D) − refunds(D)` theo từng nguồn; không bù trừ ngầm với `open`.
 - `net_exposure(D) = open(D) − unapplied_eligible(D)` chỉ là chỉ số quản trị tùy chọn, phải hiện cả hai thành phần và quy tắc eligibility; không thay số dư công nợ pháp lý bằng một phép trừ tự động.
-- `cash_balance(account,D) = opening_balance + inflows − outflows` theo movements hiệu lực từ opening_date đến D; tách giao dịch *chưa đối soát sao kê*.
+- `cash_balance(account,D) = opening_balance + inflows − outflows` theo movements hiệu lực từ opening_date đến D; tách giao dịch _chưa đối soát sao kê_.
 - `overdue(D)` chỉ trên nợ đã ghi nhận còn dư có `due_date < D`; chưa đến hạn vẫn có thể là nợ **đã ghi nhận**. Lịch hợp đồng chưa ghi nhận là `planned`, không trộn vào aging.
 
 Report “as of D” phải xét ngày hiệu lực gốc/đảo, không lọc bằng trạng thái hiện tại đơn thuần. Mọi tổng tiền luôn phân nhóm currency; v1 chỉ cho VND nếu chưa có tỷ giá/định khoản chênh lệch. Khóa sổ và timezone tenant áp dụng nhất quán cho tất cả ngày ảnh hưởng số dư.
@@ -72,14 +72,14 @@ Report “as of D” phải xét ngày hiệu lực gốc/đảo, không lọc b
 
 ### 5.1. Bảng hiện hữu giữ nguyên vai trò
 
-| Bảng | Vai trò lâu dài | Ràng buộc bổ sung theo hướng additive |
-| --- | --- | --- |
-| `contract_charges` | Kỳ/khoản phí theo phiên bản hợp đồng, nguồn kế hoạch; giữ ID cũ | Không cho trigger ghi đè financial history đã post; sửa điều khoản qua version/event. |
-| `finance_obligations` | Open items phải thu/phải trả, một nghĩa vụ có căn cứ nguồn | Ghi nhận qua server; immutable fields sau post; kỳ phát sinh và ngày hạn riêng; audit. Một charge hiện ánh xạ tối đa một obligation, thay đổi giá trị bằng adjustment. |
-| `finance_vouchers`/`finance_voucher_lines` | Chứng từ nhận/chi tiền, line cách xử lý | Bất biến sau post; bảo vệ posted ở DB; kiểm tra scope/party/currency; một line không đồng thời direct và settlement. |
-| `finance_allocations` | Quan hệ nhiều–nhiều giữa tiền nguồn và nợ | Sự kiện đảo có thời điểm/lý do, không xóa; tính khả dụng theo ngày; link operation. |
-| `finance_account_movements` | Sổ biến động tiền nội bộ | Unique nguồn–event; reversal đối chiều; không thay bằng journal/ledger kế toán. |
-| `finance_operations` | Idempotency/audit thao tác | Giữ unique `(tenant_id, request_key)` hiện có; operation type, target ID và canonical payload cùng tham gia đối chiếu hash; quyền và trạng thái được kiểm tra lúc replay. |
+| Bảng                                       | Vai trò lâu dài                                                 | Ràng buộc bổ sung theo hướng additive                                                                                                                                     |
+| ------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contract_charges`                         | Kỳ/khoản phí theo phiên bản hợp đồng, nguồn kế hoạch; giữ ID cũ | Không cho trigger ghi đè financial history đã post; sửa điều khoản qua version/event.                                                                                     |
+| `finance_obligations`                      | Open items phải thu/phải trả, một nghĩa vụ có căn cứ nguồn      | Ghi nhận qua server; immutable fields sau post; kỳ phát sinh và ngày hạn riêng; audit. Một charge hiện ánh xạ tối đa một obligation, thay đổi giá trị bằng adjustment.    |
+| `finance_vouchers`/`finance_voucher_lines` | Chứng từ nhận/chi tiền, line cách xử lý                         | Bất biến sau post; bảo vệ posted ở DB; kiểm tra scope/party/currency; một line không đồng thời direct và settlement.                                                      |
+| `finance_allocations`                      | Quan hệ nhiều–nhiều giữa tiền nguồn và nợ                       | Sự kiện đảo có thời điểm/lý do, không xóa; tính khả dụng theo ngày; link operation.                                                                                       |
+| `finance_account_movements`                | Sổ biến động tiền nội bộ                                        | Unique nguồn–event; reversal đối chiều; không thay bằng journal/ledger kế toán.                                                                                           |
+| `finance_operations`                       | Idempotency/audit thao tác                                      | Giữ unique `(tenant_id, request_key)` hiện có; operation type, target ID và canonical payload cùng tham gia đối chiếu hash; quyền và trạng thái được kiểm tra lúc replay. |
 
 Nên thêm (khi triển khai tính năng, **không tạo bảng rỗng chỉ để dự phòng**): `finance_obligation_adjustments`, `finance_refund_links`, `finance_account_transfers`, `finance_settings`/period locks, allocation reversal events, reconciliation statements/matches; `finance_recognition_events` hoặc source-event link khi chính sách phát sinh theo nghiệm thu/hóa đơn cần nhiều sự kiện trên một kỳ. `invoices`/invoice lines và `invoice_obligation_links` liên kết về **nghĩa vụ hiện có**, không ghi nợ hai lần. `journal_entries`/`journal_lines` cân bằng Nợ/Có, trace từ sự kiện nguồn, có version policy mapping và trạng thái post độc lập. Nếu một charge cần chia nhiều nghĩa vụ, thêm bảng link charge–obligation và mở rộng constraint bằng migration tương thích; **không** tái sử dụng `contract_charge_id unique` với nghĩa mới hoặc xóa obligation cũ.
 
@@ -88,25 +88,25 @@ Party hiện dùng customer/employee FK và snapshot; mở rộng supplier/other
 ### 5.2. Bất biến bắt buộc ở write boundary
 
 1. Chỉ server post/adjust/reverse; client không insert `status='posted'`, `posted_at` hay update amount/status posted qua Data API. RLS/grants chặn write ngoài RPC; `SECURITY DEFINER` kiểm tra `auth.uid`, tenant, permission và mọi FK, với quyền EXECUTE tối thiểu.
-2. Lock tài khoản, **mọi** dòng nguồn và obligation bị ảnh hưởng theo thứ tự ổn định. Kiểm tra tổng allocations của *toàn thao tác* theo obligation và line trước khi insert; re-read dưới lock; rollback nguyên transaction khi vượt nợ/khả dụng hoặc ngoại tệ/sai party/sai hợp đồng.
+2. Lock tài khoản, **mọi** dòng nguồn và obligation bị ảnh hưởng theo thứ tự ổn định. Kiểm tra tổng allocations của _toàn thao tác_ theo obligation và line trước khi insert; re-read dưới lock; rollback nguyên transaction khi vượt nợ/khả dụng hoặc ngoại tệ/sai party/sai hợp đồng.
 3. Cùng key + cùng operation, target và payload chuẩn hóa trả cùng kết quả (sau authorization); cùng key khác nội dung báo conflict. Lưu key qua retry/reload có giới hạn thời gian theo intent; không tạo key mới trong mỗi network attempt. Unique theo nguồn + loại event là lớp chặn trùng độc lập.
 4. Chỉ phân bổ phiếu và obligation posted, cùng tenant, party ID, currency, chiều thu/phải thu hoặc chi/phải trả; không dùng tên snapshot làm khóa; ngày phân bổ không trước ngày hiệu lực nguồn/nợ hoặc sau kỳ khóa.
 5. `original_amount` và chứng từ posted không đổi. Giảm nợ đã thanh toán phải giải phóng allocation trước/cùng transaction; điều chỉnh có lý do, actor, nguồn và ngày. Đảo không xóa movement/obligation/charge; hoàn là **tiền ra thực tế mới**, khác đảo nhập sai.
 6. Test cả số dư chạy sau giao dịch lùi ngày, không chỉ số dư hiện tại. Posted voucher phải sinh đúng movement (ngoại lệ dữ liệu import trước opening_date được đánh dấu); draft không sinh movement. Báo cáo cashflow lấy movement hoặc reconciled projection có xử lý reversal, không chỉ `voucher.status='posted'`.
 7. Composite FK `(tenant_id,id)` cho liên kết finance mới và liên kết có thể nâng cấp; với FK cũ một cột, RPC/trigger kiểm tenant cùng transaction trước khi cho post. Views public bật `security_invoker` và policy/grant tối thiểu; kiểm thử caller khác tenant. [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security) phân biệt grant với policy và lưu ý view mặc định không tự áp RLS của caller.
 
-**Các kiểm tra cụ thể trước khi tin schema hiện tại:** `post_finance_voucher` đang kiểm tra từng draft allocation với settled đã có *trước* insert nên hai line cùng trả một nợ có thể vượt tổng; không thấy kiểm tra cùng customer/currency/scope/tenant của target trong loop. `post_finance_voucher` replay key hiện trả result theo key mà không so target/hash; `save_finance_voucher_draft` hash chỉ payload, chưa gắn target/revision. `finance_obligation_balances` dùng `greatest(...,0)` che sai lệch; `finance_cashflow_report` lọc current status posted và sẽ sai khi có đảo nếu không thiết kế lại. `finance_account_balances` hiện chỉ là current balance; không thay thế as-of/running balance. Những nhận định này là **rủi ro suy ra từ code**, cần test khai thác/đối soát trước khi kết luận dữ liệu dev đã sai.
+**Các kiểm tra cụ thể trước khi tin schema hiện tại:** `post_finance_voucher` đang kiểm tra từng draft allocation với settled đã có _trước_ insert nên hai line cùng trả một nợ có thể vượt tổng; không thấy kiểm tra cùng customer/currency/scope/tenant của target trong loop. `post_finance_voucher` replay key hiện trả result theo key mà không so target/hash; `save_finance_voucher_draft` hash chỉ payload, chưa gắn target/revision. `finance_obligation_balances` dùng `greatest(...,0)` che sai lệch; `finance_cashflow_report` lọc current status posted và sẽ sai khi có đảo nếu không thiết kế lại. `finance_account_balances` hiện chỉ là current balance; không thay thế as-of/running balance. Những nhận định này là **rủi ro suy ra từ code**, cần test khai thác/đối soát trước khi kết luận dữ liệu dev đã sai.
 `customer_receivable_summary` trong migration hiện trả `unapplied_credit = 0` hằng số: thiếu số dư ứng trước là một khoảng trống read-model cụ thể, không phải bằng chứng chưa có tiền ở nguồn.
 
 ### 5.3. Chính sách phát sinh khoản phải thu: quyết định còn cần người phụ trách kế toán
 
-| Tình huống | Khuyến nghị hiển thị/vận hành | Ghi nhận kế toán phụ thuộc chính sách |
-| --- | --- | --- |
-| Kỳ dịch vụ tương lai, chưa thực hiện, chưa có quyền thu vô điều kiện | `planned charge` | Không tự tạo revenue/AR. |
-| Đã có quyền đòi tiền nhưng chưa đến hạn | `posted obligation`, `not due` | Có thể là receivable; ngày hạn chỉ dùng aging. |
-| Dịch vụ đã làm nhưng quyền thu còn phụ thuộc điều kiện khác | Service/performance event, chưa ép thành AR | Có thể là contract asset; cần chính sách riêng. |
-| Nhận tiền trước khi thực hiện | Posted receipt + unapplied/advance | Xác định contract liability/thuế theo chứng từ và chế độ áp dụng; không tự ghi revenue. |
-| Giảm giá/hủy/hoàn sau ghi nhận | Credit/adjustment + allocation release; nếu chuyển tiền thì refund | Chứng từ điều chỉnh hóa đơn và bút toán liên quan do kế toán duyệt. |
+| Tình huống                                                           | Khuyến nghị hiển thị/vận hành                                      | Ghi nhận kế toán phụ thuộc chính sách                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Kỳ dịch vụ tương lai, chưa thực hiện, chưa có quyền thu vô điều kiện | `planned charge`                                                   | Không tự tạo revenue/AR.                                                                |
+| Đã có quyền đòi tiền nhưng chưa đến hạn                              | `posted obligation`, `not due`                                     | Có thể là receivable; ngày hạn chỉ dùng aging.                                          |
+| Dịch vụ đã làm nhưng quyền thu còn phụ thuộc điều kiện khác          | Service/performance event, chưa ép thành AR                        | Có thể là contract asset; cần chính sách riêng.                                         |
+| Nhận tiền trước khi thực hiện                                        | Posted receipt + unapplied/advance                                 | Xác định contract liability/thuế theo chứng từ và chế độ áp dụng; không tự ghi revenue. |
+| Giảm giá/hủy/hoàn sau ghi nhận                                       | Credit/adjustment + allocation release; nếu chuyển tiền thì refund | Chứng từ điều chỉnh hóa đơn và bút toán liên quan do kế toán duyệt.                     |
 
 Sản phẩm cần chốt `recognition_policy` theo loại dịch vụ/điều khoản và một event đủ chứng cứ: hoàn thành/biên bản nghiệm thu, hóa đơn hoặc quyền thanh toán vô điều kiện. Không retroactively đổi nghĩa các row do chính sách `due_date` cũ tạo; thêm `recognition_basis`, `recognized_effective_date`, provenance/policy version và backfill có phân loại `legacy_due_date_policy`. Nếu dữ liệu cũ thiếu chứng cứ, đánh dấu unknown để đối soát, không bịa ngày nghiệm thu. Công nợ manual phải có loại/căn cứ cụ thể (opening balance, adjustment, manual claim), không dùng “ngoài hợp đồng” làm đường tạo doanh thu không chứng từ.
 
@@ -124,14 +124,14 @@ Mỗi phase cần migration **additive** (column nullable, bảng/link/view mớ
 
 ## 7. Gates nghiệm thu bắt buộc
 
-| Gate | Chứng minh cần bàn giao |
-| --- | --- |
-| Business | Ký hợp đồng nhưng chưa thu, nợ đã ghi nhận chưa đến hạn, nghiệm thu trước hóa đơn, thu trước rồi phân bổ nhiều kỳ, nợ mở đầu kỳ, thu một phần, một phiếu nhiều nợ, refund một phần, giảm phí sau đã thu, chi payable, sai kỳ/khác party. Phân biệt kế hoạch/AR/credit/revenue trên UI và report. |
-| Integrity | Tạo cùng obligation/voucher/allocate với retry, timeout sau commit, double click, hai phiên cùng source/nợ, hai line cùng obligation, sai tenant/customer/contract/currency/chiều, invalid date, backdate và closed period; một intent không được nhân đôi hoặc âm nguồn/nợ/quỹ. |
-| History | As-of trước/sau allocation, refund, reversal và adjustment; các bản posted không biến mất; tổng khách hàng = tổng obligation = báo cáo, cash movement = sổ quỹ, unapplied riêng; mỗi sai lệch có danh sách row thay vì bị `greatest` che. |
-| Migration | Inventory tất cả API/RPC/view/cron/export; backfill idempotent, map legacy IDs, số dòng/số tiền theo tenant–party–currency trước/sau, trường hợp thiếu account/ngày; deployed schema verified; contract test cho cả adapter cũ và API mới; backup restore diễn tập. |
-| Security | Authenticated không thể insert posted/update posted hoặc gọi RPC ngoài quyền; RLS/grant và `SECURITY DEFINER` test cross-tenant; view không lộ dữ liệu tenant khác. |
-| Accounting release | Kế toán ký chính sách recognition, chart/mapping, hóa đơn/thuế, khóa kỳ, độ trễ đối soát bank và quy tắc xử lý ứng trước. Nếu chưa ký, chỉ công bố subledger/quỹ nội bộ. |
+| Gate               | Chứng minh cần bàn giao                                                                                                                                                                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Business           | Ký hợp đồng nhưng chưa thu, nợ đã ghi nhận chưa đến hạn, nghiệm thu trước hóa đơn, thu trước rồi phân bổ nhiều kỳ, nợ mở đầu kỳ, thu một phần, một phiếu nhiều nợ, refund một phần, giảm phí sau đã thu, chi payable, sai kỳ/khác party. Phân biệt kế hoạch/AR/credit/revenue trên UI và report. |
+| Integrity          | Tạo cùng obligation/voucher/allocate với retry, timeout sau commit, double click, hai phiên cùng source/nợ, hai line cùng obligation, sai tenant/customer/contract/currency/chiều, invalid date, backdate và closed period; một intent không được nhân đôi hoặc âm nguồn/nợ/quỹ.                 |
+| History            | As-of trước/sau allocation, refund, reversal và adjustment; các bản posted không biến mất; tổng khách hàng = tổng obligation = báo cáo, cash movement = sổ quỹ, unapplied riêng; mỗi sai lệch có danh sách row thay vì bị `greatest` che.                                                        |
+| Migration          | Inventory tất cả API/RPC/view/cron/export; backfill idempotent, map legacy IDs, số dòng/số tiền theo tenant–party–currency trước/sau, trường hợp thiếu account/ngày; deployed schema verified; contract test cho cả adapter cũ và API mới; backup restore diễn tập.                              |
+| Security           | Authenticated không thể insert posted/update posted hoặc gọi RPC ngoài quyền; RLS/grant và `SECURITY DEFINER` test cross-tenant; view không lộ dữ liệu tenant khác.                                                                                                                              |
+| Accounting release | Kế toán ký chính sách recognition, chart/mapping, hóa đơn/thuế, khóa kỳ, độ trễ đối soát bank và quy tắc xử lý ứng trước. Nếu chưa ký, chỉ công bố subledger/quỹ nội bộ.                                                                                                                         |
 
 Theo [test plan](../test-plans/2026-09-16-customer-debt-workflow-test-and-acceptance.md), nhiều negative/concurrency paths **chưa chạy**. Chưa đạt các gate đó thì không gọi thiết kế “stable”, dù bốn luồng chính pass.
 
@@ -152,7 +152,6 @@ Các câu hỏi này là quyết định chính sách, **không** nên giải b�
 - [Test plan và biên bản](../test-plans/2026-09-16-customer-debt-workflow-test-and-acceptance.md) chỉ xác nhận nhánh được chạy; các trường hợp not-run không chuyển thành pass.
 
 **Không có migration hay thay đổi dữ liệu được thực hiện khi viết tài liệu này.**
-
 
 ## 10. Contract triển khai v1 đã chốt
 
@@ -183,15 +182,15 @@ V1 không tự nhận là hệ thống kế toán tổng hợp. Các nghiệp v�
 
 Mỗi loại số dư chỉ có một nguồn dữ liệu chính:
 
-| Số liệu | Nguồn chính |
-| --- | --- |
-| Nghĩa vụ gốc | finance_obligations và adjustment events |
-| Tiền thực tế vào/ra | finance_account_movements |
-| Tiền đã dùng để tất toán nợ | finance_allocations |
-| Tiền ứng trước chưa dùng | Posted voucher lines có handling_type = advance trừ allocation và refund |
-| Trạng thái chứng từ | finance_vouchers.status và các sự kiện đảo/hoàn |
-| Idempotency/audit | finance_operations |
-| Kế hoạch kỳ tương lai | contract_charges, không trộn vào số dư công nợ thực tế |
+| Số liệu                     | Nguồn chính                                                              |
+| --------------------------- | ------------------------------------------------------------------------ |
+| Nghĩa vụ gốc                | finance_obligations và adjustment events                                 |
+| Tiền thực tế vào/ra         | finance_account_movements                                                |
+| Tiền đã dùng để tất toán nợ | finance_allocations                                                      |
+| Tiền ứng trước chưa dùng    | Posted voucher lines có handling_type = advance trừ allocation và refund |
+| Trạng thái chứng từ         | finance_vouchers.status và các sự kiện đảo/hoàn                          |
+| Idempotency/audit           | finance_operations                                                       |
+| Kế hoạch kỳ tương lai       | contract_charges, không trộn vào số dư công nợ thực tế                   |
 
 Frontend không tự tính lại số dư tổng từ dữ liệu đã phân trang. Mọi badge/tổng quan phải lấy từ read model có scope tenant, đối tượng, loại tiền và ngày chốt.
 
@@ -479,7 +478,7 @@ Mỗi tổng phải chỉ rõ loại tiền và ngày chốt. Không dùng một
 
 - Bổ sung nullable effective_date, recognition_basis, provenance/policy version và audit fields.
 - Thêm RPC create/post obligation.
-- Dùng compatibility adapter cho API cũ.
+- API boundary dùng contract canonical; frontend không đọc fallback/dual-shape. Nếu cần tương thích API cũ, xử lý ở server boundary bằng migration/RPC.
 - Bổ sung read model advance/unapplied credit.
 - Không thay đổi ý nghĩa các field cũ.
 - Backfill theo tenant và đối soát số lượng/số tiền trước sau.
@@ -641,4 +640,28 @@ Bằng chứng xác minh:
 - DB invariant sau migration: không có obligation thiếu `effective_date`, obligation posted thiếu `posted_at`, advance contract thiếu contract hoặc outstanding âm.
 - Contract probe rollback: RPC create + replay tạo cùng một kết quả; update trực tiếp obligation posted bị chặn; phân bổ cùng một obligation qua hai dòng vượt tổng bị chặn và voucher vẫn ở trạng thái draft.
 
-Các phần chưa được đánh dấu hoàn tất của spec vẫn giữ nguyên: concurrency test bằng nhiều session thật, user thiếu quyền/sai tenant, adjustment/reversal, khóa kỳ, VAT/GL và các quyết định kế toán cần owner chốt. Đây là giới hạn kiểm thử/phase tiếp theo, không được coi là đã hoàn thành chỉ vì migration hardening đã apply.
+Các phần chưa được đánh dấu hoàn tất của spec vẫn giữ nguyên: concurrency test bằng nhiều session thật, user thiếu quyền/sai tenant, adjustment/reversal, VAT/GL và các quyết định kế toán cần owner chốt. Khóa kỳ được triển khai nền tảng ở tranche Phase 2 bên dưới nhưng chưa có UI quản trị và chưa được nghiệm thu concurrency đầy đủ.
+
+## 21. Trạng thái triển khai tranche nền tảng Phase 2
+
+Ngày triển khai: 16/09/2026. Môi trường: dev database, ứng dụng Vite dev trên port 5174.
+
+Migration additive [`20260916140000_finance_period_and_as_of_read_models.sql`](../../../supabase/migrations/20260916140000_finance_period_and_as_of_read_models.sql) đã được dry-run trong transaction rollback, apply chính thức và ghi vào `supabase_migrations.schema_migrations`. Không xóa bảng, không đổi ID và không xóa dữ liệu test.
+
+Phạm vi đã triển khai:
+
+- Thêm `finance_period_locks` và RPC `close_finance_period`; các thao tác ghi nhận obligation, post voucher, movement và allocation bị chặn khi ngày hiệu lực nằm trong kỳ đã khóa.
+- Thêm kiểm tra tenant/customer/currency của contract link ở line; ứng trước theo hợp đồng bắt buộc có hợp đồng và ứng trước theo khách hàng không được gắn hợp đồng.
+- Siết `allocate_finance_advance`: hash idempotency bao gồm operation/tenant/source/target/amount/date, replay kiểm tra loại operation và quyền trước khi trả kết quả, kiểm tra ngày không sớm hơn source/target, kiểm tra kỳ khóa và serialize retry cùng request key.
+- Thêm các RPC canonical `get_finance_obligation_balances_as_of`, `get_finance_advance_balances_as_of` và `get_customer_finance_summary_as_of`. Read model tính theo `effective_date`, giữ nguyên số dư âm để báo lỗi dữ liệu và tách ứng trước chưa phân bổ khỏi tiền đã phân bổ.
+- Báo cáo công nợ cho phép chọn ngày chốt; tổng quan khách hàng hiển thị riêng ứng trước chưa phân bổ và tiền thu thực tế. Form phiếu cho phép một dòng phân bổ nhiều công nợ và lọc công nợ theo khách hàng/phạm vi hợp đồng.
+- Frontend chỉ tiêu thụ shape canonical mới; không thêm fallback field hoặc chuyển đổi client cho dữ liệu legacy.
+
+Bằng chứng xác minh tranche:
+
+- Preflight migration history, dry-run và apply transaction: đạt; migration `20260916140000` có trong lịch sử dev.
+- Kiểm tra function signature và trigger period/scope: đạt; đủ 6 RPC/read-model function và 5 trigger guard tồn tại.
+- Probe rollback: read model obligation/advance/summary gọi được; tạo khóa kỳ và kiểm tra ngày bị khóa trả `true`; transaction được rollback, không để lại probe data.
+- `npx tsc --noEmit` và focused import lint sau thay đổi: đạt. Unit tests model/customer/finance và component: 5 file, 16 tests đạt.
+
+Phạm vi vẫn chưa hoàn tất của toàn bộ spec: adjustment, reverse allocation, refund, reverse voucher, bank reconciliation, audit timeline, VAT/GL, kiểm thử concurrency/security bằng nhiều user thật và các quyết định recognition/tax/period policy cần owner kế toán chốt. Khóa kỳ đã có nền tảng DB/RPC và guard; chưa có màn hình quản trị đóng kỳ.

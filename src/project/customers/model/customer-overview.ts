@@ -26,7 +26,21 @@ export interface CustomerOverviewSummary {
   totalPaid: number;
   totalOutstanding: number;
   overdueOutstanding: number;
+  unappliedAdvance: number;
+  cashReceived: number;
+  cashPaid: number;
   progressPercent: number;
+}
+
+export interface CustomerFinanceSummarySnapshot {
+  currencyCode: string;
+  totalBilled: number;
+  totalPaid: number;
+  totalOutstanding: number;
+  overdueOutstanding: number;
+  unappliedCredit: number;
+  cashReceived: number;
+  cashPaid: number;
 }
 
 export interface CustomerPaymentPlanSource {
@@ -59,6 +73,7 @@ export function buildCustomerOverviewData(
   obligations: FinanceObligation[],
   paymentPlanObligations: FinanceObligation[] = obligations,
   paymentPlanSources: CustomerPaymentPlanSource[] = [],
+  financeSummary?: CustomerFinanceSummarySnapshot,
 ): CustomerOverviewData {
   const todayIso = getTodayIso();
   const contractById = new Map(
@@ -159,6 +174,15 @@ export function buildCustomerOverviewData(
 
   const summary: CustomerOverviewSummary = {
     ...summaryTotals,
+    ...(financeSummary
+      ? {
+          currencyCode: financeSummary.currencyCode,
+          totalBilled: financeSummary.totalBilled,
+          totalPaid: financeSummary.totalPaid,
+          totalOutstanding: financeSummary.totalOutstanding,
+          overdueOutstanding: financeSummary.overdueOutstanding,
+        }
+      : {}),
     activeContractCount: contracts.filter(
       (contract) => contract.status === 'active',
     ).length,
@@ -166,9 +190,12 @@ export function buildCustomerOverviewData(
       (contract) => contract.status === 'terminated',
     ).length,
     progressPercent: progressPercent(
-      summaryTotals.totalBilled,
-      summaryTotals.totalPaid,
+      financeSummary?.totalBilled ?? summaryTotals.totalBilled,
+      financeSummary?.totalPaid ?? summaryTotals.totalPaid,
     ),
+    unappliedAdvance: financeSummary?.unappliedCredit ?? 0,
+    cashReceived: financeSummary?.cashReceived ?? 0,
+    cashPaid: financeSummary?.cashPaid ?? 0,
   };
 
   return {

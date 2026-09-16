@@ -1,6 +1,9 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type { Contract, ContractStatus } from '../../contracts/model/contract';
-import { loadFinanceObligations } from '../../finance/api/finance.api';
+import {
+  loadCustomerFinanceSummaryAsOf,
+  loadFinanceObligationsAsOf,
+} from '../../finance/api/finance.api';
 import {
   buildCustomerOverviewData,
   type CustomerOverviewData,
@@ -42,36 +45,43 @@ export async function loadCustomerOverview(
   signal?: AbortSignal,
 ): Promise<CustomerOverviewData> {
   assertSupabaseConfigured();
+  const asOfDate = new Date().toISOString().slice(0, 10);
 
-  const [contractRows, obligations, contractChargeRows] = await Promise.all([
-    request<CustomerOverviewContractRow[]>(
-      supabaseApi.get(
-        '/contracts',
-        queryParams({
-          select: 'id,contract_code,name,currency_code,status',
-          tenant_id: `eq.${tenantId}`,
-          customer_id: `eq.${customerId}`,
-          order: 'name.asc,contract_code.asc',
-        }),
-        { signal },
+  const [contractRows, obligations, contractChargeRows, financeSummary] =
+    await Promise.all([
+      request<CustomerOverviewContractRow[]>(
+        supabaseApi.get(
+          '/contracts',
+          queryParams({
+            select: 'id,contract_code,name,currency_code,status',
+            tenant_id: `eq.${tenantId}`,
+            customer_id: `eq.${customerId}`,
+            order: 'name.asc,contract_code.asc',
+          }),
+          { signal },
+        ),
       ),
-    ),
-    loadFinanceObligations(tenantId, 'receivable', customerId),
-    request<CustomerOverviewChargeRow[]>(
-      supabaseApi.get(
-        '/contract_charge_balances',
-        queryParams({
-          select:
-            'contract_id,due_date,paid_amount,outstanding_amount,direction,status',
-          tenant_id: `eq.${tenantId}`,
-          customer_id: `eq.${customerId}`,
-          direction: 'eq.receivable',
-          status: 'neq.voided',
-        }),
-        { signal },
+      loadFinanceObligationsAsOf(tenantId, asOfDate, {
+        direction: 'receivable',
+        customerId,
+        currencyCode: 'VND',
+      }),
+      request<CustomerOverviewChargeRow[]>(
+        supabaseApi.get(
+          '/contract_charge_balances',
+          queryParams({
+            select:
+              'contract_id,due_date,paid_amount,outstanding_amount,direction,status',
+            tenant_id: `eq.${tenantId}`,
+            customer_id: `eq.${customerId}`,
+            direction: 'eq.receivable',
+            status: 'neq.voided',
+          }),
+          { signal },
+        ),
       ),
-    ),
-  ]);
+      loadCustomerFinanceSummaryAsOf(tenantId, customerId, asOfDate, 'VND'),
+    ]);
 
   const contracts: Array<
     Pick<Contract, 'id' | 'contractCode' | 'name' | 'currencyCode' | 'status'>
@@ -95,5 +105,6 @@ export async function loadCustomerOverview(
     obligations,
     obligations,
     paymentPlanSources,
+    financeSummary,
   );
 }

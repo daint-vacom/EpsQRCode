@@ -168,6 +168,25 @@ function CustomerPaymentSummary({
               )}
             />
           </div>
+          <div className="py-2.5 first:pt-0 last:pb-0">
+            <PaymentMetric
+              icon={WalletCards}
+              iconTone="warning"
+              label="Ứng trước chưa phân bổ"
+              value={formatCurrency(
+                summary.unappliedAdvance,
+                summary.currencyCode,
+              )}
+            />
+          </div>
+          <div className="py-2.5 first:pt-0 last:pb-0">
+            <PaymentMetric
+              icon={ReceiptText}
+              iconTone="info"
+              label="Tiền thu thực tế"
+              value={formatCurrency(summary.cashReceived, summary.currencyCode)}
+            />
+          </div>
         </div>
       </div>
     </section>

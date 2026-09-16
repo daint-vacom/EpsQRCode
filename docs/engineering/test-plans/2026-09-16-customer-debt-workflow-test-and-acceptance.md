@@ -31,11 +31,11 @@
 
 ### Kết quả thực thi tạm thời
 
-| Case | Kết quả hiện tại | Bằng chứng chính |
-| --- | --- | --- |
-| CN-01 | Pass | `CN-TEST-001-260916`, gốc 10.000 VND, đúng khách hàng, không tạo tiền. |
-| CN-02 | Pass | `HD-TEST-CN-001-260916` tạo kỳ dự kiến; `HD-TEST-CN-002-260916` tạo công nợ thực tế 8.000 VND. |
-| CN-03 | Pass | Phiếu `20260916-000004` 4.000 VND và `20260916-000005` 6.000 VND; công nợ thủ công về 0, tài khoản tăng đúng. |
+| Case  | Kết quả hiện tại                       | Bằng chứng chính                                                                                                                                                                                                                  |
+| ----- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CN-01 | Pass                                   | `CN-TEST-001-260916`, gốc 10.000 VND, đúng khách hàng, không tạo tiền.                                                                                                                                                            |
+| CN-02 | Pass                                   | `HD-TEST-CN-001-260916` tạo kỳ dự kiến; `HD-TEST-CN-002-260916` tạo công nợ thực tế 8.000 VND.                                                                                                                                    |
+| CN-03 | Pass                                   | Phiếu `20260916-000004` 4.000 VND và `20260916-000005` 6.000 VND; công nợ thủ công về 0, tài khoản tăng đúng.                                                                                                                     |
 | CN-04 | Pass phần lõi và negative path đã chạy | Phiếu `20260916-000006` phân bổ 3.000 VND; `20260916-000007` phân bổ 1.000 VND và UI cập nhật ngay; `20260916-000008` từ chối phân bổ vượt mức. Tổng hợp khách hàng, công nợ, báo cáo dòng tiền và sổ tài khoản đã đối soát khớp. |
 
 Dữ liệu kiểm thử của cả lỗi ban đầu, bản sửa và retest được giữ nguyên trên dev; không xóa hoặc rollback.
@@ -69,17 +69,17 @@ Tài liệu này là kế hoạch kiểm thử/nghiệm thu và nhật ký kết
 
 Các nguyên tắc dưới đây là chuẩn nghiệp vụ để phân biệt lỗi phần mềm với hành vi đúng:
 
-| Nguyên tắc | Kỳ vọng |
-| --- | --- |
-| Công nợ và tiền là hai sự kiện riêng | Tạo công nợ không tự làm tăng/giảm số dư quỹ hoặc tài khoản. |
-| Phiếu thu là sự kiện tiền | Chỉ phiếu đã ghi nhận mới làm thay đổi số dư tài khoản. Phiếu nháp không làm thay đổi số dư. |
-| Phân bổ là quan hệ thanh toán | Phân bổ làm giảm công nợ; bản thân phân bổ không tạo thêm biến động tiền. |
-| Thanh toán công nợ | Phiếu thu phải là `receipt`, dòng phải xử lý `settlement`, tổng phân bổ bằng số tiền dòng và không vượt số còn nợ. |
-| Ứng trước | Phiếu thu phải là tiền đã nhận nhưng chưa/không gắn vào công nợ tại thời điểm nhận. Ứng trước không được làm giảm công nợ khi chưa phân bổ. |
-| Thanh toán một phần | `Đã thanh toán + Còn phải thu = Giá trị công nợ`, sai số làm tròn bằng 0. |
-| Thanh toán đủ | Công nợ còn phải thu bằng 0; không tạo số âm hoặc cho thanh toán vượt mức. |
-| Dữ liệu lịch sử | Ghi nhận rồi không được biến mất hoặc bị sửa ngầm khi đổi tên khách hàng, khoản mục, tài khoản hay hợp đồng. |
-| Ngày hiệu lực | Báo cáo lấy ngày chứng từ/ngày giao dịch theo quy ước của sổ, không phụ thuộc tùy tiện vào ngày trình duyệt. |
+| Nguyên tắc                           | Kỳ vọng                                                                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Công nợ và tiền là hai sự kiện riêng | Tạo công nợ không tự làm tăng/giảm số dư quỹ hoặc tài khoản.                                                                                |
+| Phiếu thu là sự kiện tiền            | Chỉ phiếu đã ghi nhận mới làm thay đổi số dư tài khoản. Phiếu nháp không làm thay đổi số dư.                                                |
+| Phân bổ là quan hệ thanh toán        | Phân bổ làm giảm công nợ; bản thân phân bổ không tạo thêm biến động tiền.                                                                   |
+| Thanh toán công nợ                   | Phiếu thu phải là `receipt`, dòng phải xử lý `settlement`, tổng phân bổ bằng số tiền dòng và không vượt số còn nợ.                          |
+| Ứng trước                            | Phiếu thu phải là tiền đã nhận nhưng chưa/không gắn vào công nợ tại thời điểm nhận. Ứng trước không được làm giảm công nợ khi chưa phân bổ. |
+| Thanh toán một phần                  | `Đã thanh toán + Còn phải thu = Giá trị công nợ`, sai số làm tròn bằng 0.                                                                   |
+| Thanh toán đủ                        | Công nợ còn phải thu bằng 0; không tạo số âm hoặc cho thanh toán vượt mức.                                                                  |
+| Dữ liệu lịch sử                      | Ghi nhận rồi không được biến mất hoặc bị sửa ngầm khi đổi tên khách hàng, khoản mục, tài khoản hay hợp đồng.                                |
+| Ngày hiệu lực                        | Báo cáo lấy ngày chứng từ/ngày giao dịch theo quy ước của sổ, không phụ thuộc tùy tiện vào ngày trình duyệt.                                |
 
 ## 3. Chuẩn bị môi trường và dữ liệu test
 
@@ -101,16 +101,16 @@ Các quyền cần đối chiếu trong môi trường thực tế gồm tối t
 
 Tạo bộ dữ liệu riêng, có mã dễ truy vết và không dùng khách hàng thật:
 
-| Đối tượng | Mã/giá trị đề nghị | Mục đích |
-| --- | --- | --- |
-| Khách hàng | `KH-TEST-CN-001` | Đối tượng xuyên suốt bốn luồng |
-| Tài khoản tiền | `TK-TEST-CN-001`, VND, đang hoạt động | Kiểm tra biến động và số dư |
-| Số dư đầu kỳ | Ví dụ 100.000.000 VND | Có mốc đối chiếu trước/sau |
-| Khoản mục | Thu công nợ; Ứng trước nếu có | Kiểm tra snapshot khoản mục |
-| Công nợ ngoài HĐ | `CN-TEST-001`, 10.000.000 VND | Kiểm tra tạo thủ công và thanh toán một phần |
-| Hợp đồng | `HD-TEST-CN-001` | Có tối thiểu một kỳ đã đến hạn và một kỳ tương lai |
-| Kỳ hợp đồng | Ví dụ 12.000.000 VND, hạn kỳ 1 là hôm nay hoặc trước hôm nay; kỳ 2 là tương lai | Kiểm tra phát sinh, liên kết và quy tắc đến hạn |
-| Ứng trước | `PT-TEST-001`, 3.000.000 VND | Tạo trước khi có khoản nợ cần phân bổ |
+| Đối tượng        | Mã/giá trị đề nghị                                                              | Mục đích                                           |
+| ---------------- | ------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Khách hàng       | `KH-TEST-CN-001`                                                                | Đối tượng xuyên suốt bốn luồng                     |
+| Tài khoản tiền   | `TK-TEST-CN-001`, VND, đang hoạt động                                           | Kiểm tra biến động và số dư                        |
+| Số dư đầu kỳ     | Ví dụ 100.000.000 VND                                                           | Có mốc đối chiếu trước/sau                         |
+| Khoản mục        | Thu công nợ; Ứng trước nếu có                                                   | Kiểm tra snapshot khoản mục                        |
+| Công nợ ngoài HĐ | `CN-TEST-001`, 10.000.000 VND                                                   | Kiểm tra tạo thủ công và thanh toán một phần       |
+| Hợp đồng         | `HD-TEST-CN-001`                                                                | Có tối thiểu một kỳ đã đến hạn và một kỳ tương lai |
+| Kỳ hợp đồng      | Ví dụ 12.000.000 VND, hạn kỳ 1 là hôm nay hoặc trước hôm nay; kỳ 2 là tương lai | Kiểm tra phát sinh, liên kết và quy tắc đến hạn    |
+| Ứng trước        | `PT-TEST-001`, 3.000.000 VND                                                    | Tạo trước khi có khoản nợ cần phân bổ              |
 
 Số tiền/ngày có thể thay đổi theo dữ liệu thực tế, nhưng phải ghi lại chính xác trong biên bản chạy test. Nếu môi trường không cho chọn ngày quá khứ/tương lai hoặc chưa có cơ chế sinh kỳ hợp đồng, phải ghi nhận ngay là điều kiện môi trường hoặc điểm cần xác minh, không tự điều chỉnh bằng SQL.
 
@@ -126,17 +126,17 @@ Trước mỗi nhóm test, ghi lại:
 
 ## 4. Phạm vi màn hình và dữ liệu cần đối chiếu
 
-| Khu vực | Nội dung kiểm tra |
-| --- | --- |
+| Khu vực                | Nội dung kiểm tra                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Khách hàng → Tổng quan | Tình hình thanh toán, tổng phát sinh, đã thanh toán, còn phải thu, quá hạn, danh sách công nợ và kế hoạch thu tiền. |
-| Khách hàng → Công nợ | Dòng công nợ, nguồn công nợ, ngày/hạn, số tiền, đã trả, còn phải thu, thao tác xem và thanh toán. |
-| Khách hàng → Hợp đồng | Hợp đồng và số liệu phải thu theo hợp đồng/kỳ. |
-| Sổ thu chi | Phiếu thu, trạng thái, đối tượng, tài khoản, tổng tiền, khoản mục và chi tiết phiếu. |
-| Chi tiết phiếu | Cách xử lý dòng, công nợ được phân bổ, số tiền và số tiền còn khả dụng. |
-| Báo cáo công nợ | Nghĩa vụ, đã thanh toán, còn phải thu, quá hạn theo khách hàng và theo nguồn. |
-| Báo cáo dòng tiền | Phiếu thu theo ngày, khoản mục, đối tượng và cách xử lý. |
-| Sổ quỹ & Tài khoản | Biến động vào/ra, số dư đầu kỳ, số dư chạy, tổng thu/chi và liên kết về phiếu. |
-| Dữ liệu/API/DB khi cần | Chỉ dùng để đối chiếu định danh và quan hệ, không dùng để hoàn thành thay thao tác giao diện nếu chưa được duyệt. |
+| Khách hàng → Công nợ   | Dòng công nợ, nguồn công nợ, ngày/hạn, số tiền, đã trả, còn phải thu, thao tác xem và thanh toán.                   |
+| Khách hàng → Hợp đồng  | Hợp đồng và số liệu phải thu theo hợp đồng/kỳ.                                                                      |
+| Sổ thu chi             | Phiếu thu, trạng thái, đối tượng, tài khoản, tổng tiền, khoản mục và chi tiết phiếu.                                |
+| Chi tiết phiếu         | Cách xử lý dòng, công nợ được phân bổ, số tiền và số tiền còn khả dụng.                                             |
+| Báo cáo công nợ        | Nghĩa vụ, đã thanh toán, còn phải thu, quá hạn theo khách hàng và theo nguồn.                                       |
+| Báo cáo dòng tiền      | Phiếu thu theo ngày, khoản mục, đối tượng và cách xử lý.                                                            |
+| Sổ quỹ & Tài khoản     | Biến động vào/ra, số dư đầu kỳ, số dư chạy, tổng thu/chi và liên kết về phiếu.                                      |
+| Dữ liệu/API/DB khi cần | Chỉ dùng để đối chiếu định danh và quan hệ, không dùng để hoàn thành thay thao tác giao diện nếu chưa được duyệt.   |
 
 Lưu ý trước test: màn chi tiết khách hàng hiện có các tab Tổng quan, Công nợ, Hợp đồng, Nhân viên phụ trách và Tài khoản phần mềm; chưa thấy một tab “Lịch sử” riêng trong cấu trúc giao diện hiện tại. Vì vậy kế hoạch sẽ kiểm tra lịch sử qua Sổ thu chi/chi tiết phiếu và các báo cáo. Nếu yêu cầu nghiệm thu bắt buộc lịch sử phải nằm ngay trong hồ sơ khách hàng, đây là điểm cần chốt trước khi kết luận đạt.
 
@@ -276,18 +276,18 @@ Thực hiện cả thanh toán một phần và thanh toán phần còn lại.
 
 Chạy các trường hợp sau nếu không bị giới hạn bởi dữ liệu/môi trường:
 
-| Nhóm | Trường hợp | Kỳ vọng |
-| --- | --- | --- |
-| Tiền | 0, âm, quá nhiều chữ số thập phân, giá trị rất lớn | Bị chặn hoặc làm tròn theo quy ước; không sai số số học. |
-| Thanh toán | Thanh toán vượt còn nợ; thanh toán lặp bằng double-click/retry | Không vượt nợ, không ghi trùng phiếu/biến động. |
-| Ngày | Hạn hôm nay, hạn hôm qua, hạn tương lai, ngày giao dịch khác ngày tạo | Phân loại đúng và truy được ngày hiệu lực. |
-| Trạng thái | Lưu nháp, reload, ghi nhận, thử sửa phiếu đã ghi nhận | Nháp chưa tác động tiền; phiếu đã ghi nhận không bị sửa/xóa ngầm. |
-| Đối tượng | Chọn công nợ của khách hàng khác; đổi khách hàng giữa chừng | Bị chặn, không phân bổ sai đối tượng. |
-| Tài khoản | Tài khoản ngừng hoạt động; số dư không đủ cho phiếu chi nếu có test chiều chi | Không cho ghi nhận giao dịch không hợp lệ. |
-| Khoản mục | Khoản mục ngừng hoạt động hoặc sai chiều thu/chi | Không cho ghi nhận sai chiều. |
-| Phân quyền | User chỉ được xem; user được tạo nhưng không được ghi nhận | Ẩn/chặn đúng nút và backend vẫn từ chối nếu gọi trực tiếp. |
-| Đồng thời | Hai phiên cùng thanh toán phần còn lại | Một giao dịch hợp lệ; giao dịch còn lại bị từ chối hoặc cập nhật lại số còn nợ. |
-| Cô lập tenant | Dùng ID dữ liệu tenant khác nếu có thể kiểm tra | Không đọc/ghi chéo tenant. |
+| Nhóm          | Trường hợp                                                                    | Kỳ vọng                                                                         |
+| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Tiền          | 0, âm, quá nhiều chữ số thập phân, giá trị rất lớn                            | Bị chặn hoặc làm tròn theo quy ước; không sai số số học.                        |
+| Thanh toán    | Thanh toán vượt còn nợ; thanh toán lặp bằng double-click/retry                | Không vượt nợ, không ghi trùng phiếu/biến động.                                 |
+| Ngày          | Hạn hôm nay, hạn hôm qua, hạn tương lai, ngày giao dịch khác ngày tạo         | Phân loại đúng và truy được ngày hiệu lực.                                      |
+| Trạng thái    | Lưu nháp, reload, ghi nhận, thử sửa phiếu đã ghi nhận                         | Nháp chưa tác động tiền; phiếu đã ghi nhận không bị sửa/xóa ngầm.               |
+| Đối tượng     | Chọn công nợ của khách hàng khác; đổi khách hàng giữa chừng                   | Bị chặn, không phân bổ sai đối tượng.                                           |
+| Tài khoản     | Tài khoản ngừng hoạt động; số dư không đủ cho phiếu chi nếu có test chiều chi | Không cho ghi nhận giao dịch không hợp lệ.                                      |
+| Khoản mục     | Khoản mục ngừng hoạt động hoặc sai chiều thu/chi                              | Không cho ghi nhận sai chiều.                                                   |
+| Phân quyền    | User chỉ được xem; user được tạo nhưng không được ghi nhận                    | Ẩn/chặn đúng nút và backend vẫn từ chối nếu gọi trực tiếp.                      |
+| Đồng thời     | Hai phiên cùng thanh toán phần còn lại                                        | Một giao dịch hợp lệ; giao dịch còn lại bị từ chối hoặc cập nhật lại số còn nợ. |
+| Cô lập tenant | Dùng ID dữ liệu tenant khác nếu có thể kiểm tra                               | Không đọc/ghi chéo tenant.                                                      |
 
 ## 8. Tiêu chí nghiệm thu
 
@@ -359,14 +359,30 @@ Phạm vi chưa đánh dấu Pass: kiểm thử bằng user thiếu quyền, sai
 
 Ngày 16/09/2026, sau khi apply migration `20260916120000_harden_finance_write_contract.sql` vào dev database:
 
-| Hạng mục | Kết quả | Bằng chứng |
-| --- | --- | --- |
-| Canonical obligation shape | Pass | `effective_date` và `recognition_basis` tồn tại, đều `NOT NULL`; dữ liệu hiện hữu đã backfill. |
-| Direct write vào công nợ đã post | Pass | Authenticated role không còn `INSERT/UPDATE/DELETE`; trigger chặn update posted. |
-| RPC create obligation | Pass | Tạo được công nợ với snapshot đối tượng lấy từ server; test rollback không để lại probe data. |
-| Idempotent replay | Pass | Cùng `request_key` và payload trả cùng obligation ID; key khác payload bị thiết kế từ chối. |
-| Multi-line over-allocation | Pass | Hai dòng cùng phân bổ vượt tổng công nợ bị chặn; voucher giữ trạng thái `draft`. |
-| Sổ công nợ / sổ thu chi runtime | Pass | `/finance/obligations`, `/finance/vouchers` và form phiếu thu tải đúng trên port 5174. |
-| Regression/build | Pass | 8 test files / 21 tests; TypeScript, import lint và production build đều đạt. |
+| Hạng mục                         | Kết quả | Bằng chứng                                                                                     |
+| -------------------------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| Canonical obligation shape       | Pass    | `effective_date` và `recognition_basis` tồn tại, đều `NOT NULL`; dữ liệu hiện hữu đã backfill. |
+| Direct write vào công nợ đã post | Pass    | Authenticated role không còn `INSERT/UPDATE/DELETE`; trigger chặn update posted.               |
+| RPC create obligation            | Pass    | Tạo được công nợ với snapshot đối tượng lấy từ server; test rollback không để lại probe data.  |
+| Idempotent replay                | Pass    | Cùng `request_key` và payload trả cùng obligation ID; key khác payload bị thiết kế từ chối.    |
+| Multi-line over-allocation       | Pass    | Hai dòng cùng phân bổ vượt tổng công nợ bị chặn; voucher giữ trạng thái `draft`.               |
+| Sổ công nợ / sổ thu chi runtime  | Pass    | `/finance/obligations`, `/finance/vouchers` và form phiếu thu tải đúng trên port 5174.         |
+| Regression/build                 | Pass    | 8 test files / 21 tests; TypeScript, import lint và production build đều đạt.                  |
 
 Không phát hiện lỗi P0/P1 mới trong phạm vi hardening đã chạy. Các case concurrency, user thiếu quyền/sai tenant bằng nhiều phiên riêng, adjustment/reversal và kế toán tổng hợp vẫn là **Not run / phase tiếp theo**, không gắn nhãn Pass thay thế.
+
+## 14. Kết quả triển khai tranche nền tảng Phase 2
+
+Ngày 16/09/2026, migration `20260916140000_finance_period_and_as_of_read_models.sql` được dry-run và apply thành công trên dev database.
+
+| Hạng mục                         | Kết quả            | Bằng chứng                                                                                                                                                                                                          |
+| -------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Khóa kỳ theo ngày hiệu lực       | Pass ở tầng DB/RPC | `finance_period_locks`, `close_finance_period` và guard trên obligation/voucher/movement/allocation tồn tại; probe khóa kỳ rollback đạt.                                                                            |
+| Phân bổ ứng trước theo ngày      | Pass ở contract    | Không cho phân bổ trước ngày source hoặc target; không cho phân bổ trong kỳ khóa; không tạo movement mới.                                                                                                           |
+| Read model công nợ tại ngày chốt | Pass ở contract    | RPC `get_finance_obligation_balances_as_of` lọc obligation và allocation theo `effective_date`, không dùng clamp số âm.                                                                                             |
+| Read model ứng trước             | Pass ở contract    | RPC `get_finance_advance_balances_as_of` tách source line, đã dùng, đã hoàn và còn khả dụng theo ngày chốt.                                                                                                         |
+| Tổng quan khách hàng             | Pass ở contract/UI | RPC summary trả công nợ, ứng trước chưa phân bổ và tiền thu thực tế; tổng quan hiển thị hai chỉ số tách riêng.                                                                                                      |
+| Một dòng phân bổ nhiều công nợ   | Pass ở UI contract | Form phiếu giữ nhiều allocation rows; backend đã có aggregate validation trên toàn voucher.                                                                                                                         |
+| Regression                       | Pass               | TypeScript, focused import lint và 5 file model/customer/finance/component với 16 tests đạt. |
+
+Tranche này không đánh dấu hoàn tất cho adjustment/reversal/refund, reverse voucher, bank reconciliation, audit timeline, concurrency/security nhiều user, VAT/GL hoặc các quyết định kế toán chưa được owner chốt. Dữ liệu test dev tiếp tục được giữ nguyên.
