@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { TriangleAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,20 +18,16 @@ import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { recordContractPayment } from '../../contracts/api/contracts.api';
 import { ContractDetailDialog } from '../../contracts/components/contract-detail-dialog';
-import { ContractPaymentScopeDialog } from '../../contracts/components/contract-payment-scope-dialog';
 import { useContractDetailQuery } from '../../contracts/hooks/use-contract-detail-query';
-import type { Contract } from '../../contracts/model/contract';
-import type { ContractPaymentSubmission } from '../../contracts/model/receivable';
 import { useCustomerContractList } from '../hooks/use-customer-contract-list';
-import { useContractColumns } from '../table/customer-contract.columns.generated';
+import {
+  CONTRACT_COLUMN_PINNING,
+  useContractColumns,
+} from '../table/customer-contract.columns.generated';
 
 export function CustomerContractsTable({ customerId }: { customerId: string }) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { userId } = useUser();
-  const [paymentContract, setPaymentContract] = useState<Contract | null>(null);
   const [detailContractId, setDetailContractId] = useState<string | null>(null);
   const {
     contracts,
@@ -45,42 +38,7 @@ export function CustomerContractsTable({ customerId }: { customerId: string }) {
     workspaceQuery,
   } = useCustomerContractList(customerId);
   const detailQuery = useContractDetailQuery(detailContractId ?? undefined);
-  const paymentMutation = useMutation({
-    mutationFn: ({
-      contract,
-      submission,
-    }: {
-      contract: Contract;
-      submission: ContractPaymentSubmission;
-    }) => {
-      if (!userId || !tenantQuery.tenantId) {
-        throw new Error('Thiếu thông tin thanh toán hợp đồng.');
-      }
-      return recordContractPayment(
-        userId,
-        contract.id,
-        contract.customerId,
-        contract.currencyCode,
-        {
-          scope: 'contract',
-          amount: submission.amount,
-          allocations: submission.allocations,
-          monthAllocations: submission.monthAllocations,
-        },
-        tenantQuery.tenantId,
-      );
-    },
-    onSuccess: async () => {
-      toast.success('Đã ghi nhận thanh toán hợp đồng.');
-      setPaymentContract(null);
-      await queryClient.invalidateQueries({
-        queryKey: ['project', 'contracts'],
-      });
-    },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
-  });
   const columns = useContractColumns({
-    onPrimary: setPaymentContract,
     onView: (contract) => setDetailContractId(contract.id),
     onOther: (contract) =>
       navigate(buildPath(ROUTES.PROJECT.CONTRACT_DETAIL, { id: contract.id })),
@@ -89,7 +47,7 @@ export function CustomerContractsTable({ customerId }: { customerId: string }) {
     data: contracts,
     columns,
     getRowId: (row) => row.id,
-    state: { pagination },
+    state: { pagination, columnPinning: CONTRACT_COLUMN_PINNING },
     onPaginationChange,
     manualPagination: true,
     pageCount: Math.ceil(total / pagination.pageSize),
@@ -149,25 +107,6 @@ export function CustomerContractsTable({ customerId }: { customerId: string }) {
           </CardFooter>
         </Card>
       </DataGrid>
-      {paymentContract ? (
-        <ContractPaymentScopeDialog
-          open
-          scope="contract"
-          tenantId={tenantQuery.tenantId ?? ''}
-          userId={userId ?? ''}
-          contractId={paymentContract.id}
-          currencyCode={paymentContract.currencyCode}
-          isSubmitting={paymentMutation.isPending}
-          onOpenChange={(open) => {
-            if (!open && !paymentMutation.isPending) {
-              setPaymentContract(null);
-            }
-          }}
-          onSubmit={(submission) =>
-            paymentMutation.mutate({ contract: paymentContract, submission })
-          }
-        />
-      ) : null}
       <ContractDetailDialog
         open={Boolean(detailContractId)}
         onOpenChange={(open) => {

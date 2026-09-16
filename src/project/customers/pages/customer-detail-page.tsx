@@ -41,6 +41,7 @@ import {
 } from '../api/customers.api';
 import { CustomerAvatar } from '../components/customer-avatar';
 import { CustomerContractsTable } from '../components/customer-contracts-table';
+import { CustomerDebtsTab } from '../components/customer-debts-tab';
 import { CustomerDetailDialog } from '../components/customer-detail-dialog';
 import { CustomerDetailLayout } from '../components/customer-detail-layout.generated';
 import { CustomerEditDialog } from '../components/customer-edit-dialog';
@@ -323,6 +324,7 @@ export function CustomerDetailPage() {
           />
         }
         overviewContent={<CustomerOverviewContent customer={customer} />}
+        debtsContent={<CustomerDebtsTab customer={customer} />}
         contractsContent={<CustomerContractsTable customerId={customer.id} />}
         employeesContent={
           <CustomerResponsibilityPanel

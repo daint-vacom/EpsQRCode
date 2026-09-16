@@ -1,13 +1,10 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type { Contract, ContractStatus } from '../../contracts/model/contract';
-import {
-  mapContractChargeBalanceRow,
-  type ContractChargeBalance,
-  type ContractChargeBalanceRow,
-} from '../../contracts/model/receivable';
+import { loadFinanceObligations } from '../../finance/api/finance.api';
 import {
   buildCustomerOverviewData,
   type CustomerOverviewData,
+  type CustomerPaymentPlanSource,
 } from '../model/customer-overview';
 
 interface CustomerOverviewContractRow {
@@ -18,12 +15,25 @@ interface CustomerOverviewContractRow {
   status: ContractStatus;
 }
 
+interface CustomerOverviewChargeRow {
+  contract_id: string;
+  due_date: string;
+  paid_amount: number | string;
+  outstanding_amount: number | string;
+  direction: 'receivable' | 'payable';
+  status: string;
+}
+
 function queryParams(params: Record<string, string>) {
   return { params };
 }
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
   return (await promise) as T;
+}
+
+function numberValue(value: number | string | null | undefined) {
+  return value == null ? 0 : typeof value === 'number' ? value : Number(value);
 }
 
 export async function loadCustomerOverview(
@@ -33,7 +43,7 @@ export async function loadCustomerOverview(
 ): Promise<CustomerOverviewData> {
   assertSupabaseConfigured();
 
-  const [contractRows, balanceRows] = await Promise.all([
+  const [contractRows, obligations, contractChargeRows] = await Promise.all([
     request<CustomerOverviewContractRow[]>(
       supabaseApi.get(
         '/contracts',
@@ -46,16 +56,17 @@ export async function loadCustomerOverview(
         { signal },
       ),
     ),
-    request<ContractChargeBalanceRow[]>(
+    loadFinanceObligations(tenantId, 'receivable', customerId),
+    request<CustomerOverviewChargeRow[]>(
       supabaseApi.get(
         '/contract_charge_balances',
         queryParams({
-          select: '*',
+          select:
+            'contract_id,due_date,paid_amount,outstanding_amount,direction,status',
           tenant_id: `eq.${tenantId}`,
           customer_id: `eq.${customerId}`,
           direction: 'eq.receivable',
           status: 'neq.voided',
-          order: 'due_date.asc,contract_id.asc',
         }),
         { signal },
       ),
@@ -71,9 +82,18 @@ export async function loadCustomerOverview(
     currencyCode: row.currency_code,
     status: row.status,
   }));
-  const charges: ContractChargeBalance[] = balanceRows.map(
-    mapContractChargeBalanceRow,
-  );
+  const paymentPlanSources: CustomerPaymentPlanSource[] = contractChargeRows
+    .filter((row) => row.direction === 'receivable' && row.status !== 'voided')
+    .map((row) => ({
+      dueDate: row.due_date,
+      paidAmount: numberValue(row.paid_amount),
+      outstandingAmount: numberValue(row.outstanding_amount),
+    }));
 
-  return buildCustomerOverviewData(contracts, charges);
+  return buildCustomerOverviewData(
+    contracts,
+    obligations,
+    obligations,
+    paymentPlanSources,
+  );
 }

@@ -45,27 +45,14 @@ import {
 import {
   mapContractChargeBalanceRow,
   mapContractFinancialSummary,
-  mapContractPaymentCandidateRpcRow,
   mapContractReceivablePeriodRpcRow,
-  mapCustomerPaymentAllocationRow,
-  mapCustomerPaymentRow,
-  mapCustomerReceivableSummaryRow,
   type ContractChargeBalance,
   type ContractChargeBalanceRow,
   type ContractFinancialSummary,
   type ContractFinancialSummaryRpcRow,
-  type ContractPaymentCandidate,
-  type ContractPaymentCandidateRpcResponse,
-  type ContractPaymentHistory,
-  type ContractPaymentMonthRpcRow,
-  type ContractPaymentScope,
   type ContractReceivablePeriodListParams,
   type ContractReceivablePeriodListResult,
   type ContractReceivablePeriodRpcResponse,
-  type CustomerPaymentAllocationRow,
-  type CustomerPaymentRow,
-  type CustomerReceivableSummary,
-  type CustomerReceivableSummaryRow,
 } from '../model/receivable';
 
 interface TenantMembershipRow {
@@ -295,8 +282,6 @@ export interface ContractDetail extends Contract {
   activeLines: ContractVersionLine[];
   charges: ContractChargeBalance[];
   financialSummary: ContractFinancialSummary;
-  payments: ContractPaymentHistory[];
-  receivableSummary: CustomerReceivableSummary | null;
   createdByEmployee: ContractEmployeeOption | null;
   responsibleEmployees: ContractEmployeeOption[];
   responsibleWorkspace?: ContractResponsibleWorkspace;
@@ -493,7 +478,7 @@ export async function loadContractWorkspace(
     ),
     request<ContractChargeBalanceRow[]>(
       supabaseApi.get(
-        '/contract_charge_balances',
+        '/contract_charge_finance_balances',
         queryParams({
           select: '*',
           tenant_id: `eq.${tenantId}`,
@@ -545,8 +530,6 @@ export async function loadContractDetail(
     customer,
     versionRows,
     balanceRows,
-    paymentRows,
-    summaryRows,
     financialSummary,
     tenantSettingsRows,
     employeeOptions,
@@ -569,7 +552,7 @@ export async function loadContractDetail(
     ),
     request<ContractChargeBalanceRow[]>(
       supabaseApi.get(
-        '/contract_charge_balances',
+        '/contract_charge_finance_balances',
         queryParams({
           select: '*',
           tenant_id: `eq.${tenantId}`,
@@ -577,27 +560,6 @@ export async function loadContractDetail(
           status: 'neq.voided',
           order:
             'period_start.desc,period_end.desc,due_date.desc,direction.asc',
-        }),
-      ),
-    ),
-    request<CustomerPaymentRow[]>(
-      supabaseApi.get(
-        '/customer_payments',
-        queryParams({
-          select: '*',
-          tenant_id: `eq.${tenantId}`,
-          customer_id: `eq.${contract.customer_id}`,
-          order: 'received_at.desc',
-        }),
-      ),
-    ),
-    request<CustomerReceivableSummaryRow[]>(
-      supabaseApi.get(
-        '/customer_receivable_summary',
-        queryParams({
-          select: '*',
-          tenant_id: `eq.${tenantId}`,
-          customer_id: `eq.${contract.customer_id}`,
         }),
       ),
     ),
@@ -686,54 +648,6 @@ export async function loadContractDetail(
   const activeLines = activeVersion
     ? mappedLines.filter((line) => line.contractVersionId === activeVersion.id)
     : [];
-  const allocationRows =
-    charges.length > 0
-      ? await request<CustomerPaymentAllocationRow[]>(
-          supabaseApi.get(
-            '/customer_payment_allocations',
-            queryParams({
-              select: '*',
-              charge_id: `in.(${charges.map((charge) => charge.id).join(',')})`,
-            }),
-          ),
-        )
-      : [];
-  const lineNameById = new Map(lineRows.map((line) => [line.id, line.name]));
-  const chargeById = new Map(charges.map((charge) => [charge.id, charge]));
-  const allocationsByPaymentId = new Map<
-    string,
-    ContractPaymentHistory['allocations']
-  >();
-
-  for (const allocationRow of allocationRows) {
-    const charge = chargeById.get(allocationRow.charge_id);
-    if (!charge) continue;
-
-    const allocation = mapCustomerPaymentAllocationRow(allocationRow);
-    const details = allocationsByPaymentId.get(allocation.paymentId) ?? [];
-    details.push({
-      ...allocation,
-      periodStart: charge.periodStart,
-      periodEnd: charge.periodEnd,
-      dueDate: charge.dueDate,
-      feeName: lineNameById.get(charge.contractVersionLineId) ?? 'Khoản phí',
-      chargeAmount: charge.amount,
-      currencyCode: charge.currencyCode,
-    });
-    allocationsByPaymentId.set(allocation.paymentId, details);
-  }
-
-  const payments = paymentRows
-    .map(mapCustomerPaymentRow)
-    .map((payment) => ({
-      ...payment,
-      allocations: allocationsByPaymentId.get(payment.id) ?? [],
-    }))
-    .filter(
-      (payment) =>
-        payment.allocations.length > 0 || payment.contractId === contract.id,
-    );
-
   return {
     ...mapContractRow(contract),
     paymentReminderDays: getPaymentReminderDays(
@@ -748,10 +662,6 @@ export async function loadContractDetail(
     activeLines,
     charges,
     financialSummary: mapContractFinancialSummary(financialSummary),
-    payments,
-    receivableSummary: summaryRows[0]
-      ? mapCustomerReceivableSummaryRow(summaryRows[0])
-      : null,
     createdByEmployee:
       employeeOptions.find(
         (employee) => employee.userId === contract.created_by,
@@ -794,195 +704,6 @@ export async function replaceContractResponsibleAccess(
       })),
     }),
   );
-}
-
-export async function loadContractPaymentPeriodCount(
-  userId: string,
-  contractId: string,
-  tenantIdOverride?: string,
-): Promise<number> {
-  assertSupabaseConfigured();
-  const tenantId = tenantIdOverride ?? (await resolveTenantId(userId));
-
-  const count = await request<number | string>(
-    supabaseApi.post('/rpc/get_contract_payment_period_count', {
-      p_tenant_id: tenantId,
-      p_contract_id: contractId,
-    }),
-  );
-
-  return numberValue(count);
-}
-
-export interface RecordContractPeriodPaymentInput {
-  periodStart: string;
-  periodEnd: string;
-  dueDate: string;
-  amount: number;
-  allocations: Array<{
-    chargeId: string;
-    allocatedAmount: number;
-  }>;
-}
-
-export interface LoadContractPaymentCandidatesResult {
-  items: ContractPaymentCandidate[];
-  total: number;
-  totalAmount: number;
-  paidAmount: number;
-  outstandingAmount: number;
-  unappliedCredit: number;
-  months: Array<{
-    monthStart: string;
-    monthEnd: string;
-    amount: number;
-    paidAmount: number;
-    outstandingAmount: number;
-    dueOutstandingAmount: number;
-    isDue: boolean;
-  }>;
-}
-
-export async function loadContractPaymentCandidates(
-  userId: string,
-  contractId: string,
-  scope: ContractPaymentScope,
-  scopeStart?: string,
-  scopeEnd?: string,
-  tenantIdOverride?: string,
-): Promise<LoadContractPaymentCandidatesResult> {
-  assertSupabaseConfigured();
-  const tenantId = tenantIdOverride ?? (await resolveTenantId(userId));
-  const response = await request<ContractPaymentCandidateRpcResponse>(
-    supabaseApi.post('/rpc/list_contract_payment_candidates_scoped', {
-      p_tenant_id: tenantId,
-      p_contract_id: contractId,
-      p_scope: scope,
-      p_scope_start: scopeStart ?? null,
-      p_scope_end: scopeEnd ?? null,
-    }),
-  );
-
-  return {
-    items: (response.items ?? []).map(mapContractPaymentCandidateRpcRow),
-    total: numberValue(response.total),
-    totalAmount: numberValue(response.total_amount),
-    paidAmount: numberValue(response.paid_amount),
-    outstandingAmount: numberValue(response.outstanding_amount),
-    unappliedCredit: numberValue(response.unapplied_credit),
-    months: (response.months ?? []).map(
-      (month: ContractPaymentMonthRpcRow) => ({
-        monthStart: month.month_start,
-        monthEnd: month.month_end,
-        amount: numberValue(month.amount),
-        paidAmount: numberValue(month.paid_amount),
-        outstandingAmount: numberValue(month.outstanding_amount),
-        dueOutstandingAmount: numberValue(month.due_outstanding_amount),
-        isDue: month.is_due,
-      }),
-    ),
-  };
-}
-
-export interface RecordContractPaymentInput {
-  scope: ContractPaymentScope;
-  scopeStart?: string;
-  scopeEnd?: string;
-  amount: number;
-  allocations: Array<{
-    chargeId: string;
-    allocatedAmount: number;
-  }>;
-  monthAllocations?: Array<{
-    monthStart: string;
-    allocatedAmount: number;
-  }>;
-}
-
-export async function recordContractPayment(
-  userId: string,
-  contractId: string,
-  customerId: string,
-  currencyCode: string,
-  input: RecordContractPaymentInput,
-  tenantIdOverride?: string,
-): Promise<RecordContractPeriodPaymentRpcRow> {
-  assertSupabaseConfigured();
-  const tenantId = tenantIdOverride ?? (await resolveTenantId(userId));
-  const response = await request<
-    RecordContractPeriodPaymentRpcRow[] | RecordContractPeriodPaymentRpcRow
-  >(
-    supabaseApi.post('/rpc/record_contract_payment_scoped', {
-      p_tenant_id: tenantId,
-      p_contract_id: contractId,
-      p_customer_id: customerId,
-      p_currency_code: currencyCode,
-      p_amount: input.amount,
-      p_received_at: new Date().toISOString(),
-      p_payment_method: 'other',
-      p_reference: '',
-      p_note: '',
-      p_allocations:
-        input.scope === 'contract'
-          ? (input.monthAllocations ?? []).map((allocation) => ({
-              month_start: allocation.monthStart,
-              allocated_amount: allocation.allocatedAmount,
-            }))
-          : input.allocations.map((allocation) => ({
-              charge_id: allocation.chargeId,
-              allocated_amount: allocation.allocatedAmount,
-            })),
-      p_scope: input.scope,
-      p_scope_start: input.scopeStart ?? null,
-      p_scope_end: input.scopeEnd ?? null,
-    }),
-  );
-  const row = Array.isArray(response) ? response[0] : response;
-  if (!row) throw new Error('Không nhận được kết quả ghi nhận thanh toán.');
-  return row;
-}
-
-interface RecordContractPeriodPaymentRpcRow {
-  payment_id: string;
-  allocated_amount: number | string;
-  unapplied_amount: number | string;
-}
-
-export async function recordContractPeriodPayment(
-  userId: string,
-  contractId: string,
-  customerId: string,
-  currencyCode: string,
-  input: RecordContractPeriodPaymentInput,
-  tenantIdOverride?: string,
-): Promise<RecordContractPeriodPaymentRpcRow> {
-  assertSupabaseConfigured();
-  const tenantId = tenantIdOverride ?? (await resolveTenantId(userId));
-  const response = await request<
-    RecordContractPeriodPaymentRpcRow[] | RecordContractPeriodPaymentRpcRow
-  >(
-    supabaseApi.post('/rpc/record_contract_period_payment_scoped', {
-      p_tenant_id: tenantId,
-      p_contract_id: contractId,
-      p_customer_id: customerId,
-      p_period_start: input.periodStart,
-      p_period_end: input.periodEnd,
-      p_due_date: input.dueDate,
-      p_amount: input.amount,
-      p_currency_code: currencyCode,
-      p_received_at: new Date().toISOString(),
-      p_payment_method: 'other',
-      p_reference: '',
-      p_note: '',
-      p_allocations: input.allocations.map((allocation) => ({
-        charge_id: allocation.chargeId,
-        allocated_amount: allocation.allocatedAmount,
-      })),
-    }),
-  );
-  const row = Array.isArray(response) ? response[0] : response;
-  if (!row) throw new Error('Không nhận được kết quả ghi nhận thanh toán.');
-  return row;
 }
 
 function toContractPayload(values: ContractFormValues) {

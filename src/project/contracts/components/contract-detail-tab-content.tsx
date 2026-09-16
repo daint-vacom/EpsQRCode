@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -80,8 +80,6 @@ import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import {
   activateContract,
   deleteContractAttachment,
-  recordContractPayment,
-  recordContractPeriodPayment,
   updateContractVersionEffectiveDate,
   uploadContractAttachments,
 } from '../api/contracts.api';
@@ -99,19 +97,11 @@ import {
 import {
   CONTRACT_CHARGE_DISPLAY_STATUS_LABELS,
   CONTRACT_CHARGE_DISPLAY_STATUSES,
-  type ContractPaymentHistory,
-  type ContractReceivableTableRow,
   type ContractReceivableViewMode,
 } from '../model/receivable';
-import { useContractPaymentHistoryColumns } from '../table/contract-payment-history.columns.generated';
 import { useContractReceivableTableRowColumns } from '../table/contract-receivable.columns.generated';
 import { ContractReceivableFilterBar } from '../table/contract-receivable.filters.generated';
 import { useContractVersionColumns } from '../table/contract-version.columns.generated';
-import {
-  ContractPaymentDialog,
-  type ContractPaymentSubmission,
-} from './contract-payment-dialog';
-import { ContractPaymentScopeDialog } from './contract-payment-scope-dialog';
 import { ContractReceivableViewSwitcher } from './contract-receivable-view-switcher.generated';
 import { ContractStatusBadge } from './contract-status-badge';
 
@@ -443,19 +433,11 @@ export function ContractOverviewContent({
 export function ContractReceivablesContent({
   tenantId,
   dueSoonDays,
-  userId,
   contractId,
-  customerId,
-  currencyCode,
-  onPaymentRecorded,
 }: {
   tenantId: string;
   dueSoonDays: number;
-  userId: string;
   contractId: string;
-  customerId: string;
-  currencyCode: string;
-  onPaymentRecorded: () => Promise<void>;
 }) {
   const {
     filters,
@@ -468,75 +450,7 @@ export function ContractReceivablesContent({
     listQuery,
     visibleRows,
   } = useContractReceivableList({ tenantId, contractId, dueSoonDays });
-  const [paymentRow, setPaymentRow] =
-    useState<ContractReceivableTableRow | null>(null);
-  const [monthPaymentScope, setMonthPaymentScope] = useState<{
-    start: string;
-    end: string;
-  } | null>(null);
-  const paymentMutation = useMutation({
-    mutationFn: (submission: ContractPaymentSubmission) => {
-      if (!paymentRow) throw new Error('Chưa chọn kỳ thanh toán.');
-      return recordContractPeriodPayment(
-        userId,
-        contractId,
-        customerId,
-        currencyCode,
-        {
-          periodStart: paymentRow.periodStart,
-          periodEnd: paymentRow.periodEnd,
-          dueDate: paymentRow.dueDate,
-          amount: submission.amount,
-          allocations: submission.allocations,
-        },
-        tenantId,
-      );
-    },
-    onSuccess: async () => {
-      toast.success('Đã ghi nhận thanh toán cho kỳ.');
-      setPaymentRow(null);
-      await onPaymentRecorded();
-    },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
-  });
-  const monthPaymentMutation = useMutation({
-    mutationFn: (submission: ContractPaymentSubmission) => {
-      if (!monthPaymentScope) throw new Error('Chưa chọn tháng thanh toán.');
-      return recordContractPayment(
-        userId,
-        contractId,
-        customerId,
-        currencyCode,
-        {
-          scope: 'month',
-          scopeStart: monthPaymentScope.start,
-          scopeEnd: monthPaymentScope.end,
-          amount: submission.amount,
-          allocations: submission.allocations,
-        },
-        tenantId,
-      );
-    },
-    onSuccess: async () => {
-      toast.success('Đã ghi nhận thanh toán cho tháng.');
-      setMonthPaymentScope(null);
-      await onPaymentRecorded();
-    },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
-  });
-  const handlePay = useCallback(
-    (row: ContractReceivableTableRow) => {
-      if (filters.view === 'month') {
-        setMonthPaymentScope({ start: row.periodStart, end: row.periodEnd });
-        return;
-      }
-      setPaymentRow(row);
-    },
-    [filters.view],
-  );
-  const columns = useContractReceivableTableRowColumns({
-    onPay: filters.view === 'year' ? undefined : handlePay,
-  });
+  const columns = useContractReceivableTableRowColumns({});
   const table = useReactTable({
     data: visibleRows,
     columns,
@@ -663,33 +577,6 @@ export function ContractReceivablesContent({
           </CardFooter>
         </Card>
       </DataGrid>
-      <ContractPaymentDialog
-        open={paymentRow !== null}
-        row={paymentRow}
-        currencyCode={currencyCode}
-        isSubmitting={paymentMutation.isPending}
-        onOpenChange={(open) => {
-          if (!open && !paymentMutation.isPending) setPaymentRow(null);
-        }}
-        onSubmit={(submission) => paymentMutation.mutate(submission)}
-      />
-      <ContractPaymentScopeDialog
-        open={monthPaymentScope !== null}
-        scope="month"
-        tenantId={tenantId}
-        userId={userId}
-        contractId={contractId}
-        scopeStart={monthPaymentScope?.start}
-        scopeEnd={monthPaymentScope?.end}
-        currencyCode={currencyCode}
-        isSubmitting={monthPaymentMutation.isPending}
-        onOpenChange={(open) => {
-          if (!open && !monthPaymentMutation.isPending) {
-            setMonthPaymentScope(null);
-          }
-        }}
-        onSubmit={(submission) => monthPaymentMutation.mutate(submission)}
-      />
     </>
   );
 }
@@ -873,64 +760,6 @@ export function ContractVersionsContent({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DataGrid>
-  );
-}
-
-export function ContractPaymentsContent({
-  payments,
-}: {
-  payments: ContractPaymentHistory[];
-}) {
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const columns = useContractPaymentHistoryColumns();
-  const table = useReactTable({
-    data: payments,
-    columns,
-    getRowId: (row) => row.id,
-    state: { pagination },
-    onPaginationChange: setPagination,
-    getPaginationRowModel: getPaginationRowModel(),
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  if (payments.length === 0) {
-    return (
-      <CardEmptyState
-        icon={WalletCards}
-        title="Chưa có thanh toán"
-        description="Các khoản khách hàng đã thanh toán sẽ hiển thị tại đây."
-      />
-    );
-  }
-
-  return (
-    <DataGrid
-      table={table}
-      recordCount={payments.length}
-      emptyMessage="Chưa có thanh toán"
-    >
-      <Card className="min-h-0 overflow-hidden">
-        <CardHeader>
-          <CardHeading>
-            <CardTitle>Lịch sử thanh toán</CardTitle>
-          </CardHeading>
-        </CardHeader>
-        <CardTable className="min-h-0 flex-1">
-          <ScrollArea className="h-full">
-            <div className="min-w-[1180px]">
-              <DataGridTable />
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </CardTable>
-        <CardFooter className="justify-between">
-          <DataGridPagination />
-        </CardFooter>
-      </Card>
     </DataGrid>
   );
 }

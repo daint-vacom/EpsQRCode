@@ -6,12 +6,9 @@ import {
   mapContractRow,
 } from './contract';
 import {
-  calculateContractPaymentAllocations,
-  customerPaymentSchema,
   getContractChargeDisplayStatus,
   getContractReceivableStats,
   mapContractReceivableTableRows,
-  mapCustomerReceivableSummaryRow,
 } from './receivable';
 
 describe('contract model', () => {
@@ -135,25 +132,6 @@ describe('contract model', () => {
         }),
       );
     }
-  });
-
-  it('maps database numeric values in receivable summaries', () => {
-    expect(
-      mapCustomerReceivableSummaryRow({
-        tenant_id: 'tenant-1',
-        customer_id: 'customer-1',
-        currency_code: 'VND',
-        total_billed: '30000000.00',
-        total_paid: '25000000.00',
-        total_outstanding: '5000000.00',
-        overdue_outstanding: '0.00',
-        unapplied_credit: '0.00',
-      }),
-    ).toMatchObject({
-      totalBilled: 30_000_000,
-      totalPaid: 25_000_000,
-      totalOutstanding: 5_000_000,
-    });
   });
 
   it('derives the user-facing charge status from payment and due-date data', () => {
@@ -313,35 +291,6 @@ describe('contract model', () => {
     expect(rows.map((row) => row.periodStart)).toEqual([
       '2026-09-01',
       '2026-08-16',
-    ]);
-  });
-
-  it('validates payment amount and currency before API submission', () => {
-    expect(
-      customerPaymentSchema.safeParse({
-        customerId: 'not-a-uuid',
-        receivedAt: '2026-06-01T00:00:00+07:00',
-        amount: 0,
-        currencyCode: 'vnd',
-        paymentMethod: 'cash',
-        reference: '',
-        note: '',
-      }).success,
-    ).toBe(false);
-  });
-
-  it('allocates a period payment by the current fee priority order', () => {
-    expect(
-      calculateContractPaymentAllocations(
-        [
-          { chargeId: 'fee-1', outstandingAmount: 1_000_000 },
-          { chargeId: 'fee-2', outstandingAmount: 2_000_000 },
-        ],
-        2_500_000,
-      ),
-    ).toEqual([
-      { chargeId: 'fee-1', allocatedAmount: 1_000_000 },
-      { chargeId: 'fee-2', allocatedAmount: 1_500_000 },
     ]);
   });
 });

@@ -253,19 +253,23 @@ export async function loadFinanceObligationDetail(
 export async function loadFinanceObligations(
   tenantId: string,
   direction: 'receivable' | 'payable' = 'receivable',
+  customerId?: string,
+  options: { dueOnOrBefore?: string } = {},
 ) {
   assertSupabaseConfigured();
+  const params: Record<string, string> = {
+    select: '*',
+    tenant_id: `eq.${tenantId}`,
+    direction: `eq.${direction}`,
+    status: 'eq.posted',
+    order: 'outstanding_amount.desc,document_date.desc,id.desc',
+  };
+  if (customerId) params.customer_id = `eq.${customerId}`;
+  if (options.dueOnOrBefore) {
+    params.due_date = `lte.${options.dueOnOrBefore}`;
+  }
   const rows = await request<ObligationRow[]>(
-    supabaseApi.get(
-      '/finance_obligation_balances',
-      queryParams({
-        select: '*',
-        tenant_id: `eq.${tenantId}`,
-        direction: `eq.${direction}`,
-        status: 'eq.posted',
-        order: 'due_date.asc.nullslast,document_date.desc,id.desc',
-      }),
-    ),
+    supabaseApi.get('/finance_obligation_balances', queryParams(params)),
   );
   return rows.map(mapObligation);
 }

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
   History,
@@ -11,7 +11,6 @@ import {
   ReceiptText,
   RefreshCw,
   Trash2,
-  WalletCards,
 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -46,8 +45,6 @@ import { CustomerIdentity } from '../../customers/components/customer-identity';
 import {
   createContractRenewalDraft,
   deleteContract,
-  loadContractPaymentPeriodCount,
-  recordContractPayment,
   type ContractDetail,
   type ContractRenewalInput,
 } from '../api/contracts.api';
@@ -55,18 +52,15 @@ import { ContractDetailDialog } from '../components/contract-detail-dialog';
 import {
   ContractAttachmentsContent,
   ContractOverviewContent,
-  ContractPaymentsContent,
   ContractReceivablesContent,
   ContractVersionsContent,
 } from '../components/contract-detail-tab-content';
-import { ContractPaymentScopeDialog } from '../components/contract-payment-scope-dialog';
 import { ContractRenewalDialog } from '../components/contract-renewal-dialog';
 import { ContractResponsibleAvatarGroup } from '../components/contract-responsible-avatar-group';
 import { ContractResponsibleDialog } from '../components/contract-responsible-dialog';
 import { ContractStatusBadge } from '../components/contract-status-badge';
 import { useContractDetailQuery } from '../hooks/use-contract-detail-query';
 import type { ContractVersion } from '../model/contract';
-import type { ContractPaymentSubmission } from '../model/receivable';
 
 function formatDate(value: string | null) {
   if (!value) return 'Không giới hạn';
@@ -181,17 +175,13 @@ function ContractHeroActions({
   onEdit,
   onDelete,
   onShowDetails,
-  onPay,
   onRenew,
-  isPaying,
 }: {
   contract: ContractDetail;
   onEdit: () => void;
   onDelete: () => void;
   onShowDetails: () => void;
-  onPay: () => void;
   onRenew: () => void;
-  isPaying: boolean;
 }) {
   return (
     <>
@@ -203,17 +193,6 @@ function ContractHeroActions({
       >
         <Info />
         Xem chi tiết
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        className="border-white/25 bg-white text-primary hover:bg-white/90 hover:text-primary"
-        loading={isPaying}
-        loadingText="Đang tải..."
-        onClick={onPay}
-      >
-        <WalletCards />
-        Thanh toán
       </Button>
       {contract.status === 'active' || contract.status === 'expired' ? (
         <Button
@@ -289,7 +268,6 @@ export function ContractDetailPage() {
   const queryClient = useQueryClient();
   const { userId, hasPermission } = useUser();
   const {
-    tenantId,
     isPending: isTenantPending,
     isError: isTenantError,
     error: tenantError,
@@ -301,8 +279,6 @@ export function ContractDetailPage() {
   const [detailDialogVersion, setDetailDialogVersion] =
     useState<ContractVersion | null>(null);
   const [responsibleDialogOpen, setResponsibleDialogOpen] = useState(false);
-  const [contractPaymentDialogOpen, setContractPaymentDialogOpen] =
-    useState(false);
   const [contractRenewalDialogOpen, setContractRenewalDialogOpen] =
     useState(false);
   const canManageResponsibles = hasPermission('contracts:assign');
@@ -314,24 +290,6 @@ export function ContractDetailPage() {
 
   const contractQuery = useContractDetailQuery(id);
 
-  const paymentPeriodCountQuery = useQuery({
-    queryKey: [
-      'project',
-      'contracts',
-      'payment-period-count',
-      userId,
-      id,
-      tenantId,
-    ],
-    queryFn: () => {
-      if (!userId || !id || !tenantId) {
-        throw new Error('Thiếu thông tin hợp đồng.');
-      }
-      return loadContractPaymentPeriodCount(userId, id, tenantId);
-    },
-    enabled: Boolean(userId && id && tenantId && contractQuery.data),
-  });
-
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['project', 'contracts'] });
 
@@ -341,33 +299,6 @@ export function ContractDetailPage() {
       toast.success('Đã xóa hợp đồng.');
       await invalidate();
       navigate(ROUTES.PROJECT.CONTRACTS, { replace: true });
-    },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
-  });
-
-  const contractPaymentMutation = useMutation({
-    mutationFn: (submission: ContractPaymentSubmission) => {
-      if (!userId || !contractQuery.data) {
-        throw new Error('Thiếu thông tin thanh toán hợp đồng.');
-      }
-      return recordContractPayment(
-        userId,
-        contractQuery.data.id,
-        contractQuery.data.customer.id,
-        contractQuery.data.currencyCode,
-        {
-          scope: 'contract',
-          amount: submission.amount,
-          allocations: submission.allocations,
-          monthAllocations: submission.monthAllocations,
-        },
-        contractQuery.data.tenantId,
-      );
-    },
-    onSuccess: async () => {
-      toast.success('Đã ghi nhận thanh toán hợp đồng.');
-      setContractPaymentDialogOpen(false);
-      await invalidate();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -443,7 +374,6 @@ export function ContractDetailPage() {
   }
 
   const contract = contractQuery.data;
-  const paymentPeriodCount = paymentPeriodCountQuery.data ?? 0;
   const hasDraftWithoutEffectiveDate = contract.versions.some(
     (version) => version.status === 'draft' && !version.effectiveFrom,
   );
@@ -459,43 +389,13 @@ export function ContractDetailPage() {
       value: 'receivables',
       label: 'Kỳ thanh toán',
       icon: ReceiptText,
-      badge:
-        paymentPeriodCount > 0 ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge
-                size="sm"
-                shape="circle"
-                variant="destructive"
-                aria-label={`${paymentPeriodCount} kỳ thanh toán cần xử lý`}
-              >
-                {paymentPeriodCount}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent>
-              {paymentPeriodCount} kỳ thanh toán cần xử lý
-            </TooltipContent>
-          </Tooltip>
-        ) : undefined,
       content: (
         <ContractReceivablesContent
           tenantId={contract.tenantId}
           dueSoonDays={contract.paymentReminderDays}
-          userId={userId ?? ''}
           contractId={contract.id}
-          customerId={contract.customer.id}
-          currencyCode={contract.currencyCode}
-          onPaymentRecorded={async () => {
-            await invalidate();
-          }}
         />
       ),
-    },
-    {
-      value: 'payments',
-      label: 'Lịch sử thanh toán',
-      icon: WalletCards,
-      content: <ContractPaymentsContent payments={contract.payments} />,
     },
     {
       value: 'versions',
@@ -552,9 +452,7 @@ export function ContractDetailPage() {
             onEdit={() => openEdit(contract)}
             onDelete={() => setDeleteDialogOpen(true)}
             onShowDetails={() => openContractDetails()}
-            onPay={() => setContractPaymentDialogOpen(true)}
             onRenew={() => setContractRenewalDialogOpen(true)}
-            isPaying={contractPaymentMutation.isPending}
           />
         }
         onManageResponsibles={() => setResponsibleDialogOpen(true)}
@@ -584,21 +482,6 @@ export function ContractDetailPage() {
         }}
         contract={contract}
         selectedVersion={detailDialogVersion}
-      />
-      <ContractPaymentScopeDialog
-        open={contractPaymentDialogOpen}
-        scope="contract"
-        tenantId={contract.tenantId}
-        userId={userId ?? ''}
-        contractId={contract.id}
-        currencyCode={contract.currencyCode}
-        isSubmitting={contractPaymentMutation.isPending}
-        onOpenChange={(open) => {
-          if (!open && !contractPaymentMutation.isPending) {
-            setContractPaymentDialogOpen(false);
-          }
-        }}
-        onSubmit={(submission) => contractPaymentMutation.mutate(submission)}
       />
       <ContractRenewalDialog
         open={contractRenewalDialogOpen}

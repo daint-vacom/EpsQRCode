@@ -27,7 +27,7 @@ export interface UseContractReceivableTableRowColumnsParams {
 }
 
 export function useContractReceivableTableRowColumns(
-  params: UseContractReceivableTableRowColumnsParams,
+  params: UseContractReceivableTableRowColumnsParams = {},
 ): ColumnDef<ContractReceivableTableRow>[] {
   const { formatCurrency } = useNumberFormat();
   const onPay = params.onPay;

@@ -54,7 +54,7 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      actionPresets: ['primary', 'view', 'other'],
+      actionPresets: ['view', 'other'],
       headerClassName: 'w-[280px]',
       cellClassName: 'text-right',
       size: 280,

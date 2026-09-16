@@ -1,4 +1,3 @@
-import { buildPath, ROUTES } from '@/constants/routes';
 import { useQuery } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -8,10 +7,10 @@ import {
   TriangleAlert,
   WalletCards,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import { useTenant } from '@/providers/tenant-provider';
+import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -21,17 +20,21 @@ import {
   CardHeading,
   CardTitle,
 } from '@/components/ui/card';
-import { Progress, ProgressCircle } from '@/components/ui/progress';
-import { buildContractPaymentPlanData } from '../../contracts/model/contract-chart';
+import { ProgressCircle } from '@/components/ui/progress';
 import { getDashboardPaymentPlanRange } from '../../dashboard/model/dashboard';
 import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import { loadCustomerOverview } from '../api/customer-overview.api';
 import type { Customer } from '../model/customer';
+import {
+  getCustomerDebtSourceLabel,
+  groupCustomerFinanceObligations,
+  type CustomerFinanceObligation,
+} from '../model/customer-finance';
 import type {
-  CustomerOverviewContract,
   CustomerOverviewData,
   CustomerOverviewSummary,
 } from '../model/customer-overview';
+import { buildCustomerPaymentPlanData } from '../model/customer-overview';
 
 const PAYMENT_METRIC_TONE_CLASSES = {
   info: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
@@ -185,7 +188,7 @@ function CustomerPaymentStatusCard({ data }: { data: CustomerOverviewData }) {
         </CardHeading>
       </CardHeader>
       <CardContent className="pt-1">
-        {data.contracts.length > 0 ? (
+        {data.contracts.length > 0 || data.obligations.length > 0 ? (
           <CustomerPaymentSummary summary={data.summary} />
         ) : (
           <div className="flex min-h-48 items-center justify-center text-center text-sm text-muted-foreground">
@@ -197,15 +200,8 @@ function CustomerPaymentStatusCard({ data }: { data: CustomerOverviewData }) {
   );
 }
 
-function CustomerContractBalanceItem({
-  contract,
-}: {
-  contract: CustomerOverviewContract;
-}) {
+function CustomerDebtItem({ debt }: { debt: CustomerFinanceObligation }) {
   const { formatCurrency } = useNumberFormat();
-  const formattedProgress = new Intl.NumberFormat('vi-VN', {
-    maximumFractionDigits: 2,
-  }).format(contract.progressPercent);
 
   return (
     <div className="flex min-w-0 gap-3">
@@ -214,52 +210,37 @@ function CustomerContractBalanceItem({
       </span>
       <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3">
         <div className="min-w-0 space-y-0">
-          <Link
-            to={buildPath(ROUTES.PROJECT.CONTRACT_DETAIL, { id: contract.id })}
-            className="block min-w-0 truncate font-medium text-foreground hover:text-primary"
-          >
-            {contract.name}
-          </Link>
+          <p className="truncate font-medium text-foreground">
+            {debt.description || debt.code}
+          </p>
           <p className="truncate text-xs text-muted-foreground">
-            {contract.contractCode}
+            {getCustomerDebtSourceLabel(debt.sourceType)}
+            {debt.contractName ? ` · ${debt.contractName}` : ''}
           </p>
         </div>
         <div className="shrink-0 text-right text-xs tabular-nums text-muted-foreground">
           <div>
-            <span className="font-medium text-primary">
-              {formatCurrency(contract.paidAmount, contract.currencyCode)} /{' '}
-              {formatCurrency(contract.totalAmount, contract.currencyCode)}
-            </span>{' '}
-            <span>({formattedProgress}%)</span>
+            Đã trả {formatCurrency(debt.settledAmount, debt.currencyCode)}
           </div>
           <div
             className={
-              contract.outstandingAmount > 0
+              debt.outstandingAmount > 0
                 ? 'text-destructive'
                 : 'text-muted-foreground'
             }
           >
             Còn phải thu{' '}
-            {formatCurrency(contract.outstandingAmount, contract.currencyCode)}
+            {formatCurrency(debt.outstandingAmount, debt.currencyCode)}
           </div>
-        </div>
-        <div className="col-span-full mt-1 min-w-0">
-          <Progress
-            value={contract.progressPercent}
-            aria-label={`${contract.name}: đã thanh toán ${formattedProgress}%`}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={contract.progressPercent}
-            className="h-2 w-full bg-muted"
-            indicatorClassName="bg-emerald-500"
-          />
         </div>
       </div>
     </div>
   );
 }
 
-function CustomerDebtByContractCard({ data }: { data: CustomerOverviewData }) {
+function CustomerDebtListCard({ data }: { data: CustomerOverviewData }) {
+  const debts = groupCustomerFinanceObligations(data.obligations);
+
   return (
     <Card className="min-w-0 overflow-hidden xl:h-full xl:min-h-72">
       <CardHeader>
@@ -268,23 +249,20 @@ function CustomerDebtByContractCard({ data }: { data: CustomerOverviewData }) {
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
               <ReceiptText className="size-4" />
             </span>
-            <CardTitle>Công nợ theo hợp đồng</CardTitle>
+            <CardTitle>Danh sách công nợ</CardTitle>
           </div>
         </CardHeading>
       </CardHeader>
       <CardContent className="min-h-0 grow overflow-y-auto pt-1">
-        {data.contracts.length > 0 ? (
+        {debts.length > 0 ? (
           <div className="space-y-4">
-            {data.contracts.map((contract) => (
-              <CustomerContractBalanceItem
-                key={contract.id}
-                contract={contract}
-              />
+            {debts.map((debt) => (
+              <CustomerDebtItem key={debt.id} debt={debt} />
             ))}
           </div>
         ) : (
           <div className="flex min-h-48 items-center justify-center text-center text-sm text-muted-foreground">
-            Khách hàng chưa có hợp đồng.
+            Khách hàng chưa có công nợ.
           </div>
         )}
       </CardContent>
@@ -296,6 +274,11 @@ function CustomerPaymentPlanCard({ data }: { data: CustomerOverviewData }) {
   const { formatCompactCurrency } = useNumberFormat();
   const range = getDashboardPaymentPlanRange();
   const currencyCode = data.summary.currencyCode;
+  const paymentPlan = buildCustomerPaymentPlanData(
+    data.paymentPlanObligations,
+    range,
+    data.paymentPlanSources,
+  );
 
   return (
     <Card className="min-w-0 overflow-hidden">
@@ -305,9 +288,10 @@ function CustomerPaymentPlanCard({ data }: { data: CustomerOverviewData }) {
         </CardHeading>
       </CardHeader>
       <CardContent className="space-y-6 pt-0">
-        {data.charges.length > 0 ? (
+        {data.paymentPlanObligations.length > 0 ||
+        data.paymentPlanSources.length > 0 ? (
           <PaymentPlanChart
-            data={buildContractPaymentPlanData(data.charges, range)}
+            data={paymentPlan}
             valueFormatter={(value) =>
               formatCompactCurrency(value, currencyCode)
             }
@@ -339,11 +323,25 @@ function CustomerOverviewLoading() {
 
 export function CustomerOverviewContent({ customer }: { customer: Customer }) {
   const { tenantId } = useTenant();
+  const { hasPermission } = useUser();
+  const canViewFinance =
+    hasPermission('finance:obligation:view') ||
+    hasPermission('finance:report:view');
   const overviewQuery = useQuery({
     queryKey: ['project', 'customers', 'overview', tenantId, customer.id],
     queryFn: () => loadCustomerOverview(tenantId!, customer.id),
-    enabled: Boolean(tenantId),
+    enabled: Boolean(tenantId && canViewFinance),
   });
+
+  if (!canViewFinance) {
+    return (
+      <Card className="flex min-h-56 items-center justify-center p-10 text-center">
+        <CardDescription>
+          Bạn không có quyền xem tình hình công nợ khách hàng.
+        </CardDescription>
+      </Card>
+    );
+  }
 
   if (overviewQuery.isPending) return <CustomerOverviewLoading />;
 
@@ -367,7 +365,7 @@ export function CustomerOverviewContent({ customer }: { customer: Customer }) {
   return (
     <div className="grid min-w-0 gap-admin-page-section xl:grid-cols-2">
       <CustomerPaymentStatusCard data={overviewQuery.data} />
-      <CustomerDebtByContractCard data={overviewQuery.data} />
+      <CustomerDebtListCard data={overviewQuery.data} />
       <div className="xl:col-span-2">
         <CustomerPaymentPlanCard data={overviewQuery.data} />
       </div>

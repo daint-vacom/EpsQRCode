@@ -4,6 +4,7 @@ const spec = {
   defaultTab: 'overview',
   tabs: [
     { value: 'overview', label: 'Tổng quan', icon: 'LayoutDashboard' },
+    { value: 'debts', label: 'Công nợ', icon: 'CircleDollarSign' },
     { value: 'contracts', label: 'Hợp đồng', icon: 'FileText' },
     { value: 'employees', label: 'Nhân viên phụ trách', icon: 'Users' },
     {

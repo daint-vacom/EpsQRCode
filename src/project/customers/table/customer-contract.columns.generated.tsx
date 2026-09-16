@@ -5,8 +5,8 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, Eye, WalletCards } from 'lucide-react';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
+import { ExternalLink, Eye } from 'lucide-react';
 import { formatDate } from '@/lib/date';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import {
@@ -17,8 +17,11 @@ import { ContractCell } from '../../contracts/components/contract-cell';
 import { ContractStatusBadge } from '../../contracts/components/contract-status-badge';
 import type { Contract } from '../../contracts/model/contract';
 
+export const CONTRACT_COLUMN_PINNING: ColumnPinningState = {
+  right: ['actions'],
+};
+
 export interface UseContractColumnsParams {
-  onPrimary: (row: Contract) => void;
   onView: (row: Contract) => void;
   onOther: (row: Contract) => void;
 }
@@ -27,7 +30,7 @@ export function useContractColumns(
   params: UseContractColumnsParams,
 ): ColumnDef<Contract>[] {
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
-  const { onPrimary, onView, onOther } = params;
+  const { onView, onOther } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<Contract>({
@@ -98,17 +101,6 @@ export function useContractColumns(
         cell: (row) => (
           <div className="flex justify-end gap-1">
             <DataGridActionButton
-              action="primary"
-              tooltip="Thanh toán"
-              aria-label={`Thanh toán hợp đồng ${row.name}`}
-              type="button"
-              size="sm"
-              onClick={() => onPrimary(row)}
-            >
-              <WalletCards className="size-4" />
-              Thanh toán
-            </DataGridActionButton>
-            <DataGridActionButton
               action="view"
               tooltip="Xem"
               aria-label="Xem"
@@ -134,5 +126,5 @@ export function useContractColumns(
         ),
       }),
     ];
-  }, [formatNumber, formatCurrency, formatPercent, onPrimary, onView, onOther]);
+  }, [formatNumber, formatCurrency, formatPercent, onView, onOther]);
 }

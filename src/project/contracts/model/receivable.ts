@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import type {
   BillingType,
   BillingUnit,
@@ -30,12 +29,6 @@ export type ContractChargeDisplayStatus =
 
 export const CONTRACT_CHARGE_DUE_SOON_DAYS = 7;
 
-export const PAYMENT_STATUSES = ['posted', 'reversed'] as const;
-export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
-
-export const PAYMENT_METHODS = ['bank_transfer', 'cash', 'other'] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
-
 export const CONTRACT_CHARGE_STATUS_LABELS: Record<
   ContractChargeStatus,
   string
@@ -60,32 +53,6 @@ export const CONTRACT_CHARGE_DISPLAY_STATUS_LABELS: Record<
   overdue: 'Quá hạn',
   voided: 'Đã hủy',
 };
-
-export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  posted: 'Đã ghi nhận',
-  reversed: 'Đã đảo ngược',
-};
-
-export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  bank_transfer: 'Chuyển khoản',
-  cash: 'Tiền mặt',
-  other: 'Khác',
-};
-
-export const customerPaymentSchema = z.object({
-  customerId: z.string().uuid('Khách hàng không hợp lệ.'),
-  receivedAt: z.string().datetime({ offset: true }),
-  amount: z.number().positive('Số tiền phải lớn hơn 0.'),
-  currencyCode: z
-    .string()
-    .trim()
-    .regex(/^[A-Z]{3}$/, 'Mã tiền tệ phải gồm 3 chữ cái viết hoa.'),
-  paymentMethod: z.enum(PAYMENT_METHODS),
-  reference: z.string().trim().max(120, 'Mã giao dịch quá dài.'),
-  note: z.string().trim().max(1000, 'Ghi chú quá dài.'),
-});
-
-export type CustomerPaymentValues = z.infer<typeof customerPaymentSchema>;
 
 export interface ContractCharge {
   id: string;
@@ -118,104 +85,6 @@ export interface ContractReceivableTableFee {
   outstandingAmount: number;
   currencyCode: string;
   isProjected?: boolean;
-}
-
-export interface ContractPaymentCandidate {
-  chargeId: string;
-  feeName: string;
-  periodStart: string;
-  periodEnd: string;
-  dueDate: string;
-  amount: number;
-  paidAmount: number;
-  outstandingAmount: number;
-  currencyCode: string;
-}
-
-export type ContractPaymentScope = 'month' | 'contract';
-
-export interface ContractPaymentCandidateRpcRow {
-  charge_id: string;
-  fee_name: string;
-  period_start: string;
-  period_end: string;
-  due_date: string;
-  amount: number | string;
-  paid_amount: number | string;
-  outstanding_amount: number | string;
-  currency_code: string;
-}
-
-export interface ContractPaymentCandidateRpcResponse {
-  items: ContractPaymentCandidateRpcRow[];
-  total: number | string;
-  total_amount: number | string;
-  paid_amount: number | string;
-  outstanding_amount: number | string;
-  unapplied_credit: number | string;
-  months: ContractPaymentMonthRpcRow[];
-}
-
-export interface ContractPaymentMonthRpcRow {
-  month_start: string;
-  month_end: string;
-  amount: number | string;
-  paid_amount: number | string;
-  outstanding_amount: number | string;
-  due_outstanding_amount: number | string;
-  is_due: boolean;
-}
-
-export function mapContractPaymentCandidateRpcRow(
-  row: ContractPaymentCandidateRpcRow,
-): ContractPaymentCandidate {
-  return {
-    chargeId: row.charge_id,
-    feeName: row.fee_name,
-    periodStart: row.period_start,
-    periodEnd: row.period_end,
-    dueDate: row.due_date,
-    amount: numericValue(row.amount),
-    paidAmount: numericValue(row.paid_amount),
-    outstandingAmount: numericValue(row.outstanding_amount),
-    currencyCode: row.currency_code,
-  };
-}
-
-export interface ContractPaymentAllocation {
-  chargeId: string;
-  allocatedAmount: number;
-}
-
-export interface ContractPaymentSubmission {
-  amount: number;
-  allocations: ContractPaymentAllocation[];
-  monthAllocations?: Array<{
-    monthStart: string;
-    allocatedAmount: number;
-  }>;
-  unappliedAmount?: number;
-}
-
-export function roundCurrencyAmount(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-export function calculateContractPaymentAllocations(
-  fees: Array<
-    Pick<ContractReceivableTableFee, 'chargeId' | 'outstandingAmount'>
-  >,
-  amount: number,
-): ContractPaymentAllocation[] {
-  let remaining = Math.max(0, roundCurrencyAmount(amount));
-
-  return fees.map((fee) => {
-    const allocatedAmount = roundCurrencyAmount(
-      Math.min(remaining, fee.outstandingAmount),
-    );
-    remaining = roundCurrencyAmount(remaining - allocatedAmount);
-    return { chargeId: fee.chargeId, allocatedAmount };
-  });
 }
 
 export interface ContractReceivableTableRow {
@@ -532,57 +401,6 @@ export function getContractReceivableStats(
   );
 }
 
-export interface CustomerPayment {
-  id: string;
-  tenantId: string;
-  customerId: string;
-  contractId: string | null;
-  receivedAt: string;
-  amount: number;
-  currencyCode: string;
-  paymentMethod: PaymentMethod;
-  reference: string;
-  note: string;
-  status: PaymentStatus;
-  createdBy: string | null;
-  reversedAt: string | null;
-  reversalReason: string | null;
-  createdAt: string;
-  unappliedAmount: number;
-}
-
-export interface CustomerPaymentAllocation {
-  id: string;
-  paymentId: string;
-  chargeId: string;
-  allocatedAmount: number;
-  createdAt: string;
-}
-
-export interface ContractPaymentAllocationDetail extends CustomerPaymentAllocation {
-  periodStart: string;
-  periodEnd: string;
-  dueDate: string;
-  feeName: string;
-  chargeAmount: number;
-  currencyCode: string;
-}
-
-export interface ContractPaymentHistory extends CustomerPayment {
-  allocations: ContractPaymentAllocationDetail[];
-}
-
-export interface CustomerReceivableSummary {
-  tenantId: string;
-  customerId: string;
-  currencyCode: string;
-  totalBilled: number;
-  totalPaid: number;
-  totalOutstanding: number;
-  overdueOutstanding: number;
-  unappliedCredit: number;
-}
-
 export type ContractFinancialProgressBase = 'contract_value' | 'incurred';
 
 export interface ContractFinancialSummary {
@@ -628,44 +446,6 @@ export interface ContractChargeBalanceRow extends ContractChargeRow {
   outstanding_amount: number | string;
 }
 
-export interface CustomerPaymentRow {
-  id: string;
-  tenant_id: string;
-  customer_id: string;
-  contract_id: string | null;
-  received_at: string;
-  amount: number | string;
-  currency_code: string;
-  payment_method: PaymentMethod;
-  reference: string;
-  note: string;
-  status: PaymentStatus;
-  created_by: string | null;
-  reversed_at: string | null;
-  reversal_reason: string | null;
-  created_at: string;
-  unapplied_amount: number | string;
-}
-
-export interface CustomerPaymentAllocationRow {
-  id: string;
-  payment_id: string;
-  charge_id: string;
-  allocated_amount: number | string;
-  created_at: string;
-}
-
-export interface CustomerReceivableSummaryRow {
-  tenant_id: string;
-  customer_id: string;
-  currency_code: string;
-  total_billed: number | string;
-  total_paid: number | string;
-  total_outstanding: number | string;
-  overdue_outstanding: number | string;
-  unapplied_credit: number | string;
-}
-
 function numericValue(value: number | string): number {
   return typeof value === 'number' ? value : Number(value);
 }
@@ -697,56 +477,6 @@ export function mapContractChargeBalanceRow(
     ...mapContractChargeRow(row),
     paidAmount: numericValue(row.paid_amount),
     outstandingAmount: numericValue(row.outstanding_amount),
-  };
-}
-
-export function mapCustomerPaymentRow(
-  row: CustomerPaymentRow,
-): CustomerPayment {
-  return {
-    id: row.id,
-    tenantId: row.tenant_id,
-    customerId: row.customer_id,
-    contractId: row.contract_id,
-    receivedAt: row.received_at,
-    amount: numericValue(row.amount),
-    currencyCode: row.currency_code,
-    paymentMethod: row.payment_method,
-    reference: row.reference,
-    note: row.note,
-    status: row.status,
-    createdBy: row.created_by,
-    reversedAt: row.reversed_at,
-    reversalReason: row.reversal_reason,
-    createdAt: row.created_at,
-    unappliedAmount: numericValue(row.unapplied_amount),
-  };
-}
-
-export function mapCustomerPaymentAllocationRow(
-  row: CustomerPaymentAllocationRow,
-): CustomerPaymentAllocation {
-  return {
-    id: row.id,
-    paymentId: row.payment_id,
-    chargeId: row.charge_id,
-    allocatedAmount: numericValue(row.allocated_amount),
-    createdAt: row.created_at,
-  };
-}
-
-export function mapCustomerReceivableSummaryRow(
-  row: CustomerReceivableSummaryRow,
-): CustomerReceivableSummary {
-  return {
-    tenantId: row.tenant_id,
-    customerId: row.customer_id,
-    currencyCode: row.currency_code,
-    totalBilled: numericValue(row.total_billed),
-    totalPaid: numericValue(row.total_paid),
-    totalOutstanding: numericValue(row.total_outstanding),
-    overdueOutstanding: numericValue(row.overdue_outstanding),
-    unappliedCredit: numericValue(row.unapplied_credit),
   };
 }
 

@@ -4,7 +4,13 @@
  * To change the tab structure, edit the spec and re-gen to a scratch path first.
  */
 import type { ReactNode } from 'react';
-import { FileText, KeyRound, LayoutDashboard, Users } from 'lucide-react';
+import {
+  CircleDollarSign,
+  FileText,
+  KeyRound,
+  LayoutDashboard,
+  Users,
+} from 'lucide-react';
 import {
   EntityDetailLayout,
   EntityDetailTabs,
@@ -15,6 +21,7 @@ export interface CustomerDetailLayoutProps {
   profile: ReactNode;
   information: ReactNode;
   overviewContent: ReactNode;
+  debtsContent: ReactNode;
   contractsContent: ReactNode;
   employeesContent: ReactNode;
   softwareAccountsContent: ReactNode;
@@ -24,6 +31,7 @@ export function CustomerDetailLayout({
   profile,
   information,
   overviewContent,
+  debtsContent,
   contractsContent,
   employeesContent,
   softwareAccountsContent,
@@ -35,6 +43,12 @@ export function CustomerDetailLayout({
       label: 'Tổng quan',
       icon: LayoutDashboard,
       content: overviewContent,
+    },
+    {
+      value: 'debts',
+      label: 'Công nợ',
+      icon: CircleDollarSign,
+      content: debtsContent,
     },
     {
       value: 'contracts',
