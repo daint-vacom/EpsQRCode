@@ -1,8 +1,6 @@
 import type { ContractEmployeeOption } from './contract';
 
 export interface ContractResponsibleEmployee extends ContractEmployeeOption {
-  jobTitle: string;
-  department: string;
   status: 'active' | 'inactive';
   defaultPermissionCodes: string[];
 }

@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
 import { ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -58,6 +58,7 @@ export interface MultiSelectProps<T = unknown> {
   maxChips?: number;
   showSelectedOptionWrapper?: boolean;
   showSelectedOptionsInTrigger?: boolean;
+  selectedOptionsLayout?: 'inline' | 'stacked';
   size?: MultiSelectSize;
   ariaLabel?: string;
   className?: string;
@@ -101,6 +102,7 @@ export function MultiSelect<T = unknown>({
   maxChips = 2,
   showSelectedOptionWrapper = false,
   showSelectedOptionsInTrigger = true,
+  selectedOptionsLayout = 'inline',
   size,
   ariaLabel,
   className,
@@ -116,7 +118,12 @@ export function MultiSelect<T = unknown>({
 
     return availableOptions.filter((option) => value.includes(option.value));
   }, [nestedOptions, options, value]);
-  const visibleChipLimit = selectedOptions.length === 1 ? 1 : maxChips;
+  const isStacked = selectedOptionsLayout === 'stacked';
+  const visibleChipLimit = isStacked
+    ? selectedOptions.length
+    : selectedOptions.length === 1
+      ? 1
+      : maxChips;
   const visibleChips = showSelectedOptionsInTrigger
     ? selectedOptions.slice(0, visibleChipLimit)
     : [];
@@ -170,9 +177,7 @@ export function MultiSelect<T = unknown>({
     setQuery('');
   };
 
-  const handleSearchKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
+  const handleSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== 'Enter' || !query.trim()) return;
 
     const firstMatch = (
@@ -190,7 +195,7 @@ export function MultiSelect<T = unknown>({
   };
 
   const handleInlineSearchKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>,
+    event: KeyboardEvent<HTMLInputElement>,
   ) => {
     const inputQuery = event.currentTarget.value;
 
@@ -217,7 +222,14 @@ export function MultiSelect<T = unknown>({
 
   const triggerContent = (
     <>
-      <span className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-hidden text-start">
+      <span
+        className={cn(
+          'flex min-w-0 flex-1 items-center gap-1.5 text-start',
+          isStacked
+            ? 'flex-col items-start overflow-visible'
+            : 'flex-nowrap overflow-hidden',
+        )}
+      >
         {visibleChips.map((option) => {
           const labelText =
             option.ariaLabel || nodeToString(option.label) || option.value;
@@ -239,7 +251,10 @@ export function MultiSelect<T = unknown>({
               key={option.value}
               variant="secondary"
               appearance="light"
-              className="max-w-32 justify-start"
+              className={cn(
+                'justify-start',
+                isStacked ? 'w-fit max-w-full' : 'max-w-32',
+              )}
             >
               <span className="min-w-0 truncate">{option.label}</span>
               <BadgeButton
@@ -306,6 +321,7 @@ export function MultiSelect<T = unknown>({
             className={cn(
               multiSelectTriggerVariants({ size: resolvedSize }),
               'bg-background py-1.5',
+              isStacked && 'h-auto min-h-8.5 items-start',
               disabled && 'cursor-not-allowed opacity-50',
               className,
             )}
@@ -325,10 +341,12 @@ export function MultiSelect<T = unknown>({
             disabled={disabled}
             variant="outline"
             mode="input"
+            autoHeight={isStacked}
             placeholder={!hasSelection || !showSelectedOptionsInTrigger}
             className={cn(
               multiSelectTriggerVariants({ size: resolvedSize }),
               'bg-background',
+              isStacked && 'h-auto min-h-8.5 items-start py-1.5',
               className,
             )}
           >

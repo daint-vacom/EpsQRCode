@@ -1,9 +1,39 @@
-import { Badge } from '@/components/ui/badge';
+import { X } from 'lucide-react';
+import { Badge, BadgeButton } from '@/components/ui/badge';
 import {
   StatusBadge,
   type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
-import type { EmployeeRole } from '../model/employee';
+import type { EmployeeRole, EmployeeStatus } from '../model/employee';
+
+export const EMPLOYEE_STATUS_BADGE_CONFIG: StatusBadgeConfig<EmployeeStatus> = {
+  active: {
+    label: 'Còn làm việc',
+    variant: 'success',
+    className: 'rounded-md px-2.5 py-1 text-xs',
+  },
+  inactive: {
+    label: 'Ngừng làm việc',
+    variant: 'destructive',
+    className: 'rounded-md px-2.5 py-1 text-xs',
+  },
+};
+
+export function EmployeeStatusBadge({
+  status,
+  size = 'md',
+}: {
+  status: EmployeeStatus;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  return (
+    <StatusBadge
+      status={status}
+      config={EMPLOYEE_STATUS_BADGE_CONFIG}
+      size={size}
+    />
+  );
+}
 
 export const EMPLOYEE_ACCOUNT_BADGE_CONFIG: StatusBadgeConfig<string> = {
   true: {
@@ -21,14 +51,36 @@ export const EMPLOYEE_ACCOUNT_BADGE_CONFIG: StatusBadgeConfig<string> = {
   },
 };
 
-export function EmployeeRoleBadge({ role }: { role: EmployeeRole }) {
+export function EmployeeRoleBadge({
+  role,
+  onRemove,
+}: {
+  role: EmployeeRole;
+  onRemove?: () => void;
+}) {
   return (
     <Badge
       variant={role.color}
       appearance="light"
-      className="rounded-md px-2.5 py-1 text-xs"
+      className="max-w-full justify-start rounded-md px-2.5 py-1 text-xs"
     >
-      {role.name}
+      <span className="min-w-0 truncate">{role.name}</span>
+      {onRemove ? (
+        <BadgeButton
+          aria-label={`Bỏ ${role.name}`}
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onRemove();
+          }}
+        >
+          <X />
+        </BadgeButton>
+      ) : null}
     </Badge>
   );
 }

@@ -6,7 +6,7 @@ const spec: FilterSpec = {
     {
       type: 'search',
       name: 'keyword',
-      placeholder: 'Tìm theo tên, mã hoặc chức vụ',
+      placeholder: 'Tìm theo tên hoặc mã nhân viên',
       className: 'w-64',
     },
   ],

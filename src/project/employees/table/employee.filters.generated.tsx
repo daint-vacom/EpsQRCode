@@ -25,7 +25,7 @@ export function EmployeeFilterBar({
           kind: 'search',
           value: keyword,
           onValueChange: onKeywordChange,
-          placeholder: 'Tìm theo tên, mã hoặc chức vụ',
+          placeholder: 'Tìm theo tên hoặc mã nhân viên',
           className: 'w-64',
           debounceMs: 300,
           disabled,

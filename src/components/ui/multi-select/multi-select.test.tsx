@@ -82,6 +82,27 @@ describe('MultiSelect', () => {
     expect(handleChange).toHaveBeenCalledWith(['quan-ly']);
   });
 
+  it('stacks every selected option and expands the trigger height', () => {
+    render(
+      <MultiSelect
+        options={OPTIONS}
+        value={['nhan-vien', 'quan-ly', 'chu-so-huu']}
+        maxChips={1}
+        showSelectedOptionWrapper
+        selectedOptionsLayout="stacked"
+        placeholder="Chọn vai trò"
+      />,
+    );
+
+    const trigger = screen.getByRole('combobox');
+
+    expect(within(trigger).getByText('Nhân viên')).toBeInTheDocument();
+    expect(within(trigger).getByText('Quản lý')).toBeInTheDocument();
+    expect(within(trigger).getByText('Chủ sở hữu')).toBeInTheDocument();
+    expect(within(trigger).queryByText('+2')).not.toBeInTheDocument();
+    expect(trigger).toHaveClass('h-auto', 'min-h-8.5');
+  });
+
   it('shows the selected option when only one option is selected', () => {
     render(
       <MultiSelect

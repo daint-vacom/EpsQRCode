@@ -34,16 +34,14 @@ const spec: TableSpec = {
       field: 'status',
       config: {
         active: {
-          label: 'Đang làm việc',
-          className:
-            'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-          dotClassName: 'bg-admin-success-dot opacity-100',
+          label: 'Còn làm việc',
+          variant: 'success',
+          className: 'rounded-md px-2.5 py-1 text-xs',
         },
         inactive: {
           label: 'Ngừng làm việc',
-          variant: 'outline',
-          className: 'rounded-md px-2.5 py-1 text-xs text-muted-foreground',
-          dotClassName: 'bg-admin-neutral-400 opacity-100',
+          variant: 'destructive',
+          className: 'rounded-md px-2.5 py-1 text-xs',
         },
       },
     },

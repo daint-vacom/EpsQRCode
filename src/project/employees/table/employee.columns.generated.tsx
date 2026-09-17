@@ -13,9 +13,11 @@ import { Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
-  type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
-import { EMPLOYEE_ACCOUNT_BADGE_CONFIG } from '../components/employee-badges';
+import {
+  EMPLOYEE_ACCOUNT_BADGE_CONFIG,
+  EMPLOYEE_STATUS_BADGE_CONFIG,
+} from '../components/employee-badges';
 import { EmployeeCell } from '../components/employee-cell';
 import { EmployeeRolesCell } from '../components/employee-roles-cell';
 import type {
@@ -38,21 +40,6 @@ import {
 export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
   left: ['select'],
   right: ['actions'],
-};
-
-const statusBadgeConfig: StatusBadgeConfig<string> = {
-  active: {
-    label: 'Đang làm việc',
-    className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot opacity-100',
-  },
-  inactive: {
-    label: 'Ngừng làm việc',
-    variant: 'outline',
-    className: 'rounded-md px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-admin-neutral-400 opacity-100',
-  },
 };
 
 export interface UseEmployeeColumnsParams {
@@ -131,7 +118,7 @@ export function useEmployeeColumns(
         id: 'status',
         header: 'Trạng thái',
         get: (row) => row.status,
-        config: statusBadgeConfig,
+        config: EMPLOYEE_STATUS_BADGE_CONFIG,
         headerFilter: (
           <EmployeeStatusColumnFilter
             value={params.statuses}

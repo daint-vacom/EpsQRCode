@@ -21,14 +21,14 @@ export interface CustomerResponsibilityEmployee {
   userId: string | null;
   employeeCode: string;
   displayName: string;
-  jobTitle: string;
-  department: string;
   status: 'active' | 'inactive';
   avatarUrl: string | null;
+  roleIds: string[];
 }
 
 export interface CustomerResponsibilityAssignment {
   employeeId: string;
+  allRoles: boolean;
   responsibilityRoleIds: string[];
   assignedBy: string | null;
   createdAt: string;
@@ -42,6 +42,7 @@ export interface CustomerResponsibilityWorkspace {
 
 export interface CustomerResponsibilityAssignmentInput {
   employeeId: string;
+  allRoles: boolean;
   responsibilityRoleIds: string[];
 }
 
@@ -49,7 +50,6 @@ export interface CustomerResponsibilityFilterEmployee {
   id: string;
   employeeCode: string;
   displayName: string;
-  department: string;
   status: 'active' | 'inactive';
   avatarUrl: string | null;
   customerCount: number;

@@ -62,10 +62,11 @@ const statusBadgeConfig: StatusBadgeConfig<string> = {
 };
 
 export interface UseCustomerColumnsParams {
-  onLookup: (customer: Customer) => void;
-  onOpenDetail: (customer: Customer) => void;
-  onEdit: (customer: Customer) => void;
-  onDelete: (customer: Customer) => void;
+  onLookup?: (customer: Customer) => void;
+  onOpenDetail?: (customer: Customer) => void;
+  onEdit?: (customer: Customer) => void;
+  onDelete?: (customer: Customer) => void;
+  includeActions?: boolean;
   customFields: CustomField[];
   tagIds: string[];
   onTagIdsChange: (value: string[]) => void;
@@ -142,6 +143,69 @@ export function useCustomerColumns(
           ),
         }),
       );
+
+    const actionColumn =
+      params.includeActions !== false &&
+      params.onLookup &&
+      params.onOpenDetail &&
+      params.onEdit &&
+      params.onDelete
+        ? col.actions({
+            id: 'actions',
+            header: '',
+            size: getDataGridActionsColumnSize(4),
+            cellClassName: 'text-right',
+            enableSorting: false,
+            cell: (row) => (
+              <div className="flex justify-end gap-1">
+                <DataGridActionButton
+                  action="other"
+                  tooltip="Mở trang chi tiết"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  aria-label={`Mở trang chi tiết khách hàng ${row.name}`}
+                  onClick={() => params.onOpenDetail?.(row)}
+                >
+                  <ExternalLink className="size-4" />
+                </DataGridActionButton>
+                <DataGridActionButton
+                  action="view"
+                  tooltip="Tra cứu"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  aria-label={`Tra cứu khách hàng ${row.name}`}
+                  onClick={() => params.onLookup?.(row)}
+                >
+                  <Search className="size-4" />
+                </DataGridActionButton>
+                <DataGridActionButton
+                  action="edit"
+                  tooltip="Sửa"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  aria-label={`Sửa khách hàng ${row.name}`}
+                  onClick={() => params.onEdit?.(row)}
+                >
+                  <Pencil className="size-4" />
+                </DataGridActionButton>
+                <DataGridActionButton
+                  action="delete"
+                  tooltip="Xóa"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  aria-label={`Xóa khách hàng ${row.name}`}
+                  onClick={() => params.onDelete?.(row)}
+                >
+                  <Trash2 className="size-4" />
+                </DataGridActionButton>
+              </div>
+            ),
+          })
+        : null;
 
     return [
       col.select(),
@@ -343,61 +407,7 @@ export function useCustomerColumns(
         enableSorting: false,
       }),
       ...customColumns,
-      col.actions({
-        id: 'actions',
-        header: '',
-        size: getDataGridActionsColumnSize(4),
-        cellClassName: 'text-right',
-        enableSorting: false,
-        cell: (row) => (
-          <div className="flex justify-end gap-1">
-            <DataGridActionButton
-              action="other"
-              tooltip="Mở trang chi tiết"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Mở trang chi tiết khách hàng ${row.name}`}
-              onClick={() => params.onOpenDetail(row)}
-            >
-              <ExternalLink className="size-4" />
-            </DataGridActionButton>
-            <DataGridActionButton
-              action="view"
-              tooltip="Tra cứu"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Tra cứu khách hàng ${row.name}`}
-              onClick={() => params.onLookup(row)}
-            >
-              <Search className="size-4" />
-            </DataGridActionButton>
-            <DataGridActionButton
-              action="edit"
-              tooltip="Sửa"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Sửa khách hàng ${row.name}`}
-              onClick={() => params.onEdit(row)}
-            >
-              <Pencil className="size-4" />
-            </DataGridActionButton>
-            <DataGridActionButton
-              action="delete"
-              tooltip="Xóa"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Xóa khách hàng ${row.name}`}
-              onClick={() => params.onDelete(row)}
-            >
-              <Trash2 className="size-4" />
-            </DataGridActionButton>
-          </div>
-        ),
-      }),
+      ...(actionColumn ? [actionColumn] : []),
     ];
   }, [params]);
 }

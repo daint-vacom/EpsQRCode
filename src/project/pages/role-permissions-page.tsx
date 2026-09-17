@@ -175,6 +175,7 @@ export function RolePermissionsPage() {
   const roles = workspaceQuery.data?.roles ?? [];
   const activeRoleId = selectedRoleId || roles[0]?.id || '';
   const selectedRole = roles.find((role) => role.id === activeRoleId);
+  const selectedRoleIsSystem = Boolean(selectedRole?.isSystem);
   const modulesByRoleId = workspaceQuery.data?.modulesByRoleId;
   const savedModules = useMemo(
     () =>
@@ -296,6 +297,8 @@ export function RolePermissionsPage() {
   };
 
   const handleTogglePermission = (code: string, checked: boolean) => {
+    if (selectedRoleIsSystem) return;
+
     setModules((current) =>
       current.map((module) => ({
         ...module,
@@ -316,8 +319,12 @@ export function RolePermissionsPage() {
   };
 
   const savePermissionsMutation = useMutation({
-    mutationFn: () =>
-      replaceRolePermissions(
+    mutationFn: () => {
+      if (selectedRoleIsSystem) {
+        throw new Error('Vai trò hệ thống được quản lý bởi hệ thống.');
+      }
+
+      return replaceRolePermissions(
         activeRoleId,
         modules.flatMap((module) =>
           module.groups.flatMap((group) =>
@@ -326,7 +333,8 @@ export function RolePermissionsPage() {
               .map((permission) => permission.code),
           ),
         ),
-      ),
+      );
+    },
     onSuccess: async () => {
       toast.success('Đã lưu quyền cho vai trò.');
       await queryClient.invalidateQueries({
@@ -534,6 +542,12 @@ export function RolePermissionsPage() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
+                  disabled={selectedRoleIsSystem}
+                  title={
+                    selectedRoleIsSystem
+                      ? 'Vai trò hệ thống chỉ được cập nhật bằng phiên bản hệ thống'
+                      : 'Chỉnh sửa vai trò'
+                  }
                   onClick={() => openRoleDialog(selectedRole)}
                 >
                   <Pencil />
@@ -563,6 +577,13 @@ export function RolePermissionsPage() {
             </CardToolbar>
           </CardHeader>
 
+          {selectedRoleIsSystem ? (
+            <div className="mx-5 mb-4 rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+              Đây là vai trò hệ thống dùng chung. Tên và quyền được quản lý bởi
+              phiên bản hệ thống, không chỉnh sửa riêng theo tenant.
+            </div>
+          ) : null}
+
           <CardContent className="min-h-0 min-w-0 overflow-hidden p-0">
             <ScrollArea className="h-full w-full max-w-full min-w-0">
               <div className="min-w-[752px]">
@@ -580,6 +601,7 @@ export function RolePermissionsPage() {
                     key={module.code}
                     expanded={expandedModules.includes(module.code)}
                     module={module}
+                    disabled={selectedRoleIsSystem}
                     onToggle={() => handleToggleModule(module.code)}
                     onTogglePermission={handleTogglePermission}
                   />
@@ -606,7 +628,7 @@ export function RolePermissionsPage() {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                disabled={changeCount === 0}
+                disabled={changeCount === 0 || selectedRoleIsSystem}
                 onClick={handleReset}
               >
                 <RotateCcw />
@@ -614,7 +636,7 @@ export function RolePermissionsPage() {
               </Button>
               <Button
                 variant="primary"
-                disabled={changeCount === 0}
+                disabled={changeCount === 0 || selectedRoleIsSystem}
                 loading={savePermissionsMutation.isPending}
                 loadingText="Đang lưu..."
                 onClick={() => savePermissionsMutation.mutate()}
@@ -652,6 +674,7 @@ export function RolePermissionsPage() {
 interface ModulePermissionSectionProps {
   module: PermissionModule;
   expanded: boolean;
+  disabled: boolean;
   onToggle: () => void;
   onTogglePermission: (code: string, checked: boolean) => void;
 }
@@ -659,6 +682,7 @@ interface ModulePermissionSectionProps {
 function ModulePermissionSection({
   expanded,
   module,
+  disabled,
   onToggle,
   onTogglePermission,
 }: ModulePermissionSectionProps) {
@@ -705,6 +729,7 @@ function ModulePermissionSection({
               <PermissionGroupCard
                 key={group.name}
                 group={group}
+                disabled={disabled}
                 onTogglePermission={onTogglePermission}
               />
             ))}
@@ -810,11 +835,13 @@ function SummaryStatus({
 
 interface PermissionGroupCardProps {
   group: PermissionModule['groups'][number];
+  disabled: boolean;
   onTogglePermission: (code: string, checked: boolean) => void;
 }
 
 function PermissionGroupCard({
   group,
+  disabled,
   onTogglePermission,
 }: PermissionGroupCardProps) {
   const selectedCount = group.permissions.filter(
@@ -840,6 +867,7 @@ function PermissionGroupCard({
           <PermissionRow
             key={permission.code}
             permission={permission}
+            disabled={disabled}
             onTogglePermission={onTogglePermission}
           />
         ))}
@@ -850,12 +878,22 @@ function PermissionGroupCard({
 
 interface PermissionRowProps {
   permission: PermissionItem;
+  disabled: boolean;
   onTogglePermission: (code: string, checked: boolean) => void;
 }
 
-function PermissionRow({ permission, onTogglePermission }: PermissionRowProps) {
+function PermissionRow({
+  permission,
+  disabled,
+  onTogglePermission,
+}: PermissionRowProps) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-4 px-4 py-3 hover:bg-field">
+    <label
+      className={cn(
+        'flex items-center justify-between gap-4 px-4 py-3 hover:bg-field',
+        disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
+      )}
+    >
       <div className="min-w-0">
         <span className="text-sm font-medium">{permission.name}</span>
       </div>
@@ -866,6 +904,7 @@ function PermissionRow({ permission, onTogglePermission }: PermissionRowProps) {
         {permission.sensitive && <SensitiveIcon />}
         <Checkbox
           checked={permission.selected}
+          disabled={disabled}
           onCheckedChange={(checked) =>
             onTogglePermission(permission.code, checked === true)
           }

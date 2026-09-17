@@ -88,7 +88,7 @@ export function ContractResponsibleDialog({
         .map<SelectOption<ContractResponsibleEmployee>>((employee) => ({
           value: employee.id,
           data: employee,
-          searchableText: `${employee.displayName} ${employee.employeeCode} ${employee.department}`,
+          searchableText: `${employee.displayName} ${employee.employeeCode}`,
           label: <EmployeeIdentity employee={employee} />,
         })),
     [draftAssignments, workspaceQuery.data?.employees],
@@ -171,7 +171,7 @@ export function ContractResponsibleDialog({
                   onChange={setSelectedEmployeeId}
                   onSelect={addEmployee}
                   placeholder="Chọn nhân viên phụ trách"
-                  searchPlaceholder="Tìm theo tên, mã hoặc phòng ban..."
+                  searchPlaceholder="Tìm theo tên hoặc mã nhân viên..."
                   emptyMessage="Không còn nhân viên phù hợp"
                   disabled={isLoading || isError || saveMutation.isPending}
                   canDeselect={false}

@@ -52,6 +52,7 @@ import {
   deleteEmployee,
   loadEmployeeCustomFields,
   loadEmployeeCustomFieldValues,
+  saveEmployeeAccess,
   saveEmployeeCustomFieldValues,
   updateEmployee,
   uploadEmployeeAvatar,
@@ -65,6 +66,7 @@ import {
   EmployeeFormDialog,
   useEmployeeForm,
 } from '../forms/employee-form.generated';
+import { useEmployeeAccessWorkspace } from '../hooks/use-employee-access-workspace';
 import { useEmployeeList } from '../hooks/use-employee-list';
 import {
   mapEmployeeToFormValues,
@@ -72,6 +74,7 @@ import {
   type EmployeeFormValues,
   type EmployeeListFilters,
 } from '../model/employee';
+import type { EmployeeCustomerAssignmentInput } from '../model/employee-responsibility';
 import {
   EMPLOYEE_SAVED_VIEW_MANAGE_PERMISSION,
   EMPLOYEE_SAVED_VIEW_RESOURCE,
@@ -94,6 +97,9 @@ export function EmployeesPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [customerAssignments, setCustomerAssignments] = useState<
+    EmployeeCustomerAssignmentInput[]
+  >([]);
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(
     null,
@@ -108,6 +114,15 @@ export function EmployeesPage() {
   );
   const form = useEmployeeForm();
   const viewForm = useSavedViewForm();
+  const canManageEmployeeRoles = hasPermission(
+    'organization:employee:assign-role',
+  );
+  const canManageCustomerAssignments = hasPermission('customers:update');
+  const employeeAccess = useEmployeeAccessWorkspace({
+    tenantId,
+    employeeId: editingEmployee?.id,
+    enabled: dialogOpen,
+  });
 
   const employeeCustomFieldsQuery = useQuery({
     queryKey: ['project', 'employees', 'custom-fields', tenantId],
@@ -146,6 +161,11 @@ export function EmployeesPage() {
     form,
   ]);
 
+  useEffect(() => {
+    if (!dialogOpen || !employeeAccess.responsibilityQuery.data) return;
+    setCustomerAssignments(employeeAccess.responsibilityQuery.data.assignments);
+  }, [dialogOpen, employeeAccess.responsibilityQuery.data]);
+
   const {
     employees,
     total,
@@ -176,7 +196,13 @@ export function EmployeesPage() {
     });
 
   const saveMutation = useMutation({
-    mutationFn: async (values: EmployeeFormValues) => {
+    mutationFn: async ({
+      values,
+      assignments,
+    }: {
+      values: EmployeeFormValues;
+      assignments: EmployeeCustomerAssignmentInput[];
+    }) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
       if (!editingEmployee) throw new Error('Chưa chọn nhân viên cần sửa.');
@@ -201,13 +227,26 @@ export function EmployeesPage() {
         values.customFields,
       );
 
+      if (savedEmployee.userId) {
+        await saveEmployeeAccess(
+          tenantId,
+          savedEmployee.id,
+          canManageEmployeeRoles ? values.roleIds : null,
+          canManageCustomerAssignments ? assignments : null,
+        );
+      }
+
       return savedEmployee;
     },
     onSuccess: async () => {
       toast.success('Đã cập nhật nhân viên.');
       setDialogOpen(false);
       setEmployeeImageFile(null);
+      setCustomerAssignments([]);
       await invalidateEmployees();
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'customers'],
+      });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -241,6 +280,7 @@ export function EmployeesPage() {
 
   function openEdit(employee: Employee) {
     setEditingEmployee(employee);
+    setCustomerAssignments([]);
     setEmployeeImageFile(null);
     form.reset(mapEmployeeToFormValues(employee));
     setDialogOpen(true);
@@ -259,7 +299,7 @@ export function EmployeesPage() {
       return;
     }
 
-    saveMutation.mutate(values);
+    saveMutation.mutate({ values, assignments: customerAssignments });
   }
 
   function openEmployeeCustomFieldConfiguration() {
@@ -608,6 +648,16 @@ export function EmployeesPage() {
         isReloadingCustomFields={employeeCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
         title="Sửa nhân viên"
+        roleOptions={employeeAccess.roleOptions}
+        customerOptions={employeeAccess.customers}
+        customerTable={employeeAccess.customerTable}
+        customerAssignments={customerAssignments}
+        onCustomerAssignmentsChange={setCustomerAssignments}
+        canManageRoles={canManageEmployeeRoles}
+        canManageCustomerAssignments={canManageCustomerAssignments}
+        employeeHasLinkedAccount={Boolean(editingEmployee?.userId)}
+        accessIsLoading={employeeAccess.isLoading}
+        accessError={employeeAccess.error}
       />
       <EmployeeCreateDialog
         open={createDialogOpen}

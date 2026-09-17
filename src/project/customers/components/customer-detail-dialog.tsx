@@ -264,6 +264,7 @@ function countMatchingCustomFields({
 
 interface CustomerResponsibilityDetailRow {
   employee: CustomerResponsibilityEmployee;
+  allRoles: boolean;
   roles: CustomerResponsibilityRole[];
   searchText: string;
 }
@@ -289,12 +290,12 @@ function getCustomerResponsibilityRows(
     return [
       {
         employee,
+        allRoles: assignment.allRoles,
         roles,
         searchText: joinSearchText(
           employee.displayName,
           employee.employeeCode,
-          employee.jobTitle,
-          employee.department,
+          assignment.allRoles ? 'tất cả vai trò' : '',
           roles.map((role) => role.name),
         ),
       },
@@ -311,19 +312,22 @@ function getCustomerResponsibilityFields(
       row.employee.displayName,
       row.employee.employeeCode,
     ),
-    value:
-      row.roles.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {row.roles.map((role) => (
-            <EmployeeRoleBadge
-              key={role.id}
-              role={{ name: role.name, color: 'blue' }}
-            />
-          ))}
-        </div>
-      ) : (
-        <span className="text-sm text-muted-foreground">Chưa gán vai trò</span>
-      ),
+    value: row.allRoles ? (
+      <span className="text-sm font-medium text-foreground">
+        Tất cả vai trò
+      </span>
+    ) : row.roles.length > 0 ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {row.roles.map((role) => (
+          <EmployeeRoleBadge
+            key={role.id}
+            role={{ name: role.name, color: 'blue' }}
+          />
+        ))}
+      </div>
+    ) : (
+      <span className="text-sm text-muted-foreground">Chưa gán vai trò</span>
+    ),
     searchText: row.searchText,
   }));
 }

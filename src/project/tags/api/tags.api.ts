@@ -186,6 +186,7 @@ export async function loadTagWorkspace(
 export interface TagSelectConfig {
   moduleCodes?: string[];
   allowCustomGroups?: boolean;
+  enabled?: boolean;
 }
 
 export type TaggableSubjectType = 'employee' | 'customer' | 'contract_template';

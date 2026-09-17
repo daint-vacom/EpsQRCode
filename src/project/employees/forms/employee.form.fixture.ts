@@ -32,8 +32,6 @@ const spec: FormSpec = {
       required: true,
     },
     { kind: 'text', name: 'lastName', label: 'Họ và tên đệm', width: 'normal' },
-    { kind: 'text', name: 'jobTitle', label: 'Chức vụ', width: 'normal' },
-    { kind: 'text', name: 'department', label: 'Phòng ban', width: 'normal' },
     {
       kind: 'text',
       name: 'phone',
@@ -47,7 +45,7 @@ const spec: FormSpec = {
       label: 'Trạng thái',
       width: 'normal',
       options: [
-        { value: 'active', label: 'Đang làm việc' },
+        { value: 'active', label: 'Còn làm việc' },
         { value: 'inactive', label: 'Ngừng làm việc' },
       ],
     },

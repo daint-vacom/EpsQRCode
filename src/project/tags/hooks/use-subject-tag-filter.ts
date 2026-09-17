@@ -13,6 +13,7 @@ export function useSubjectTagFilter(
   const { tenantId } = useTenant();
   const moduleCodes = config.moduleCodes ?? [];
   const allowCustomGroups = config.allowCustomGroups ?? true;
+  const enabled = config.enabled ?? true;
 
   return useQuery({
     queryKey: [
@@ -29,7 +30,7 @@ export function useSubjectTagFilter(
         moduleCodes,
         allowCustomGroups,
       }),
-    enabled: Boolean(tenantId),
+    enabled: Boolean(tenantId && enabled),
     staleTime: 5 * 60 * 1000,
   });
 }

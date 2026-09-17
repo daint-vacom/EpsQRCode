@@ -37,11 +37,24 @@ function parseCustomFieldFilters(value: unknown): Record<string, string> {
   }
 }
 
-export function useCustomerList() {
+export interface UseCustomerListOptions {
+  enabled?: boolean;
+  initialPageSize?: number;
+  includeStats?: boolean;
+  includeResponsibilityFilterOptions?: boolean;
+}
+
+export function useCustomerList({
+  enabled = true,
+  initialPageSize = 10,
+  includeStats = true,
+  includeResponsibilityFilterOptions = true,
+}: UseCustomerListOptions = {}) {
   const tenantState = useTenant();
+  const queryEnabled = Boolean(tenantState.tenantId && enabled);
   const listState = useTableListState<CustomerListFilters>({
     initialFilters: CUSTOMER_LIST_INITIAL_FILTERS,
-    initialPageSize: 10,
+    initialPageSize,
   });
 
   const queryParams = buildListQueryParams(listState, {
@@ -148,6 +161,7 @@ export function useCustomerList() {
 
   const subjectTagFilterQuery = useSubjectTagFilter('customer', {
     moduleCodes: ['customers'],
+    enabled: queryEnabled,
   });
 
   const listQuery = useQuery({
@@ -164,14 +178,14 @@ export function useCustomerList() {
       }
       return loadCustomerList(tenantState.tenantId, listParams, signal);
     },
-    enabled: Boolean(tenantState.tenantId),
+    enabled: queryEnabled,
     placeholderData: keepPreviousData,
   });
 
   const customerStatsQuery = useQuery({
     queryKey: ['project', 'customers', 'stats', tenantState.tenantId],
     queryFn: ({ signal }) => loadCustomerStats(tenantState.tenantId!, signal),
-    enabled: Boolean(tenantState.tenantId),
+    enabled: queryEnabled && includeStats,
   });
 
   const customerResponsibilityFilterOptionsQuery = useQuery({
@@ -183,7 +197,7 @@ export function useCustomerList() {
     ],
     queryFn: () =>
       loadCustomerResponsibilityFilterOptions(tenantState.tenantId!),
-    enabled: Boolean(tenantState.tenantId),
+    enabled: queryEnabled && includeResponsibilityFilterOptions,
     staleTime: 60 * 1000,
   });
 
@@ -197,7 +211,7 @@ export function useCustomerList() {
     ],
     queryFn: ({ signal }) =>
       loadCustomerPreviousMonthStats(tenantState.tenantId!, signal),
-    enabled: Boolean(tenantState.tenantId),
+    enabled: queryEnabled && includeStats,
   });
 
   return {

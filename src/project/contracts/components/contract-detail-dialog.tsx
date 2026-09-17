@@ -48,8 +48,6 @@ function getResponsibleWorkspace(
   const employees: ContractResponsibleEmployee[] =
     contract.responsibleEmployees.map((employee) => ({
       ...employee,
-      jobTitle: '',
-      department: '',
       status: 'active',
       defaultPermissionCodes: [],
     }));

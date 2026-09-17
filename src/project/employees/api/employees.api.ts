@@ -19,6 +19,10 @@ import type {
   EmployeeStatus,
 } from '../model/employee';
 import { mapEmployeeRow } from '../model/employee';
+import type {
+  EmployeeCustomerAssignmentInput,
+  EmployeeResponsibilityWorkspace,
+} from '../model/employee-responsibility';
 
 interface TenantMembershipRow {
   tenant_id: string;
@@ -33,6 +37,8 @@ interface EmployeeRoleRow {
   id: string;
   name: string;
   color: EmployeeRole['color'];
+  is_active: boolean;
+  customer_assignable: boolean;
 }
 
 interface EmployeeListRpcResponse {
@@ -71,8 +77,6 @@ export interface UpdateCurrentEmployeeProfileInput {
   employeeCode: string;
   firstName: string;
   lastName: string;
-  jobTitle: string;
-  department: string;
   phone: string;
   status: EmployeeStatus;
   joinedAt: string | null;
@@ -166,7 +170,7 @@ export async function loadEmployeeList(
 
   return {
     employees: response.items.map((row) =>
-      mapEmployeeRow(row, row.avatar_url, row.roles ?? []),
+      mapEmployeeRow(row, row.avatar_url, row.roles ?? [], row.role_ids ?? []),
     ),
     total: numberValue(response.total),
   };
@@ -201,16 +205,24 @@ export async function loadEmployeeRoleOptions(
   tenantId: string,
 ): Promise<EmployeeRoleOption[]> {
   assertSupabaseConfigured();
-  return request<EmployeeRoleOption[]>(
+  return request<EmployeeRoleRow[]>(
     supabaseApi.get(
       '/roles',
       queryParams({
-        select: 'id,name,color',
-        tenant_id: `eq.${tenantId}`,
+        select: 'id,name,color,is_active,customer_assignable',
+        or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
         is_active: 'eq.true',
-        order: 'name.asc,id.asc',
+        order: 'is_system.desc,sort_order.asc,name.asc',
       }),
     ),
+  ).then((rows) =>
+    rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      isActive: row.is_active,
+      customerAssignable: row.customer_assignable,
+    })),
   );
 }
 
@@ -268,21 +280,26 @@ export async function loadEmployeeWorkspace(
       supabaseApi.get(
         '/roles',
         queryParams({
-          select: 'id,name,color',
-          tenant_id: `eq.${tenantId}`,
+          select: 'id,name,color,is_active,customer_assignable',
+          or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
           is_active: 'eq.true',
+          order: 'is_system.desc,sort_order.asc,name.asc',
         }),
       ),
     ),
   ]);
   const roleById = new Map(roles.map((role) => [role.id, role]));
   const roleNamesByUserId = new Map<string, EmployeeRole[]>();
+  const roleIdsByUserId = new Map<string, string[]>();
   for (const assignment of assignments) {
     const role = roleById.get(assignment.role_id);
     if (!role) continue;
     const userRoles = roleNamesByUserId.get(assignment.user_id) ?? [];
     userRoles.push({ name: role.name, color: role.color });
     roleNamesByUserId.set(assignment.user_id, userRoles);
+    const userRoleIds = roleIdsByUserId.get(assignment.user_id) ?? [];
+    userRoleIds.push(assignment.role_id);
+    roleIdsByUserId.set(assignment.user_id, userRoleIds);
   }
 
   return {
@@ -293,6 +310,7 @@ export async function loadEmployeeWorkspace(
         row.avatar_url ??
           (row.user_id ? (avatarsByUserId.get(row.user_id) ?? null) : null),
         row.user_id ? (roleNamesByUserId.get(row.user_id) ?? []) : [],
+        row.user_id ? (roleIdsByUserId.get(row.user_id) ?? []) : [],
       ),
     ),
   };
@@ -333,8 +351,6 @@ export async function updateCurrentEmployeeProfile(
       p_employee_code: values.employeeCode,
       p_first_name: values.firstName,
       p_last_name: values.lastName,
-      p_job_title: values.jobTitle,
-      p_department: values.department,
       p_phone: values.phone,
       p_status: values.status,
       p_joined_at: values.joinedAt,
@@ -355,8 +371,6 @@ function toPayload(values: EmployeeFormValues) {
     employee_code: values.employeeCode,
     first_name: values.firstName,
     last_name: values.lastName,
-    job_title: values.jobTitle,
-    department: values.department,
     phone: values.phone,
     status: values.status,
     joined_at: values.joinedAt?.toISOString().slice(0, 10) ?? null,
@@ -442,4 +456,72 @@ export async function updateEmployeeStatus(
     { status },
     queryParams({ id: `eq.${employeeId}` }),
   );
+}
+
+interface EmployeeRoleOptionRow {
+  id: string;
+  name: string;
+  color: EmployeeRole['color'];
+  is_active: boolean;
+  customer_assignable: boolean;
+}
+
+interface EmployeeResponsibilityWorkspaceRow {
+  roles: EmployeeRoleOptionRow[];
+  customers: Array<{
+    id: string;
+    customerCode: string;
+    name: string;
+    imageUrl: string | null;
+    status: 'active' | 'inactive';
+  }>;
+  assignments: EmployeeCustomerAssignmentInput[];
+}
+
+export async function loadEmployeeResponsibilityWorkspace(
+  tenantId: string,
+  employeeId: string,
+): Promise<EmployeeResponsibilityWorkspace> {
+  assertSupabaseConfigured();
+  const response = await request<EmployeeResponsibilityWorkspaceRow>(
+    supabaseApi.post('/rpc/get_employee_responsibility_workspace', {
+      p_tenant_id: tenantId,
+      p_employee_id: employeeId,
+    }),
+  );
+
+  return {
+    roles: response.roles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      color: role.color,
+      isActive: role.is_active,
+      customerAssignable: role.customer_assignable,
+    })),
+    customers: response.customers,
+    assignments: response.assignments.map((assignment) => ({
+      ...assignment,
+      allRoles: assignment.allRoles === true,
+    })),
+  };
+}
+
+export async function saveEmployeeAccess(
+  tenantId: string,
+  employeeId: string,
+  roleIds: string[] | null,
+  customerAssignments: EmployeeCustomerAssignmentInput[] | null,
+): Promise<void> {
+  assertSupabaseConfigured();
+  await supabaseApi.post('/rpc/replace_employee_access', {
+    p_tenant_id: tenantId,
+    p_employee_id: employeeId,
+    p_role_ids: roleIds,
+    p_customer_assignments:
+      customerAssignments?.map((assignment) => ({
+        customer_id: assignment.customerId,
+        all_roles: assignment.allRoles,
+        responsibility_role_ids: assignment.responsibilityRoleIds,
+      })) ?? null,
+  });
 }

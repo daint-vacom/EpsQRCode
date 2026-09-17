@@ -8,6 +8,7 @@ import {
   updateCurrentEmployeeProfile,
   uploadEmployeeAvatar,
 } from '@/project/employees/api/employees.api';
+import { EmployeeStatusBadge } from '@/project/employees/components/employee-badges';
 import { useCurrentEmployeeProfile } from '@/project/employees/hooks/use-current-employee-profile';
 import {
   employeeFormSchema,
@@ -96,8 +97,6 @@ export function AccountSettings() {
   });
 
   const canManageEmployee = hasPermission('organization:employee:update');
-  const canEditEmployeeProfile =
-    canManageEmployee || hasPermission('employees:profile:edit');
   const activeCustomFields = (customFieldsQuery.data ?? []).filter(
     (field) => field.isActive,
   );
@@ -134,8 +133,6 @@ export function AccountSettings() {
           employeeCode: values.employeeCode,
           firstName: values.firstName,
           lastName: values.lastName,
-          jobTitle: values.jobTitle,
-          department: values.department,
           phone: values.phone,
           status: values.status,
           joinedAt: values.joinedAt
@@ -279,19 +276,6 @@ export function AccountSettings() {
                     name="lastName"
                     label="Họ và tên đệm"
                   />
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="jobTitle"
-                    label="Chức vụ"
-                    readOnly={!canEditEmployeeProfile}
-                  />
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="department"
-                    label="Phòng ban"
-                    readOnly={!canEditEmployeeProfile}
-                  />
-
                   <FormField
                     control={employeeForm.control}
                     name="status"
@@ -310,10 +294,10 @@ export function AccountSettings() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="active">
-                              Đang làm việc
+                              <EmployeeStatusBadge status="active" />
                             </SelectItem>
                             <SelectItem value="inactive">
-                              Ngừng làm việc
+                              <EmployeeStatusBadge status="inactive" />
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -496,13 +480,7 @@ function EmployeeTextField({
   required = false,
 }: {
   form: ReturnType<typeof useForm<EmployeeFormValues>>;
-  name:
-    | 'employeeCode'
-    | 'firstName'
-    | 'lastName'
-    | 'jobTitle'
-    | 'department'
-    | 'phone';
+  name: 'employeeCode' | 'firstName' | 'lastName' | 'phone';
   label: string;
   inputType?: string;
   readOnly?: boolean;

@@ -10,10 +10,13 @@ Then read one focused guide:
 ## Model
 
 - A **permission** authorizes one action on one resource.
-- A **role** (phân hệ) groups permissions and one data scope.
+- A **role** (phân hệ) groups permissions and one data scope. System roles are
+  global catalog rows; custom roles are tenant-scoped rows.
 - A user may have multiple roles; permissions are their union.
 - `effectiveScope` is the widest scope granted by those roles.
 - Permission groups organize admin UI only; they do not imply runtime inheritance.
+- `tenant_member_roles` stores the tenant/user assignment to a role. It does not
+  require a copied system-role definition for each tenant.
 
 ## Permission Codes
 
@@ -42,11 +45,11 @@ self < department < all
 When a user has several roles, resolve the widest scope by this order. Scope limits which records an
 authorized action may affect; it never grants the action itself.
 
-| Scope | Data boundary |
-| --- | --- |
-| `self` | records owned or created by the current user |
-| `department` | records belonging to the user's department |
-| `all` | unrestricted organizational records |
+| Scope        | Data boundary                                |
+| ------------ | -------------------------------------------- |
+| `self`       | records owned or created by the current user |
+| `department` | records belonging to the user's department   |
+| `all`        | unrestricted organizational records          |
 
 ## Security Boundary
 

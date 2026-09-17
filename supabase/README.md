@@ -56,15 +56,29 @@ còn `TenantRow`/`TenantMemberRow` giữ nguyên snake_case của PostgREST và 
 ## Phân quyền tenant
 
 Migration `20260813000000_create_tenant_permissions.sql` tạo catalog quyền dùng
-chung, role theo tenant, liên kết role với thành viên và override riêng cho user:
+chung, role catalog, liên kết role với thành viên và override riêng cho user.
+Migration `20260917010000_shared_system_roles.sql` chuyển các role mặc định sang
+catalog dùng chung toàn hệ thống:
 
 - `permission_definitions`: danh mục quyền ổn định theo mã `resource:action`.
 - `permission_modules` và `permission_groups`: cấu trúc hiển thị module/nhóm quyền,
   không còn phụ thuộc vào mock ở frontend.
-- `roles` và `role_permissions`: role nghiệp vụ thuộc từng tenant.
-- `tenant_member_roles`: một user có thể có nhiều role trong một tenant.
+- `roles`: system role dùng chung có `tenant_id IS NULL`; custom role mới thuộc
+  tenant và có `tenant_id` cụ thể.
+- `role_permissions`: quyền của system role được lưu một lần; quyền của custom
+  role vẫn thuộc role tenant.
+- `tenant_member_roles`: một user có thể có nhiều role trong một tenant; đây là
+  quan hệ phân công, không phải bản sao định nghĩa system role.
 - `user_permission_overrides`: chỉ lưu ngoại lệ `allow` hoặc `deny`, không sao chép
   toàn bộ quyền của role.
+
+Tenant mới không seed bản ghi system role. Owner chỉ được gán tới role hệ thống
+global. Khi thêm permission mới, chỉ cần thêm vào catalog quyền; role
+`system_admin` được đồng bộ qua trigger global và không cần backfill từng tenant.
+
+Catalog `customer_responsibility_roles` cũ cũng được migrate vào `roles`. Chỉ các
+role có `customer_assignable = true` mới xuất hiện trong màn hình phân công khách
+hàng, và RPC kiểm tra role đó phải được cấp cho nhân viên trước khi phân công.
 
 Catalog hiện tại của project thật chỉ có module `Tổ chức`, gồm hai nhóm `Thông tin
 tổ chức` và `Nhân viên`. Khi thêm nghiệp vụ mới, tạo migration bổ sung module/nhóm
@@ -79,8 +93,9 @@ Quyền hiệu lực được tính theo công thức:
 Vì vậy khi role được cập nhật, user vẫn nhận quyền mới của role; chỉ các quyền có
 override mới giữ khác biệt. Các RPC `get_effective_permissions` và
 `has_tenant_permission` là nguồn dùng chung cho kiểm tra quyền, còn RLS vẫn là
-lớp bảo vệ cuối cùng. `ensure_tenant_permission_defaults` khởi tạo bốn role mẫu
-cho tenant khi trang phân quyền được mở lần đầu.
+lớp bảo vệ cuối cùng. `ensure_tenant_permission_defaults` chỉ gán role
+`system_admin` global cho owner/admin cần thiết; nó không tạo bản sao role trong
+tenant.
 
 ## Hệ thống nhãn dùng chung
 

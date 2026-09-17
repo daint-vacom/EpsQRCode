@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Info, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import {
@@ -19,6 +19,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { EmployeeIdentity } from '../../employees/components/employee-identity';
 import { useCustomerResponsibilityWorkspace } from '../hooks/use-customer-responsibility-workspace';
 import type {
@@ -29,6 +34,7 @@ import type {
 
 interface DraftAssignment {
   employeeId: string;
+  allRoles: boolean;
   responsibilityRoleIds: string[];
 }
 
@@ -68,12 +74,14 @@ export function CustomerResponsibilityEditor({
       const assignments: CustomerResponsibilityAssignmentInput[] =
         nextAssignments.map((assignment) => ({
           employeeId: assignment.employeeId,
+          allRoles: assignment.allRoles,
           responsibilityRoleIds: assignment.responsibilityRoleIds,
         }));
       onAssignmentsChange?.(assignments);
       onValidationChange?.(
         nextAssignments.every(
-          (assignment) => assignment.responsibilityRoleIds.length > 0,
+          (assignment) =>
+            assignment.allRoles || assignment.responsibilityRoleIds.length > 0,
         ),
       );
     },
@@ -92,6 +100,7 @@ export function CustomerResponsibilityEditor({
     const nextAssignments = workspaceQuery.data.assignments.map(
       (assignment) => ({
         employeeId: assignment.employeeId,
+        allRoles: assignment.allRoles === true,
         responsibilityRoleIds: [...assignment.responsibilityRoleIds],
       }),
     );
@@ -126,7 +135,7 @@ export function CustomerResponsibilityEditor({
         .map<SelectOption<CustomerResponsibilityEmployee>>((employee) => ({
           value: employee.id,
           data: employee,
-          searchableText: `${employee.displayName} ${employee.employeeCode} ${employee.department}`,
+          searchableText: `${employee.displayName} ${employee.employeeCode}`,
           label: <EmployeeIdentity employee={employee} />,
         })),
     [draftAssignments, workspaceQuery.data?.employees],
@@ -149,7 +158,11 @@ export function CustomerResponsibilityEditor({
     if (!canManage || !option?.data) return;
     updateDraftAssignments((current) => [
       ...current,
-      { employeeId: option.data.id, responsibilityRoleIds: [] },
+      {
+        employeeId: option.data.id,
+        allRoles: false,
+        responsibilityRoleIds: [],
+      },
     ]);
     setSelectedEmployeeId('');
   }
@@ -177,9 +190,27 @@ export function CustomerResponsibilityEditor({
 
         return {
           ...assignment,
+          allRoles: false,
           responsibilityRoleIds: [...roleIds],
         };
       }),
+    );
+  }
+
+  function setAllRoles(employeeId: string, allRoles: boolean) {
+    if (!canManage) return;
+    updateDraftAssignments((current) =>
+      current.map((assignment) =>
+        assignment.employeeId === employeeId
+          ? {
+              ...assignment,
+              allRoles,
+              responsibilityRoleIds: allRoles
+                ? []
+                : assignment.responsibilityRoleIds,
+            }
+          : assignment,
+      ),
     );
   }
 
@@ -196,7 +227,7 @@ export function CustomerResponsibilityEditor({
           onChange={setSelectedEmployeeId}
           onSelect={addEmployee}
           placeholder="Thêm nhân viên phụ trách"
-          searchPlaceholder="Tìm theo tên, mã hoặc phòng ban..."
+          searchPlaceholder="Tìm theo tên hoặc mã nhân viên..."
           emptyMessage="Không còn nhân viên phù hợp"
           disabled={isLoading || isError}
           canDeselect={false}
@@ -227,11 +258,19 @@ export function CustomerResponsibilityEditor({
                 key={employee.id}
                 employee={employee}
                 roleIds={assignment.responsibilityRoleIds}
-                roles={roles}
+                allRoles={assignment.allRoles}
+                roles={roles.filter(
+                  (role) =>
+                    employee.roleIds.includes(role.id) ||
+                    assignment.responsibilityRoleIds.includes(role.id),
+                )}
                 canManage={canManage}
                 onRemove={() => removeEmployee(employee.id)}
                 onRoleChange={(roleId, enabledRole) =>
                   setRoleEnabled(employee.id, roleId, enabledRole)
+                }
+                onAllRolesChange={(allRoles) =>
+                  setAllRoles(employee.id, allRoles)
                 }
               />
             );
@@ -320,24 +359,28 @@ export function CustomerResponsibilityDialog({
 function ResponsibleEmployeeCard({
   employee,
   roleIds,
+  allRoles,
   roles,
   canManage,
   onRemove,
   onRoleChange,
+  onAllRolesChange,
 }: {
   employee: CustomerResponsibilityEmployee;
   roleIds: string[];
+  allRoles: boolean;
   roles: CustomerResponsibilityRole[];
   canManage: boolean;
   onRemove: () => void;
   onRoleChange: (roleId: string, enabled: boolean) => void;
+  onAllRolesChange: (allRoles: boolean) => void;
 }) {
   const activeRoleCount = roles.filter((role) => role.isActive).length;
   const selectedRoleCount = roleIds.filter((roleId) =>
     roles.some((role) => role.id === roleId && role.isActive),
   ).length;
   const selectedRoleIds = new Set(roleIds);
-  const hasNoRole = selectedRoleCount === 0;
+  const hasNoRole = !allRoles && selectedRoleCount === 0;
 
   return (
     <AccordionItem value={employee.id}>
@@ -349,7 +392,9 @@ function ResponsibleEmployeeCard({
                 <EmployeeIdentity employee={employee} />
               </div>
               <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                {selectedRoleCount}/{activeRoleCount} vai trò
+                {allRoles
+                  ? 'Tất cả vai trò'
+                  : `${selectedRoleCount}/${activeRoleCount} vai trò`}
               </span>
             </div>
           </AccordionTrigger>
@@ -368,35 +413,61 @@ function ResponsibleEmployeeCard({
         ) : null}
       </div>
       <AccordionContent>
-        <div className="grid gap-2 border-t border-border pt-4 sm:grid-cols-2">
-          {roles.map((role) => {
-            const checked = selectedRoleIds.has(role.id);
-            return (
-              <label
-                key={role.id}
-                className="flex items-start gap-2.5 rounded-md px-1 py-1 text-sm hover:bg-accent/50"
-              >
-                <Checkbox
-                  checked={checked}
-                  disabled={!canManage || !role.isActive}
-                  onCheckedChange={(value) =>
-                    onRoleChange(role.id, value === true)
-                  }
-                  className="mt-0.5"
-                />
-                <span className="min-w-0">
-                  <span className="block font-medium text-foreground">
-                    {role.name}
+        <div className="space-y-3 border-t border-border pt-4">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <Checkbox
+              checked={allRoles}
+              disabled={!canManage}
+              onCheckedChange={(value) => onAllRolesChange(value === true)}
+            />
+            <span className="inline-flex items-center gap-1">
+              Tất cả vai trò
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    tabIndex={0}
+                    aria-label="Áp dụng tất cả vai trò của nhân viên"
+                    className="inline-flex size-4 items-center justify-center text-muted-foreground"
+                  >
+                    <Info className="size-3.5" />
                   </span>
-                  {!role.isActive ? (
-                    <span className="block text-xs text-muted-foreground">
-                      Vai trò không còn hoạt động
+                </TooltipTrigger>
+                <TooltipContent>
+                  Áp dụng tất cả vai trò của nhân viên
+                </TooltipContent>
+              </Tooltip>
+            </span>
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {roles.map((role) => {
+              const checked = selectedRoleIds.has(role.id);
+              return (
+                <label
+                  key={role.id}
+                  className="flex items-start gap-2.5 rounded-md px-1 py-1 text-sm hover:bg-accent/50"
+                >
+                  <Checkbox
+                    checked={checked}
+                    disabled={!canManage || !role.isActive || allRoles}
+                    onCheckedChange={(value) =>
+                      onRoleChange(role.id, value === true)
+                    }
+                    className="mt-0.5"
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-foreground">
+                      {role.name}
                     </span>
-                  ) : null}
-                </span>
-              </label>
-            );
-          })}
+                    {!role.isActive ? (
+                      <span className="block text-xs text-muted-foreground">
+                        Vai trò không còn hoạt động
+                      </span>
+                    ) : null}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         </div>
         {canManage && hasNoRole ? (
           <p className="mt-2 text-xs text-destructive">

@@ -5,7 +5,7 @@ export const EMPLOYEE_STATUSES = ['active', 'inactive'] as const;
 export type EmployeeStatus = (typeof EMPLOYEE_STATUSES)[number];
 
 export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
-  active: 'Đang làm việc',
+  active: 'Còn làm việc',
   inactive: 'Ngừng làm việc',
 };
 
@@ -47,13 +47,12 @@ export const employeeFormSchema = z.object({
     .regex(/^[A-Za-z0-9-]+$/, 'Mã chỉ gồm chữ, số và dấu gạch ngang.'),
   firstName: z.string().trim().min(1, 'Vui lòng nhập tên nhân viên.'),
   lastName: z.string().trim(),
-  jobTitle: z.string().trim(),
-  department: z.string().trim(),
   phone: z.string().trim(),
   status: z.enum(EMPLOYEE_STATUSES),
   joinedAt: z.date().nullable(),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
   imageUrl: z.string().trim(),
+  roleIds: z.array(z.string()),
   customFields: employeeCustomFieldValuesSchema,
 });
 
@@ -68,6 +67,8 @@ export interface EmployeeRoleOption {
   id: string;
   name: string;
   color: RoleColor;
+  isActive: boolean;
+  customerAssignable: boolean;
 }
 
 export interface Employee {
@@ -76,12 +77,11 @@ export interface Employee {
   userId: string | null;
   avatarUrl: string | null;
   roles: EmployeeRole[];
+  roleIds: string[];
   employeeCode: string;
   firstName: string;
   lastName: string;
   displayName: string;
-  jobTitle: string;
-  department: string;
   phone: string;
   status: EmployeeStatus;
   joinedAt: string | null;
@@ -96,8 +96,6 @@ export interface EmployeeRow {
   employee_code: string;
   first_name: string;
   last_name: string;
-  job_title: string;
-  department: string;
   phone: string;
   status: EmployeeStatus;
   joined_at: string | null;
@@ -108,6 +106,7 @@ export interface EmployeeRow {
 export interface EmployeeListRpcRow extends EmployeeRow {
   avatar_url: string | null;
   roles: EmployeeRole[];
+  role_ids?: string[];
 }
 
 export interface EmployeeListParams {
@@ -134,13 +133,12 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   employeeCode: '',
   firstName: '',
   lastName: '',
-  jobTitle: '',
-  department: '',
   phone: '',
   status: 'active',
   joinedAt: null,
   note: '',
   imageUrl: '',
+  roleIds: [],
   customFields: {},
 };
 
@@ -148,6 +146,7 @@ export function mapEmployeeRow(
   row: EmployeeRow,
   avatarUrl: string | null = null,
   roles: EmployeeRole[] = [],
+  roleIds: string[] = [],
 ): Employee {
   const displayName = [row.last_name, row.first_name]
     .filter(Boolean)
@@ -160,12 +159,11 @@ export function mapEmployeeRow(
     userId: row.user_id,
     avatarUrl: avatarUrl ?? row.avatar_url ?? null,
     roles,
+    roleIds,
     employeeCode: row.employee_code,
     firstName: row.first_name,
     lastName: row.last_name,
     displayName: displayName || row.employee_code,
-    jobTitle: row.job_title,
-    department: row.department,
     phone: row.phone,
     status: row.status,
     joinedAt: row.joined_at,
@@ -181,8 +179,6 @@ export function mapEmployeeToFormValues(
     employeeCode: employee.employeeCode,
     firstName: employee.firstName,
     lastName: employee.lastName,
-    jobTitle: employee.jobTitle,
-    department: employee.department,
     phone: employee.phone,
     status: employee.status,
     joinedAt: employee.joinedAt
@@ -190,6 +186,7 @@ export function mapEmployeeToFormValues(
       : null,
     note: employee.note,
     imageUrl: employee.avatarUrl ?? '',
+    roleIds: [...employee.roleIds],
     customFields: {},
   };
 }

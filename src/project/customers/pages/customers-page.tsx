@@ -31,24 +31,14 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardDescription,
-  CardFooter,
-  CardTable,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardDescription, CardTitle } from '@/components/ui/card';
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
-import { DataGridHeader } from '@/components/ui/data-grid-header';
-import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,7 +47,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PageHeader } from '@/components/ui/page-header';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   deleteCustomer,
@@ -79,6 +68,7 @@ import { CustomerDetailDialog } from '../components/customer-detail-dialog';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
 import { CustomerResponsibilityFilterRow } from '../components/customer-responsibility-filter-row';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
+import { CustomerTable } from '../components/customer-table';
 import {
   CustomerFormDialog,
   useCustomerForm,
@@ -850,166 +840,142 @@ export function CustomersPage() {
           }
         />
       </CollapsibleContent>
-      <DataGrid
+      <CustomerTable
         table={table}
-        recordCount={total}
+        total={total}
         isLoading={isListLoading}
         isFetching={workspaceQuery.isFetching}
-        emptyMessage="Chưa có khách hàng"
-        tableLayout={{
-          dense: true,
-          columnsVisibility: false,
-          showInlineFilters,
-        }}
-      >
-        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-          <DataGridHeader
-            title={
-              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
-                <span>
-                  Đã chọn{' '}
-                  <span className="font-semibold text-foreground">
-                    {selectedCustomersCount}
-                  </span>{' '}
-                  khách hàng
-                </span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      disabled={selectedCustomersCount === 0}
-                      aria-label="Thao tác hàng loạt"
-                    >
-                      Thao tác hàng loạt
-                      <ChevronDown />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem
-                      onSelect={() => setBulkStatusDialogOpen(true)}
-                    >
-                      <PencilLine />
-                      Chỉnh sửa trạng thái
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => setBulkDeleteDialogOpen(true)}
-                    >
-                      <Trash2 />
-                      Xóa khách hàng
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </span>
-            }
-            toolbar={
-              <>
-                <CustomerFilterBar
-                  keyword={keyword}
-                  onKeywordChange={setKeyword}
-                />
-                <CustomerFilterViewControl
-                  views={savedViews}
-                  activeViewId={activeViewId}
-                  canManage={canManageSavedViews}
-                  isLoading={savedViewsQuery.isPending}
-                  isDirty={isActiveViewDirty}
-                  isSaving={savedViewMutation.isPending}
-                  showInlineFilters={showInlineFilters}
-                  onShowInlineFiltersChange={onShowInlineFiltersChange}
-                  showResponsibilityFilters={showResponsibilityFilters}
-                  onShowResponsibilityFiltersChange={
-                    setShowResponsibilityFilters
-                  }
-                  filters={filters}
-                  customFields={customerCustomFieldsQuery.data ?? []}
-                  onSelect={selectSavedView}
-                  onCreate={openCreateSavedView}
-                  onEdit={openEditSavedView}
-                  onSaveCurrent={() => saveCurrentView()}
-                  onApply={(values: CustomerFilterFormValues) =>
-                    setFilters({
-                      ...values,
-                      responsibleEmployeeIds: filters.responsibleEmployeeIds,
-                    })
-                  }
-                  onReset={() => resetAll()}
-                  onSaveToView={
-                    canManageSavedViews
-                      ? (values) =>
-                          saveCurrentView({
-                            ...currentViewConfig,
-                            filters: {
-                              ...values,
-                              responsibleEmployeeIds:
-                                filters.responsibleEmployeeIds,
-                            },
-                          })
-                      : undefined
-                  }
-                  canSaveToView={Boolean(activeView && canManageSavedViews)}
-                  saveDisabled={!isActiveViewDirty}
-                />
+        title={
+          <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
+            <span>
+              Đã chọn{' '}
+              <span className="font-semibold text-foreground">
+                {selectedCustomersCount}
+              </span>{' '}
+              khách hàng
+            </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  mode="icon"
-                  aria-label="Làm mới"
-                  title="Làm mới"
-                  onClick={() => {
-                    void workspaceQuery.refetch();
-                    void customerStatsQuery.refetch();
-                    void customerPreviousMonthStatsQuery.refetch();
-                    void customerResponsibilityFilterOptionsQuery.refetch();
-                  }}
+                  size="md"
+                  disabled={selectedCustomersCount === 0}
+                  aria-label="Thao tác hàng loạt"
                 >
-                  <RefreshCw />
+                  Thao tác hàng loạt
+                  <ChevronDown />
                 </Button>
-                <DataGridColumnVisibility
-                  table={table}
-                  mode="drawer"
-                  onSaveToView={
-                    canManageSavedViews ? () => saveCurrentView() : undefined
-                  }
-                  canSaveToView={Boolean(activeView && canManageSavedViews)}
-                  saveDisabled={!isActiveViewDirty}
-                  isSaving={savedViewMutation.isPending}
-                />
-              </>
-            }
-            secondaryRow={
-              showResponsibilityFilters ? (
-                <CustomerResponsibilityFilterRow
-                  mode={responsibilityFilterMode}
-                  onModeChange={setResponsibilityFilterMode}
-                  tagOptions={customerTagOptions}
-                  selectedTagIds={filters.tagIds}
-                  onTagIdsChange={(value) => setFilter('tagIds', value)}
-                  employeeOptions={
-                    customerResponsibilityFilterOptionsQuery.data?.employees ??
-                    []
-                  }
-                  selectedEmployeeIds={filters.responsibleEmployeeIds ?? []}
-                  onEmployeeIdsChange={(value) =>
-                    setFilter('responsibleEmployeeIds', value)
-                  }
-                  disabled={customerResponsibilityFilterOptionsQuery.isPending}
-                />
-              ) : null
-            }
-          />
-          <CardTable className="min-h-0 flex-1">
-            <ScrollArea className="h-full">
-              <DataGridTable />
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-          </CardTable>
-          <CardFooter className="justify-between">
-            <DataGridPagination />
-          </CardFooter>
-        </Card>
-      </DataGrid>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  onSelect={() => setBulkStatusDialogOpen(true)}
+                >
+                  <PencilLine />
+                  Chỉnh sửa trạng thái
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  variant="destructive"
+                  onSelect={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 />
+                  Xóa khách hàng
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </span>
+        }
+        toolbar={
+          <>
+            <CustomerFilterBar keyword={keyword} onKeywordChange={setKeyword} />
+            <CustomerFilterViewControl
+              views={savedViews}
+              activeViewId={activeViewId}
+              canManage={canManageSavedViews}
+              isLoading={savedViewsQuery.isPending}
+              isDirty={isActiveViewDirty}
+              isSaving={savedViewMutation.isPending}
+              showInlineFilters={showInlineFilters}
+              onShowInlineFiltersChange={onShowInlineFiltersChange}
+              showResponsibilityFilters={showResponsibilityFilters}
+              onShowResponsibilityFiltersChange={setShowResponsibilityFilters}
+              filters={filters}
+              customFields={customerCustomFieldsQuery.data ?? []}
+              onSelect={selectSavedView}
+              onCreate={openCreateSavedView}
+              onEdit={openEditSavedView}
+              onSaveCurrent={() => saveCurrentView()}
+              onApply={(values: CustomerFilterFormValues) =>
+                setFilters({
+                  ...values,
+                  responsibleEmployeeIds: filters.responsibleEmployeeIds,
+                })
+              }
+              onReset={() => resetAll()}
+              onSaveToView={
+                canManageSavedViews
+                  ? (values) =>
+                      saveCurrentView({
+                        ...currentViewConfig,
+                        filters: {
+                          ...values,
+                          responsibleEmployeeIds:
+                            filters.responsibleEmployeeIds,
+                        },
+                      })
+                  : undefined
+              }
+              canSaveToView={Boolean(activeView && canManageSavedViews)}
+              saveDisabled={!isActiveViewDirty}
+            />
+            <Button
+              variant="outline"
+              mode="icon"
+              aria-label="Làm mới"
+              title="Làm mới"
+              onClick={() => {
+                void workspaceQuery.refetch();
+                void customerStatsQuery.refetch();
+                void customerPreviousMonthStatsQuery.refetch();
+                void customerResponsibilityFilterOptionsQuery.refetch();
+              }}
+            >
+              <RefreshCw />
+            </Button>
+            <DataGridColumnVisibility
+              table={table}
+              mode="drawer"
+              onSaveToView={
+                canManageSavedViews ? () => saveCurrentView() : undefined
+              }
+              canSaveToView={Boolean(activeView && canManageSavedViews)}
+              saveDisabled={!isActiveViewDirty}
+              isSaving={savedViewMutation.isPending}
+            />
+          </>
+        }
+        secondaryRow={
+          showResponsibilityFilters ? (
+            <CustomerResponsibilityFilterRow
+              mode={responsibilityFilterMode}
+              onModeChange={setResponsibilityFilterMode}
+              tagOptions={customerTagOptions}
+              selectedTagIds={filters.tagIds}
+              onTagIdsChange={(value) => setFilter('tagIds', value)}
+              employeeOptions={
+                customerResponsibilityFilterOptionsQuery.data?.employees ?? []
+              }
+              selectedEmployeeIds={filters.responsibleEmployeeIds ?? []}
+              onEmployeeIdsChange={(value) =>
+                setFilter('responsibleEmployeeIds', value)
+              }
+              disabled={customerResponsibilityFilterOptionsQuery.isPending}
+            />
+          ) : null
+        }
+        tableLayout={{ showInlineFilters }}
+        cardClassName="min-h-[32rem]"
+      />
 
       <CustomerFormDialog
         open={dialogOpen}

@@ -237,12 +237,20 @@ export async function loadCustomerResponsibilityWorkspace(
   customerId: string,
 ): Promise<CustomerResponsibilityWorkspace> {
   assertSupabaseConfigured();
-  return request<CustomerResponsibilityWorkspace>(
+  const response = await request<CustomerResponsibilityWorkspace>(
     supabaseApi.post('/rpc/get_customer_responsibility_workspace', {
       p_tenant_id: tenantId,
       p_customer_id: customerId,
     }),
   );
+
+  return {
+    ...response,
+    assignments: response.assignments.map((assignment) => ({
+      ...assignment,
+      allRoles: assignment.allRoles === true,
+    })),
+  };
 }
 
 export async function replaceCustomerResponsibilities(
@@ -257,6 +265,7 @@ export async function replaceCustomerResponsibilities(
       p_customer_id: customerId,
       p_assignments: assignments.map((assignment) => ({
         employee_id: assignment.employeeId,
+        all_roles: assignment.allRoles,
         responsibility_role_ids: assignment.responsibilityRoleIds,
       })),
     }),

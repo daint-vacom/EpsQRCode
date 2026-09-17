@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/data-grid-columns';
 import type { MultiSelectOption } from '@/components/ui/multi-select';
 import type { SelectOption } from '@/components/ui/option-select';
@@ -6,6 +5,7 @@ import { ROLE_COLOR_LABELS } from '../../model/role-color';
 import {
   EMPLOYEE_ACCOUNT_BADGE_CONFIG,
   EmployeeRoleBadge,
+  EmployeeStatusBadge,
 } from '../components/employee-badges';
 import {
   EMPLOYEE_STATUS_LABELS,
@@ -17,15 +17,7 @@ import {
 export const EMPLOYEE_STATUS_FILTER_OPTIONS: MultiSelectOption[] =
   EMPLOYEE_STATUSES.map((status) => ({
     value: status,
-    label: (
-      <Badge
-        variant={status === 'active' ? 'success' : 'outline'}
-        appearance="outline"
-        className="rounded-md px-2.5 py-1 text-xs"
-      >
-        {EMPLOYEE_STATUS_LABELS[status]}
-      </Badge>
-    ),
+    label: <EmployeeStatusBadge status={status} size="sm" />,
     searchableText: EMPLOYEE_STATUS_LABELS[status],
     data: status,
   }));

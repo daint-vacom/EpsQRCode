@@ -7,10 +7,18 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
+import type { CustomerTableController } from '@/project/customers/components/customer-table';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Plus,
+  RefreshCw,
+  UsersRound,
+} from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import type {
   ControllerRenderProps,
@@ -18,6 +26,7 @@ import type {
   UseFormReturn,
 } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -45,32 +54,58 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
+import {
+  Stepper,
+  StepperConnector,
+  StepperContent,
+  StepperIndicator,
+  StepperItem,
+  StepperNav,
+  StepperPanel,
+  StepperTitle,
+  StepperTrigger,
+} from '@/components/ui/stepper';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
+import { EmployeeStatusBadge } from '../components/employee-badges';
+import {
+  EmployeeCustomerRoleStep,
+  EmployeeCustomerSelectionStep,
+} from '../components/employee-responsibility-editor';
 import {
   employeeFormSchema,
   type Employee,
   type EmployeeFormValues,
+  type EmployeeRoleOption,
+  type EmployeeStatus,
 } from '../model/employee';
+import type {
+  EmployeeCustomerAssignmentInput,
+  EmployeeCustomerOption,
+} from '../model/employee-responsibility';
 
 const statusOptions = [
-  { value: 'active', label: 'Đang làm việc' },
+  { value: 'active', label: 'Còn làm việc' },
   { value: 'inactive', label: 'Ngừng làm việc' },
-];
+] satisfies { value: EmployeeStatus; label: string }[];
 
 export const employeeDefaultValues: EmployeeFormValues = {
   imageUrl: '',
   employeeCode: '',
   firstName: '',
   lastName: '',
-  jobTitle: '',
-  department: '',
   phone: '',
   status: 'active',
   joinedAt: null,
   note: '',
+  roleIds: [],
   customFields: {},
 };
 
@@ -92,14 +127,13 @@ export function mapEmployeeToFormValues(
     employeeCode: employee.employeeCode,
     firstName: employee.firstName,
     lastName: employee.lastName,
-    jobTitle: employee.jobTitle,
-    department: employee.department,
     phone: employee.phone,
     status: employee.status,
     joinedAt: employee.joinedAt
       ? new Date(`${employee.joinedAt}T00:00:00`)
       : null,
     note: employee.note,
+    roleIds: [...employee.roleIds],
     customFields: {},
   };
 }
@@ -114,18 +148,23 @@ interface EmployeeFormProps {
   onAddCustomField?: () => void;
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
+  roleOptions?: EmployeeRoleOption[];
+  canManageRoles?: boolean;
+  employeeHasLinkedAccount?: boolean;
 }
 
 export function EmployeeForm({
   form,
   onSubmit,
   id = 'employee-form',
-  mode,
   onImageUrlFileChange,
   customFields = [],
   onAddCustomField,
   onReloadCustomFields,
   isReloadingCustomFields = false,
+  roleOptions = [],
+  canManageRoles = false,
+  employeeHasLinkedAccount = false,
 }: EmployeeFormProps) {
   const activeCustomFields = customFields.filter((field) => field.isActive);
 
@@ -196,48 +235,35 @@ export function EmployeeForm({
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
               >
                 <div className="grid grid-cols-1 gap-x-4 gap-y-5 px-1 pb-1 md:grid-cols-2">
-                  {mode === 'edit' ? (
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Trạng thái</FormLabel>
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {statusOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  ) : null}
-
-                  <EmployeeTextField
-                    form={form}
-                    name="jobTitle"
-                    label="Chức vụ"
-                  />
-                  <EmployeeTextField
-                    form={form}
-                    name="department"
-                    label="Phòng ban"
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trạng thái</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {statusOptions.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                              >
+                                <EmployeeStatusBadge status={option.value} />
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
 
                   <FormField
@@ -270,6 +296,74 @@ export function EmployeeForm({
                         <FormControl>
                           <Textarea rows={3} {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="roleIds"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Vai trò</FormLabel>
+                        {!employeeHasLinkedAccount ? (
+                          <p className="text-xs text-muted-foreground">
+                            Liên kết tài khoản cho nhân viên để cấp vai trò.
+                          </p>
+                        ) : roleOptions.length > 0 ? (
+                          <div className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-2">
+                            {roleOptions.map((role) => (
+                              <label
+                                key={role.id}
+                                className="flex items-start gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-muted/60"
+                              >
+                                <Checkbox
+                                  checked={field.value.includes(role.id)}
+                                  disabled={!canManageRoles || !role.isActive}
+                                  onCheckedChange={(checked) => {
+                                    const nextRoleIds = new Set(field.value);
+                                    if (checked === true)
+                                      nextRoleIds.add(role.id);
+                                    else nextRoleIds.delete(role.id);
+                                    field.onChange([...nextRoleIds]);
+                                  }}
+                                  className="mt-0.5"
+                                />
+                                <span className="flex min-w-0 items-center gap-1">
+                                  <span className="min-w-0 truncate font-medium text-foreground">
+                                    {role.name}
+                                  </span>
+                                  {role.customerAssignable ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span
+                                          aria-label="Phân theo khách hàng"
+                                          className="inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                                          tabIndex={0}
+                                        >
+                                          <UsersRound className="size-3.5" />
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent variant="light">
+                                        Phân theo khách hàng
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                            Chưa có vai trò khả dụng.
+                          </p>
+                        )}
+                        {!canManageRoles && employeeHasLinkedAccount ? (
+                          <p className="text-xs text-muted-foreground">
+                            Bạn không có quyền thay đổi vai trò nhân viên.
+                          </p>
+                        ) : null}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -377,13 +471,7 @@ function EmployeeTextField({
   required = false,
 }: {
   form: UseFormReturn<EmployeeFormValues>;
-  name:
-    | 'employeeCode'
-    | 'firstName'
-    | 'lastName'
-    | 'jobTitle'
-    | 'department'
-    | 'phone';
+  name: 'employeeCode' | 'firstName' | 'lastName' | 'phone';
   label: string;
   inputType?: string;
   required?: boolean;
@@ -483,6 +571,18 @@ interface EmployeeFormDialogProps {
   onAddCustomField?: () => void;
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
+  roleOptions?: EmployeeRoleOption[];
+  customerOptions?: EmployeeCustomerOption[];
+  customerTable?: CustomerTableController;
+  customerAssignments?: EmployeeCustomerAssignmentInput[];
+  onCustomerAssignmentsChange?: (
+    assignments: EmployeeCustomerAssignmentInput[],
+  ) => void;
+  canManageRoles?: boolean;
+  canManageCustomerAssignments?: boolean;
+  employeeHasLinkedAccount?: boolean;
+  accessIsLoading?: boolean;
+  accessError?: unknown;
 }
 
 export function EmployeeFormDialog({
@@ -498,8 +598,51 @@ export function EmployeeFormDialog({
   onAddCustomField,
   onReloadCustomFields,
   isReloadingCustomFields = false,
+  roleOptions = [],
+  customerOptions = [],
+  customerTable,
+  customerAssignments = [],
+  onCustomerAssignmentsChange = () => undefined,
+  canManageRoles = false,
+  canManageCustomerAssignments = false,
+  employeeHasLinkedAccount = false,
+  accessIsLoading = false,
+  accessError,
 }: EmployeeFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [step, setStep] = useState(1);
+  const [maxStep, setMaxStep] = useState(1);
+  const employeeRoleIds = useWatch({
+    control: form.control,
+    name: 'roleIds',
+  });
+
+  useEffect(() => {
+    if (open) {
+      setStep(1);
+      setMaxStep(1);
+    }
+  }, [open]);
+
+  async function handleNext() {
+    if (step === 1) {
+      const isValid = await form.trigger();
+      if (!isValid) return;
+    }
+    const nextStep = Math.min(step + 1, 3);
+    setStep(nextStep);
+    setMaxStep((currentMaxStep) => Math.max(currentMaxStep, nextStep));
+  }
+
+  function handlePrimaryAction() {
+    if (step < 3) {
+      void handleNext();
+      return;
+    }
+
+    void form.handleSubmit(onSubmit)();
+  }
+
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
 
@@ -507,7 +650,7 @@ export function EmployeeFormDialog({
     if (key !== 's' && key !== 'enter') return;
 
     event.preventDefault();
-    void form.handleSubmit(onSubmit)();
+    handlePrimaryAction();
   };
   const requestClose = (nextOpen: boolean) => {
     if (nextOpen) {
@@ -535,40 +678,142 @@ export function EmployeeFormDialog({
             <DialogTitle>{title ?? 'Thêm nhân viên'}</DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:overflow-hidden">
-            <EmployeeForm
-              form={form}
-              onSubmit={onSubmit}
-              id="employee-form"
-              mode={mode}
-              onImageUrlFileChange={onImageUrlFileChange}
-              customFields={customFields}
-              onAddCustomField={onAddCustomField}
-              onReloadCustomFields={onReloadCustomFields}
-              isReloadingCustomFields={isReloadingCustomFields}
-            />
-          </div>
+          <Stepper
+            value={step}
+            onValueChange={(nextStep) => {
+              if (nextStep <= maxStep) setStep(nextStep);
+            }}
+            variant="success"
+            className="flex min-h-0 flex-1 flex-col gap-0"
+          >
+            <StepperNav className="shrink-0 gap-2 border-b border-border px-6 py-4">
+              {[
+                { value: 1, label: 'Thông tin nhân viên, vai trò' },
+                { value: 2, label: 'Chọn khách hàng phụ trách' },
+                { value: 3, label: 'Phân công vai trò phụ trách' },
+              ].map((item, index, items) => (
+                <div
+                  key={item.value}
+                  className="flex min-w-0 flex-1 items-center last:flex-none"
+                >
+                  <StepperItem
+                    step={item.value}
+                    completed={item.value < step}
+                    disabled={item.value > maxStep}
+                    fill={false}
+                    className="min-w-0 justify-start"
+                  >
+                    <StepperTrigger className="min-w-0 px-1 text-left">
+                      <StepperIndicator>
+                        {item.value < step ? (
+                          <Check className="size-3.5" />
+                        ) : (
+                          item.value
+                        )}
+                      </StepperIndicator>
+                      <StepperTitle className="hidden truncate sm:block">
+                        {item.label}
+                      </StepperTitle>
+                    </StepperTrigger>
+                  </StepperItem>
+                  {index < items.length - 1 ? (
+                    <StepperConnector
+                      completed={item.value < step}
+                      className="mx-2 h-0.5 min-w-4"
+                    />
+                  ) : null}
+                </div>
+              ))}
+            </StepperNav>
+
+            <StepperPanel className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+              <StepperContent value={1} className="min-h-full">
+                <EmployeeForm
+                  form={form}
+                  onSubmit={onSubmit}
+                  id="employee-form"
+                  mode={mode}
+                  onImageUrlFileChange={onImageUrlFileChange}
+                  customFields={customFields}
+                  onAddCustomField={onAddCustomField}
+                  onReloadCustomFields={onReloadCustomFields}
+                  isReloadingCustomFields={isReloadingCustomFields}
+                  roleOptions={roleOptions}
+                  canManageRoles={canManageRoles}
+                  employeeHasLinkedAccount={employeeHasLinkedAccount}
+                />
+              </StepperContent>
+              <StepperContent
+                value={2}
+                className="flex h-full min-h-0 flex-col overflow-hidden"
+              >
+                <EmployeeCustomerSelectionStep
+                  roleOptions={roleOptions}
+                  employeeRoleIds={employeeRoleIds ?? []}
+                  customers={customerOptions}
+                  customerTable={customerTable}
+                  assignments={customerAssignments}
+                  onAssignmentsChange={onCustomerAssignmentsChange}
+                  canManage={canManageCustomerAssignments}
+                  employeeHasLinkedAccount={employeeHasLinkedAccount}
+                  isLoading={accessIsLoading}
+                  error={accessError}
+                />
+              </StepperContent>
+              <StepperContent value={3} className="flex min-h-full flex-col">
+                <EmployeeCustomerRoleStep
+                  roleOptions={roleOptions}
+                  employeeRoleIds={employeeRoleIds ?? []}
+                  customers={customerOptions}
+                  customerTable={customerTable}
+                  assignments={customerAssignments}
+                  onAssignmentsChange={onCustomerAssignmentsChange}
+                  canManage={canManageCustomerAssignments}
+                  employeeHasLinkedAccount={employeeHasLinkedAccount}
+                  isLoading={accessIsLoading}
+                  error={accessError}
+                />
+              </StepperContent>
+            </StepperPanel>
+          </Stepper>
 
           <DialogFooter className="shrink-0 px-6 py-4">
             <ShortcutTooltip label="Hủy" shortcut="Esc">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => requestClose(false)}
+                onClick={() => {
+                  if (step > 1) setStep((currentStep) => currentStep - 1);
+                  else requestClose(false);
+                }}
                 disabled={isSaving}
               >
-                Hủy
+                {step > 1 ? <ArrowLeft /> : null}
+                {step > 1 ? 'Quay lại' : 'Hủy'}
               </Button>
             </ShortcutTooltip>
-            <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+            <ShortcutTooltip
+              label={step === 3 ? 'Lưu' : 'Tiếp tục'}
+              shortcut="Ctrl/Cmd + S"
+            >
               <Button
-                type="submit"
+                type="button"
                 variant="primary"
-                form="employee-form"
+                onClick={handlePrimaryAction}
                 loading={isSaving}
                 loadingText="Đang lưu..."
+                disabled={
+                  isSaving ||
+                  (step === 3 &&
+                    customerAssignments.some(
+                      (assignment) =>
+                        !assignment.allRoles &&
+                        assignment.responsibilityRoleIds.length === 0,
+                    ))
+                }
               >
-                Lưu
+                {step === 3 ? <Check /> : <ArrowRight />}
+                {step === 3 ? 'Lưu' : 'Tiếp tục'}
               </Button>
             </ShortcutTooltip>
           </DialogFooter>

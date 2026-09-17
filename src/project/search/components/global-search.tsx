@@ -357,7 +357,7 @@ export function GlobalSearch() {
               <EmptySearchState
                 icon={<Search className="size-5" aria-hidden="true" />}
                 title="Tìm nhanh trong dữ liệu quản trị"
-                description="Tìm theo mã, tên, số điện thoại, phòng ban hoặc khách hàng liên quan."
+                description="Tìm theo mã, tên, số điện thoại hoặc khách hàng liên quan."
               />
             ) : search.isFetching ? (
               <LoadingSearchState />
