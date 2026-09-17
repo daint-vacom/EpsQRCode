@@ -24,7 +24,7 @@ Phạm vi v1 được đề xuất là **subledger công nợ + thu/chi + quỹ*
 | Lõi phân tách nợ/tiền/phân bổ                                                 | [Migration finance core](../../../supabase/migrations/20260913030000_create_finance_core.sql), `finance_obligation_balances`, `finance_account_balances`                                                                                                           | Đúng hướng cho subledger; implementation chưa đủ bất biến của [spec gốc](2026-09-13-finance-vouchers-and-obligations.md).           |
 | Contract charge là lịch nguồn; obligation sinh khi `due_date <= current_date` | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql), [migration due-date](../../../supabase/migrations/20260916031840_enforce_due_contract_finance_obligations.sql)                                  | Chính sách riêng hiện tại; có migration xóa **các obligation tương lai** khi chưa phân bổ và upsert thay đổi obligation đã post.    |
 | Nợ thủ công                                                                   | [Finance API](../../../src/project/finance/api/finance.api.ts) `createFinanceObligation`, [hardening migration](../../../supabase/migrations/20260916120000_harden_finance_write_contract.sql)                                                                     | Đã chuyển frontend sang RPC server-side; không nhận `status`/`posted_at` từ client, có request key và snapshot đối tượng từ server. |
-| Phân bổ ứng trước có RPC                                                      | [Migration phân bổ](../../../supabase/migrations/20260916074019_finance_advance_allocation.sql), [phase-2 migration](../../../supabase/migrations/20260916140000_finance_period_and_as_of_read_models.sql)                                                         | Đã bổ sung replay hash/lock, ngày source/target, kỳ khóa và read model as-of; refund/reversal vẫn để phase mở rộng.                 |
+| Phân bổ ứng trước có RPC                                                      | [Migration phân bổ](../../../supabase/migrations/20260916074019_finance_advance_allocation.sql), [phase-2 migration](../../../supabase/migrations/20260916140000_finance_period_and_as_of_read_models.sql), [event migration](../../../supabase/migrations/20260916150000_finance_subledger_events.sql) | Đã bổ sung replay hash/lock, ngày source/target, kỳ khóa, read model as-of và event layer cho reversal/refund; UI và nghiệm thu concurrency vẫn là phase mở rộng. |
 | Legacy payment đã bị drop                                                     | [Migration đồng bộ](../../../supabase/migrations/20260915010000_sync_contract_charges_to_finance_obligations.sql) cuối file                                                                                                                                        | Bài học chống breaking change; **không** đề xuất tái tạo/xóa lại trong tài liệu này.                                                |
 
 Chỉ kết luận về **source ở worktree**, không mặc định migration chưa commit đã được triển khai trên mọi môi trường. Báo cáo test chứa dữ liệu dev; không chạy thử lại số dư, không xác nhận sản phẩm production. Cần đối chiếu deployed function/schema trước mọi thay đổi thực thi.
@@ -640,7 +640,7 @@ Bằng chứng xác minh:
 - DB invariant sau migration: không có obligation thiếu `effective_date`, obligation posted thiếu `posted_at`, advance contract thiếu contract hoặc outstanding âm.
 - Contract probe rollback: RPC create + replay tạo cùng một kết quả; update trực tiếp obligation posted bị chặn; phân bổ cùng một obligation qua hai dòng vượt tổng bị chặn và voucher vẫn ở trạng thái draft.
 
-Các phần chưa được đánh dấu hoàn tất của spec vẫn giữ nguyên: concurrency test bằng nhiều session thật, user thiếu quyền/sai tenant, adjustment/reversal, VAT/GL và các quyết định kế toán cần owner chốt. Khóa kỳ được triển khai nền tảng ở tranche Phase 2 bên dưới nhưng chưa có UI quản trị và chưa được nghiệm thu concurrency đầy đủ.
+Các phần chưa được đánh dấu hoàn tất của spec vẫn giữ nguyên: UI quản trị cho event subledger và khóa kỳ, concurrency test bằng nhiều session thật, user thiếu quyền/sai tenant, VAT/GL và các quyết định kế toán cần owner chốt.
 
 ## 21. Trạng thái triển khai tranche nền tảng Phase 2
 
@@ -664,4 +664,28 @@ Bằng chứng xác minh tranche:
 - Probe rollback: read model obligation/advance/summary gọi được; tạo khóa kỳ và kiểm tra ngày bị khóa trả `true`; transaction được rollback, không để lại probe data.
 - `npx tsc --noEmit` và focused import lint sau thay đổi: đạt. Unit tests model/customer/finance và component: 5 file, 16 tests đạt.
 
-Phạm vi vẫn chưa hoàn tất của toàn bộ spec: adjustment, reverse allocation, refund, reverse voucher, bank reconciliation, audit timeline, VAT/GL, kiểm thử concurrency/security bằng nhiều user thật và các quyết định recognition/tax/period policy cần owner kế toán chốt. Khóa kỳ đã có nền tảng DB/RPC và guard; chưa có màn hình quản trị đóng kỳ.
+Phạm vi vẫn chưa hoàn tất của toàn bộ spec: UI quản trị adjustment/reversal/refund/reconciliation/audit và đóng kỳ; kiểm thử concurrency/security bằng nhiều user thật; invoice/credit note, revenue recognition, contract asset/liability, journal/GL, VAT/tax và các quyết định recognition/tax/period policy cần owner kế toán chốt. Các event subledger đã có DB/RPC nền tảng nhưng chưa được gọi là nghiệm thu đầy đủ cho đến khi có UI, negative/concurrency evidence và đối soát nghiệp vụ.
+
+## 22. Trạng thái triển khai event subledger và contract canonical
+
+Ngày triển khai: 17/09/2026. Môi trường: dev database, ứng dụng Vite dev trên port 5174.
+
+Đã triển khai thêm các migration additive `20260916150000_finance_subledger_events.sql`, `20260916151000_fix_finance_event_operation_links.sql` và `20260916152000_finance_canonical_obligation_detail_read_model.sql`. Migration 1500 bổ sung event layer cho điều chỉnh công nợ, đảo phân bổ, hoàn ứng trước, đảo phiếu, audit operation và bank reconciliation; migration 1510 sửa quan hệ tham chiếu operation để event và operation được ghi atomically mà không tạo vòng FK; migration 1520 bổ sung read model canonical cho màn hình chi tiết công nợ. Cả ba migration đã dry-run trong transaction rollback, apply chính thức và ghi lịch sử trên dev.
+
+Phạm vi đã triển khai:
+
+- `finance_obligation_adjustments` giữ delta điều chỉnh theo ngày hiệu lực; giảm công nợ không được làm thấp hơn số đã phân bổ.
+- `finance_allocation_reversals` giữ event đảo phân bổ, hỗ trợ đảo một phần và không sửa allocation gốc.
+- `finance_refund_links` và RPC hoàn ứng trước tạo phiếu chi posted, movement tiền và liên kết hoàn tiền về source advance; read model trừ cả allocation và refund.
+- RPC đảo phiếu tạo movement đảo chiều, đảo các allocation liên quan bằng event và giữ lại metadata đảo trên voucher.
+- `finance_operations.actor_user_id` và RPC audit timeline cung cấp đường truy vết operation/request/result; không coi đây là field-level audit đầy đủ.
+- `finance_bank_statements`/`finance_bank_reconciliation_matches` và RPC import/reconcile tách sao kê ngân hàng khỏi movement; match hỗ trợ partial và không làm thay đổi sổ quỹ.
+- Các read model obligation/customer/advance đã tính adjustment, reversal và refund theo ngày chốt; frontend finance chuyển sang RPC canonical, không đọc fallback/dual-shape.
+
+Bằng chứng xác minh event layer:
+
+- Preflight, dry-run và apply: đạt; migration `20260916150000`, `20260916151000`, `20260916152000` tồn tại trên dev.
+- Probe trong transaction với user/tenant dev: adjustment tạo và replay cùng request key trả cùng kết quả; reverse allocation, refund advance, reverse voucher và audit timeline đều chạy được; toàn bộ probe rollback, không để lại test row.
+- Khi probe phát hiện vòng FK operation/event, đã tạo migration sửa riêng, dry-run/apply thành công rồi chạy lại probe đạt.
+
+Giới hạn còn lại: dev tenant hiện chưa có bank account nên chưa chạy được happy path reconcile thật; chưa có màn hình thao tác event; chưa chạy concurrency/security test bằng nhiều session/user. Không triển khai VAT, doanh thu, contract liability hay bút toán GL khi chưa có quyết định kế toán.

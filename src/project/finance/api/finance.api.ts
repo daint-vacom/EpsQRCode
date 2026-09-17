@@ -203,6 +203,8 @@ interface ObligationRow {
   due_date: string | null;
   effective_date: string;
   original_amount: number | string;
+  adjustment_amount: number | string;
+  obligation_amount: number | string;
   currency_code: string;
   recognition_basis: string;
   status: FinanceObligation['status'];
@@ -229,8 +231,8 @@ function mapObligation(row: ObligationRow): FinanceObligation {
     effectiveDate: row.effective_date,
     recognitionBasis: row.recognition_basis,
     originalAmount: numberValue(row.original_amount),
-    adjustmentAmount: 0,
-    obligationAmount: numberValue(row.original_amount),
+    adjustmentAmount: numberValue(row.adjustment_amount),
+    obligationAmount: numberValue(row.obligation_amount),
     settledAmount: numberValue(row.settled_amount),
     outstandingAmount: numberValue(row.outstanding_amount),
     currencyCode: row.currency_code,
@@ -244,41 +246,35 @@ export async function loadFinanceObligationDetail(
 ) {
   assertSupabaseConfigured();
   const rows = await request<ObligationRow[]>(
-    supabaseApi.get(
-      '/finance_obligation_balances',
-      queryParams({
-        select: '*',
-        tenant_id: `eq.${tenantId}`,
-        id: `eq.${id}`,
-        limit: '1',
-      }),
-    ),
+    supabaseApi.post('/rpc/get_finance_obligation_detail_as_of', {
+      p_tenant_id: tenantId,
+      p_obligation_id: id,
+      p_as_of_date: new Date().toISOString().slice(0, 10),
+    }),
   );
   if (!rows[0]) throw new Error('Không tìm thấy công nợ.');
   return mapObligation(rows[0]);
 }
+
 export async function loadFinanceObligations(
   tenantId: string,
   direction: 'receivable' | 'payable' = 'receivable',
   customerId?: string,
   options: { dueOnOrBefore?: string } = {},
 ) {
-  assertSupabaseConfigured();
-  const params: Record<string, string> = {
-    select: '*',
-    tenant_id: `eq.${tenantId}`,
-    direction: `eq.${direction}`,
-    status: 'eq.posted',
-    order: 'outstanding_amount.desc,document_date.desc,id.desc',
-  };
-  if (customerId) params.customer_id = `eq.${customerId}`;
-  if (options.dueOnOrBefore) {
-    params.due_date = `lte.${options.dueOnOrBefore}`;
-  }
-  const rows = await request<ObligationRow[]>(
-    supabaseApi.get('/finance_obligation_balances', queryParams(params)),
+  const rows = await loadFinanceObligationsAsOf(
+    tenantId,
+    new Date().toISOString().slice(0, 10),
+    {
+      direction,
+      customerId,
+    },
   );
-  return rows.map(mapObligation);
+  return options.dueOnOrBefore
+    ? rows.filter(
+        (row) => row.dueDate !== null && row.dueDate <= options.dueOnOrBefore!,
+      )
+    : rows;
 }
 
 export async function loadFinanceObligationsAsOf(
@@ -633,6 +629,222 @@ export async function allocateFinanceAdvance(
   );
 }
 
+export async function createFinanceObligationAdjustment(
+  tenantId: string,
+  input: {
+    obligationId: string;
+    amountDelta: number;
+    effectiveDate: string;
+    reason: string;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    obligationId: string;
+    amountDelta: number | string;
+    effectiveDate: string;
+  }>(
+    supabaseApi.post('/rpc/create_finance_obligation_adjustment', {
+      p_tenant_id: tenantId,
+      p_obligation_id: input.obligationId,
+      p_amount_delta: input.amountDelta,
+      p_effective_date: input.effectiveDate,
+      p_reason: input.reason,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
+export async function reverseFinanceAllocation(
+  tenantId: string,
+  input: {
+    allocationId: string;
+    amount: number;
+    effectiveDate: string;
+    reason: string;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    allocationId: string;
+    amount: number | string;
+    effectiveDate: string;
+  }>(
+    supabaseApi.post('/rpc/reverse_finance_allocation', {
+      p_tenant_id: tenantId,
+      p_allocation_id: input.allocationId,
+      p_amount: input.amount,
+      p_effective_date: input.effectiveDate,
+      p_reason: input.reason,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
+export async function reverseFinanceVoucher(
+  tenantId: string,
+  input: {
+    voucherId: string;
+    reversalEffectiveDate: string;
+    reason: string;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    status: string;
+    reversalId: string;
+    movementId: string;
+  }>(
+    supabaseApi.post('/rpc/reverse_finance_voucher', {
+      p_tenant_id: tenantId,
+      p_voucher_id: input.voucherId,
+      p_reversal_effective_date: input.reversalEffectiveDate,
+      p_reason: input.reason,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
+export async function createFinanceAdvanceRefund(
+  tenantId: string,
+  input: {
+    sourceVoucherLineId: string;
+    accountId: string;
+    categoryId: string;
+    amount: number;
+    effectiveDate: string;
+    reason: string;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    lineId: string;
+    status: string;
+    movementId: string;
+  }>(
+    supabaseApi.post('/rpc/create_finance_advance_refund', {
+      p_tenant_id: tenantId,
+      p_source_voucher_line_id: input.sourceVoucherLineId,
+      p_account_id: input.accountId,
+      p_category_id: input.categoryId,
+      p_amount: input.amount,
+      p_effective_date: input.effectiveDate,
+      p_reason: input.reason,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
+export interface FinanceAuditTimelineEntry {
+  operationId: string;
+  tenantId: string;
+  operationType: string;
+  requestKey: string;
+  requestHash: string;
+  resultReference: string | null;
+  resultSummary: Record<string, unknown>;
+  actorUserId: string | null;
+  recordedAt: string;
+}
+
+export async function loadFinanceAuditTimeline(
+  tenantId: string,
+  options: { referenceId?: string; limit?: number } = {},
+) {
+  assertSupabaseConfigured();
+  const rows = await request<
+    Array<{
+      operation_id: string;
+      tenant_id: string;
+      operation_type: string;
+      request_key: string;
+      request_hash: string;
+      result_reference: string | null;
+      result_summary: Record<string, unknown>;
+      actor_user_id: string | null;
+      recorded_at: string;
+    }>
+  >(
+    supabaseApi.post('/rpc/get_finance_audit_timeline', {
+      p_tenant_id: tenantId,
+      p_reference_id: options.referenceId ?? null,
+      p_limit: options.limit ?? 100,
+    }),
+  );
+  return rows.map<FinanceAuditTimelineEntry>((row) => ({
+    operationId: row.operation_id,
+    tenantId: row.tenant_id,
+    operationType: row.operation_type,
+    requestKey: row.request_key,
+    requestHash: row.request_hash,
+    resultReference: row.result_reference,
+    resultSummary: row.result_summary,
+    actorUserId: row.actor_user_id,
+    recordedAt: row.recorded_at,
+  }));
+}
+
+export async function importFinanceBankStatement(
+  tenantId: string,
+  input: {
+    accountId: string;
+    statementDate: string;
+    externalReference: string;
+    direction: 'in' | 'out';
+    amount: number;
+    description: string;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{ id: string; status: string }>(
+    supabaseApi.post('/rpc/import_finance_bank_statement', {
+      p_tenant_id: tenantId,
+      p_account_id: input.accountId,
+      p_statement_date: input.statementDate,
+      p_external_reference: input.externalReference,
+      p_direction: input.direction,
+      p_amount: input.amount,
+      p_description: input.description,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
+export async function reconcileFinanceBankStatement(
+  tenantId: string,
+  input: {
+    statementId: string;
+    movementId: string;
+    amount: number;
+    requestKey: string;
+  },
+) {
+  assertSupabaseConfigured();
+  return request<{
+    id: string;
+    statementId: string;
+    movementId: string;
+    amount: number | string;
+  }>(
+    supabaseApi.post('/rpc/reconcile_finance_bank_statement', {
+      p_tenant_id: tenantId,
+      p_statement_id: input.statementId,
+      p_movement_id: input.movementId,
+      p_amount: input.amount,
+      p_request_key: input.requestKey,
+    }),
+  );
+}
+
 export async function createFinanceAccount(
   tenantId: string,
   values: {
@@ -795,10 +1007,11 @@ export async function loadFinanceVoucherDetail(
   const voucher = voucherRows[0];
   if (!voucher) throw new Error('Không tìm thấy phiếu.');
   const voucherHead = voucherHeadRows[0];
-  const allocationRows = lineRows.length
+  const allocationData = lineRows.length
     ? await Promise.all([
         request<
           Array<{
+            id: string;
             voucher_line_id: string;
             obligation_id: string;
             amount: number | string;
@@ -807,7 +1020,7 @@ export async function loadFinanceVoucherDetail(
           supabaseApi.get(
             '/finance_allocations',
             queryParams({
-              select: 'voucher_line_id,obligation_id,amount',
+              select: 'id,voucher_line_id,obligation_id,amount',
               tenant_id: `eq.${tenantId}`,
               voucher_line_id: `in.(${lineRows.map((row) => row.id).join(',')})`,
               status: 'eq.active',
@@ -816,6 +1029,7 @@ export async function loadFinanceVoucherDetail(
         ),
         request<
           Array<{
+            id: string;
             voucher_line_id: string;
             obligation_id: string;
             amount: number | string;
@@ -824,14 +1038,69 @@ export async function loadFinanceVoucherDetail(
           supabaseApi.get(
             '/finance_voucher_line_allocation_drafts',
             queryParams({
-              select: 'voucher_line_id,obligation_id,amount',
+              select: 'id,voucher_line_id,obligation_id,amount',
               tenant_id: `eq.${tenantId}`,
               voucher_line_id: `in.(${lineRows.map((row) => row.id).join(',')})`,
             }),
           ),
         ),
-      ]).then(([postedRows, draftRows]) => [...postedRows, ...draftRows])
-    : [];
+        request<
+          Array<{
+            refund_voucher_line_id: string;
+            source_voucher_line_id: string;
+            amount: number | string;
+          }>
+        >(
+          supabaseApi.get(
+            '/finance_refund_links',
+            queryParams({
+              select: 'refund_voucher_line_id,source_voucher_line_id,amount',
+              tenant_id: `eq.${tenantId}`,
+              source_voucher_line_id: `in.(${lineRows
+                .map((row) => row.id)
+                .join(',')})`,
+            }),
+          ),
+        ),
+        request<
+          Array<{
+            allocation_id: string;
+            amount: number | string;
+          }>
+        >(
+          supabaseApi.get(
+            '/finance_allocation_reversals',
+            queryParams({
+              select: 'allocation_id,amount',
+              tenant_id: `eq.${tenantId}`,
+            }),
+          ),
+        ),
+      ]).then(([postedRows, draftRows, refundRows, reversalRows]) => ({
+        allocations: [...postedRows, ...draftRows],
+        refunds: refundRows,
+        reversals: reversalRows,
+      }))
+    : { allocations: [], refunds: [], reversals: [] };
+  const allocationRows = allocationData.allocations;
+  const refundRows = allocationData.refunds;
+  const reversalRows = allocationData.reversals;
+  const allocatedAmountForLine = (lineId: string) =>
+    allocationRows
+      .filter((allocation) => allocation.voucher_line_id === lineId)
+      .reduce(
+        (sum, allocation) =>
+          sum +
+          numberValue(allocation.amount) -
+          reversalRows
+            .filter((reversal) => reversal.allocation_id === allocation.id)
+            .reduce(
+              (reversalSum, reversal) =>
+                reversalSum + numberValue(reversal.amount),
+              0,
+            ),
+        0,
+      );
   return {
     ...mapVoucher(voucher),
     contactName: voucherHead?.contact_name ?? '',
@@ -847,16 +1116,16 @@ export async function loadFinanceVoucherDetail(
       handlingType: row.handling_type,
       relatedContractId: row.related_contract_id,
       advanceScope: row.advance_scope,
-      allocatedAmount: allocationRows
-        .filter((draft) => draft.voucher_line_id === row.id)
-        .reduce((sum, draft) => sum + numberValue(draft.amount), 0),
-      refundedAmount: 0,
+      allocatedAmount: allocatedAmountForLine(row.id),
+      refundedAmount: refundRows
+        .filter((refund) => refund.source_voucher_line_id === row.id)
+        .reduce((sum, refund) => sum + numberValue(refund.amount), 0),
       availableAmount: getFinanceVoucherLineAvailableAmount(
         row.amount,
-        allocationRows
-          .filter((draft) => draft.voucher_line_id === row.id)
-          .reduce((sum, draft) => sum + numberValue(draft.amount), 0),
-        0,
+        allocatedAmountForLine(row.id),
+        refundRows
+          .filter((refund) => refund.source_voucher_line_id === row.id)
+          .reduce((sum, refund) => sum + numberValue(refund.amount), 0),
       ),
       allocations: allocationRows
         .filter((draft) => draft.voucher_line_id === row.id)

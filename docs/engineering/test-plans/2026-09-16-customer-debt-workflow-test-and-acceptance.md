@@ -375,14 +375,31 @@ Không phát hiện lỗi P0/P1 mới trong phạm vi hardening đã chạy. Cá
 
 Ngày 16/09/2026, migration `20260916140000_finance_period_and_as_of_read_models.sql` được dry-run và apply thành công trên dev database.
 
-| Hạng mục                         | Kết quả            | Bằng chứng                                                                                                                                                                                                          |
-| -------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Khóa kỳ theo ngày hiệu lực       | Pass ở tầng DB/RPC | `finance_period_locks`, `close_finance_period` và guard trên obligation/voucher/movement/allocation tồn tại; probe khóa kỳ rollback đạt.                                                                            |
-| Phân bổ ứng trước theo ngày      | Pass ở contract    | Không cho phân bổ trước ngày source hoặc target; không cho phân bổ trong kỳ khóa; không tạo movement mới.                                                                                                           |
-| Read model công nợ tại ngày chốt | Pass ở contract    | RPC `get_finance_obligation_balances_as_of` lọc obligation và allocation theo `effective_date`, không dùng clamp số âm.                                                                                             |
-| Read model ứng trước             | Pass ở contract    | RPC `get_finance_advance_balances_as_of` tách source line, đã dùng, đã hoàn và còn khả dụng theo ngày chốt.                                                                                                         |
-| Tổng quan khách hàng             | Pass ở contract/UI | RPC summary trả công nợ, ứng trước chưa phân bổ và tiền thu thực tế; tổng quan hiển thị hai chỉ số tách riêng.                                                                                                      |
-| Một dòng phân bổ nhiều công nợ   | Pass ở UI contract | Form phiếu giữ nhiều allocation rows; backend đã có aggregate validation trên toàn voucher.                                                                                                                         |
-| Regression                       | Pass               | TypeScript, focused import lint và 5 file model/customer/finance/component với 16 tests đạt. |
+| Hạng mục                         | Kết quả            | Bằng chứng                                                                                                                               |
+| -------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Khóa kỳ theo ngày hiệu lực       | Pass ở tầng DB/RPC | `finance_period_locks`, `close_finance_period` và guard trên obligation/voucher/movement/allocation tồn tại; probe khóa kỳ rollback đạt. |
+| Phân bổ ứng trước theo ngày      | Pass ở contract    | Không cho phân bổ trước ngày source hoặc target; không cho phân bổ trong kỳ khóa; không tạo movement mới.                                |
+| Read model công nợ tại ngày chốt | Pass ở contract    | RPC `get_finance_obligation_balances_as_of` lọc obligation và allocation theo `effective_date`, không dùng clamp số âm.                  |
+| Read model ứng trước             | Pass ở contract    | RPC `get_finance_advance_balances_as_of` tách source line, đã dùng, đã hoàn và còn khả dụng theo ngày chốt.                              |
+| Tổng quan khách hàng             | Pass ở contract/UI | RPC summary trả công nợ, ứng trước chưa phân bổ và tiền thu thực tế; tổng quan hiển thị hai chỉ số tách riêng.                           |
+| Một dòng phân bổ nhiều công nợ   | Pass ở UI contract | Form phiếu giữ nhiều allocation rows; backend đã có aggregate validation trên toàn voucher.                                              |
+| Regression                       | Pass               | TypeScript, focused import lint và 5 file model/customer/finance/component với 16 tests đạt.                                             |
 
-Tranche này không đánh dấu hoàn tất cho adjustment/reversal/refund, reverse voucher, bank reconciliation, audit timeline, concurrency/security nhiều user, VAT/GL hoặc các quyết định kế toán chưa được owner chốt. Dữ liệu test dev tiếp tục được giữ nguyên.
+Tranche này không đánh dấu hoàn tất cho UI adjustment/reversal/refund, reverse voucher, bank reconciliation và audit timeline; concurrency/security nhiều user, VAT/GL hoặc các quyết định kế toán cũng chưa được owner chốt. Dữ liệu test dev tiếp tục được giữ nguyên.
+
+## 15. Kết quả nghiệm thu event subledger
+
+Ngày 17/09/2026, ba migration additive `20260916150000_finance_subledger_events.sql`, `20260916151000_fix_finance_event_operation_links.sql` và `20260916152000_finance_canonical_obligation_detail_read_model.sql` đã được dry-run, apply và xác minh trên dev database.
+
+| Hạng mục                    | Kết quả               | Bằng chứng                                                                                                                                        |
+| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Điều chỉnh công nợ          | Pass ở contract       | RPC ghi delta có ngày hiệu lực; giảm công nợ thấp hơn số đã phân bổ bị chặn; replay cùng key trả cùng kết quả.                                    |
+| Đảo phân bổ                 | Pass ở contract       | RPC ghi event đảo một phần, giữ allocation gốc và tính lại số đã phân bổ theo ngày chốt.                                                          |
+| Hoàn ứng trước              | Pass ở contract       | RPC tạo phiếu chi, line refund, movement out và refund link; số khả dụng trừ cả allocation/refund.                                                |
+| Đảo phiếu                   | Pass ở contract       | RPC tạo movement đảo chiều, đảo allocation liên quan và ghi metadata/event đảo.                                                                   |
+| Audit timeline              | Pass ở contract       | `finance_operations.actor_user_id` và RPC timeline trả operation/request/result theo tenant.                                                      |
+| Bank reconciliation         | Not run / DB contract | Đã có statement/match và RPC import/reconcile; tenant dev chưa có bank account nên chưa chạy happy path bằng dữ liệu thật.                        |
+| Rollback an toàn            | Pass                  | Probe tổng hợp chạy trong transaction rollback; adjustment, reversal, refund, voucher reversal không để lại row test.                             |
+| Canonical detail read model | Pass                  | RPC detail as-of trả đầy đủ original/adjustment/obligation/settled/outstanding; finance API không còn đọc view legacy cho obligation detail/list. |
+
+Trong probe đầu tiên đã phát hiện vòng FK giữa event và `finance_operations`; lỗi đã được báo cáo nội bộ, sửa bằng migration 1510 và chạy lại probe đạt. Các test nhiều session/user, UI event và đối soát ngân hàng thực tế vẫn là Not run, không thay thế bằng trạng thái Pass.
