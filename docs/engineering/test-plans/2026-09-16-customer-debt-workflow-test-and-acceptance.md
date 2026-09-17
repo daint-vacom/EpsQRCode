@@ -421,3 +421,5 @@ Ngày 17/09/2026, đã tạo và giữ lại bộ dữ liệu E2E trên dev đ�
 Đối chiếu trên UI đạt: `/finance/accounts` hiển thị tài khoản và số dư; chi tiết tài khoản hiển thị hai movement; `/finance/vouchers` hiển thị hai phiếu posted; chi tiết khách hàng hiển thị công nợ E2E đã tất toán; báo cáo `Sổ quỹ & Tài khoản` hiển thị tổng thu `2.500.000 ₫`, tổng chi `0 ₫`, ròng `2.500.000 ₫` và 2 giao dịch thu.
 
 Bộ dữ liệu trên là dữ liệu test được yêu cầu giữ lại. Chưa chạy concurrency nhiều session/user và chưa có màn hình quản trị trực tiếp cho import/reconcile; phần DB/RPC và các read model liên quan đã có bằng chứng Pass.
+
+Ghi nhận ngoài luồng nghiệp vụ: khi điều hướng qua các route tài chính trên dev, console xuất hiện lặp cảnh báo React `Encountered a script tag while rendering React component` với source `react-dom_client.js`. Cảnh báo không làm hỏng request, không làm sai số dư/trạng thái và chưa xác định là lỗi của finance code; cần rà soát `ReactQueryDevtools`/global provider ở một lượt kỹ thuật riêng để đạt console sạch.
