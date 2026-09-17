@@ -391,16 +391,33 @@ Tranche này không đánh dấu hoàn tất cho UI adjustment/reversal/refund, 
 
 Ngày 17/09/2026, năm migration additive `20260916150000_finance_subledger_events.sql`, `20260916151000_fix_finance_event_operation_links.sql`, `20260916152000_finance_canonical_obligation_detail_read_model.sql`, `20260916153000_finance_event_write_guards.sql` và `20260916154000_finance_allocation_write_guards.sql` đã được dry-run, apply và xác minh trên dev database.
 
-| Hạng mục                    | Kết quả               | Bằng chứng                                                                                                                                        |
-| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Điều chỉnh công nợ          | Pass ở contract       | RPC ghi delta có ngày hiệu lực; giảm công nợ thấp hơn số đã phân bổ bị chặn; replay cùng key trả cùng kết quả.                                    |
-| Đảo phân bổ                 | Pass ở contract       | RPC ghi event đảo một phần, giữ allocation gốc và tính lại số đã phân bổ theo ngày chốt.                                                          |
-| Hoàn ứng trước              | Pass ở contract       | RPC tạo phiếu chi, line refund, movement out và refund link; số khả dụng trừ cả allocation/refund.                                                |
-| Đảo phiếu                   | Pass ở contract       | RPC tạo movement đảo chiều, đảo allocation liên quan và ghi metadata/event đảo.                                                                   |
-| Audit timeline              | Pass ở contract       | `finance_operations.actor_user_id` và RPC timeline trả operation/request/result theo tenant.                                                      |
-| Bank reconciliation         | Not run / DB contract | Đã có statement/match và RPC import/reconcile; tenant dev chưa có bank account nên chưa chạy happy path bằng dữ liệu thật.                        |
-| Rollback an toàn            | Pass                  | Probe tổng hợp chạy trong transaction rollback; adjustment, reversal, refund, voucher reversal không để lại row test.                             |
-| Canonical detail read model | Pass                  | RPC detail as-of trả đầy đủ original/adjustment/obligation/settled/outstanding; finance API không còn đọc view legacy cho obligation detail/list. |
-| Allocation write guard      | Pass ở contract       | Trigger kiểm tra tenant, party/currency/direction, ngày hiệu lực, contract scope và số dư sau adjustment trên cả RPC lẫn đường post voucher.      |
+| Hạng mục                    | Kết quả         | Bằng chứng                                                                                                                                        |
+| --------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Điều chỉnh công nợ          | Pass ở contract | RPC ghi delta có ngày hiệu lực; giảm công nợ thấp hơn số đã phân bổ bị chặn; replay cùng key trả cùng kết quả.                                    |
+| Đảo phân bổ                 | Pass ở contract | RPC ghi event đảo một phần, giữ allocation gốc và tính lại số đã phân bổ theo ngày chốt.                                                          |
+| Hoàn ứng trước              | Pass ở contract | RPC tạo phiếu chi, line refund, movement out và refund link; số khả dụng trừ cả allocation/refund.                                                |
+| Đảo phiếu                   | Pass ở contract | RPC tạo movement đảo chiều, đảo allocation liên quan và ghi metadata/event đảo.                                                                   |
+| Audit timeline              | Pass ở contract | `finance_operations.actor_user_id` và RPC timeline trả operation/request/result theo tenant.                                                      |
+| Bank reconciliation         | Pass            | Đã tạo tài khoản bank E2E; import sao kê exact `1.250.000 ₫` và partial `500.000 ₫ + 750.000 ₫`, cả hai statement đều chuyển `reconciled`.        |
+| Rollback an toàn            | Pass            | Probe tổng hợp chạy trong transaction rollback; adjustment, reversal, refund, voucher reversal không để lại row test.                             |
+| Canonical detail read model | Pass            | RPC detail as-of trả đầy đủ original/adjustment/obligation/settled/outstanding; finance API không còn đọc view legacy cho obligation detail/list. |
+| Allocation write guard      | Pass ở contract | Trigger kiểm tra tenant, party/currency/direction, ngày hiệu lực, contract scope và số dư sau adjustment trên cả RPC lẫn đường post voucher.      |
 
-Trong probe đầu tiên đã phát hiện vòng FK giữa event và `finance_operations`; lỗi đã được báo cáo nội bộ, sửa bằng migration 1510 và chạy lại probe đạt. Các test nhiều session/user, UI event và đối soát ngân hàng thực tế vẫn là Not run, không thay thế bằng trạng thái Pass.
+Trong probe đầu tiên đã phát hiện vòng FK giữa event và `finance_operations`; lỗi đã được báo cáo nội bộ, sửa bằng migration 1510 và chạy lại probe đạt. Các test nhiều session/user và UI quản trị event/reconciliation vẫn là Not run, không thay thế bằng trạng thái Pass.
+
+## 16. Kết quả bổ sung: tài khoản ngân hàng và đối soát thực tế
+
+Ngày 17/09/2026, đã tạo và giữ lại bộ dữ liệu E2E trên dev để chạy đầy đủ đường đi tiền qua tài khoản ngân hàng:
+
+| Dữ liệu                      | Mã/ID                                                                   | Kết quả kiểm tra                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Tài khoản ngân hàng          | `E2E-260917-BANK` / `340b7ac2-b584-4828-9f0a-6ca791410ca0`              | Hiển thị loại Ngân hàng, VND, số dư `2.500.000 ₫` trên danh sách và chi tiết tài khoản.          |
+| Công nợ phải thu             | `E2E-BANK-CN-260917` / `44044b86-0cd5-4eb1-b7e7-e36849d9e74b`           | Gốc `1.250.000 ₫`, đã thanh toán `1.250.000 ₫`, còn lại `0 ₫`.                                   |
+| Phiếu thu thanh toán công nợ | `20260917-000013` / `04e620ed-e412-4534-8c35-4d3097632f87`              | Posted, tạo movement thu `1.250.000 ₫`, phân bổ hết công nợ.                                     |
+| Phiếu thu trực tiếp          | `20260917-000014` / `85776605-ec6a-454e-95a8-3ed84ac868b4`              | Posted, tạo movement thu `1.250.000 ₫` để kiểm tra match từng phần.                              |
+| Sao kê exact                 | `E2E-BANK-STMT-260917` / `404e4e70-479a-49f2-82b4-a685c75eff35`         | Match một lần đủ `1.250.000 ₫`; trạng thái `reconciled`; replay cùng request key trả cùng match. |
+| Sao kê partial               | `E2E-BANK-STMT-PARTIAL-260917` / `26de23e7-6ee3-41d6-b0c7-2ae0ed0b9da1` | Sau match `500.000 ₫` vẫn `open`; match tiếp `750.000 ₫` chuyển `reconciled`.                    |
+
+Đối chiếu trên UI đạt: `/finance/accounts` hiển thị tài khoản và số dư; chi tiết tài khoản hiển thị hai movement; `/finance/vouchers` hiển thị hai phiếu posted; chi tiết khách hàng hiển thị công nợ E2E đã tất toán; báo cáo `Sổ quỹ & Tài khoản` hiển thị tổng thu `2.500.000 ₫`, tổng chi `0 ₫`, ròng `2.500.000 ₫` và 2 giao dịch thu.
+
+Bộ dữ liệu trên là dữ liệu test được yêu cầu giữ lại. Chưa chạy concurrency nhiều session/user và chưa có màn hình quản trị trực tiếp cho import/reconcile; phần DB/RPC và các read model liên quan đã có bằng chứng Pass.

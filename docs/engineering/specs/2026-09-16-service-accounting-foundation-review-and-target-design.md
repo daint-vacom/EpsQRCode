@@ -689,4 +689,4 @@ Bằng chứng xác minh event layer:
 - Probe trong transaction với user/tenant dev: adjustment tạo và replay cùng request key trả cùng kết quả; reverse allocation, refund advance, reverse voucher và audit timeline đều chạy được; toàn bộ probe rollback, không để lại test row.
 - Khi probe phát hiện vòng FK operation/event, đã tạo migration sửa riêng, dry-run/apply thành công rồi chạy lại probe đạt.
 
-Giới hạn còn lại: dev tenant hiện chưa có bank account nên chưa chạy được happy path reconcile thật; chưa có màn hình thao tác event; chưa chạy concurrency/security test bằng nhiều session/user. Không triển khai VAT, doanh thu, contract liability hay bút toán GL khi chưa có quyết định kế toán.
+Giới hạn còn lại: đã chạy happy path reconcile thật trên tài khoản bank E2E và đã xác minh exact/partial match; chưa có màn hình quản trị trực tiếp cho import/reconcile/event; chưa chạy concurrency/security test bằng nhiều session/user. Không triển khai VAT, doanh thu, contract liability hay bút toán GL khi chưa có quyết định kế toán.
