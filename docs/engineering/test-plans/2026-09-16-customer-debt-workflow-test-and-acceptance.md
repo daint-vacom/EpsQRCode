@@ -389,7 +389,7 @@ Tranche này không đánh dấu hoàn tất cho UI adjustment/reversal/refund, 
 
 ## 15. Kết quả nghiệm thu event subledger
 
-Ngày 17/09/2026, ba migration additive `20260916150000_finance_subledger_events.sql`, `20260916151000_fix_finance_event_operation_links.sql` và `20260916152000_finance_canonical_obligation_detail_read_model.sql` đã được dry-run, apply và xác minh trên dev database.
+Ngày 17/09/2026, năm migration additive `20260916150000_finance_subledger_events.sql`, `20260916151000_fix_finance_event_operation_links.sql`, `20260916152000_finance_canonical_obligation_detail_read_model.sql`, `20260916153000_finance_event_write_guards.sql` và `20260916154000_finance_allocation_write_guards.sql` đã được dry-run, apply và xác minh trên dev database.
 
 | Hạng mục                    | Kết quả               | Bằng chứng                                                                                                                                        |
 | --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -401,5 +401,6 @@ Ngày 17/09/2026, ba migration additive `20260916150000_finance_subledger_events
 | Bank reconciliation         | Not run / DB contract | Đã có statement/match và RPC import/reconcile; tenant dev chưa có bank account nên chưa chạy happy path bằng dữ liệu thật.                        |
 | Rollback an toàn            | Pass                  | Probe tổng hợp chạy trong transaction rollback; adjustment, reversal, refund, voucher reversal không để lại row test.                             |
 | Canonical detail read model | Pass                  | RPC detail as-of trả đầy đủ original/adjustment/obligation/settled/outstanding; finance API không còn đọc view legacy cho obligation detail/list. |
+| Allocation write guard      | Pass ở contract       | Trigger kiểm tra tenant, party/currency/direction, ngày hiệu lực, contract scope và số dư sau adjustment trên cả RPC lẫn đường post voucher.      |
 
 Trong probe đầu tiên đã phát hiện vòng FK giữa event và `finance_operations`; lỗi đã được báo cáo nội bộ, sửa bằng migration 1510 và chạy lại probe đạt. Các test nhiều session/user, UI event và đối soát ngân hàng thực tế vẫn là Not run, không thay thế bằng trạng thái Pass.
