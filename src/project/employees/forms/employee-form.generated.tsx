@@ -74,12 +74,14 @@ import {
 } from '@/components/ui/tooltip';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
+import { EmployeeAccountFields } from '../components/employee-account-fields';
 import { EmployeeStatusBadge } from '../components/employee-badges';
 import {
   EmployeeCustomerRoleStep,
   EmployeeCustomerSelectionStep,
 } from '../components/employee-responsibility-editor';
 import {
+  EMPLOYEE_MIN_PASSWORD_LENGTH,
   employeeFormSchema,
   type Employee,
   type EmployeeFormValues,
@@ -106,6 +108,9 @@ export const employeeDefaultValues: EmployeeFormValues = {
   joinedAt: null,
   note: '',
   roleIds: [],
+  createAccount: false,
+  accountUsername: '',
+  initialPassword: '',
   customFields: {},
 };
 
@@ -134,6 +139,9 @@ export function mapEmployeeToFormValues(
       : null,
     note: employee.note,
     roleIds: [...employee.roleIds],
+    createAccount: Boolean(employee.userId),
+    accountUsername: employee.username ?? '',
+    initialPassword: '',
     customFields: {},
   };
 }
@@ -150,6 +158,7 @@ interface EmployeeFormProps {
   isReloadingCustomFields?: boolean;
   roleOptions?: EmployeeRoleOption[];
   canManageRoles?: boolean;
+  canManageAccount?: boolean;
   employeeHasLinkedAccount?: boolean;
 }
 
@@ -157,6 +166,7 @@ export function EmployeeForm({
   form,
   onSubmit,
   id = 'employee-form',
+  mode,
   onImageUrlFileChange,
   customFields = [],
   onAddCustomField,
@@ -164,9 +174,15 @@ export function EmployeeForm({
   isReloadingCustomFields = false,
   roleOptions = [],
   canManageRoles = false,
+  canManageAccount = false,
   employeeHasLinkedAccount = false,
 }: EmployeeFormProps) {
   const activeCustomFields = customFields.filter((field) => field.isActive);
+  const accountRequested = useWatch({
+    control: form.control,
+    name: 'createAccount',
+  });
+  const canUseEmployeeAccount = employeeHasLinkedAccount || accountRequested;
 
   return (
     <Form {...form}>
@@ -235,6 +251,13 @@ export function EmployeeForm({
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
               >
                 <div className="grid grid-cols-1 gap-x-4 gap-y-5 px-1 pb-1 md:grid-cols-2">
+                  <EmployeeAccountFields
+                    form={form}
+                    mode={mode}
+                    employeeHasLinkedAccount={employeeHasLinkedAccount}
+                    canManageAccount={canManageAccount}
+                  />
+
                   <FormField
                     control={form.control}
                     name="status"
@@ -307,7 +330,7 @@ export function EmployeeForm({
                     render={({ field }) => (
                       <FormItem className="md:col-span-2">
                         <FormLabel>Vai trò</FormLabel>
-                        {!employeeHasLinkedAccount ? (
+                        {!canUseEmployeeAccount ? (
                           <p className="text-xs text-muted-foreground">
                             Liên kết tài khoản cho nhân viên để cấp vai trò.
                           </p>
@@ -359,7 +382,7 @@ export function EmployeeForm({
                             Chưa có vai trò khả dụng.
                           </p>
                         )}
-                        {!canManageRoles && employeeHasLinkedAccount ? (
+                        {!canManageRoles && canUseEmployeeAccount ? (
                           <p className="text-xs text-muted-foreground">
                             Bạn không có quyền thay đổi vai trò nhân viên.
                           </p>
@@ -579,6 +602,7 @@ interface EmployeeFormDialogProps {
     assignments: EmployeeCustomerAssignmentInput[],
   ) => void;
   canManageRoles?: boolean;
+  canManageAccount?: boolean;
   canManageCustomerAssignments?: boolean;
   employeeHasLinkedAccount?: boolean;
   accessIsLoading?: boolean;
@@ -604,6 +628,7 @@ export function EmployeeFormDialog({
   customerAssignments = [],
   onCustomerAssignmentsChange = () => undefined,
   canManageRoles = false,
+  canManageAccount = false,
   canManageCustomerAssignments = false,
   employeeHasLinkedAccount = false,
   accessIsLoading = false,
@@ -616,6 +641,11 @@ export function EmployeeFormDialog({
     control: form.control,
     name: 'roleIds',
   });
+  const accountRequested = useWatch({
+    control: form.control,
+    name: 'createAccount',
+  });
+  const canUseEmployeeAccount = employeeHasLinkedAccount || accountRequested;
 
   useEffect(() => {
     if (open) {
@@ -627,19 +657,53 @@ export function EmployeeFormDialog({
   async function handleNext() {
     if (step === 1) {
       const isValid = await form.trigger();
-      if (!isValid) return;
+      const accountIsValid = await validateAccountFields();
+      if (!isValid || !accountIsValid) return;
     }
     const nextStep = Math.min(step + 1, 3);
     setStep(nextStep);
     setMaxStep((currentMaxStep) => Math.max(currentMaxStep, nextStep));
   }
 
-  function handlePrimaryAction() {
+  async function validateAccountFields() {
+    const values = form.getValues();
+    if (!values.createAccount) return true;
+
+    let isValid = true;
+    if (!values.accountUsername.trim()) {
+      form.setError('accountUsername', {
+        type: 'required',
+        message: 'Vui lòng nhập tên đăng nhập.',
+      });
+      isValid = false;
+    }
+
+    const requiresPassword = mode === 'create' || !employeeHasLinkedAccount;
+    if (
+      requiresPassword &&
+      values.initialPassword.length < EMPLOYEE_MIN_PASSWORD_LENGTH
+    ) {
+      form.setError('initialPassword', {
+        type: 'required',
+        message: `Mật khẩu phải có ít nhất ${EMPLOYEE_MIN_PASSWORD_LENGTH} ký tự.`,
+      });
+      isValid = false;
+    }
+
+    const fieldsAreValid = await form.trigger([
+      'accountUsername',
+      'initialPassword',
+    ]);
+    return isValid && fieldsAreValid;
+  }
+
+  async function handlePrimaryAction() {
     if (step < 3) {
       void handleNext();
       return;
     }
 
+    if (!(await validateAccountFields())) return;
     void form.handleSubmit(onSubmit)();
   }
 
@@ -740,6 +804,7 @@ export function EmployeeFormDialog({
                   isReloadingCustomFields={isReloadingCustomFields}
                   roleOptions={roleOptions}
                   canManageRoles={canManageRoles}
+                  canManageAccount={canManageAccount}
                   employeeHasLinkedAccount={employeeHasLinkedAccount}
                 />
               </StepperContent>
@@ -755,7 +820,7 @@ export function EmployeeFormDialog({
                   assignments={customerAssignments}
                   onAssignmentsChange={onCustomerAssignmentsChange}
                   canManage={canManageCustomerAssignments}
-                  employeeHasLinkedAccount={employeeHasLinkedAccount}
+                  employeeHasLinkedAccount={canUseEmployeeAccount}
                   isLoading={accessIsLoading}
                   error={accessError}
                 />
@@ -769,7 +834,7 @@ export function EmployeeFormDialog({
                   assignments={customerAssignments}
                   onAssignmentsChange={onCustomerAssignmentsChange}
                   canManage={canManageCustomerAssignments}
-                  employeeHasLinkedAccount={employeeHasLinkedAccount}
+                  employeeHasLinkedAccount={canUseEmployeeAccount}
                   isLoading={accessIsLoading}
                   error={accessError}
                 />

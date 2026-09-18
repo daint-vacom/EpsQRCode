@@ -36,6 +36,16 @@ export const supabaseStorageApi = createApiClient({
   },
 });
 
+/** Supabase Edge Functions client for trusted server-side workflows. */
+export const supabaseFunctionApi = createApiClient({
+  baseURL: env.supabaseUrl ? `${env.supabaseUrl}/functions/v1` : '',
+  timeout: env.apiTimeoutMs,
+  headers: {
+    Accept: 'application/json',
+    apikey: env.supabaseAnonKey,
+  },
+});
+
 supabaseApi.interceptors.request.use((config) => {
   config.headers.set('apikey', env.supabaseAnonKey);
   config.headers.set(
@@ -64,6 +74,15 @@ supabaseAuthApi.interceptors.request.use((config) => {
 });
 
 supabaseStorageApi.interceptors.request.use((config) => {
+  config.headers.set('apikey', env.supabaseAnonKey);
+  config.headers.set(
+    'Authorization',
+    `Bearer ${getConfiguredApiToken() ?? env.supabaseAnonKey}`,
+  );
+  return config;
+});
+
+supabaseFunctionApi.interceptors.request.use((config) => {
   config.headers.set('apikey', env.supabaseAnonKey);
   config.headers.set(
     'Authorization',

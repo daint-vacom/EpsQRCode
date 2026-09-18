@@ -9,7 +9,7 @@ import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { KeyRound, Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
@@ -45,6 +45,8 @@ export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
 export interface UseEmployeeColumnsParams {
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
+  onResetPassword: (employee: Employee) => void;
+  canResetPassword?: boolean;
   tagIds: string[];
   onTagIdsChange: (value: string[]) => void;
   tagsByEmployeeId: Record<string, TagSelectOption[]>;
@@ -152,11 +154,24 @@ export function useEmployeeColumns(
       col.actions({
         id: 'actions',
         header: '',
-        headerClassName: 'w-[110px]',
+        headerClassName: 'w-[150px]',
         cellClassName: 'text-right',
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
+            {params.canResetPassword && row.userId ? (
+              <DataGridActionButton
+                action="other"
+                tooltip="Đổi mật khẩu"
+                type="button"
+                mode="icon"
+                size="sm"
+                aria-label={`Đổi mật khẩu ${row.displayName}`}
+                onClick={() => params.onResetPassword(row)}
+              >
+                <KeyRound className="size-4" />
+              </DataGridActionButton>
+            ) : null}
             <DataGridActionButton
               action="edit"
               tooltip="Sửa"

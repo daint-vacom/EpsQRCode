@@ -5,7 +5,11 @@ import {
   TENANT_ASSETS_BUCKET,
   uploadStorageObject,
 } from '@/lib/storage';
-import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
+import {
+  assertSupabaseConfigured,
+  supabaseApi,
+  supabaseFunctionApi,
+} from '@/lib/supabase';
 import type {
   Employee,
   EmployeeAvatarRow,
@@ -44,6 +48,12 @@ interface EmployeeRoleRow {
 interface EmployeeListRpcResponse {
   items: EmployeeListRpcRow[];
   total: number | string;
+}
+
+export interface EmployeeAccountResult {
+  employee_id: string;
+  user_id: string;
+  username?: string;
 }
 
 interface EntityCustomDataRow {
@@ -167,10 +177,33 @@ export async function loadEmployeeList(
       { signal },
     ),
   );
+  const userIds = response.items
+    .map((row) => row.user_id)
+    .filter((userId): userId is string => Boolean(userId));
+  const profiles = userIds.length
+    ? await request<EmployeeAvatarRow[]>(
+        supabaseApi.get(
+          '/user_profiles',
+          queryParams({
+            select: 'id,username',
+            id: `in.(${userIds.join(',')})`,
+          }),
+        ),
+      )
+    : [];
+  const usernamesByUserId = new Map(
+    profiles.map((profile) => [profile.id, profile.username ?? null]),
+  );
 
   return {
     employees: response.items.map((row) =>
-      mapEmployeeRow(row, row.avatar_url, row.roles ?? [], row.role_ids ?? []),
+      mapEmployeeRow(
+        row,
+        row.avatar_url,
+        row.roles ?? [],
+        row.role_ids ?? [],
+        row.user_id ? (usernamesByUserId.get(row.user_id) ?? null) : null,
+      ),
     ),
     total: numberValue(response.total),
   };
@@ -261,10 +294,13 @@ export async function loadEmployeeWorkspace(
     ),
   );
   const profiles = await request<EmployeeAvatarRow[]>(
-    supabaseApi.get('/user_profiles', queryParams({ select: 'id,avatar_url' })),
+    supabaseApi.get(
+      '/user_profiles',
+      queryParams({ select: 'id,avatar_url,username' }),
+    ),
   );
-  const avatarsByUserId = new Map(
-    profiles.map((profile) => [profile.id, profile.avatar_url]),
+  const profilesByUserId = new Map(
+    profiles.map((profile) => [profile.id, profile]),
   );
   const [assignments, roles] = await Promise.all([
     request<EmployeeRoleAssignmentRow[]>(
@@ -308,9 +344,14 @@ export async function loadEmployeeWorkspace(
       mapEmployeeRow(
         row,
         row.avatar_url ??
-          (row.user_id ? (avatarsByUserId.get(row.user_id) ?? null) : null),
+          (row.user_id
+            ? (profilesByUserId.get(row.user_id)?.avatar_url ?? null)
+            : null),
         row.user_id ? (roleNamesByUserId.get(row.user_id) ?? []) : [],
         row.user_id ? (roleIdsByUserId.get(row.user_id) ?? []) : [],
+        row.user_id
+          ? (profilesByUserId.get(row.user_id)?.username ?? null)
+          : null,
       ),
     ),
   };
@@ -421,6 +462,56 @@ export async function createEmployee(
   );
   if (!rows[0]) throw new Error('Không thể tạo nhân viên.');
   return mapEmployeeRow(rows[0]);
+}
+
+export async function createEmployeeAccount(
+  tenantId: string,
+  employeeId: string,
+  username: string,
+  password: string,
+): Promise<EmployeeAccountResult> {
+  assertSupabaseConfigured();
+  return request<EmployeeAccountResult>(
+    supabaseFunctionApi.post('/employee-account', {
+      action: 'create',
+      tenantId,
+      employeeId,
+      username,
+      password,
+    }),
+  );
+}
+
+export async function updateEmployeeUsername(
+  tenantId: string,
+  employeeId: string,
+  username: string,
+): Promise<EmployeeAccountResult> {
+  assertSupabaseConfigured();
+  return request<EmployeeAccountResult>(
+    supabaseFunctionApi.post('/employee-account', {
+      action: 'update-username',
+      tenantId,
+      employeeId,
+      username,
+    }),
+  );
+}
+
+export async function resetEmployeePassword(
+  tenantId: string,
+  employeeId: string,
+  password: string,
+): Promise<EmployeeAccountResult> {
+  assertSupabaseConfigured();
+  return request<EmployeeAccountResult>(
+    supabaseFunctionApi.post('/employee-account', {
+      action: 'reset-password',
+      tenantId,
+      employeeId,
+      password,
+    }),
+  );
 }
 
 export async function updateEmployee(

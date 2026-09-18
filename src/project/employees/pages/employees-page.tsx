@@ -49,12 +49,15 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
+  createEmployeeAccount,
   deleteEmployee,
   loadEmployeeCustomFields,
   loadEmployeeCustomFieldValues,
+  resetEmployeePassword,
   saveEmployeeAccess,
   saveEmployeeCustomFieldValues,
   updateEmployee,
+  updateEmployeeUsername,
   uploadEmployeeAvatar,
 } from '../api/employees.api';
 import { EmployeeCreateDialog } from '../components/employee-create-dialog';
@@ -62,6 +65,7 @@ import {
   EmployeeFilterDrawer,
   type EmployeeFilterDraft,
 } from '../components/employee-filter-drawer';
+import { EmployeeResetPasswordDialog } from '../components/employee-reset-password-dialog';
 import {
   EmployeeFormDialog,
   useEmployeeForm,
@@ -105,6 +109,8 @@ export function EmployeesPage() {
     null,
   );
   const [deletingEmployees, setDeletingEmployees] = useState<Employee[]>([]);
+  const [resettingPasswordFor, setResettingPasswordFor] =
+    useState<Employee | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingView, setEditingView] = useState<EmployeeSavedView | null>(
     null,
@@ -116,6 +122,12 @@ export function EmployeesPage() {
   const viewForm = useSavedViewForm();
   const canManageEmployeeRoles = hasPermission(
     'organization:employee:assign-role',
+  );
+  const canManageEmployeeAccount = hasPermission(
+    'organization:employee:update',
+  );
+  const canResetEmployeePassword = hasPermission(
+    'organization:employee:reset-password',
   );
   const canManageCustomerAssignments = hasPermission('customers:update');
   const employeeAccess = useEmployeeAccessWorkspace({
@@ -221,6 +233,35 @@ export function EmployeesPage() {
         });
       }
 
+      if (savedEmployee.userId) {
+        const requestedUsername = values.accountUsername.trim().toLowerCase();
+        const currentUsername = editingEmployee.username?.toLowerCase() ?? '';
+        if (requestedUsername && requestedUsername !== currentUsername) {
+          const account = await updateEmployeeUsername(
+            tenantId,
+            savedEmployee.id,
+            requestedUsername,
+          );
+          savedEmployee = {
+            ...savedEmployee,
+            username: account.username ?? requestedUsername,
+          };
+        }
+      } else if (values.createAccount && canManageEmployeeAccount) {
+        const account = await createEmployeeAccount(
+          tenantId,
+          savedEmployee.id,
+          values.accountUsername,
+          values.initialPassword,
+        );
+        savedEmployee = {
+          ...savedEmployee,
+          userId: account.user_id,
+          username: account.username ?? values.accountUsername,
+          accountLinked: true,
+        };
+      }
+
       await saveEmployeeCustomFieldValues(
         tenantId,
         savedEmployee.id,
@@ -256,6 +297,24 @@ export function EmployeesPage() {
     onSuccess: async () => {
       toast.success('Đã xóa nhân viên.');
       await invalidateEmployees();
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({
+      employee,
+      password,
+    }: {
+      employee: Employee;
+      password: string;
+    }) => {
+      if (!tenantId) throw new Error('Chưa xác định tenant.');
+      return resetEmployeePassword(tenantId, employee.id, password);
+    },
+    onSuccess: () => {
+      toast.success('Đã đổi mật khẩu tài khoản nhân viên.');
+      setResettingPasswordFor(null);
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -313,6 +372,8 @@ export function EmployeesPage() {
   const columns = useEmployeeColumns({
     onEdit: openEdit,
     onDelete: setDeletingEmployee,
+    onResetPassword: setResettingPasswordFor,
+    canResetPassword: canResetEmployeePassword,
     tagIds: filters.tagIds,
     onTagIdsChange: (value) => setFilter('tagIds', value),
     tagsByEmployeeId: employeeTagsByEmployeeId,
@@ -654,6 +715,7 @@ export function EmployeesPage() {
         customerAssignments={customerAssignments}
         onCustomerAssignmentsChange={setCustomerAssignments}
         canManageRoles={canManageEmployeeRoles}
+        canManageAccount={canManageEmployeeAccount}
         canManageCustomerAssignments={canManageCustomerAssignments}
         employeeHasLinkedAccount={Boolean(editingEmployee?.userId)}
         accessIsLoading={employeeAccess.isLoading}
@@ -662,6 +724,23 @@ export function EmployeesPage() {
       <EmployeeCreateDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+      />
+      <EmployeeResetPasswordDialog
+        open={Boolean(resettingPasswordFor)}
+        onOpenChange={(open) => {
+          if (!open && !resetPasswordMutation.isPending) {
+            setResettingPasswordFor(null);
+          }
+        }}
+        employee={resettingPasswordFor}
+        isSaving={resetPasswordMutation.isPending}
+        onSubmit={(password) => {
+          if (!resettingPasswordFor) return;
+          resetPasswordMutation.mutate({
+            employee: resettingPasswordFor,
+            password,
+          });
+        }}
       />
       <SavedViewFormDialog
         open={viewDialogOpen}

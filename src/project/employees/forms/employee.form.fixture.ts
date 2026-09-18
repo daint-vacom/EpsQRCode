@@ -63,6 +63,25 @@ const spec: FormSpec = {
       width: 'full',
       rows: 3,
     },
+    {
+      kind: 'switch',
+      name: 'createAccount',
+      label: 'Tạo tài khoản đăng nhập',
+      width: 'full',
+    },
+    {
+      kind: 'text',
+      name: 'accountUsername',
+      label: 'Tên đăng nhập',
+      width: 'normal',
+    },
+    {
+      kind: 'text',
+      name: 'initialPassword',
+      label: 'Mật khẩu ban đầu',
+      width: 'normal',
+      inputType: 'password',
+    },
   ],
 };
 

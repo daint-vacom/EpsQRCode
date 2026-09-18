@@ -9,6 +9,9 @@ export const EMPLOYEE_STATUS_LABELS: Record<EmployeeStatus, string> = {
   inactive: 'Ngừng làm việc',
 };
 
+export const EMPLOYEE_USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
+export const EMPLOYEE_MIN_PASSWORD_LENGTH = 8;
+
 const employeeCustomFieldValuesSchema = z.preprocess(
   (value) => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -52,6 +55,15 @@ export const employeeFormSchema = z.object({
   joinedAt: z.date().nullable(),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
   imageUrl: z.string().trim(),
+  createAccount: z.boolean(),
+  accountUsername: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === '' || EMPLOYEE_USERNAME_PATTERN.test(value),
+      'Tên đăng nhập gồm chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang; dài 3-32 ký tự.',
+    ),
+  initialPassword: z.string(),
   roleIds: z.array(z.string()),
   customFields: employeeCustomFieldValuesSchema,
 });
@@ -75,6 +87,7 @@ export interface Employee {
   id: string;
   tenantId: string;
   userId: string | null;
+  username: string | null;
   avatarUrl: string | null;
   roles: EmployeeRole[];
   roleIds: string[];
@@ -93,6 +106,7 @@ export interface EmployeeRow {
   id: string;
   tenant_id: string;
   user_id: string | null;
+  username?: string | null;
   employee_code: string;
   first_name: string;
   last_name: string;
@@ -127,6 +141,7 @@ export interface EmployeeListResult {
 export interface EmployeeAvatarRow {
   id: string;
   avatar_url: string | null;
+  username?: string | null;
 }
 
 export const emptyEmployeeForm: EmployeeFormValues = {
@@ -138,6 +153,9 @@ export const emptyEmployeeForm: EmployeeFormValues = {
   joinedAt: null,
   note: '',
   imageUrl: '',
+  createAccount: false,
+  accountUsername: '',
+  initialPassword: '',
   roleIds: [],
   customFields: {},
 };
@@ -147,6 +165,7 @@ export function mapEmployeeRow(
   avatarUrl: string | null = null,
   roles: EmployeeRole[] = [],
   roleIds: string[] = [],
+  username: string | null = row.username ?? null,
 ): Employee {
   const displayName = [row.last_name, row.first_name]
     .filter(Boolean)
@@ -157,6 +176,7 @@ export function mapEmployeeRow(
     id: row.id,
     tenantId: row.tenant_id,
     userId: row.user_id,
+    username,
     avatarUrl: avatarUrl ?? row.avatar_url ?? null,
     roles,
     roleIds,
@@ -186,6 +206,9 @@ export function mapEmployeeToFormValues(
       : null,
     note: employee.note,
     imageUrl: employee.avatarUrl ?? '',
+    createAccount: Boolean(employee.userId),
+    accountUsername: employee.username ?? '',
+    initialPassword: '',
     roleIds: [...employee.roleIds],
     customFields: {},
   };

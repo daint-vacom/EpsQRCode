@@ -70,7 +70,7 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      headerClassName: 'w-[110px]',
+      headerClassName: 'w-[150px]',
       cellClassName: 'text-right',
     },
   ],

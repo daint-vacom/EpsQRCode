@@ -7,6 +7,7 @@ import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import {
   createEmployee,
+  createEmployeeAccount,
   loadEmployeeCustomFields,
   saveEmployeeAccess,
   saveEmployeeCustomFieldValues,
@@ -45,12 +46,15 @@ export function EmployeeCreateDialog({
   const canManageEmployeeRoles = hasPermission(
     'organization:employee:assign-role',
   );
+  const canManageEmployeeAccount = hasPermission(
+    'organization:employee:update',
+  );
   const canManageCustomerAssignments = hasPermission('customers:update');
 
   useEffect(() => {
     if (!open) return;
 
-    form.reset(emptyEmployeeForm);
+    form.reset({ ...emptyEmployeeForm, createAccount: true });
     setEmployeeImageFile(null);
     setCustomerAssignments([]);
   }, [form, open]);
@@ -71,6 +75,11 @@ export function EmployeeCreateDialog({
       assignments: EmployeeCustomerAssignmentInput[];
     }) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
+      if (!canManageEmployeeAccount) {
+        throw new Error(
+          'Bạn không có quyền tạo tài khoản đăng nhập cho nhân viên.',
+        );
+      }
 
       let savedEmployee = await createEmployee(tenantId, values);
       if (employeeImageFile) {
@@ -84,6 +93,19 @@ export function EmployeeCreateDialog({
           imageUrl,
         });
       }
+
+      const account = await createEmployeeAccount(
+        tenantId,
+        savedEmployee.id,
+        values.accountUsername,
+        values.initialPassword,
+      );
+      savedEmployee = {
+        ...savedEmployee,
+        userId: account.user_id,
+        username: account.username ?? values.accountUsername,
+        accountLinked: true,
+      };
 
       await saveEmployeeCustomFieldValues(
         tenantId,
@@ -128,7 +150,10 @@ export function EmployeeCreateDialog({
       return;
     }
 
-    saveMutation.mutate({ values, assignments: customerAssignments });
+    saveMutation.mutate({
+      values: { ...values, createAccount: true },
+      assignments: customerAssignments,
+    });
   }
 
   function openEmployeeCustomFieldConfiguration() {
@@ -161,6 +186,7 @@ export function EmployeeCreateDialog({
       customerAssignments={customerAssignments}
       onCustomerAssignmentsChange={setCustomerAssignments}
       canManageRoles={canManageEmployeeRoles}
+      canManageAccount={canManageEmployeeAccount}
       canManageCustomerAssignments={canManageCustomerAssignments}
       employeeHasLinkedAccount={false}
       accessIsLoading={employeeAccess.isLoading}

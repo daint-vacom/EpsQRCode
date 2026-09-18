@@ -98,6 +98,31 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
   toast lỗi ngắn gọn. Quy tắc này áp dụng cả lỗi từ schema validation và lỗi nghiệp vụ được
   thêm bằng `form.setError`; không để người dùng phải tự dò tab hoặc chỉ dựa vào viền đỏ.
 
+### Dialog shell và khoảng cách form
+
+- Dialog có form phải dùng một shell nhất quán: `DialogContent` dùng `flex flex-col gap-0
+  overflow-hidden p-0`, `DialogHeader` dùng `shrink-0` cùng padding ngang/dọc, phần form đặt
+  trong `DialogBody` (hoặc wrapper tương đương) dùng `min-h-0 flex-1 overflow-y-auto px-6 py-5`,
+  và `DialogFooter` dùng `shrink-0 px-6 py-4`.
+- Không đặt trực tiếp `<Form>` hoặc `<form>` ngay sau `DialogHeader` trong `DialogContent` mặc định.
+  `DialogContent` có padding ngoài nhưng không tạo khoảng cách giữa các sibling, vì vậy form sẽ bị
+  dính sát header; body wrapper là nơi sở hữu spacing và vùng scroll.
+- Dialog ngắn vẫn giữ body wrapper để khoảng cách header–form–footer nhất quán. Chỉ bỏ `max-height`
+  hoặc `overflow-y-auto` khi dialog thực sự không cần scroll; không bỏ padding body để sửa nhanh khoảng
+  cách.
+
+### Password và input có ẩn/hiện
+
+- Mặc định dùng `Input` với `type="password"` cho mật khẩu khởi tạo, đổi mật khẩu và các secret
+  không cần xem lại. Đây là cùng pattern với màn hình đăng nhập và không tự chèn nút con mắt.
+- `PasswordInput` là primitive opt-in: chỉ dùng khi UX đã yêu cầu người dùng chủ động ẩn/hiện giá trị.
+  Primitive này cố ý thêm nút con mắt, nên không dùng cho mọi input password theo mặc định.
+- Dùng `autoComplete="new-password"` khi tạo/đặt lại mật khẩu; dùng `current-password` cho mật khẩu
+  hiện tại hoặc đăng nhập. Không đổi mật khẩu thành input text để né hành vi ẩn/hiện.
+- Với các input nhạy cảm khác cần ẩn/hiện, dùng cùng một pattern có kiểm soát: nút phải có
+  `type="button"`, accessible label/tooltip rõ ràng (ví dụ `Xem mật khẩu` và `Ẩn mật khẩu`), không
+  làm mất giá trị hoặc thông báo lỗi của field, và không được vô tình submit form.
+
 ### Responsive dialog scrolling
 
 - A dialog with a fixed or maximum height must use a flex shell: header and footer are `shrink-0`,
