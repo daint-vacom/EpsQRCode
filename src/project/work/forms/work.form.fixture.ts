@@ -79,6 +79,24 @@ const spec: FormSpec = {
       format: 'iso',
     },
     {
+      kind: 'text',
+      name: 'plannedStartTime',
+      label: 'Giờ bắt đầu dự kiến',
+      width: 'normal',
+    },
+    {
+      kind: 'text',
+      name: 'plannedEndTime',
+      label: 'Giờ hoàn thành dự kiến',
+      width: 'normal',
+    },
+    {
+      kind: 'text',
+      name: 'color',
+      label: 'Màu công việc',
+      width: 'full',
+    },
+    {
       kind: 'multiselect',
       name: 'customerIds',
       label: 'Khách hàng liên quan',

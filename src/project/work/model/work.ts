@@ -34,6 +34,11 @@ const optionalDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Ngày không hợp lệ')
   .or(z.literal(''));
+const optionalTime = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Giờ không hợp lệ')
+  .or(z.literal(''));
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Màu không hợp lệ.');
 
 export const workFormSchema = z
   .object({
@@ -46,6 +51,9 @@ export const workFormSchema = z
     templateId: optionalUuid,
     plannedStartDate: optionalDate,
     plannedEndDate: optionalDate,
+    plannedStartTime: optionalTime,
+    plannedEndTime: optionalTime,
+    color: hexColor,
     customerIds: z.array(z.string().uuid()),
     contractIds: z.array(z.string().uuid()),
   })
@@ -59,6 +67,21 @@ export const workFormSchema = z
         code: z.ZodIssueCode.custom,
         path: ['plannedEndDate'],
         message: 'Ngày hoàn thành dự kiến phải sau hoặc bằng ngày bắt đầu.',
+      });
+    }
+
+    if (
+      value.plannedStartDate &&
+      value.plannedEndDate &&
+      value.plannedStartDate === value.plannedEndDate &&
+      value.plannedStartTime &&
+      value.plannedEndTime &&
+      value.plannedEndTime < value.plannedStartTime
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['plannedEndTime'],
+        message: 'Giờ hoàn thành dự kiến phải sau hoặc bằng giờ bắt đầu.',
       });
     }
   });
@@ -95,6 +118,9 @@ export interface WorkItem {
   sortOrder: number;
   plannedStartDate: string | null;
   plannedEndDate: string | null;
+  plannedStartTime: string | null;
+  plannedEndTime: string | null;
+  color: string;
   actualStartedAt: string | null;
   actualCompletedAt: string | null;
   childCount: number;
@@ -150,6 +176,9 @@ export const workDefaultValues: WorkFormValues = {
   templateId: '',
   plannedStartDate: '',
   plannedEndDate: '',
+  plannedStartTime: '00:00',
+  plannedEndTime: '00:00',
+  color: '#2563eb',
   customerIds: [],
   contractIds: [],
 };
@@ -198,6 +227,13 @@ export function mapWorkRpcRow(row: Record<string, unknown>): WorkItem {
       ? String(row.plannedStartDate)
       : null,
     plannedEndDate: row.plannedEndDate ? String(row.plannedEndDate) : null,
+    plannedStartTime: row.plannedStartTime
+      ? String(row.plannedStartTime).slice(0, 5)
+      : '00:00',
+    plannedEndTime: row.plannedEndTime
+      ? String(row.plannedEndTime).slice(0, 5)
+      : '00:00',
+    color: String(row.color ?? '#2563eb'),
     actualStartedAt: row.actualStartedAt ? String(row.actualStartedAt) : null,
     actualCompletedAt: row.actualCompletedAt
       ? String(row.actualCompletedAt)
@@ -241,6 +277,9 @@ export function toWorkFormValues(work: WorkItem): WorkFormValues {
     templateId: work.templateId ?? '',
     plannedStartDate: work.plannedStartDate ?? '',
     plannedEndDate: work.plannedEndDate ?? '',
+    plannedStartTime: work.plannedStartTime ?? '00:00',
+    plannedEndTime: work.plannedEndTime ?? '00:00',
+    color: work.color || '#2563eb',
     customerIds: work.customers.map((item) => item.id),
     contractIds: work.contracts.map((item) => item.id),
   };

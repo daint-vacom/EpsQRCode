@@ -6,13 +6,7 @@ import {
   useReactTable,
   type PaginationState,
 } from '@tanstack/react-table';
-import {
-  CalendarDays,
-  ClipboardList,
-  Plus,
-  RefreshCw,
-  TriangleAlert,
-} from 'lucide-react';
+import { ClipboardList, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatDate, formatDateTime } from '@/lib/date';
@@ -21,7 +15,6 @@ import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import {
   Card,
   CardDescription,
@@ -34,6 +27,10 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
+import {
+  EventCalendar,
+  type CalendarEvent,
+} from '@/components/ui/event-calendar';
 import {
   Kanban,
   KanbanBoard,
@@ -61,6 +58,7 @@ import { WorkViewSwitcher } from '../components/work-view-switcher';
 import { useWorkForm, WorkFormDialog } from '../forms/work-form.generated';
 import {
   isWorkOverdue,
+  toWorkFormValues,
   WORK_PRIORITY_LABELS,
   WORK_STATUS_LABELS,
   type WorkFormValues,
@@ -89,6 +87,53 @@ const statusOptions = Object.entries(WORK_STATUS_LABELS).map(
 const priorityOptions = Object.entries(WORK_PRIORITY_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
+
+function parseWorkDate(value: string): Date {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function parseWorkDateTime(value: string, timeValue?: string | null): Date {
+  const date = parseWorkDate(value);
+  const [hours, minutes] = (timeValue || '00:00').split(':').map(Number);
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date;
+}
+
+function formatWorkTime(value: Date): string {
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatWorkDate(value: Date): string {
+  return [
+    value.getFullYear(),
+    String(value.getMonth() + 1).padStart(2, '0'),
+    String(value.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function toCalendarEvent(work: WorkItem): CalendarEvent | null {
+  const startValue = work.plannedStartDate ?? work.plannedEndDate;
+  const endValue = work.plannedEndDate ?? work.plannedStartDate;
+  if (!startValue || !endValue) return null;
+
+  const start = parseWorkDateTime(startValue, work.plannedStartTime);
+  const end = parseWorkDateTime(endValue, work.plannedEndTime);
+
+  return {
+    id: work.id,
+    title: work.title,
+    description: work.description || undefined,
+    start,
+    end:
+      end.getTime() > start.getTime()
+        ? end
+        : new Date(start.getTime() + 60 * 60 * 1000),
+    allDay: false,
+    color: work.color,
+    location: work.assigneeName || undefined,
+  };
+}
 
 function WorkCard({
   work,
@@ -141,9 +186,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     pageIndex: 0,
     pageSize: 50,
   });
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    new Date(),
-  );
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingWork, setEditingWork] = useState<WorkItem | null>(null);
@@ -225,11 +267,22 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   }));
 
   const openCreate = useCallback(
-    (parent?: WorkItem | null) => {
+    (parent?: WorkItem | null, calendarStartAt?: Date) => {
       setCreateChildOf(parent ?? null);
-      createForm.reset({
+      const nextValues = {
         ...createForm.getValues(),
         parentId: parent?.id ?? '',
+      };
+      if (calendarStartAt) {
+        const date = formatWorkDate(calendarStartAt);
+        const time = formatWorkTime(calendarStartAt);
+        nextValues.plannedStartDate = date;
+        nextValues.plannedEndDate = date;
+        nextValues.plannedStartTime = time;
+        nextValues.plannedEndTime = time;
+      }
+      createForm.reset({
+        ...nextValues,
       });
       setCreateOpen(true);
     },
@@ -245,19 +298,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   }, [createOpen, navigate, openCreate, searchParams, works]);
   const openEdit = (work: WorkItem) => {
     setEditingWork(work);
-    editForm.reset({
-      title: work.title,
-      description: work.description,
-      status: work.status,
-      priority: work.priority,
-      assigneeEmployeeId: work.assigneeEmployeeId ?? '',
-      parentId: work.parentId ?? '',
-      templateId: work.templateId ?? '',
-      plannedStartDate: work.plannedStartDate ?? '',
-      plannedEndDate: work.plannedEndDate ?? '',
-      customerIds: work.customers.map((item) => item.id),
-      contractIds: work.contracts.map((item) => item.id),
-    });
+    editForm.reset(toWorkFormValues(work));
     setEditOpen(true);
   };
   const createMutation = useMutation({
@@ -280,6 +321,21 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         queryKey: ['project', 'work', 'list'],
         type: 'active',
       });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const calendarUpdateMutation = useMutation({
+    mutationFn: ({ work, event }: { work: WorkItem; event: CalendarEvent }) =>
+      updateWorkItem(tenantId!, work.id, {
+        ...toWorkFormValues(work),
+        plannedStartDate: formatWorkDate(event.start),
+        plannedEndDate: formatWorkDate(event.end),
+        plannedStartTime: formatWorkTime(event.start),
+        plannedEndTime: formatWorkTime(event.end),
+      }),
+    onSuccess: async () => {
+      toast.success('Đã cập nhật thời gian dự kiến của công việc.');
+      await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -413,11 +469,13 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   useEffect(() => {
     setKanbanColumns(columnsByStatus);
   }, [columnsByStatus]);
-  const calendarWorks = works.filter((work) => {
-    if (!selectedDate) return true;
-    const iso = selectedDate.toISOString().slice(0, 10);
-    return work.plannedStartDate === iso || work.plannedEndDate === iso;
-  });
+  const calendarEvents = useMemo(
+    () =>
+      works
+        .map(toCalendarEvent)
+        .filter((event): event is CalendarEvent => Boolean(event)),
+    [works],
+  );
   const submitProps = {
     statusOptions,
     priorityOptions,
@@ -615,41 +673,21 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           </Kanban>
         </div>
       ) : (
-        <div className="grid min-h-0 flex-1 gap-5 overflow-auto p-5 xl:grid-cols-[auto_minmax(0,1fr)]">
-          <div className="rounded-xl border bg-card">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-            />
-          </div>
-          <div className="min-w-0">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <CalendarDays className="size-4 text-primary" /> Công việc trong
-              ngày đã chọn
-            </div>
-            <div className="space-y-2">
-              {calendarWorks.length ? (
-                calendarWorks.map((work) => (
-                  <WorkCard
-                    key={work.id}
-                    work={work}
-                    onOpen={(item) =>
-                      navigate(
-                        buildPath(ROUTES.PROJECT.WORK_DETAIL, {
-                          id: item.id,
-                        }),
-                      )
-                    }
-                  />
-                ))
-              ) : (
-                <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  Không có công việc có mốc dự kiến trong ngày này.
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <EventCalendar
+            events={calendarEvents}
+            initialView="month"
+            allowEventCreation
+            onEventCreate={(startTime) => openCreate(null, startTime)}
+            onEventSelect={(event) =>
+              navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: event.id }))
+            }
+            onEventUpdate={(event) => {
+              const work = works.find((item) => item.id === event.id);
+              if (!work) return;
+              calendarUpdateMutation.mutate({ work, event });
+            }}
+          />
         </div>
       )}
       <WorkFormDialog

@@ -12,6 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { ColorInput } from '@/components/ui/color-input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -52,6 +53,9 @@ export const workDefaultValues: WorkFormValues = {
   templateId: '',
   plannedStartDate: '',
   plannedEndDate: '',
+  plannedStartTime: '00:00',
+  plannedEndTime: '00:00',
+  color: '#2563eb',
   customerIds: [],
   contractIds: [],
 };
@@ -79,6 +83,9 @@ export function mapWorkToFormValues(entity: WorkFormSource): WorkFormValues {
     templateId: entity.templateId ?? '',
     plannedStartDate: entity.plannedStartDate ?? '',
     plannedEndDate: entity.plannedEndDate ?? '',
+    plannedStartTime: entity.plannedStartTime ?? '00:00',
+    plannedEndTime: entity.plannedEndTime ?? '00:00',
+    color: entity.color || '#2563eb',
     customerIds: entity.customers.map((item) => item.id),
     contractIds: entity.contracts.map((item) => item.id),
   };
@@ -292,6 +299,55 @@ export function WorkForm({
                     calendarLabel="Chọn ngày hoàn thành dự kiến"
                     valueMode="iso-date"
                     variant="md"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="plannedStartTime"
+            render={({ field }) => (
+              <FormItem className="md:col-span-6">
+                <FormLabel>Giờ bắt đầu dự kiến</FormLabel>
+                <FormControl>
+                  <Input type="time" variant="md" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="plannedEndTime"
+            render={({ field }) => (
+              <FormItem className="md:col-span-6">
+                <FormLabel>Giờ hoàn thành dự kiến</FormLabel>
+                <FormControl>
+                  <Input type="time" variant="md" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem className="md:col-span-12">
+                <FormLabel>Màu công việc</FormLabel>
+                <FormControl>
+                  <ColorInput
+                    defaultValue="#2563eb"
+                    expanded
+                    variant="md"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
                   />
                 </FormControl>
                 <FormMessage />
