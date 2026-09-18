@@ -65,6 +65,9 @@ import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
 import { ReportsPage } from '@/project/reports/pages/reports-page';
+import { WorkDetailPage } from '@/project/work/pages/work-detail-page';
+import { WorkPage } from '@/project/work/pages/work-page';
+import { WorkTemplatesPage } from '@/project/work/pages/work-templates-page';
 import { Route, Routes } from 'react-router';
 import { Layout1 } from '@/components/layouts/layout-1';
 import { Layout2 } from '@/components/layouts/layout-2';
@@ -233,6 +236,19 @@ export function AppRoutingSetup() {
         <Route element={<ProjectMainLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
+          <Route path={ROUTES.PROJECT.WORK} element={<WorkPage />} />
+          <Route
+            path={ROUTES.PROJECT.MY_WORK}
+            element={<WorkPage scope="mine" />}
+          />
+          <Route
+            path={ROUTES.PROJECT.WORK_DETAIL}
+            element={<WorkDetailPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.WORK_TEMPLATES}
+            element={<WorkTemplatesPage />}
+          />
           <Route path={ROUTES.PROJECT.CUSTOMERS} element={<CustomersPage />} />
           <Route path={ROUTES.PROJECT.CONTRACTS} element={<ContractsPage />} />
           <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />

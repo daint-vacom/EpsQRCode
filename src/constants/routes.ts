@@ -27,6 +27,10 @@ export const ROUTES = {
   },
   PROJECT: {
     SETTINGS: '/settings',
+    WORK: '/work',
+    MY_WORK: '/my-work',
+    WORK_DETAIL: '/work/:id',
+    WORK_TEMPLATES: '/work-templates',
     EMPLOYEES: '/employees',
     CUSTOMERS: '/customers',
     CUSTOMER_DETAIL: '/customers/:id',

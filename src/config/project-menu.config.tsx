@@ -1,6 +1,7 @@
 import { ROUTES } from '@/constants/routes';
 import {
   CircleDollarSign,
+  ClipboardList,
   FileText,
   FolderOpen,
   Landmark,
@@ -25,6 +26,21 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Tổng quan',
         icon: LayoutDashboard,
         path: '/',
+      },
+      {
+        label: 'Công việc',
+        icon: ClipboardList,
+        path: ROUTES.PROJECT.WORK,
+      },
+      {
+        label: 'Việc của tôi',
+        icon: ClipboardList,
+        path: ROUTES.PROJECT.MY_WORK,
+      },
+      {
+        label: 'Mẫu công việc',
+        icon: ListTree,
+        path: ROUTES.PROJECT.WORK_TEMPLATES,
       },
     ],
   },

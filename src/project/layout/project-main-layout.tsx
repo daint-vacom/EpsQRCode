@@ -46,6 +46,7 @@ export function ProjectMainLayout() {
   const isCustomerDetail = pathname.startsWith(`${ROUTES.PROJECT.CUSTOMERS}/`);
   const isContractDetail =
     pathname.startsWith(`${ROUTES.PROJECT.CONTRACTS}/`) && !isContractCreate;
+  const isWorkDetail = pathname.startsWith(`${ROUTES.PROJECT.WORK}/`);
   const isContractTemplateCreate =
     pathname === ROUTES.PROJECT.CONTRACT_TEMPLATE_CREATE;
   const isContractTemplateEdit =
@@ -78,6 +79,9 @@ export function ProjectMainLayout() {
   const contractId = isContractDetail
     ? pathname.slice(`${ROUTES.PROJECT.CONTRACTS}/`.length).split('/')[0]
     : contractEditId;
+  const workId = isWorkDetail
+    ? pathname.slice(`${ROUTES.PROJECT.WORK}/`.length).split('/')[0]
+    : undefined;
   const financeAccountId = isFinanceAccountDetail
     ? pathname.slice(`${ROUTES.PROJECT.FINANCE_ACCOUNTS}/`.length).split('/')[0]
     : undefined;
@@ -159,54 +163,71 @@ export function ProjectMainLayout() {
     ? (customerDetailQuery.data?.name ?? 'Chi tiết khách hàng')
     : isContractDetail
       ? (contractDetailQuery.data?.name ?? 'Chi tiết hợp đồng')
-      : isFinanceVoucherCreate
-        ? searchParams.get('type') === 'payment'
-          ? 'Lập phiếu chi'
-          : 'Lập phiếu thu'
-        : isFinanceVoucherDetail
-          ? (financeVoucherQuery.data?.voucherNo ?? 'Chi tiết phiếu')
-          : isFinanceVoucherEdit
-            ? (financeVoucherQuery.data?.voucherNo ?? 'Chỉnh sửa phiếu')
-            : isFinanceObligationDetail
-              ? (financeObligationQuery.data?.code ?? 'Chi tiết công nợ')
-              : isFinanceAccountDetail
-                ? (financeAccount?.name ?? 'Chi tiết tài khoản')
-                : isFinanceAccountReport
-                  ? 'Sổ quỹ & Tài khoản'
-                  : isContractTemplateCreate
-                    ? 'Thêm mẫu hợp đồng'
-                    : isContractTemplateEdit
-                      ? 'Chỉnh sửa mẫu hợp đồng'
-                      : isContractTemplateDetail
-                        ? 'Chi tiết mẫu hợp đồng'
-                        : isContractEdit
-                          ? 'Chỉnh sửa'
-                          : isContractCreate
-                            ? 'Thêm hợp đồng'
-                            : pathname === ROUTES.PROJECT.EMPLOYEES
-                              ? 'Nhân viên'
-                              : pathname === ROUTES.PROJECT.CUSTOMERS
-                                ? 'Khách hàng'
-                                : pathname === ROUTES.PROJECT.SETTINGS
-                                  ? 'Cài đặt'
-                                  : pathname === ROUTES.PROJECT.ROLE_PERMISSIONS
-                                    ? 'Phân quyền'
-                                    : pathname ===
-                                        ROUTES.PROJECT.DATA_CONFIGURATION
-                                      ? 'Cấu hình dữ liệu'
-                                      : pathname === ROUTES.PROJECT.TAGS
-                                        ? 'Danh mục'
-                                        : pathname === ROUTES.PROJECT.FILES
-                                          ? 'Tệp lưu trữ'
-                                          : isFinanceRoute
-                                            ? pathname.includes('obligations')
-                                              ? 'Công nợ'
-                                              : pathname.includes('accounts')
-                                                ? 'Quỹ & Tài khoản'
-                                                : 'Sổ thu chi'
-                                            : isReportsRoute
-                                              ? 'Báo cáo'
-                                              : 'Tổng quan';
+      : isWorkDetail
+        ? workId
+          ? 'Chi tiết công việc'
+          : 'Công việc'
+        : isFinanceVoucherCreate
+          ? searchParams.get('type') === 'payment'
+            ? 'Lập phiếu chi'
+            : 'Lập phiếu thu'
+          : isFinanceVoucherDetail
+            ? (financeVoucherQuery.data?.voucherNo ?? 'Chi tiết phiếu')
+            : isFinanceVoucherEdit
+              ? (financeVoucherQuery.data?.voucherNo ?? 'Chỉnh sửa phiếu')
+              : isFinanceObligationDetail
+                ? (financeObligationQuery.data?.code ?? 'Chi tiết công nợ')
+                : isFinanceAccountDetail
+                  ? (financeAccount?.name ?? 'Chi tiết tài khoản')
+                  : isFinanceAccountReport
+                    ? 'Sổ quỹ & Tài khoản'
+                    : isContractTemplateCreate
+                      ? 'Thêm mẫu hợp đồng'
+                      : isContractTemplateEdit
+                        ? 'Chỉnh sửa mẫu hợp đồng'
+                        : isContractTemplateDetail
+                          ? 'Chi tiết mẫu hợp đồng'
+                          : isContractEdit
+                            ? 'Chỉnh sửa'
+                            : isContractCreate
+                              ? 'Thêm hợp đồng'
+                              : pathname === ROUTES.PROJECT.WORK
+                                ? 'Công việc'
+                                : pathname === ROUTES.PROJECT.MY_WORK
+                                  ? 'Việc của tôi'
+                                  : pathname === ROUTES.PROJECT.WORK_TEMPLATES
+                                    ? 'Mẫu công việc'
+                                    : pathname === ROUTES.PROJECT.EMPLOYEES
+                                      ? 'Nhân viên'
+                                      : pathname === ROUTES.PROJECT.CUSTOMERS
+                                        ? 'Khách hàng'
+                                        : pathname === ROUTES.PROJECT.SETTINGS
+                                          ? 'Cài đặt'
+                                          : pathname ===
+                                              ROUTES.PROJECT.ROLE_PERMISSIONS
+                                            ? 'Phân quyền'
+                                            : pathname ===
+                                                ROUTES.PROJECT
+                                                  .DATA_CONFIGURATION
+                                              ? 'Cấu hình dữ liệu'
+                                              : pathname === ROUTES.PROJECT.TAGS
+                                                ? 'Danh mục'
+                                                : pathname ===
+                                                    ROUTES.PROJECT.FILES
+                                                  ? 'Tệp lưu trữ'
+                                                  : isFinanceRoute
+                                                    ? pathname.includes(
+                                                        'obligations',
+                                                      )
+                                                      ? 'Công nợ'
+                                                      : pathname.includes(
+                                                            'accounts',
+                                                          )
+                                                        ? 'Quỹ & Tài khoản'
+                                                        : 'Sổ thu chi'
+                                                    : isReportsRoute
+                                                      ? 'Báo cáo'
+                                                      : 'Tổng quan';
 
   const quickCreateItems = [
     {
