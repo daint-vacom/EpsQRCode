@@ -11,8 +11,8 @@ import {
   createColumnHelpers,
   DataGridActionButton,
   getDataGridActionsColumnSize,
-  type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
+import { WorkStatusBadge } from '../components/work-status-badge';
 import type { WorkItem } from '../model/work';
 
 type Work = WorkItem;
@@ -21,52 +21,16 @@ export const WORK_COLUMN_PINNING: ColumnPinningState = {
   right: ['actions'],
 };
 
-const statusBadgeConfig: StatusBadgeConfig<string> = {
-  draft: {
-    label: 'Bản nháp',
-    className:
-      'border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-muted-foreground',
-  },
-  todo: {
-    label: 'Chưa thực hiện',
-    className:
-      'border-transparent bg-admin-blue-bg px-2.5 py-1 text-xs text-admin-blue-text',
-    dotClassName: 'bg-admin-blue-primary',
-  },
-  in_progress: {
-    label: 'Đang thực hiện',
-    className:
-      'border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-    dotClassName: 'bg-admin-amber-primary',
-  },
-  paused: {
-    label: 'Tạm dừng',
-    className:
-      'border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-muted-foreground',
-  },
-  completed: {
-    label: 'Hoàn thành',
-    className:
-      'border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot',
-  },
-  cancelled: {
-    label: 'Đã hủy',
-    className:
-      'border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-    dotClassName: 'bg-admin-red-primary',
-  },
-};
-
 export interface UseWorkColumnsParams {
   onView: (row: Work) => void;
   onEdit: (row: Work) => void;
   onDelete: (row: Work) => void;
   renderWork: (row: Work) => ReactNode;
   renderAssignee: (row: Work) => ReactNode;
-  renderDates: (row: Work) => ReactNode;
+  renderPlannedStartDate: (row: Work) => ReactNode;
+  renderPlannedEndDate: (row: Work) => ReactNode;
+  renderActualStartedAt: (row: Work) => ReactNode;
+  renderActualCompletedAt: (row: Work) => ReactNode;
   renderLinks: (row: Work) => ReactNode;
 }
 
@@ -78,20 +42,19 @@ export function useWorkColumns(
 
     return [
       col.custom({
+        id: 'status',
+        header: 'Trạng thái',
+        size: 170,
+        enableSorting: false,
+        cell: (row) => <WorkStatusBadge status={row.status} />,
+      }),
+      col.custom({
         id: 'work',
         header: 'Công việc',
         headerClassName: 'min-w-[340px]',
         size: 360,
         enableSorting: false,
         cell: (row) => params.renderWork(row),
-      }),
-      col.badge({
-        id: 'status',
-        header: 'Trạng thái',
-        get: (row) => row.status,
-        config: statusBadgeConfig,
-        size: 170,
-        enableSorting: false,
       }),
       col.custom({
         id: 'assignee',
@@ -102,12 +65,36 @@ export function useWorkColumns(
         cell: (row) => params.renderAssignee(row),
       }),
       col.custom({
-        id: 'dates',
-        header: 'Thời gian',
-        headerClassName: 'w-[210px]',
-        size: 210,
+        id: 'plannedStartDate',
+        header: 'Bắt đầu dự kiến',
+        headerClassName: 'w-[150px]',
+        size: 150,
         enableSorting: false,
-        cell: (row) => params.renderDates(row),
+        cell: (row) => params.renderPlannedStartDate(row),
+      }),
+      col.custom({
+        id: 'plannedEndDate',
+        header: 'Hoàn thành dự kiến',
+        headerClassName: 'w-[150px]',
+        size: 150,
+        enableSorting: false,
+        cell: (row) => params.renderPlannedEndDate(row),
+      }),
+      col.custom({
+        id: 'actualStartedAt',
+        header: 'Bắt đầu thực tế',
+        headerClassName: 'w-[170px]',
+        size: 170,
+        enableSorting: false,
+        cell: (row) => params.renderActualStartedAt(row),
+      }),
+      col.custom({
+        id: 'actualCompletedAt',
+        header: 'Hoàn thành thực tế',
+        headerClassName: 'w-[170px]',
+        size: 170,
+        enableSorting: false,
+        cell: (row) => params.renderActualCompletedAt(row),
       }),
       col.custom({
         id: 'links',

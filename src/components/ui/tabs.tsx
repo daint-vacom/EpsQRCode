@@ -99,7 +99,7 @@ const tabsTriggerVariants = cva(
     compoundVariants: [
       { variant: 'default', size: 'lg', className: 'py-2.5 px-4 rounded-md' },
       { variant: 'default', size: 'md', className: 'py-1.5 px-3 rounded-md' },
-      { variant: 'default', size: 'sm', className: 'py-1.5 px-2.5 rounded-sm' },
+      { variant: 'default', size: 'sm', className: 'h-6.5 px-2.5 rounded-sm' },
       { variant: 'default', size: 'xs', className: 'py-1 px-2 rounded-sm' },
 
       { variant: 'button', size: 'lg', className: 'py-3 px-4 rounded-lg' },

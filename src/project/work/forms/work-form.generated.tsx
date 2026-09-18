@@ -37,9 +37,10 @@ import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
+import { WorkStatusBadge } from '../components/work-status-badge';
 import { workFormSchema, type WorkFormValues } from '../model/work';
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
-import type { WorkItem } from '../model/work';
+import type { WorkItem, WorkStatus } from '../model/work';
 
 export const workDefaultValues: WorkFormValues = {
   title: '',
@@ -155,6 +156,20 @@ export function WorkForm({
                     options={statusOptions}
                     searchable={false}
                     placeholder="Chọn trạng thái"
+                    renderOption={(option) => (
+                      <WorkStatusBadge
+                        status={option.value as WorkStatus}
+                        size="sm"
+                      />
+                    )}
+                    triggerContent={(option) =>
+                      option ? (
+                        <WorkStatusBadge
+                          status={option.value as WorkStatus}
+                          size="sm"
+                        />
+                      ) : undefined
+                    }
                   />
                 </FormControl>
                 <FormMessage />

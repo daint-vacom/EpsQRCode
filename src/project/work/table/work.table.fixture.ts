@@ -7,55 +7,16 @@ const spec: TableSpec = {
   columns: [
     {
       kind: 'custom',
+      id: 'status',
+      header: 'Trạng thái',
+      sizePreset: 'badge',
+    },
+    {
+      kind: 'custom',
       id: 'work',
       header: 'Công việc',
       headerClassName: 'min-w-[340px]',
       size: 360,
-    },
-    {
-      kind: 'badge',
-      id: 'status',
-      header: 'Trạng thái',
-      field: 'status',
-      sizePreset: 'badge',
-      config: {
-        draft: {
-          label: 'Bản nháp',
-          className:
-            'border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-          dotClassName: 'bg-muted-foreground',
-        },
-        todo: {
-          label: 'Chưa thực hiện',
-          className:
-            'border-transparent bg-admin-blue-bg px-2.5 py-1 text-xs text-admin-blue-text',
-          dotClassName: 'bg-admin-blue-primary',
-        },
-        in_progress: {
-          label: 'Đang thực hiện',
-          className:
-            'border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-          dotClassName: 'bg-admin-amber-primary',
-        },
-        paused: {
-          label: 'Tạm dừng',
-          className:
-            'border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-          dotClassName: 'bg-muted-foreground',
-        },
-        completed: {
-          label: 'Hoàn thành',
-          className:
-            'border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-          dotClassName: 'bg-admin-success-dot',
-        },
-        cancelled: {
-          label: 'Đã hủy',
-          className:
-            'border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-          dotClassName: 'bg-admin-red-primary',
-        },
-      },
     },
     {
       kind: 'custom',
@@ -66,10 +27,31 @@ const spec: TableSpec = {
     },
     {
       kind: 'custom',
-      id: 'dates',
-      header: 'Thời gian',
-      headerClassName: 'w-[210px]',
-      size: 210,
+      id: 'plannedStartDate',
+      header: 'Bắt đầu dự kiến',
+      headerClassName: 'w-[150px]',
+      sizePreset: 'date',
+    },
+    {
+      kind: 'custom',
+      id: 'plannedEndDate',
+      header: 'Hoàn thành dự kiến',
+      headerClassName: 'w-[150px]',
+      sizePreset: 'date',
+    },
+    {
+      kind: 'custom',
+      id: 'actualStartedAt',
+      header: 'Bắt đầu thực tế',
+      headerClassName: 'w-[170px]',
+      size: 170,
+    },
+    {
+      kind: 'custom',
+      id: 'actualCompletedAt',
+      header: 'Hoàn thành thực tế',
+      headerClassName: 'w-[170px]',
+      size: 170,
     },
     {
       kind: 'custom',

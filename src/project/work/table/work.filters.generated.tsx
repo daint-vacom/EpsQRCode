@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import {
   FilterToolbar,
+  type FilterToolbarField,
   type FilterToolbarOption,
 } from '@/components/ui/filter-toolbar';
 
@@ -25,6 +26,7 @@ export interface WorkFilterBarProps {
   priorityRenderOption?: (option: PriorityFilterOption) => ReactNode;
   priorityRenderValue?: (option: PriorityFilterOption | undefined) => ReactNode;
   disabled?: boolean;
+  layout?: 'default' | 'split';
   className?: string;
 }
 
@@ -42,48 +44,63 @@ export function WorkFilterBar({
   priorityRenderOption,
   priorityRenderValue,
   disabled = false,
+  layout = 'default',
   className,
 }: WorkFilterBarProps) {
+  const searchField: FilterToolbarField = {
+    kind: 'search',
+    value: search,
+    onValueChange: onSearchChange,
+    placeholder: 'Tìm theo mã hoặc tên công việc',
+    className: 'w-72',
+    debounceMs: 300,
+    disabled,
+  };
+  const filterFields: FilterToolbarField[] = [
+    {
+      kind: 'select',
+      value: status,
+      onValueChange: onStatusChange,
+      options: statusOptions ?? [],
+      label: 'Trạng thái',
+      placeholder: 'Trạng thái',
+      ariaLabel: undefined,
+      className: 'w-40',
+      disabled,
+      renderOption: statusRenderOption,
+      renderValue: statusRenderValue,
+    },
+    {
+      kind: 'select',
+      value: priority,
+      onValueChange: onPriorityChange,
+      options: priorityOptions ?? [],
+      label: 'Ưu tiên',
+      placeholder: 'Ưu tiên',
+      ariaLabel: undefined,
+      className: 'w-40',
+      disabled,
+      renderOption: priorityRenderOption,
+      renderValue: priorityRenderValue,
+    },
+  ];
+
+  if (layout === 'split') {
+    return (
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+        <FilterToolbar className="min-w-0 flex-1" fields={[searchField]} />
+        <FilterToolbar
+          className="flex shrink-0 flex-row flex-nowrap items-center justify-end gap-2"
+          fields={filterFields}
+        />
+      </div>
+    );
+  }
+
   return (
     <FilterToolbar
       className={className}
-      fields={[
-        {
-          kind: 'search',
-          value: search,
-          onValueChange: onSearchChange,
-          placeholder: 'Tìm theo mã hoặc tên công việc',
-          className: 'w-72',
-          debounceMs: 300,
-          disabled,
-        },
-        {
-          kind: 'select',
-          value: status,
-          onValueChange: onStatusChange,
-          options: statusOptions ?? [],
-          label: 'Trạng thái',
-          placeholder: 'Trạng thái',
-          ariaLabel: undefined,
-          className: undefined,
-          disabled,
-          renderOption: statusRenderOption,
-          renderValue: statusRenderValue,
-        },
-        {
-          kind: 'select',
-          value: priority,
-          onValueChange: onPriorityChange,
-          options: priorityOptions ?? [],
-          label: 'Ưu tiên',
-          placeholder: 'Ưu tiên',
-          ariaLabel: undefined,
-          className: undefined,
-          disabled,
-          renderOption: priorityRenderOption,
-          renderValue: priorityRenderValue,
-        },
-      ]}
+      fields={[searchField, ...filterFields]}
     />
   );
 }

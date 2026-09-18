@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/kanban';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   createWorkItem,
   deleteWorkItem,
@@ -55,13 +56,13 @@ import {
   updateWorkItem,
   updateWorkItemStatus,
 } from '../api/work.api';
-import { WorkViewSwitcher } from '../components/work-view-switcher.generated';
+import { WorkStatusBadge } from '../components/work-status-badge';
+import { WorkViewSwitcher } from '../components/work-view-switcher';
 import { useWorkForm, WorkFormDialog } from '../forms/work-form.generated';
 import {
   isWorkOverdue,
   WORK_PRIORITY_LABELS,
   WORK_STATUS_LABELS,
-  workProgress,
   type WorkFormValues,
   type WorkItem,
   type WorkListFilters,
@@ -76,23 +77,18 @@ import { WorkFilterBar } from '../table/work.filters.generated';
 
 type WorkView = 'list' | 'kanban' | 'calendar';
 
+const WORK_KANBAN_STATUS_ORDER: WorkStatus[] = [
+  'todo',
+  'in_progress',
+  'completed',
+];
+
 const statusOptions = Object.entries(WORK_STATUS_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
 const priorityOptions = Object.entries(WORK_PRIORITY_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
-
-function workStatusClass(status: WorkStatus) {
-  return {
-    draft: 'bg-muted text-muted-foreground',
-    todo: 'bg-admin-blue-bg text-admin-blue-text',
-    in_progress: 'bg-admin-amber-bg text-admin-amber-dark',
-    paused: 'bg-muted text-muted-foreground',
-    completed: 'bg-admin-success-bg text-admin-success-text',
-    cancelled: 'bg-admin-red-bg text-admin-red-dark',
-  }[status];
-}
 
 function WorkCard({
   work,
@@ -113,12 +109,7 @@ function WorkCard({
           <Badge variant="outline" className="text-[10px]">
             {WORK_PRIORITY_LABELS[work.priority]}
           </Badge>
-          <Badge
-            variant="secondary"
-            className={`text-[10px] ${workStatusClass(work.status)}`}
-          >
-            {WORK_STATUS_LABELS[work.status]}
-          </Badge>
+          <WorkStatusBadge status={work.status} size="sm" />
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -337,14 +328,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         </button>
         <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <span>{work.code}</span>
-          {work.childCount ? (
-            <>
-              <span>·</span>
-              <span>
-                {work.completedChildCount}/{work.childCount} đầu mục con
-              </span>
-            </>
-          ) : null}
         </div>
       </div>
     ),
@@ -358,18 +341,25 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         ) : null}
       </span>
     ),
-    renderDates: (work) => (
-      <div className={isWorkOverdue(work) ? 'text-admin-red-dark' : 'text-sm'}>
-        <div>
-          {work.plannedStartDate ? formatDate(work.plannedStartDate) : '—'} →{' '}
-          {work.plannedEndDate ? formatDate(work.plannedEndDate) : '—'}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {work.actualCompletedAt
-            ? `Hoàn thành ${formatDateTime(work.actualCompletedAt)}`
-            : `${workProgress(work)}% tiến độ`}
-        </div>
-      </div>
+    renderPlannedStartDate: (work) => (
+      <span className={isWorkOverdue(work) ? 'text-admin-red-dark' : 'text-sm'}>
+        {work.plannedStartDate ? formatDate(work.plannedStartDate) : '—'}
+      </span>
+    ),
+    renderPlannedEndDate: (work) => (
+      <span className={isWorkOverdue(work) ? 'text-admin-red-dark' : 'text-sm'}>
+        {work.plannedEndDate ? formatDate(work.plannedEndDate) : '—'}
+      </span>
+    ),
+    renderActualStartedAt: (work) => (
+      <span className="text-sm">
+        {work.actualStartedAt ? formatDateTime(work.actualStartedAt) : '—'}
+      </span>
+    ),
+    renderActualCompletedAt: (work) => (
+      <span className="text-sm">
+        {work.actualCompletedAt ? formatDateTime(work.actualCompletedAt) : '—'}
+      </span>
     ),
     renderLinks: (work) => (
       <div className="flex max-w-[190px] flex-wrap gap-1">
@@ -412,10 +402,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
 
   const columnsByStatus = useMemo(() => {
     const next: Record<string, WorkItem[]> = Object.fromEntries(
-      WORK_STATUS_ORDER.map((item) => [item, []]),
+      WORK_KANBAN_STATUS_ORDER.map((item) => [item, []]),
     );
     works.forEach((item) => {
-      (next[item.status] ?? next.todo).push(item);
+      const column = next[item.status];
+      if (column) column.push(item);
     });
     return next;
   }, [works]);
@@ -490,7 +481,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-hidden p-4 lg:p-5">
       <PageHeader
         title={pageTitle}
         icon={ClipboardList}
@@ -500,44 +491,56 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           </span>
         }
         actions={
-          <Button onClick={() => openCreate()}>
-            <Plus /> Thêm công việc
-          </Button>
+          <>
+            <WorkViewSwitcher
+              value={view}
+              onValueChange={(value) => setView(value as WorkView)}
+            />
+            <Separator orientation="vertical" className="mx-1 h-6" />
+            <Button onClick={() => openCreate()}>
+              <Plus /> Thêm công việc
+            </Button>
+          </>
         }
       />
-      <Card className="min-h-0 flex-1 overflow-hidden">
-        <CardHeader className="flex-col items-stretch gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
+      {view === 'list' ? (
+        <Card className="min-h-0 flex-1 overflow-hidden">
+          <CardHeader className="flex-row items-center gap-4">
             <WorkFilterBar
+              layout="split"
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);
                 setPagination((current) => ({ ...current, pageIndex: 0 }));
               }}
               status={status}
-              onStatusChange={setStatus}
+              onStatusChange={(value) => {
+                setStatus(value);
+                setPagination((current) => ({ ...current, pageIndex: 0 }));
+              }}
               statusOptions={statusOptions}
-              priority={priority}
-              onPriorityChange={(value) =>
-                setPriority(value as WorkPriority | '')
+              statusRenderOption={(option) => (
+                <WorkStatusBadge
+                  status={option.value as WorkStatus}
+                  size="sm"
+                />
+              )}
+              statusRenderValue={(option) =>
+                option ? (
+                  <WorkStatusBadge
+                    status={option.value as WorkStatus}
+                    size="sm"
+                  />
+                ) : undefined
               }
+              priority={priority}
+              onPriorityChange={(value) => {
+                setPriority(value as WorkPriority | '');
+                setPagination((current) => ({ ...current, pageIndex: 0 }));
+              }}
               priorityOptions={priorityOptions}
             />
-            <Button
-              variant="outline"
-              mode="icon"
-              aria-label="Làm mới"
-              onClick={() => void workQuery.refetch()}
-            >
-              <RefreshCw />
-            </Button>
-          </div>
-          <WorkViewSwitcher
-            value={view}
-            onValueChange={(value) => setView(value as WorkView)}
-          />
-        </CardHeader>
-        {view === 'list' ? (
+          </CardHeader>
           <DataGrid
             table={table}
             recordCount={workQuery.data?.total ?? 0}
@@ -556,99 +559,99 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
               <DataGridPagination />
             </CardFooter>
           </DataGrid>
-        ) : view === 'kanban' ? (
-          <div className="min-h-0 flex-1 overflow-auto p-5">
-            <Kanban
-              value={kanbanColumns}
-              onValueChange={setKanbanColumns}
-              getItemValue={(item) => item.id}
-              onMove={moveKanban}
-            >
-              <KanbanBoard className="min-w-[1100px] grid-cols-6">
-                <>
-                  {WORK_STATUS_ORDER.map((statusKey) => (
-                    <KanbanColumn
-                      key={statusKey}
-                      value={statusKey}
-                      className="min-h-[28rem] rounded-xl bg-muted/40 p-2"
-                    >
-                      <div className="mb-3 flex items-center justify-between px-2">
-                        <span className="text-sm font-semibold">
-                          {WORK_STATUS_LABELS[statusKey]}
-                        </span>
-                        <Badge variant="secondary">
-                          {columnsByStatus[statusKey]?.length ?? 0}
-                        </Badge>
-                      </div>
-                      <KanbanColumnContent value={statusKey}>
-                        {(kanbanColumns[statusKey] ?? []).map((work) => (
-                          <KanbanItem key={work.id} value={work.id}>
-                            <WorkCard
-                              work={work}
-                              onOpen={(item) =>
-                                navigate(
-                                  buildPath(ROUTES.PROJECT.WORK_DETAIL, {
-                                    id: item.id,
-                                  }),
-                                )
-                              }
-                            />
-                          </KanbanItem>
-                        ))}
-                      </KanbanColumnContent>
-                    </KanbanColumn>
-                  ))}
-                </>
-              </KanbanBoard>
-              <KanbanOverlay>
-                {({ value }) => {
-                  const work = works.find((item) => item.id === value);
-                  return work ? (
-                    <WorkCard work={work} onOpen={() => undefined} />
-                  ) : null;
-                }}
-              </KanbanOverlay>
-            </Kanban>
+        </Card>
+      ) : view === 'kanban' ? (
+        <div className="min-h-0 flex-1 overflow-auto p-5">
+          <Kanban
+            value={kanbanColumns}
+            onValueChange={setKanbanColumns}
+            getItemValue={(item) => item.id}
+            onMove={moveKanban}
+          >
+            <KanbanBoard className="min-w-[860px] grid-cols-3">
+              <>
+                {WORK_KANBAN_STATUS_ORDER.map((statusKey) => (
+                  <KanbanColumn
+                    key={statusKey}
+                    value={statusKey}
+                    className="min-h-[28rem] rounded-xl bg-muted/40 p-2"
+                  >
+                    <div className="mb-3 flex items-center justify-between px-2">
+                      <span className="text-sm font-semibold">
+                        {WORK_STATUS_LABELS[statusKey]}
+                      </span>
+                      <Badge variant="secondary">
+                        {columnsByStatus[statusKey]?.length ?? 0}
+                      </Badge>
+                    </div>
+                    <KanbanColumnContent value={statusKey}>
+                      {(kanbanColumns[statusKey] ?? []).map((work) => (
+                        <KanbanItem key={work.id} value={work.id}>
+                          <WorkCard
+                            work={work}
+                            onOpen={(item) =>
+                              navigate(
+                                buildPath(ROUTES.PROJECT.WORK_DETAIL, {
+                                  id: item.id,
+                                }),
+                              )
+                            }
+                          />
+                        </KanbanItem>
+                      ))}
+                    </KanbanColumnContent>
+                  </KanbanColumn>
+                ))}
+              </>
+            </KanbanBoard>
+            <KanbanOverlay>
+              {({ value }) => {
+                const work = works.find((item) => item.id === value);
+                return work ? (
+                  <WorkCard work={work} onOpen={() => undefined} />
+                ) : null;
+              }}
+            </KanbanOverlay>
+          </Kanban>
+        </div>
+      ) : (
+        <div className="grid min-h-0 flex-1 gap-5 overflow-auto p-5 xl:grid-cols-[auto_minmax(0,1fr)]">
+          <div className="rounded-xl border bg-card">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+            />
           </div>
-        ) : (
-          <div className="grid min-h-0 flex-1 gap-5 overflow-auto p-5 xl:grid-cols-[auto_minmax(0,1fr)]">
-            <div className="rounded-xl border bg-card">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-              />
+          <div className="min-w-0">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <CalendarDays className="size-4 text-primary" /> Công việc trong
+              ngày đã chọn
             </div>
-            <div className="min-w-0">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                <CalendarDays className="size-4 text-primary" /> Công việc trong
-                ngày đã chọn
-              </div>
-              <div className="space-y-2">
-                {calendarWorks.length ? (
-                  calendarWorks.map((work) => (
-                    <WorkCard
-                      key={work.id}
-                      work={work}
-                      onOpen={(item) =>
-                        navigate(
-                          buildPath(ROUTES.PROJECT.WORK_DETAIL, {
-                            id: item.id,
-                          }),
-                        )
-                      }
-                    />
-                  ))
-                ) : (
-                  <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                    Không có công việc có mốc dự kiến trong ngày này.
-                  </div>
-                )}
-              </div>
+            <div className="space-y-2">
+              {calendarWorks.length ? (
+                calendarWorks.map((work) => (
+                  <WorkCard
+                    key={work.id}
+                    work={work}
+                    onOpen={(item) =>
+                      navigate(
+                        buildPath(ROUTES.PROJECT.WORK_DETAIL, {
+                          id: item.id,
+                        }),
+                      )
+                    }
+                  />
+                ))
+              ) : (
+                <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  Không có công việc có mốc dự kiến trong ngày này.
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </Card>
+        </div>
+      )}
       <WorkFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -691,14 +694,5 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     </div>
   );
 }
-
-const WORK_STATUS_ORDER: WorkStatus[] = [
-  'draft',
-  'todo',
-  'in_progress',
-  'paused',
-  'completed',
-  'cancelled',
-];
 
 export { WorkPage };
