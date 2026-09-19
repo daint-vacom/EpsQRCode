@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -31,17 +32,11 @@ import {
   EventCalendar,
   type CalendarEvent,
 } from '@/components/ui/event-calendar';
-import {
-  Kanban,
-  KanbanBoard,
-  KanbanColumn,
-  KanbanColumnContent,
-  KanbanItem,
-  KanbanOverlay,
-} from '@/components/ui/kanban';
+import { FilterToolbar } from '@/components/ui/filter-toolbar';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   createWorkItem,
   deleteWorkItem,
@@ -53,6 +48,16 @@ import {
   updateWorkItem,
   updateWorkItemStatus,
 } from '../api/work.api';
+import {
+  createWorkKanbanColumns,
+  moveWorkKanbanItem,
+  restoreWorkKanbanItemStatus,
+  WorkKanban,
+  type WorkKanbanColumns,
+  type WorkKanbanProps,
+} from '../components/work-kanban';
+import { WorkOverview } from '../components/work-overview';
+import { WorkPriorityIcon } from '../components/work-priority-icon';
 import { WorkStatusBadge } from '../components/work-status-badge';
 import { WorkViewSwitcher } from '../components/work-view-switcher';
 import { useWorkForm, WorkFormDialog } from '../forms/work-form.generated';
@@ -73,20 +78,40 @@ import {
 } from '../table/work.columns.generated';
 import { WorkFilterBar } from '../table/work.filters.generated';
 
-type WorkView = 'list' | 'kanban' | 'calendar';
+type WorkView = 'overview' | 'list' | 'kanban' | 'calendar';
 
-const WORK_KANBAN_STATUS_ORDER: WorkStatus[] = [
-  'todo',
-  'in_progress',
-  'completed',
-];
+type PendingWorkStatusSave = {
+  originalStatus: WorkStatus;
+  originalIndex: number;
+  desiredStatus: WorkStatus;
+  isSaving: boolean;
+};
 
 const statusOptions = Object.entries(WORK_STATUS_LABELS).map(
   ([value, label]) => ({ value, label }),
 );
 const priorityOptions = Object.entries(WORK_PRIORITY_LABELS).map(
-  ([value, label]) => ({ value, label }),
+  ([value, label]) => {
+    const priority = value as WorkPriority;
+
+    return {
+      value,
+      searchableText: label,
+      label: (
+        <span className="flex items-center gap-1.5">
+          <WorkPriorityIcon priority={priority} />
+          <span>{label}</span>
+        </span>
+      ),
+    };
+  },
 );
+const priorityFilterOptions = [
+  { value: '', searchableText: 'Tất Cả', label: 'Tất Cả' },
+  ...priorityOptions,
+];
+const boardViewContentClassName =
+  'flex min-h-0 flex-1 overflow-auto px-4 pb-4 pt-0';
 
 function parseWorkDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
@@ -135,53 +160,17 @@ function toCalendarEvent(work: WorkItem): CalendarEvent | null {
   };
 }
 
-function WorkCard({
-  work,
-  onOpen,
-}: {
-  work: WorkItem;
-  onOpen: (work: WorkItem) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="w-full rounded-lg border bg-card p-3 text-left shadow-xs transition hover:border-primary/50 hover:shadow-sm"
-      onClick={() => onOpen(work)}
-    >
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="line-clamp-2 text-sm font-medium">{work.title}</span>
-        <div className="flex shrink-0 gap-1">
-          <Badge variant="outline" className="text-[10px]">
-            {WORK_PRIORITY_LABELS[work.priority]}
-          </Badge>
-          <WorkStatusBadge status={work.status} size="sm" />
-        </div>
-      </div>
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-        <span>{work.assigneeName || 'Chưa giao'}</span>
-        <span>
-          {work.plannedEndDate ? formatDate(work.plannedEndDate) : ''}
-        </span>
-      </div>
-      {work.childCount > 0 ? (
-        <div className="mt-2 text-xs text-muted-foreground">
-          {work.completedChildCount}/{work.childCount} đầu mục con
-        </div>
-      ) : null}
-    </button>
-  );
-}
-
 function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { tenantId } = useTenant();
   const { userId } = useUser();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<WorkView>('list');
+  const [view, setView] = useState<WorkView>('overview');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState<WorkPriority | ''>('');
+  const [showAllKanbanStatuses, setShowAllKanbanStatuses] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 50,
@@ -191,9 +180,14 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const [editingWork, setEditingWork] = useState<WorkItem | null>(null);
   const [deletingWork, setDeletingWork] = useState<WorkItem | null>(null);
   const [createChildOf, setCreateChildOf] = useState<WorkItem | null>(null);
-  const [kanbanColumns, setKanbanColumns] = useState<
-    Record<string, WorkItem[]>
-  >({});
+  const [kanbanColumns, setKanbanColumns] = useState<WorkKanbanColumns>(() =>
+    createWorkKanbanColumns([]),
+  );
+  const kanbanColumnsRef = useRef(kanbanColumns);
+  const statusSaveQueueRef = useRef<Map<string, PendingWorkStatusSave>>(
+    new Map(),
+  );
+  const [savingWorkIds, setSavingWorkIds] = useState<Set<string>>(new Set());
   const createForm = useWorkForm();
   const editForm = useWorkForm();
 
@@ -219,7 +213,8 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   });
   const filters: WorkListFilters = {
     search,
-    statuses: status ? [status as WorkStatus] : [],
+    statuses:
+      view === 'kanban' && status ? [] : status ? [status as WorkStatus] : [],
     priority,
     assigneeEmployeeId:
       scope === 'mine' ? (currentEmployeeQuery.data ?? '') : '',
@@ -234,6 +229,18 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       tenantId && (scope === 'all' || currentEmployeeQuery.data),
     ),
   });
+  const updateKanbanColumns = useCallback((next: WorkKanbanColumns) => {
+    kanbanColumnsRef.current = next;
+    setKanbanColumns(next);
+  }, []);
+  const setWorkSaving = useCallback((workId: string, isSaving: boolean) => {
+    setSavingWorkIds((current) => {
+      const next = new Set(current);
+      if (isSaving) next.add(workId);
+      else next.delete(workId);
+      return next;
+    });
+  }, []);
   const works = useMemo(
     () => workQuery.data?.items ?? [],
     [workQuery.data?.items],
@@ -245,6 +252,13 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     label: item.label,
     searchableText: `${item.label} ${item.employeeCode}`,
   }));
+  const assigneeAvatarUrls = useMemo(
+    () =>
+      new Map(
+        (employeeQuery.data ?? []).map((item) => [item.id, item.avatarUrl]),
+      ),
+    [employeeQuery.data],
+  );
   const parentOptions = works
     .filter((item) => !item.parentId)
     .map((item) => ({
@@ -348,23 +362,59 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
-  const statusMutation = useMutation({
-    mutationFn: ({
-      id,
-      status: nextStatus,
-    }: {
-      id: string;
-      status: WorkStatus;
-    }) => updateWorkItemStatus(tenantId!, id, nextStatus),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
-      await queryClient.refetchQueries({
-        queryKey: ['project', 'work', 'list'],
-        type: 'active',
-      });
+  const flushStatusSave = useCallback(
+    async (workId: string) => {
+      const queue = statusSaveQueueRef.current;
+      const pending = queue.get(workId);
+      if (!pending || pending.isSaving || !tenantId) return;
+
+      pending.isSaving = true;
+      setWorkSaving(workId, true);
+
+      while (queue.get(workId) === pending) {
+        const nextStatus = pending.desiredStatus;
+
+        try {
+          await updateWorkItemStatus(tenantId, workId, nextStatus);
+        } catch (error) {
+          const current = queue.get(workId);
+          if (!current) {
+            setWorkSaving(workId, false);
+            return;
+          }
+          if (current.desiredStatus !== nextStatus) continue;
+
+          queue.delete(workId);
+          setWorkSaving(workId, false);
+          updateKanbanColumns(
+            restoreWorkKanbanItemStatus({
+              columns: kanbanColumnsRef.current,
+              workId,
+              status: current.originalStatus,
+              index: current.originalIndex,
+            }),
+          );
+          toast.error(getApiErrorMessage(error));
+          return;
+        }
+
+        const current = queue.get(workId);
+        if (!current) {
+          setWorkSaving(workId, false);
+          return;
+        }
+        if (current.desiredStatus !== nextStatus) continue;
+
+        queue.delete(workId);
+        setWorkSaving(workId, false);
+        if (!queue.size) {
+          void queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
+        }
+        return;
+      }
     },
-    onError: (error) => toast.error(getApiErrorMessage(error)),
-  });
+    [queryClient, setWorkSaving, tenantId, updateKanbanColumns],
+  );
 
   const columns = useWorkColumns({
     onView: (work) =>
@@ -456,19 +506,13 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const columnsByStatus = useMemo(() => {
-    const next: Record<string, WorkItem[]> = Object.fromEntries(
-      WORK_KANBAN_STATUS_ORDER.map((item) => [item, []]),
-    );
-    works.forEach((item) => {
-      const column = next[item.status];
-      if (column) column.push(item);
-    });
-    return next;
-  }, [works]);
+  const columnsByStatus = useMemo(
+    () => createWorkKanbanColumns(works),
+    [works],
+  );
   useEffect(() => {
-    setKanbanColumns(columnsByStatus);
-  }, [columnsByStatus]);
+    updateKanbanColumns(columnsByStatus);
+  }, [columnsByStatus, updateKanbanColumns]);
   const calendarEvents = useMemo(
     () =>
       works
@@ -485,7 +529,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     customerIdsOptions: customerOptions,
     contractIdsOptions: contractOptions,
   };
-  const pageTitle = scope === 'mine' ? 'Việc của tôi' : 'Công việc';
+  const pageTitle = scope === 'mine' ? 'Việc của tôi' : 'Quản lý công việc';
 
   if (workQuery.isError) {
     return (
@@ -515,28 +559,89 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     overContainer,
     activeIndex,
     overIndex,
-  }: {
-    activeContainer: string;
-    overContainer: string;
-    activeIndex: number;
-    overIndex: number;
-  }) => {
-    const item = kanbanColumns[activeContainer]?.[activeIndex];
-    const nextStatus = overContainer as WorkStatus;
-    if (!item || item.status === nextStatus) return;
-    setKanbanColumns((current) => {
-      const copy = Object.fromEntries(
-        Object.entries(current).map(([key, value]) => [key, [...value]]),
-      );
-      const [moved] = copy[activeContainer].splice(activeIndex, 1);
-      copy[overContainer].splice(Math.max(overIndex, 0), 0, {
-        ...moved,
-        status: nextStatus,
-      });
-      return copy;
+  }: Parameters<WorkKanbanProps['onMove']>[0]) => {
+    const moved = moveWorkKanbanItem({
+      columns: kanbanColumnsRef.current,
+      activeContainer,
+      overContainer,
+      activeIndex,
+      overIndex,
     });
-    statusMutation.mutate({ id: item.id, status: nextStatus });
+    if (!moved) return;
+
+    const pending = statusSaveQueueRef.current.get(moved.work.id) ?? {
+      originalStatus: activeContainer as WorkStatus,
+      originalIndex: activeIndex,
+      desiredStatus: moved.work.status,
+      isSaving: false,
+    };
+    pending.desiredStatus = moved.work.status;
+    statusSaveQueueRef.current.set(moved.work.id, pending);
+    updateKanbanColumns(moved.columns);
+    void flushStatusSave(moved.work.id);
   };
+
+  const workFilterBar = (
+    <WorkFilterBar
+      layout="split"
+      search={search}
+      onSearchChange={(value) => {
+        setSearch(value);
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+      }}
+      status={status}
+      onStatusChange={(value) => {
+        setStatus(value);
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+      }}
+      statusOptions={statusOptions}
+      statusRenderOption={(option) => (
+        <WorkStatusBadge status={option.value as WorkStatus} size="sm" />
+      )}
+      statusRenderValue={(option) =>
+        option ? (
+          <WorkStatusBadge status={option.value as WorkStatus} size="sm" />
+        ) : undefined
+      }
+      priority={priority}
+      onPriorityChange={(value) => {
+        setPriority(value as WorkPriority | '');
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+      }}
+      priorityOptions={priorityFilterOptions}
+    />
+  );
+
+  const kanbanFilterBar = (
+    <FilterToolbar
+      className="min-w-0 flex-1"
+      fields={[
+        {
+          kind: 'search',
+          value: search,
+          onValueChange: (value) => {
+            setSearch(value);
+            setPagination((current) => ({ ...current, pageIndex: 0 }));
+          },
+          placeholder: 'Tìm theo mã hoặc tên công việc',
+          className: 'w-72',
+          debounceMs: 300,
+        },
+        {
+          kind: 'select',
+          value: priority,
+          onValueChange: (value) => {
+            setPriority(value as WorkPriority | '');
+            setPagination((current) => ({ ...current, pageIndex: 0 }));
+          },
+          options: priorityFilterOptions,
+          label: 'Ưu tiên',
+          placeholder: 'Ưu tiên',
+          className: 'w-40',
+        },
+      ]}
+    />
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-hidden p-4 lg:p-5">
@@ -561,43 +666,27 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           </>
         }
       />
-      {view === 'list' ? (
+      {view === 'overview' ? (
         <Card className="min-h-0 flex-1 overflow-hidden">
           <CardHeader className="flex-row items-center gap-4">
-            <WorkFilterBar
-              layout="split"
-              search={search}
-              onSearchChange={(value) => {
-                setSearch(value);
-                setPagination((current) => ({ ...current, pageIndex: 0 }));
-              }}
-              status={status}
-              onStatusChange={(value) => {
-                setStatus(value);
-                setPagination((current) => ({ ...current, pageIndex: 0 }));
-              }}
-              statusOptions={statusOptions}
-              statusRenderOption={(option) => (
-                <WorkStatusBadge
-                  status={option.value as WorkStatus}
-                  size="sm"
-                />
-              )}
-              statusRenderValue={(option) =>
-                option ? (
-                  <WorkStatusBadge
-                    status={option.value as WorkStatus}
-                    size="sm"
-                  />
-                ) : undefined
+            {kanbanFilterBar}
+          </CardHeader>
+          <CardContent className={boardViewContentClassName}>
+            <WorkOverview
+              works={works}
+              onOpen={(work) =>
+                navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id }))
               }
-              priority={priority}
-              onPriorityChange={(value) => {
-                setPriority(value as WorkPriority | '');
-                setPagination((current) => ({ ...current, pageIndex: 0 }));
-              }}
-              priorityOptions={priorityOptions}
+              savingWorkIds={savingWorkIds}
+              assigneeAvatarUrls={assigneeAvatarUrls}
+              isLoading={workQuery.isPending}
             />
+          </CardContent>
+        </Card>
+      ) : view === 'list' ? (
+        <Card className="min-h-0 flex-1 overflow-hidden">
+          <CardHeader className="flex-row items-center gap-4">
+            {workFilterBar}
           </CardHeader>
           <DataGrid
             table={table}
@@ -619,59 +708,34 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           </DataGrid>
         </Card>
       ) : view === 'kanban' ? (
-        <div className="min-h-0 flex-1 overflow-auto p-5">
-          <Kanban
-            value={kanbanColumns}
-            onValueChange={setKanbanColumns}
-            getItemValue={(item) => item.id}
-            onMove={moveKanban}
-          >
-            <KanbanBoard className="min-w-[860px] grid-cols-3">
-              <>
-                {WORK_KANBAN_STATUS_ORDER.map((statusKey) => (
-                  <KanbanColumn
-                    key={statusKey}
-                    value={statusKey}
-                    className="min-h-[28rem] rounded-xl bg-muted/40 p-2"
-                  >
-                    <div className="mb-3 flex items-center justify-between px-2">
-                      <span className="text-sm font-semibold">
-                        {WORK_STATUS_LABELS[statusKey]}
-                      </span>
-                      <Badge variant="secondary">
-                        {columnsByStatus[statusKey]?.length ?? 0}
-                      </Badge>
-                    </div>
-                    <KanbanColumnContent value={statusKey}>
-                      {(kanbanColumns[statusKey] ?? []).map((work) => (
-                        <KanbanItem key={work.id} value={work.id}>
-                          <WorkCard
-                            work={work}
-                            onOpen={(item) =>
-                              navigate(
-                                buildPath(ROUTES.PROJECT.WORK_DETAIL, {
-                                  id: item.id,
-                                }),
-                              )
-                            }
-                          />
-                        </KanbanItem>
-                      ))}
-                    </KanbanColumnContent>
-                  </KanbanColumn>
-                ))}
-              </>
-            </KanbanBoard>
-            <KanbanOverlay>
-              {({ value }) => {
-                const work = works.find((item) => item.id === value);
-                return work ? (
-                  <WorkCard work={work} onOpen={() => undefined} />
-                ) : null;
-              }}
-            </KanbanOverlay>
-          </Kanban>
-        </div>
+        <Card className="min-h-0 flex-1 overflow-hidden">
+          <CardHeader className="flex-row items-center gap-4">
+            {kanbanFilterBar}
+            <label className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+              <span>Hiển thị tất cả trạng thái</span>
+              <Switch
+                size="sm"
+                checked={showAllKanbanStatuses}
+                onCheckedChange={setShowAllKanbanStatuses}
+                aria-label="Hiển thị tất cả trạng thái"
+              />
+            </label>
+          </CardHeader>
+          <CardContent className={boardViewContentClassName}>
+            <WorkKanban
+              columns={kanbanColumns}
+              onColumnsChange={updateKanbanColumns}
+              onMove={moveKanban}
+              onOpen={(work) =>
+                navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id }))
+              }
+              savingWorkIds={savingWorkIds}
+              assigneeAvatarUrls={assigneeAvatarUrls}
+              isLoading={workQuery.isPending}
+              showAllStatuses={showAllKanbanStatuses}
+            />
+          </CardContent>
+        </Card>
       ) : (
         <div className="min-h-0 flex-1 overflow-hidden">
           <EventCalendar

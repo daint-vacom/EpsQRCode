@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar } from '@/components/ui/avatar';
 
 export const GRADIENT_AVATAR_TONES = [
   'slate',
@@ -42,17 +43,42 @@ export function GradientAvatar({
   tone = 'slate',
   className,
 }: GradientAvatarProps) {
+  const [imageStatus, setImageStatus] = React.useState<
+    'loading' | 'loaded' | 'error'
+  >(src ? 'loading' : 'error');
+
+  React.useEffect(() => {
+    setImageStatus(src ? 'loading' : 'error');
+  }, [src]);
+
+  const showImage = Boolean(src) && imageStatus === 'loaded';
+
   return (
-    <Avatar className={cn('size-9', className)}>
-      {src ? <AvatarImage src={src} alt={alt} /> : null}
-      <AvatarFallback
-        className={cn(
-          'border bg-gradient-to-br text-sm font-bold shadow-sm',
-          GRADIENT_AVATAR_TONE_CLASSES[tone],
-        )}
-      >
-        {fallback}
-      </AvatarFallback>
+    <Avatar className={cn('size-9 overflow-hidden rounded-full', className)}>
+      {src ? (
+        <img
+          src={src}
+          alt={alt}
+          className={cn(
+            'absolute inset-0 aspect-square h-full w-full object-cover',
+            !showImage && 'opacity-0',
+          )}
+          onError={() => setImageStatus('error')}
+          onLoad={() => setImageStatus('loaded')}
+        />
+      ) : null}
+      {!showImage ? (
+        <span
+          data-slot="avatar-fallback"
+          aria-hidden={alt ? undefined : true}
+          className={cn(
+            'flex h-full w-full items-center justify-center rounded-full border bg-gradient-to-br text-sm font-bold shadow-sm',
+            GRADIENT_AVATAR_TONE_CLASSES[tone],
+          )}
+        >
+          {fallback}
+        </span>
+      ) : null}
     </Avatar>
   );
 }

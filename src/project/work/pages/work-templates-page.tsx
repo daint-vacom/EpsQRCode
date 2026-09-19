@@ -47,7 +47,7 @@ export function WorkTemplatesPage() {
   return (
     <div className="flex h-full flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
       <PageHeader
-        title="Mẫu công việc"
+        title="Quản lý mẫu công việc"
         icon={ClipboardList}
         titleAside={
           <span className="text-sm text-muted-foreground">

@@ -154,6 +154,7 @@ export interface WorkTemplate {
 
 export interface WorkEmployeeOption extends WorkLinkOption {
   employeeCode: string;
+  avatarUrl: string | null;
 }
 
 export interface WorkListFilters {

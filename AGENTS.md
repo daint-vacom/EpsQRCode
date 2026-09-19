@@ -42,6 +42,7 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Forms should use Vietnamese validation copy, clear required markers, compact spacing, and predictable tab order.
 - Prefer Lucide icons when a matching icon exists. Keep icon-only controls to familiar actions or provide accessible labels/tooltips.
 - Reuse `src/components/ui` before creating new base components.
+- For new visual patterns that do not yet exist in the web product, do not force-fit an existing component merely for reuse. Design the information hierarchy, interaction, spacing, and visual language first; reuse existing components when they are true shared patterns or preserve important behavior and accessibility. Otherwise, compose a focused local structure and extract it only when the pattern genuinely repeats. Keep new UI purposeful and inventive rather than assembling ornamental wrappers around unrelated primitives.
 - Style shared admin defaults at the component/token root, not with per-page class patches. See `docs/06-component-usage-guide.md` when changing shared look.
 - Frontend is not a legacy compatibility layer: when a domain or data shape changes, add/update the required migration and backend/read-model contract, then make the frontend consume the canonical new shape only. Do not add legacy-field fallbacks, dual-shape reads, or client-side compatibility conversions unless the user explicitly approves them; compatibility belongs at the server/API boundary when it is required.
 

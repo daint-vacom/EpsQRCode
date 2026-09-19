@@ -1,4 +1,9 @@
-import { CalendarDays, KanbanSquare, List } from 'lucide-react';
+import {
+  CalendarDays,
+  KanbanSquare,
+  LayoutDashboard,
+  List,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -10,6 +15,7 @@ export interface WorkViewSwitcherProps {
 }
 
 const viewOptions = [
+  { value: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { value: 'list', label: 'Danh sách', icon: List },
   { value: 'kanban', label: 'Kanban', icon: KanbanSquare },
   { value: 'calendar', label: 'Lịch', icon: CalendarDays },

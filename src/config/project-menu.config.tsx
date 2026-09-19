@@ -28,19 +28,9 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: '/',
       },
       {
-        label: 'Công việc',
-        icon: ClipboardList,
-        path: ROUTES.PROJECT.WORK,
-      },
-      {
         label: 'Việc của tôi',
         icon: ClipboardList,
         path: ROUTES.PROJECT.MY_WORK,
-      },
-      {
-        label: 'Mẫu công việc',
-        icon: ListTree,
-        path: ROUTES.PROJECT.WORK_TEMPLATES,
       },
     ],
   },
@@ -61,6 +51,16 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Mẫu hợp đồng',
         icon: Layers3,
         path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
+      },
+      {
+        label: 'Công việc',
+        icon: ClipboardList,
+        path: ROUTES.PROJECT.WORK,
+      },
+      {
+        label: 'Mẫu công việc',
+        icon: ListTree,
+        path: ROUTES.PROJECT.WORK_TEMPLATES,
       },
     ],
   },
