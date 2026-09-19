@@ -60,6 +60,11 @@ export interface DatePickerInputProps
   onChange?: (value: Date | string | undefined) => void;
   onBlur?: (event?: FocusEvent<HTMLInputElement>) => void;
   calendarLabel?: string;
+  showTime?: boolean;
+  timeValue?: string;
+  onTimeChange?: (value: string) => void;
+  onTimeBlur?: (event: FocusEvent<HTMLInputElement>) => void;
+  timeLabel?: string;
 }
 
 export function DatePickerInput({
@@ -71,6 +76,11 @@ export function DatePickerInput({
   variant,
   placeholder = DATE_INPUT_FORMAT,
   calendarLabel = 'Chọn ngày',
+  showTime = false,
+  timeValue = '',
+  onTimeChange,
+  onTimeBlur,
+  timeLabel,
   ...props
 }: DatePickerInputProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -143,29 +153,47 @@ export function DatePickerInput({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverAnchor asChild>
-        <div className="relative w-full">
-          <Input
-            {...props}
-            inputMode="numeric"
-            placeholder={placeholder}
-            value={dateText}
-            variant={variant}
-            className={cn('pe-9', className)}
-            onBlur={handleBlur}
-            onChange={handleTextChange}
-          />
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label={calendarLabel}
-              className={cn(
-                'absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
-                !selectedDate && 'text-muted-foreground',
-              )}
-            >
-              <CalendarDays className="size-4" />
-            </button>
-          </PopoverTrigger>
+        <div
+          className={cn(
+            'w-full',
+            showTime && 'grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2',
+          )}
+        >
+          <div className="relative min-w-0">
+            <Input
+              {...props}
+              inputMode="numeric"
+              placeholder={placeholder}
+              value={dateText}
+              variant={variant}
+              className={cn('pe-9', className)}
+              onBlur={handleBlur}
+              onChange={handleTextChange}
+            />
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label={calendarLabel}
+                className={cn(
+                  'absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
+                  !selectedDate && 'text-muted-foreground',
+                )}
+              >
+                <CalendarDays className="size-4" />
+              </button>
+            </PopoverTrigger>
+          </div>
+          {showTime ? (
+            <Input
+              type="time"
+              variant={variant}
+              value={timeValue}
+              aria-label={timeLabel ?? 'Giờ'}
+              aria-invalid={props['aria-invalid']}
+              onChange={(event) => onTimeChange?.(event.target.value)}
+              onBlur={onTimeBlur}
+            />
+          ) : null}
         </div>
       </PopoverAnchor>
       <PopoverContent className="w-auto p-0" align="end">

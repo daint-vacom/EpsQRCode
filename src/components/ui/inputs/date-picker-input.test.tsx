@@ -101,4 +101,25 @@ describe('DatePickerInput', () => {
 
     expect(screen.getByRole('grid')).toBeInTheDocument();
   });
+
+  it('renders and updates a time input when showTime is enabled', () => {
+    const handleTimeChange = vi.fn();
+
+    render(
+      <DatePickerInput
+        aria-label="Ngày bắt đầu"
+        timeLabel="Giờ bắt đầu"
+        showTime
+        timeValue="08:30"
+        onTimeChange={handleTimeChange}
+      />,
+    );
+
+    const timeInput = screen.getByLabelText('Giờ bắt đầu');
+    expect(timeInput).toHaveValue('08:30');
+
+    fireEvent.change(timeInput, { target: { value: '09:45' } });
+
+    expect(handleTimeChange).toHaveBeenCalledWith('09:45');
+  });
 });

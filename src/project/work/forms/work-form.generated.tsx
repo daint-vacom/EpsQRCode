@@ -7,8 +7,9 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type KeyboardEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { FileText, ListChecks, MoreHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { WorkStatusBadge } from '../components/work-status-badge';
 import { workFormSchema, type WorkFormValues } from '../model/work';
@@ -61,6 +63,7 @@ export const workDefaultValues: WorkFormValues = {
 };
 
 type WorkFormSource = WorkItem;
+type WorkFormTab = 'description' | 'children' | 'details';
 
 export function useWorkForm(
   options?: Omit<UseFormProps<WorkFormValues>, 'resolver'>,
@@ -95,6 +98,8 @@ interface WorkFormProps {
   form: UseFormReturn<WorkFormValues>;
   onSubmit: (values: WorkFormValues) => void;
   id?: string;
+  activeTab: WorkFormTab;
+  onActiveTabChange: (value: WorkFormTab) => void;
   statusOptions: SelectOption[];
   priorityOptions: SelectOption[];
   assigneeEmployeeIdOptions: SelectOption[];
@@ -108,6 +113,8 @@ export function WorkForm({
   form,
   onSubmit,
   id = 'work-form',
+  activeTab,
+  onActiveTabChange,
   statusOptions,
   priorityOptions,
   assigneeEmployeeIdOptions,
@@ -119,281 +126,355 @@ export function WorkForm({
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>
-                  Tên công việc<span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="space-y-7">
+          <div className="flex items-start gap-3">
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem className="shrink-0 space-y-1 pt-1">
+                  <FormLabel className="sr-only">Màu công việc</FormLabel>
+                  <FormControl>
+                    <ColorInput
+                      defaultValue="#2563eb"
+                      variant="md"
+                      triggerVariant="ghost"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      onBlur={field.onBlur}
+                      className="size-8 rounded-md p-1"
+                    />
+                  </FormControl>
+                  <FormMessage className="sr-only" />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Mô tả</FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem className="min-w-0 flex-1 space-y-1">
+                  <FormLabel className="sr-only">
+                    Tên công việc<span className="text-destructive"> *</span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      variant="lg"
+                      className="h-auto border-0 bg-transparent px-0 py-1 text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/60 focus-visible:bg-transparent focus-visible:ring-0"
+                      placeholder="Tên công việc"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-sm" />
+                </FormItem>
+              )}
+            />
+          </div>
 
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Trạng thái</FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={statusOptions}
-                    searchable={false}
-                    placeholder="Chọn trạng thái"
-                    renderOption={(option) => (
-                      <WorkStatusBadge
-                        status={option.value as WorkStatus}
-                        size="sm"
-                      />
-                    )}
-                    triggerContent={(option) =>
-                      option ? (
+          <div className="grid gap-2 lg:grid-cols-2 lg:gap-x-8">
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 transition-colors has-[[data-invalid=true]]:bg-destructive/5">
+                  <FormLabel>Trạng thái</FormLabel>
+                  <FormControl>
+                    <OptionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={statusOptions}
+                      searchable={false}
+                      placeholder="Chọn trạng thái"
+                      renderOption={(option) => (
                         <WorkStatusBadge
                           status={option.value as WorkStatus}
                           size="sm"
                         />
-                      ) : undefined
-                    }
+                      )}
+                      triggerContent={(option) =>
+                        option ? (
+                          <WorkStatusBadge
+                            status={option.value as WorkStatus}
+                            size="sm"
+                          />
+                        ) : undefined
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage className="col-start-2" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 transition-colors has-[[data-invalid=true]]:bg-destructive/5">
+                  <FormLabel>Mức độ ưu tiên</FormLabel>
+                  <FormControl>
+                    <OptionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={priorityOptions}
+                      searchable={false}
+                      placeholder="Chọn mức độ"
+                    />
+                  </FormControl>
+                  <FormMessage className="col-start-2" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="assigneeEmployeeId"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 transition-colors has-[[data-invalid=true]]:bg-destructive/5">
+                  <FormLabel>Nhân viên phụ trách</FormLabel>
+                  <FormControl>
+                    <OptionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={assigneeEmployeeIdOptions}
+                      searchable={false}
+                      placeholder="Chọn nhân viên"
+                    />
+                  </FormControl>
+                  <FormMessage className="col-start-2" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="plannedStartDate"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 transition-colors has-[[data-invalid=true]]:bg-destructive/5">
+                  <FormLabel>Ngày bắt đầu</FormLabel>
+                  <FormControl>
+                    <DatePickerInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      calendarLabel="Chọn ngày bắt đầu dự kiến"
+                      valueMode="iso-date"
+                      variant="md"
+                      showTime
+                      timeValue={form.watch('plannedStartTime')}
+                      timeLabel="Giờ bắt đầu dự kiến"
+                      onTimeChange={(value) =>
+                        form.setValue('plannedStartTime', value, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      onTimeBlur={() => void form.trigger('plannedStartTime')}
+                    />
+                  </FormControl>
+                  <FormMessage className="col-start-2" />
+                  {form.formState.errors.plannedStartTime?.message ? (
+                    <p className="col-start-2 -mt-0.5 text-xs font-normal text-destructive">
+                      {String(form.formState.errors.plannedStartTime.message)}
+                    </p>
+                  ) : null}
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="plannedEndDate"
+              render={({ field }) => (
+                <FormItem className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 rounded-lg px-3 py-2 transition-colors has-[[data-invalid=true]]:bg-destructive/5">
+                  <FormLabel>Ngày kết thúc</FormLabel>
+                  <FormControl>
+                    <DatePickerInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      calendarLabel="Chọn ngày kết thúc dự kiến"
+                      valueMode="iso-date"
+                      variant="md"
+                      showTime
+                      timeValue={form.watch('plannedEndTime')}
+                      timeLabel="Giờ kết thúc dự kiến"
+                      onTimeChange={(value) =>
+                        form.setValue('plannedEndTime', value, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        })
+                      }
+                      onTimeBlur={() => void form.trigger('plannedEndTime')}
+                    />
+                  </FormControl>
+                  <FormMessage className="col-start-2" />
+                  {form.formState.errors.plannedEndTime?.message ? (
+                    <p className="col-start-2 -mt-0.5 text-xs font-normal text-destructive">
+                      {String(form.formState.errors.plannedEndTime.message)}
+                    </p>
+                  ) : null}
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => onActiveTabChange(value as WorkFormTab)}
+            className="flex flex-col"
+          >
+            <TabsList
+              variant="line"
+              size="md"
+              className="w-full justify-start gap-5 overflow-x-auto"
+            >
+              <TabsTrigger value="description">
+                <FileText /> Mô tả
+              </TabsTrigger>
+              <TabsTrigger value="children">
+                <ListChecks /> Công việc con
+              </TabsTrigger>
+              <TabsTrigger value="details">
+                <MoreHorizontal /> Thông tin khác
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="description" className="mt-5">
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="sr-only">Mô tả</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={7}
+                        className="min-h-44 resize-none bg-muted/20"
+                        placeholder="Mô tả mục tiêu, bối cảnh hoặc kết quả cần đạt..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+
+            <TabsContent value="children" className="mt-5">
+              <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+                <span className="mb-3 flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <ListChecks className="size-5" />
+                </span>
+                <p className="text-sm font-semibold text-foreground">
+                  Quản lý các đầu mục con
+                </p>
+                <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
+                  Sau khi lưu, bạn có thể thêm đầu mục con, giao cho nhân viên
+                  khác và theo dõi tiến độ độc lập từ trang chi tiết công việc.
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="details" className="mt-5 space-y-6">
+              <section className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  Bối cảnh nghiệp vụ
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="parentId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Thuộc công việc</FormLabel>
+                        <FormControl>
+                          <OptionSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={parentIdOptions}
+                            searchable={false}
+                            placeholder="Công việc cha (nếu có)"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <FormField
-            control={form.control}
-            name="priority"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Mức độ ưu tiên</FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={priorityOptions}
-                    searchable={false}
-                    placeholder="Chọn mức độ"
+                  <FormField
+                    control={form.control}
+                    name="templateId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mẫu công việc</FormLabel>
+                        <FormControl>
+                          <OptionSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={templateIdOptions}
+                            searchable={false}
+                            placeholder="Áp dụng mẫu công việc (nếu có)"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                </div>
+              </section>
 
-          <FormField
-            control={form.control}
-            name="assigneeEmployeeId"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Nhân viên phụ trách</FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={assigneeEmployeeIdOptions}
-                    searchable={false}
-                    placeholder="Chọn nhân viên"
+              <section className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  Liên kết nghiệp vụ
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="customerIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Khách hàng liên quan</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={customerIdsOptions}
+                            searchPlaceholder="Tìm khách hàng..."
+                            emptyMessage="Không có khách hàng phù hợp"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
-          <FormField
-            control={form.control}
-            name="parentId"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Thuộc công việc</FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={parentIdOptions}
-                    searchable={false}
-                    placeholder="Công việc cha (nếu có)"
+                  <FormField
+                    control={form.control}
+                    name="contractIds"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Hợp đồng liên quan</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            value={field.value}
+                            onChange={field.onChange}
+                            options={contractIdsOptions}
+                            searchPlaceholder="Tìm hợp đồng..."
+                            emptyMessage="Không có hợp đồng phù hợp"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="templateId"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Mẫu công việc</FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={templateIdOptions}
-                    searchable={false}
-                    placeholder="Áp dụng mẫu công việc (nếu có)"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="plannedStartDate"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Ngày bắt đầu dự kiến</FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn ngày bắt đầu dự kiến"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="plannedEndDate"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Ngày hoàn thành dự kiến</FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn ngày hoàn thành dự kiến"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="plannedStartTime"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Giờ bắt đầu dự kiến</FormLabel>
-                <FormControl>
-                  <Input type="time" variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="plannedEndTime"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Giờ hoàn thành dự kiến</FormLabel>
-                <FormControl>
-                  <Input type="time" variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="color"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Màu công việc</FormLabel>
-                <FormControl>
-                  <ColorInput
-                    defaultValue="#2563eb"
-                    expanded
-                    variant="md"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="customerIds"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Khách hàng liên quan</FormLabel>
-                <FormControl>
-                  <MultiSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={customerIdsOptions}
-                    searchPlaceholder="Tìm khách hàng..."
-                    emptyMessage="Không có khách hàng phù hợp"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="contractIds"
-            render={({ field }) => (
-              <FormItem className="md:col-span-12">
-                <FormLabel>Hợp đồng liên quan</FormLabel>
-                <FormControl>
-                  <MultiSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={contractIdsOptions}
-                    searchPlaceholder="Tìm hợp đồng..."
-                    emptyMessage="Không có hợp đồng phù hợp"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                </div>
+              </section>
+            </TabsContent>
+          </Tabs>
         </div>
       </form>
     </Form>
@@ -434,6 +515,10 @@ export function WorkFormDialog({
   contractIdsOptions,
 }: WorkFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<WorkFormTab>('description');
+  useEffect(() => {
+    if (open) setActiveTab('description');
+  }, [open]);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
 
@@ -466,21 +551,25 @@ export function WorkFormDialog({
     <>
       <Dialog open={open} onOpenChange={requestClose}>
         <DialogContent
-          className="flex max-h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          className="flex h-[min(90dvh,800px)] w-[calc(100%-2rem)] max-w-5xl flex-col gap-0 overflow-hidden rounded-xl p-0"
           onKeyDown={handleDialogKeyDown}
         >
-          <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-            <DialogTitle>{title ?? 'Thêm công việc'}</DialogTitle>
-            <DialogDescription>
+          <DialogHeader className="sr-only">
+            <DialogTitle className="sr-only">
+              {title ?? 'Thêm công việc'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
               Giao việc, gắn bối cảnh nghiệp vụ và theo dõi tiến độ thực hiện.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
             <WorkForm
               form={form}
               onSubmit={onSubmit}
               id="work-form"
+              activeTab={activeTab}
+              onActiveTabChange={setActiveTab}
               statusOptions={statusOptions}
               priorityOptions={priorityOptions}
               assigneeEmployeeIdOptions={assigneeEmployeeIdOptions}
@@ -491,7 +580,7 @@ export function WorkFormDialog({
             />
           </div>
 
-          <DialogFooter className="shrink-0 px-6 py-4">
+          <DialogFooter className="shrink-0 border-t border-border/60 bg-muted/10 px-7 py-4">
             <ShortcutTooltip label="Hủy" shortcut="Esc">
               <Button
                 type="button"

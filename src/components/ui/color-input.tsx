@@ -73,6 +73,8 @@ export interface ColorInputProps
   presets?: readonly ColorPreset[];
   pickerLabel?: string;
   expanded?: boolean;
+  shape?: 'square' | 'circle';
+  triggerVariant?: 'outline' | 'ghost';
 }
 
 export function ColorInput({
@@ -82,6 +84,8 @@ export function ColorInput({
   presets = DEFAULT_COLOR_PRESETS,
   pickerLabel = 'Mở bảng chọn màu',
   expanded = false,
+  shape = 'square',
+  triggerVariant = 'outline',
   variant,
   className,
   disabled,
@@ -165,9 +169,10 @@ export function ColorInput({
           type="button"
           id={triggerId}
           data-color-input-trigger="true"
-          variant="outline"
+          variant={triggerVariant}
           mode={expanded ? 'input' : 'icon'}
           size={variant ?? 'md'}
+          shape={shape === 'circle' ? 'circle' : 'default'}
           aria-label={pickerLabel}
           disabled={disabled}
           className={cn(
@@ -180,8 +185,9 @@ export function ColorInput({
           <span
             aria-hidden="true"
             className={cn(
-              'rounded-sm border border-black/10 shadow-inner',
-              expanded ? 'absolute inset-1 rounded-sm' : 'size-full',
+              'border border-black/10 shadow-inner',
+              shape === 'circle' ? 'rounded-full' : 'rounded-sm',
+              expanded ? 'absolute inset-1' : 'size-full',
             )}
             style={{ backgroundColor: selectedColor }}
           />

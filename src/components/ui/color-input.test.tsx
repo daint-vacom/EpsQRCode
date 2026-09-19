@@ -57,4 +57,32 @@ describe('ColorInput', () => {
     expect(handleChange).toHaveBeenLastCalledWith('#ffffff');
     expect(textInput).toHaveValue('#ffffff');
   });
+
+  it('supports a circular indicator trigger', () => {
+    render(<ColorInput shape="circle" defaultValue="#1677ff" />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'Mở bảng chọn màu',
+    });
+
+    expect(trigger).toHaveClass('rounded-full');
+    expect(trigger.querySelector('span')).toHaveClass('rounded-full');
+  });
+
+  it('supports a borderless rounded-square trigger', () => {
+    render(
+      <ColorInput
+        triggerVariant="ghost"
+        defaultValue="#1677ff"
+        className="size-8 rounded-md p-1"
+      />,
+    );
+
+    const trigger = screen.getByRole('button', {
+      name: 'Mở bảng chọn màu',
+    });
+
+    expect(trigger).toHaveClass('size-8', 'rounded-md');
+    expect(trigger).not.toHaveClass('border');
+  });
 });
