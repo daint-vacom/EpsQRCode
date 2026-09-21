@@ -5,6 +5,22 @@
 
 Tất cả ô nhập đều dùng nền `bg-field` + trắng khi focus là **default** — không thêm `bg-*` ở page.
 
+## FormItem — field dọc/ngang
+
+`FormItem` mặc định xếp label ở trên input. Khi cần field dạng ngang, dùng cấu hình semantic dùng
+chung thay vì tự viết lại grid ở từng form:
+
+```tsx
+<FormItem layout="horizontal" labelWidth="md" labelGap="md">
+  <FormLabel>Trạng thái</FormLabel>
+  <FormControl>{/* input */}</FormControl>
+  <FormMessage />
+</FormItem>
+```
+
+`labelWidth` hỗ trợ `sm | md | lg` và `labelGap` hỗ trợ `sm | md | lg`; các preset được định nghĩa
+ở primitive `FormItem` để các form giữ cùng nhịp layout.
+
 ---
 
 ## Input
@@ -17,8 +33,13 @@ import { Input, InputWrapper } from '@/components/ui/input';
 
 <InputWrapper>
   <Search />
-  <Input type="search" placeholder="Tìm kiếm theo trường" value={q} onChange={(e) => setQ(e.target.value)} />
-</InputWrapper>
+  <Input
+    type="search"
+    placeholder="Tìm kiếm theo trường"
+    value={q}
+    onChange={(e) => setQ(e.target.value)}
+  />
+</InputWrapper>;
 ```
 
 Variant size: `sm | md | lg` (mặc định `md`). Variant `header` dành cho ô tìm kiếm chính trên header:
@@ -35,17 +56,21 @@ Dùng khi cần search debounce (toolbar danh sách). Tự gói icon + nút clea
 ```tsx
 import { SearchInput } from '@/components/ui/inputs/search-input';
 
-<SearchInput value={keyword} onSearch={setKeyword} placeholder="Tìm theo tên, username" />
+<SearchInput
+  value={keyword}
+  onSearch={setKeyword}
+  placeholder="Tìm theo tên, username"
+/>;
 ```
 
 Dùng `variant="header"` khi đặt ô tìm kiếm trên header; variant này chỉ thay đổi hình thức, không thay
 đổi contract debounce của `SearchInput`.
 
-| Prop | Kiểu | Mặc định | Ghi chú |
-|---|---|---|---|
-| `value` | `string` | `''` | Giá trị hiển thị ban đầu, đồng bộ khi đổi từ ngoài |
-| `onSearch` | `(value: string) => void` | — | Gọi **sau debounce**; nút clear gọi ngay với `''` |
-| `debounceMs` | `number` | `300` | Đặt `0` nếu query phía dưới đã tự debounce (vd React Query hook) |
+| Prop         | Kiểu                      | Mặc định | Ghi chú                                                          |
+| ------------ | ------------------------- | -------- | ---------------------------------------------------------------- |
+| `value`      | `string`                  | `''`     | Giá trị hiển thị ban đầu, đồng bộ khi đổi từ ngoài               |
+| `onSearch`   | `(value: string) => void` | —        | Gọi **sau debounce**; nút clear gọi ngay với `''`                |
+| `debounceMs` | `number`                  | `300`    | Đặt `0` nếu query phía dưới đã tự debounce (vd React Query hook) |
 
 > Lưu ý: nếu hook lấy dữ liệu đã debounce sẵn thì truyền `debounceMs={0}` để khỏi debounce 2 lần.
 
@@ -65,20 +90,25 @@ const options: SelectOption[] = [
   { value: 'quan-ly', label: 'Quản lý' },
 ];
 
-<OptionSelect value={role} onChange={setRole} options={options} placeholder="Chọn vai trò" />
+<OptionSelect
+  value={role}
+  onChange={setRole}
+  options={options}
+  placeholder="Chọn vai trò"
+/>;
 ```
 
 `SelectOption<T> = { value: string; label: ReactNode; searchableText?: string; group?: string; data?: T; disabled?: boolean }`
 
-| Prop | Kiểu | Mặc định |
-|---|---|---|
-| `value` / `onChange` | `string` / `(v: string) => void` | `''` |
-| `onSelect` | `(opt: SelectOption<T> \| undefined) => void` | — |
-| `options` | `SelectOption<T>[]` | — |
-| `placeholder` / `searchPlaceholder` / `emptyMessage` | `string` | `Chọn...` / `Tìm...` / `Không có kết quả` |
-| `searchable` | `boolean` | `true` — ẩn ô tìm kiếm khi đặt `false` |
-| `manualFilter` | `boolean` | `false` — bật khi tự lọc (async/server) |
-| `renderOption` / `triggerContent` | render fn | — |
+| Prop                                                 | Kiểu                                          | Mặc định                                  |
+| ---------------------------------------------------- | --------------------------------------------- | ----------------------------------------- |
+| `value` / `onChange`                                 | `string` / `(v: string) => void`              | `''`                                      |
+| `onSelect`                                           | `(opt: SelectOption<T> \| undefined) => void` | —                                         |
+| `options`                                            | `SelectOption<T>[]`                           | —                                         |
+| `placeholder` / `searchPlaceholder` / `emptyMessage` | `string`                                      | `Chọn...` / `Tìm...` / `Không có kết quả` |
+| `searchable`                                         | `boolean`                                     | `true` — ẩn ô tìm kiếm khi đặt `false`    |
+| `manualFilter`                                       | `boolean`                                     | `false` — bật khi tự lọc (async/server)   |
+| `renderOption` / `triggerContent`                    | render fn                                     | —                                         |
 
 Chọn lại đúng giá trị đang chọn = bỏ chọn (`''`). Dùng `canDeselect={false}` cho field bắt buộc phải
 giữ giá trị. Dùng `OptionSelect` thay cho `Select` thô khi danh sách là dữ liệu; chỉ giữ `Select`
@@ -92,26 +122,34 @@ Form field chọn nhiều: trigger hiển thị các lựa chọn (`+N` khi quá
 kiếm + nhóm + "Chọn tất cả / Bỏ chọn tất cả". Import từ `@/components/ui/multi-select`.
 
 ```tsx
-import { MultiSelect, type MultiSelectOption } from '@/components/ui/multi-select';
+import {
+  MultiSelect,
+  type MultiSelectOption,
+} from '@/components/ui/multi-select';
 
 const options: MultiSelectOption[] = [
   { value: 'nhan-vien', label: 'Nhân viên', group: 'Vai trò' },
   { value: 'quan-ly', label: 'Quản lý', group: 'Vai trò', count: 12 },
 ];
 
-<MultiSelect value={roles} onChange={setRoles} options={options} placeholder="Tất cả vai trò" />
+<MultiSelect
+  value={roles}
+  onChange={setRoles}
+  options={options}
+  placeholder="Tất cả vai trò"
+/>;
 ```
 
 `MultiSelectOption<T> = { value: string; label: ReactNode; searchableText?: string; group?: string; count?: number; data?: T; disabled?: boolean }`
 
-| Prop | Kiểu | Mặc định |
-|---|---|---|
-| `value` / `onChange` | `string[]` / `(v: string[]) => void` | `[]` |
-| `options` | `MultiSelectOption<T>[]` | — |
-| `maxChips` | `number` | `2` — dư thì gom `+N` (giữ trigger 1 dòng) |
-| `showSelectedOptionWrapper` | `boolean` | `false` — bật chip wrapper và nút xóa mặc định |
-| `placeholder` / `searchPlaceholder` / `emptyMessage` | `string` | `Chọn...` / `Tìm...` / `Không có kết quả` |
-| `searchMode` | `'popover' \| 'inline'` | `'popover'` — tìm trong dropdown; `inline` hiển thị ô tìm ngay trên trigger |
+| Prop                                                 | Kiểu                                 | Mặc định                                                                    |
+| ---------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| `value` / `onChange`                                 | `string[]` / `(v: string[]) => void` | `[]`                                                                        |
+| `options`                                            | `MultiSelectOption<T>[]`             | —                                                                           |
+| `maxChips`                                           | `number`                             | `2` — dư thì gom `+N` (giữ trigger 1 dòng)                                  |
+| `showSelectedOptionWrapper`                          | `boolean`                            | `false` — bật chip wrapper và nút xóa mặc định                              |
+| `placeholder` / `searchPlaceholder` / `emptyMessage` | `string`                             | `Chọn...` / `Tìm...` / `Không có kết quả`                                   |
+| `searchMode`                                         | `'popover' \| 'inline'`              | `'popover'` — tìm trong dropdown; `inline` hiển thị ô tìm ngay trên trigger |
 
 Nhóm 1 cấp qua `group`; số đếm qua `count`. Với `nestedOptions`, group và leaf đều được hiển thị,
 group có thể chọn/bỏ chọn toàn bộ leaf. Search fuzzy giữ lại group cha khi leaf con khớp. Popover
@@ -127,15 +165,15 @@ Bọc `react-number-format`, phân tách nghìn `.` / thập phân `,` kiểu VN
 ```tsx
 import { NumericInput } from '@/components/ui/inputs/numeric-input';
 
-<NumericInput value={luong} onValueChange={setLuong} allowNegative={false} />
+<NumericInput value={luong} onValueChange={setLuong} allowNegative={false} />;
 ```
 
-| Prop | Kiểu | Mặc định |
-|---|---|---|
-| `value` | `number \| string \| null` | — |
-| `onValueChange` | `(value: number \| undefined) => void` | — (rỗng → `undefined`) |
-| `thousandSeparator` / `decimalSeparator` | `string` | `.` / `,` |
-| `allowNegative` / `decimalScale` | `boolean` / `number` | — |
+| Prop                                     | Kiểu                                   | Mặc định               |
+| ---------------------------------------- | -------------------------------------- | ---------------------- |
+| `value`                                  | `number \| string \| null`             | —                      |
+| `onValueChange`                          | `(value: number \| undefined) => void` | — (rỗng → `undefined`) |
+| `thousandSeparator` / `decimalSeparator` | `string`                               | `.` / `,`              |
+| `allowNegative` / `decimalScale`         | `boolean` / `number`                   | —                      |
 
 ---
 

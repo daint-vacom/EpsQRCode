@@ -82,6 +82,10 @@ Width presets use the responsive 12-column grid: `normal` is 6 columns, `large` 
 
 Set `breakBefore: true` when a field should begin at the first desktop grid column, leaving the unused columns from the previous field on their own row.
 
+For fields that align the label beside the control, set `layout: 'horizontal'`. The optional
+`labelWidth: 'sm' | 'md' | 'lg'` and `labelGap: 'sm' | 'md' | 'lg'` values map to the shared
+`FormItem` presets, so generated forms do not repeat arbitrary label-column widths or gap classes.
+
 `inputSelect` binds the text/number input to `name` and the trailing select to `selectName`.
 Declare `selectOptions` for a static list or set `selectOptionsFrom: 'prop'` to receive
 `<name>SelectOptions` from the page. The secondary field is included in generated default values;

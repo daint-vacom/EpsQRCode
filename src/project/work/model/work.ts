@@ -153,6 +153,7 @@ export interface WorkTemplate {
 }
 
 export interface WorkEmployeeOption extends WorkLinkOption {
+  userId: string | null;
   employeeCode: string;
   avatarUrl: string | null;
 }

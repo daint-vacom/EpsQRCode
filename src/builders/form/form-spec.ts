@@ -40,10 +40,21 @@ const formModes = z
 export const FORM_WIDTHS = ['normal', 'large', 'full'] as const;
 const width = z.enum(FORM_WIDTHS).optional();
 
+/** Shared FormItem layout presets for fields that align labels beside controls. */
+export const FORM_ITEM_LAYOUTS = ['stacked', 'horizontal'] as const;
+export const FORM_ITEM_LABEL_WIDTHS = ['sm', 'md', 'lg'] as const;
+export const FORM_ITEM_LABEL_GAPS = ['sm', 'md', 'lg'] as const;
+const itemLayout = z.enum(FORM_ITEM_LAYOUTS).optional();
+const itemLabelWidth = z.enum(FORM_ITEM_LABEL_WIDTHS).optional();
+const itemLabelGap = z.enum(FORM_ITEM_LABEL_GAPS).optional();
+
 const base = {
   name: fieldName,
   label: z.string().min(1),
   width,
+  layout: itemLayout,
+  labelWidth: itemLabelWidth,
+  labelGap: itemLabelGap,
   /** Start this field at the first desktop grid column, leaving the previous row's remainder empty. */
   breakBefore: z.boolean().optional(),
   required: z.boolean().optional(),

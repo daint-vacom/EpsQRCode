@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { DragStartEvent } from '@dnd-kit/core';
 import { GripVertical, LoaderCircle } from 'lucide-react';
+import { getRichTextPlainText } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -182,6 +183,7 @@ export function WorkKanbanCard({
   isSaving = false,
 }: WorkKanbanCardProps) {
   const overdue = isWorkOverdue(work);
+  const descriptionPreview = getRichTextPlainText(work.description);
 
   const cardContent = (
     <div
@@ -213,9 +215,9 @@ export function WorkKanbanCard({
           ) : null}
         </div>
 
-        {work.description ? (
+        {descriptionPreview ? (
           <p className="line-clamp-3 text-xs text-muted-foreground">
-            {work.description}
+            {descriptionPreview}
           </p>
         ) : null}
 

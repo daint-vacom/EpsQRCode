@@ -61,6 +61,31 @@ describe('buildFormModule', () => {
     expect(source).toContain('className="md:col-span-6 md:col-start-1"');
   });
 
+  it('emits shared horizontal FormItem layout configuration', () => {
+    const source = buildFormModule({
+      entity: 'Employee',
+      schemaImport: './employee-form.schema',
+      schemaName: 'employeeFormSchema',
+      valuesType: 'EmployeeFormValues',
+      title: 'Tạo nhân viên',
+      fields: [
+        {
+          kind: 'text',
+          name: 'name',
+          label: 'Họ tên',
+          width: 'normal',
+          layout: 'horizontal',
+          labelWidth: 'lg',
+          labelGap: 'sm',
+        },
+      ],
+    });
+
+    expect(source).toContain(
+      '<FormItem className="md:col-span-6" layout="horizontal" labelWidth="lg" labelGap="sm">',
+    );
+  });
+
   it('binds each kind correctly', () => {
     expect(source).toContain(
       '<Input placeholder="vd: NCC-001" variant="md" {...field} />',

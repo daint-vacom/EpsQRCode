@@ -214,6 +214,7 @@ export async function loadWorkEmployeeOptions(
   const rows = await request<
     Array<{
       id: string;
+      user_id: string | null;
       employee_code: string;
       first_name: string;
       last_name: string;
@@ -222,7 +223,7 @@ export async function loadWorkEmployeeOptions(
   >(
     supabaseApi.get('/employees', {
       params: {
-        select: 'id,employee_code,first_name,last_name,avatar_url',
+        select: 'id,user_id,employee_code,first_name,last_name,avatar_url',
         tenant_id: `eq.${tenantId}`,
         status: 'eq.active',
         order: 'last_name.asc,first_name.asc',
@@ -231,6 +232,7 @@ export async function loadWorkEmployeeOptions(
   );
   return rows.map((row) => ({
     id: row.id,
+    userId: row.user_id,
     label: `${row.last_name} ${row.first_name}`.trim(),
     secondaryLabel: row.employee_code,
     employeeCode: row.employee_code,

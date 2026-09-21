@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import { RichTextContent } from '@/components/ui/rich-text-editor';
 import {
   EntityDetailInformationCard,
   EntityDetailInformationGrid,
@@ -167,9 +168,11 @@ export function WorkDetailPage() {
               <CardTitle>Mô tả</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {work.description || 'Chưa có mô tả.'}
-              </p>
+              {work.description ? (
+                <RichTextContent content={work.description} />
+              ) : (
+                <p className="text-sm text-muted-foreground">Chưa có mô tả.</p>
+              )}
             </CardContent>
           </Card>
           <Card>

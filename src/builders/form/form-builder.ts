@@ -42,6 +42,17 @@ function itemClass(field: FormFieldSpec): string {
     .join(' ');
 }
 
+function itemProps(field: FormFieldSpec, classNameSuffix?: string): string {
+  return [
+    `className="${[itemClass(field), classNameSuffix].filter(Boolean).join(' ')}"`,
+    field.layout ? `layout="${field.layout}"` : undefined,
+    field.labelWidth ? `labelWidth="${field.labelWidth}"` : undefined,
+    field.labelGap ? `labelGap="${field.labelGap}"` : undefined,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 const LOCAL_OPTION_KINDS = new Set([
   'select',
   'combobox',
@@ -54,7 +65,11 @@ type OptionFieldSpec = Extract<
   FormFieldSpec,
   {
     kind:
-      'select' | 'combobox' | 'autocomplete' | 'searchSelect' | 'multiselect';
+      | 'select'
+      | 'combobox'
+      | 'autocomplete'
+      | 'searchSelect'
+      | 'multiselect';
   }
 >;
 
@@ -274,7 +289,7 @@ function emitField(field: FormFieldSpec): string {
   control={form.control}
   name="${field.name}"
   render={({ field, fieldState }) => (
-    <FormItem className="${itemClass(field)}">
+    <FormItem ${itemProps(field)}>
       <FormLabel>${labelJsx(field)}</FormLabel>
       <FormField
         control={form.control}
@@ -294,16 +309,16 @@ function emitField(field: FormFieldSpec): string {
       : (() => {
           const item =
             field.kind === 'switch'
-              ? `<FormItem className="${itemClass(field)} flex-row items-center gap-2.5">
+              ? `<FormItem ${itemProps(field, 'flex-row items-center gap-2.5')}>
   ${controlJsx(field)}
   <FormLabel className="font-normal text-foreground">${field.label}</FormLabel>
 </FormItem>`
               : field.kind === 'image'
-                ? `<FormItem className="${itemClass(field)}">
+                ? `<FormItem ${itemProps(field)}>
   ${controlJsx(field)}
   <FormMessage />
 </FormItem>`
-                : `<FormItem className="${itemClass(field)}">
+                : `<FormItem ${itemProps(field)}>
   <FormLabel>${labelJsx(field)}</FormLabel>
   ${controlJsx(field)}
   <FormMessage />

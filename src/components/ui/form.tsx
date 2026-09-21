@@ -23,17 +23,42 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
 );
 
 type FormLabelVariant = 'default' | 'compact';
+type FormItemLayout = 'stacked' | 'horizontal';
+type FormItemLabelWidth = 'sm' | 'md' | 'lg';
+type FormItemLabelGap = 'sm' | 'md' | 'lg';
 
-const formItemVariants = cva('flex flex-col', {
+const formItemVariants = cva('', {
   variants: {
+    layout: {
+      stacked: 'flex flex-col',
+      horizontal:
+        '[--form-item-label-width:8.75rem] grid items-center grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] gap-x-3 gap-y-1 [&>[data-slot=form-message]]:col-start-2 [&>[data-slot=form-description]]:col-start-2',
+    },
     variant: {
       default: 'gap-2.5',
       compact: 'gap-1',
     },
+    labelWidth: {
+      sm: '[--form-item-label-width:7rem]',
+      md: '[--form-item-label-width:8.75rem]',
+      lg: '[--form-item-label-width:10.5rem]',
+    },
+    labelGap: {
+      sm: 'gap-x-2',
+      md: 'gap-x-3',
+      lg: 'gap-x-4',
+    },
   },
   defaultVariants: {
+    layout: 'stacked',
     variant: 'default',
   },
+  compoundVariants: [
+    {
+      layout: 'horizontal',
+      className: 'gap-y-1',
+    },
+  ],
 });
 
 const formLabelVariants = cva('font-normal text-foreground', {
@@ -98,8 +123,16 @@ const FormItemContext = React.createContext<FormItemContextValue>({
 function FormItem({
   className,
   variant = 'default',
+  layout = 'stacked',
+  labelWidth,
+  labelGap,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { variant?: FormLabelVariant }) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  variant?: FormLabelVariant;
+  layout?: FormItemLayout;
+  labelWidth?: FormItemLabelWidth;
+  labelGap?: FormItemLabelGap;
+}) {
   const id = React.useId();
   const { error } = useFormField();
 
@@ -107,7 +140,10 @@ function FormItem({
     <FormItemContext.Provider value={{ id, variant }}>
       <div
         data-slot="form-item"
-        className={cn(formItemVariants({ variant }), className)}
+        className={cn(
+          formItemVariants({ layout, variant, labelWidth, labelGap }),
+          className,
+        )}
         data-invalid={!!error}
         {...props}
       />
@@ -211,3 +247,5 @@ export {
   formLabelVariants,
   useFormField,
 };
+
+export type { FormItemLabelGap, FormItemLabelWidth, FormItemLayout };
