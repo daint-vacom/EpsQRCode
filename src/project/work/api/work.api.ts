@@ -101,6 +101,9 @@ export async function loadWorkTree(tenantId: string, workItemId: string) {
   const root = result.items.find((item) => item.id === workItemId) ?? null;
   return {
     root,
+    parent: root?.parentId
+      ? (result.items.find((item) => item.id === root.parentId) ?? null)
+      : null,
     children: root
       ? result.items.filter((item) => item.parentId === root.id)
       : [],

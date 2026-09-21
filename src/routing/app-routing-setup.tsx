@@ -65,7 +65,6 @@ import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
 import { ReportsPage } from '@/project/reports/pages/reports-page';
-import { WorkDetailPage } from '@/project/work/pages/work-detail-page';
 import { WorkPage } from '@/project/work/pages/work-page';
 import { WorkTemplatesPage } from '@/project/work/pages/work-templates-page';
 import { Route, Routes } from 'react-router';
@@ -240,10 +239,6 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MY_WORK}
             element={<WorkPage scope="mine" />}
-          />
-          <Route
-            path={ROUTES.PROJECT.WORK_DETAIL}
-            element={<WorkDetailPage />}
           />
           <Route
             path={ROUTES.PROJECT.WORK_TEMPLATES}

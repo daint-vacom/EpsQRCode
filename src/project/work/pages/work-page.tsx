@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildPath, ROUTES } from '@/constants/routes';
+import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -46,9 +46,11 @@ import {
   loadWorkItems,
   loadWorkLinkOptions,
   loadWorkTemplates,
+  loadWorkTree,
   updateWorkItem,
   updateWorkItemStatus,
 } from '../api/work.api';
+import { WorkDetailDialog } from '../components/work-detail-dialog';
 import {
   createWorkKanbanColumns,
   moveWorkKanbanItem,
@@ -178,7 +180,9 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   });
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editingWork, setEditingWork] = useState<WorkItem | null>(null);
+  const [viewingWork, setViewingWork] = useState<WorkItem | null>(null);
   const [deletingWork, setDeletingWork] = useState<WorkItem | null>(null);
   const [createChildOf, setCreateChildOf] = useState<WorkItem | null>(null);
   const [kanbanColumns, setKanbanColumns] = useState<WorkKanbanColumns>(() =>
@@ -230,6 +234,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       tenantId && (scope === 'all' || currentEmployeeQuery.data),
     ),
   });
+  const workDetailQuery = useQuery({
+    queryKey: ['project', 'work', 'detail', tenantId, viewingWork?.id],
+    queryFn: () => loadWorkTree(tenantId!, viewingWork!.id),
+    enabled: Boolean(tenantId && viewOpen && viewingWork),
+  });
   const updateKanbanColumns = useCallback((next: WorkKanbanColumns) => {
     kanbanColumnsRef.current = next;
     setKanbanColumns(next);
@@ -273,7 +282,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     .filter((item) => !item.parentId)
     .map((item) => ({
       value: item.id,
-      label: item.title,
+      label: `${item.code} - ${item.title}`,
       searchableText: `${item.code} ${item.title}`,
     }));
   const templateOptions = templates
@@ -289,6 +298,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     label: item.label,
     searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
   }));
+
+  const openView = useCallback((work: WorkItem) => {
+    setViewingWork(work);
+    setViewOpen(true);
+  }, []);
 
   const openCreate = useCallback(
     (parent?: WorkItem | null, calendarStartAt?: Date) => {
@@ -324,6 +338,14 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     setEditingWork(work);
     editForm.reset(toWorkFormValues(work));
     setEditOpen(true);
+  };
+  const openEditFromDetail = (work: WorkItem) => {
+    setViewOpen(false);
+    openEdit(work);
+  };
+  const openCreateChildFromDetail = (work: WorkItem) => {
+    setViewOpen(false);
+    openCreate(work);
   };
   const createMutation = useMutation({
     mutationFn: (values: WorkFormValues) => createWorkItem(tenantId!, values),
@@ -427,8 +449,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   );
 
   const columns = useWorkColumns({
-    onView: (work) =>
-      navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id })),
+    onView: openView,
     onEdit: openEdit,
     onDelete: setDeletingWork,
     renderWork: (work) => (
@@ -436,9 +457,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         <button
           type="button"
           className="line-clamp-2 text-left font-medium hover:text-primary"
-          onClick={() =>
-            navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id }))
-          }
+          onClick={() => openView(work)}
         >
           {work.title}
         </button>
@@ -539,6 +558,9 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     customerIdsOptions: customerOptions,
     contractIdsOptions: contractOptions,
   };
+  const detailWork = workDetailQuery.data?.root ?? viewingWork;
+  const detailParent = workDetailQuery.data?.parent ?? null;
+  const detailChildren = workDetailQuery.data?.children ?? [];
   const pageTitle = scope === 'mine' ? 'Việc của tôi' : 'Quản lý công việc';
 
   if (workQuery.isError) {
@@ -684,9 +706,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           <CardContent className={boardViewContentClassName}>
             <WorkOverview
               works={works}
-              onOpen={(work) =>
-                navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id }))
-              }
+              onOpen={openView}
               savingWorkIds={savingWorkIds}
               assigneeAvatarUrls={assigneeAvatarUrls}
               isLoading={workQuery.isPending}
@@ -736,9 +756,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
               columns={kanbanColumns}
               onColumnsChange={updateKanbanColumns}
               onMove={moveKanban}
-              onOpen={(work) =>
-                navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: work.id }))
-              }
+              onOpen={openView}
               savingWorkIds={savingWorkIds}
               assigneeAvatarUrls={assigneeAvatarUrls}
               isLoading={workQuery.isPending}
@@ -753,9 +771,10 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
             initialView="month"
             allowEventCreation
             onEventCreate={(startTime) => openCreate(null, startTime)}
-            onEventSelect={(event) =>
-              navigate(buildPath(ROUTES.PROJECT.WORK_DETAIL, { id: event.id }))
-            }
+            onEventSelect={(event) => {
+              const work = works.find((item) => item.id === event.id);
+              if (work) openView(work);
+            }}
             onEventUpdate={(event) => {
               const work = works.find((item) => item.id === event.id);
               if (!work) return;
@@ -787,6 +806,27 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         isSaving={editMutation.isPending}
         title="Chỉnh sửa công việc"
         {...submitProps}
+      />
+      <WorkDetailDialog
+        open={viewOpen}
+        onOpenChange={(open) => {
+          setViewOpen(open);
+          if (!open) setViewingWork(null);
+        }}
+        work={detailWork}
+        parentWork={detailParent}
+        children={detailChildren}
+        isLoading={workDetailQuery.isPending}
+        errorMessage={
+          workDetailQuery.isError
+            ? getApiErrorMessage(workDetailQuery.error)
+            : undefined
+        }
+        assigneeEmployeeOptions={employeeOptions}
+        parentOptions={parentOptions}
+        templateOptions={templateOptions}
+        onEdit={openEditFromDetail}
+        onCreateChild={openCreateChildFromDetail}
       />
       <ConfirmDialog
         open={Boolean(deletingWork)}

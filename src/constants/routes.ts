@@ -29,7 +29,6 @@ export const ROUTES = {
     SETTINGS: '/settings',
     WORK: '/work',
     MY_WORK: '/my-work',
-    WORK_DETAIL: '/work/:id',
     WORK_TEMPLATES: '/work-templates',
     EMPLOYEES: '/employees',
     CUSTOMERS: '/customers',
