@@ -54,7 +54,8 @@ import type { WorkItem, WorkStatus } from '../model/work';
 
 export const workDefaultValues: WorkFormValues = {
   title: '',
-  description: '',
+  description:
+    '<p>Nhập mô tả công việc tại đây...</p><p><strong>Nội dung cần hoàn thành:</strong></p><ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Nội dung 1</p></li><li data-type="taskItem" data-checked="false"><p>Nội dung 2</p></li><li data-type="taskItem" data-checked="false"><p>Nội dung 3</p></li></ul>',
   status: 'todo',
   priority: 'normal',
   assigneeEmployeeId: '',

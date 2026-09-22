@@ -1174,7 +1174,13 @@ export function WorkDetailDialog({
                                       />
                                     </FormControl>
                                   ) : (
-                                    <RichTextContent content={field.value} />
+                                    <RichTextContent
+                                      content={field.value}
+                                      onChange={(value) => {
+                                        field.onChange(value);
+                                        markDirty();
+                                      }}
+                                    />
                                   )}
                                   <FormMessage />
                                 </FormItem>

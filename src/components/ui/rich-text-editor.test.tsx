@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RichTextContent, RichTextEditor } from './rich-text-editor';
 
 describe('RichTextEditor', () => {
@@ -35,11 +35,45 @@ describe('RichTextEditor', () => {
     expect(editor).toHaveAttribute('aria-multiline', 'true');
   });
 
+  it('creates a checklist from the editor toolbar', async () => {
+    const user = userEvent.setup();
+
+    render(<RichTextEditor />);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Danh sách checklist' }),
+    );
+
+    expect(await screen.findByRole('checkbox')).toBeInTheDocument();
+  });
+
   it('renders stored HTML through the read-only content view', async () => {
     render(<RichTextContent content="<h2>Tiêu đề</h2><p>Nội dung</p>" />);
 
     expect(await screen.findByText('Tiêu đề')).toBeInTheDocument();
     expect(screen.getByText('Nội dung')).toBeInTheDocument();
     expect(screen.queryByRole('toolbar')).not.toBeInTheDocument();
+  });
+
+  it('allows checking checklist items in the read-only content view', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <RichTextContent
+        content={
+          '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p>Việc 1</p></li></ul>'
+        }
+        onChange={onChange}
+      />,
+    );
+
+    const checkbox = await screen.findByRole('checkbox', { name: /Việc 1/ });
+    await user.click(checkbox);
+
+    expect(checkbox).toBeChecked();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.stringContaining('data-checked="true"'),
+    );
   });
 });
