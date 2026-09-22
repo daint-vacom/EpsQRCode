@@ -67,6 +67,28 @@ describe('SelectSearch', () => {
     expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
   });
 
+  it('supports opening the selector from a chevron-only trigger', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <SelectSearch
+        value="quan-ly"
+        options={OPTIONS}
+        triggerMode="chevron"
+        ariaLabel="Chọn vai trò"
+        searchable={false}
+      />,
+    );
+
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('Quản lý'));
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Chọn vai trò' }));
+    expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
+  });
+
   it('selects and clears an option by clicking the selected option again', async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();

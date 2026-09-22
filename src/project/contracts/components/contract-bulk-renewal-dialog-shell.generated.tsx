@@ -37,7 +37,7 @@ export function ContractBulkRenewalDialogShell({
 }: ContractBulkRenewalDialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] max-w-xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-w-xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">
           <DialogTitle>{dialogTitle}</DialogTitle>
         </DialogHeader>

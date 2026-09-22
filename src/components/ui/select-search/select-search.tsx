@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { searchMatch } from '@/lib/search';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/command';
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
@@ -43,7 +44,9 @@ export interface SelectSearchProps<T = unknown> {
     isSelected: boolean,
   ) => ReactNode;
   triggerContent?:
-    ReactNode | ((option: SearchSelectOption<T> | undefined) => ReactNode);
+    | ReactNode
+    | ((option: SearchSelectOption<T> | undefined) => ReactNode);
+  triggerMode?: 'full' | 'chevron';
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   'aria-invalid'?: boolean;
@@ -114,6 +117,7 @@ export function SelectSearch<T = unknown>({
   selectedOption: selectedOptionProp,
   renderOption,
   triggerContent,
+  triggerMode = 'full',
   className,
   size = 'md',
   'aria-invalid': ariaInvalid,
@@ -175,30 +179,64 @@ export function SelectSearch<T = unknown>({
     triggerContent,
   });
 
+  const triggerContentNode = (
+    <span className="min-w-0 truncate text-start">{content}</span>
+  );
+
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-label={ariaLabel}
-          aria-busy={loading}
-          disabled={disabled}
-          size={size}
-          aria-invalid={ariaInvalid}
-          variant="outline"
-          mode="input"
-          placeholder={!selectedOption}
-          className={cn(
-            'w-full justify-between border-input bg-background text-foreground shadow-xs shadow-black/5',
-            className,
-          )}
-        >
-          <span className="min-w-0 truncate text-start">{content}</span>
-          <ChevronsUpDown className="size-4 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
+      {triggerMode === 'chevron' ? (
+        <PopoverAnchor asChild>
+          <div
+            data-slot="select-trigger"
+            className={cn(
+              'inline-flex min-h-7 min-w-0 items-center gap-1 text-sm',
+              className,
+            )}
+          >
+            {triggerContentNode}
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                aria-expanded={isOpen}
+                aria-label={ariaLabel ?? 'Mở lựa chọn'}
+                aria-busy={loading}
+                disabled={disabled}
+                size="sm"
+                aria-invalid={ariaInvalid}
+                variant="ghost"
+                mode="icon"
+                className="size-6 shrink-0 rounded-md p-0 text-muted-foreground"
+              >
+                <ChevronDown className="size-3.5 transition-transform data-[state=open]:rotate-180" />
+              </Button>
+            </PopoverTrigger>
+          </div>
+        </PopoverAnchor>
+      ) : (
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            role="combobox"
+            aria-expanded={isOpen}
+            aria-label={ariaLabel}
+            aria-busy={loading}
+            disabled={disabled}
+            size={size}
+            aria-invalid={ariaInvalid}
+            variant="outline"
+            mode="input"
+            placeholder={!selectedOption}
+            className={cn(
+              'w-full justify-between border-input bg-background text-foreground shadow-xs shadow-black/5',
+              className,
+            )}
+          >
+            {triggerContentNode}
+            <ChevronsUpDown className="size-4 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+      )}
       <PopoverContent
         className="w-(--radix-popover-trigger-width) min-w-[220px] border-border bg-popover p-0 text-foreground"
         align="start"

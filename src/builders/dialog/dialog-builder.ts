@@ -143,7 +143,7 @@ export function buildDialogModule(input: DialogSpec): string {
     `}: ${spec.componentName}Props) {`,
     '  return (',
     '    <Dialog open={open} onOpenChange={onOpenChange}>',
-    `      <DialogContent className="flex max-h-[90dvh] ${WIDTH_CLASS[spec.width]} flex-col gap-0 overflow-hidden p-0">`,
+    `      <DialogContent className="flex ${WIDTH_CLASS[spec.width]} flex-col gap-0 overflow-hidden p-0">`,
     '        <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">',
     `          <DialogTitle>${spec.titleProp ? `{${spec.titleProp}}` : spec.title}</DialogTitle>${description}`,
     '        </DialogHeader>',

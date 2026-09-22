@@ -10,6 +10,9 @@ const DialogContentContainerContext = React.createContext<HTMLElement | null>(
   null,
 );
 
+const centeredDialogPosition =
+  'left-[50%] top-[50%] max-w-lg translate-x-[-50%] translate-y-[-50%] w-full';
+
 /**
  * Returns the nearest dialog content element for nested portalled controls.
  *
@@ -22,13 +25,12 @@ export function useDialogContentContainer() {
 }
 
 const dialogContentVariants = cva(
-  'flex flex-col fixed outline-0 z-50 border border-border bg-background p-6 shadow-lg shadow-black/5 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg has-[[data-slot=popover-content][data-state=open]]:!overflow-visible has-[[data-slot=select-content][data-state=open]]:!overflow-visible',
+  'flex flex-col fixed max-h-[min(90dvh,760px)] outline-0 z-50 border-0 bg-background p-6 shadow-lg shadow-black/5 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg has-[[data-slot=dialog-header]]:pt-0 has-[[data-slot=dialog-footer]]:pb-0 has-[[data-slot=popover-content][data-state=open]]:!overflow-visible has-[[data-slot=select-content][data-state=open]]:!overflow-visible',
   {
     variants: {
       variant: {
-        default:
-          'left-[50%] top-[50%] max-w-lg translate-x-[-50%] translate-y-[-50%] w-full',
-        fullscreen: 'inset-5',
+        default: centeredDialogPosition,
+        fullscreen: 'inset-5 max-h-none',
       },
       size: {
         large: 'max-w-7xl',

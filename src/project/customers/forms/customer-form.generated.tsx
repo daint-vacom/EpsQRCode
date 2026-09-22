@@ -889,7 +889,10 @@ interface CustomerFormDialogProps {
 }
 
 type CustomerFormTab =
-  'general' | 'custom' | 'responsibility' | 'softwareAccounts';
+  | 'general'
+  | 'custom'
+  | 'responsibility'
+  | 'softwareAccounts';
 
 function collectCustomerFormErrorPaths(
   errors: FieldErrors<CustomerFormValues>,
@@ -1087,7 +1090,7 @@ export function CustomerFormDialog({
       <Dialog open={open} onOpenChange={requestClose}>
         <DialogContent
           size="large"
-          className="flex h-[min(90dvh,760px)] flex-col gap-0 overflow-hidden p-0"
+          className="flex flex-col gap-0 overflow-hidden p-0"
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">

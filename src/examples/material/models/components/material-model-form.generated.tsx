@@ -285,7 +285,7 @@ export function MaterialModelFormDialog({
 }: MaterialModelFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
           <DialogTitle>{title ?? 'Mẫu vật tư'}</DialogTitle>
           <DialogDescription>Thông tin cơ bản của mẫu.</DialogDescription>

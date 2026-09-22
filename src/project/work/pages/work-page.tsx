@@ -45,7 +45,6 @@ import {
   loadWorkEmployeeOptions,
   loadWorkItems,
   loadWorkLinkOptions,
-  loadWorkTemplates,
   loadWorkTree,
   updateWorkItem,
   updateWorkItemStatus,
@@ -63,7 +62,7 @@ import { WorkOverview } from '../components/work-overview';
 import { WorkPriorityIcon } from '../components/work-priority-icon';
 import { WorkStatusBadge } from '../components/work-status-badge';
 import { WorkViewSwitcher } from '../components/work-view-switcher';
-import { useWorkForm, WorkFormDialog } from '../forms/work-form.generated';
+import { useWorkForm } from '../forms/work-form.generated';
 import {
   isWorkOverdue,
   toWorkFormValues,
@@ -179,12 +178,12 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     pageSize: 50,
   });
   const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
-  const [editingWork, setEditingWork] = useState<WorkItem | null>(null);
   const [viewingWork, setViewingWork] = useState<WorkItem | null>(null);
   const [deletingWork, setDeletingWork] = useState<WorkItem | null>(null);
   const [createChildOf, setCreateChildOf] = useState<WorkItem | null>(null);
+  const [returnToWorkAfterCreate, setReturnToWorkAfterCreate] =
+    useState<WorkItem | null>(null);
   const [kanbanColumns, setKanbanColumns] = useState<WorkKanbanColumns>(() =>
     createWorkKanbanColumns([]),
   );
@@ -209,11 +208,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const linkQuery = useQuery({
     queryKey: ['project', 'work', 'links', tenantId],
     queryFn: () => loadWorkLinkOptions(tenantId!),
-    enabled: Boolean(tenantId),
-  });
-  const templateQuery = useQuery({
-    queryKey: ['project', 'work', 'templates', tenantId],
-    queryFn: () => loadWorkTemplates(tenantId!),
     enabled: Boolean(tenantId),
   });
   const filters: WorkListFilters = {
@@ -255,8 +249,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     () => workQuery.data?.items ?? [],
     [workQuery.data?.items],
   );
-  const templates = templateQuery.data ?? [];
-
   const employeeOptions = (employeeQuery.data ?? []).map((item) => ({
     value: item.id,
     label: (
@@ -278,16 +270,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       ),
     [employeeQuery.data],
   );
-  const parentOptions = works
-    .filter((item) => !item.parentId)
-    .map((item) => ({
-      value: item.id,
-      label: `${item.code} - ${item.title}`,
-      searchableText: `${item.code} ${item.title}`,
-    }));
-  const templateOptions = templates
-    .filter((item) => item.isActive)
-    .map((item) => ({ value: item.id, label: `${item.code} - ${item.name}` }));
   const customerOptions = (linkQuery.data?.customers ?? []).map((item) => ({
     value: item.id,
     label: item.label,
@@ -299,10 +281,14 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
   }));
 
-  const openView = useCallback((work: WorkItem) => {
-    setViewingWork(work);
-    setViewOpen(true);
-  }, []);
+  const openView = useCallback(
+    (work: WorkItem) => {
+      setViewingWork(work);
+      editForm.reset(toWorkFormValues(work));
+      setViewOpen(true);
+    },
+    [editForm],
+  );
 
   const openCreate = useCallback(
     (parent?: WorkItem | null, calendarStartAt?: Date) => {
@@ -334,18 +320,24 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     openCreate(parent);
     navigate(ROUTES.PROJECT.WORK, { replace: true });
   }, [createOpen, navigate, openCreate, searchParams, works]);
-  const openEdit = (work: WorkItem) => {
-    setEditingWork(work);
-    editForm.reset(toWorkFormValues(work));
-    setEditOpen(true);
-  };
-  const openEditFromDetail = (work: WorkItem) => {
-    setViewOpen(false);
-    openEdit(work);
-  };
   const openCreateChildFromDetail = (work: WorkItem) => {
+    setReturnToWorkAfterCreate(work);
     setViewOpen(false);
     openCreate(work);
+  };
+  const handleCreateOpenChange = (open: boolean) => {
+    setCreateOpen(open);
+    if (open) return;
+
+    const parentWork = returnToWorkAfterCreate;
+    setReturnToWorkAfterCreate(null);
+    setCreateChildOf(null);
+
+    if (parentWork) {
+      setViewingWork(parentWork);
+      editForm.reset(toWorkFormValues(parentWork));
+      setViewOpen(true);
+    }
   };
   const createMutation = useMutation({
     mutationFn: (values: WorkFormValues) => createWorkItem(tenantId!, values),
@@ -358,10 +350,10 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   });
   const editMutation = useMutation({
     mutationFn: (values: WorkFormValues) =>
-      updateWorkItem(tenantId!, editingWork!.id, values),
-    onSuccess: async () => {
+      updateWorkItem(tenantId!, viewingWork!.id, values),
+    onSuccess: async (_data, values) => {
       toast.success('Đã cập nhật công việc.');
-      setEditOpen(false);
+      editForm.reset(values);
       await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
       await queryClient.refetchQueries({
         queryKey: ['project', 'work', 'list'],
@@ -450,7 +442,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
 
   const columns = useWorkColumns({
     onView: openView,
-    onEdit: openEdit,
+    onEdit: openView,
     onDelete: setDeletingWork,
     renderWork: (work) => (
       <div className="min-w-0">
@@ -549,17 +541,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         .filter((event): event is CalendarEvent => Boolean(event)),
     [works],
   );
-  const submitProps = {
-    statusOptions,
-    priorityOptions,
-    assigneeEmployeeIdOptions: employeeOptions,
-    parentIdOptions: parentOptions,
-    templateIdOptions: templateOptions,
-    customerIdsOptions: customerOptions,
-    contractIdsOptions: contractOptions,
-  };
   const detailWork = workDetailQuery.data?.root ?? viewingWork;
-  const detailParent = workDetailQuery.data?.parent ?? null;
   const detailChildren = workDetailQuery.data?.children ?? [];
   const pageTitle = scope === 'mine' ? 'Việc của tôi' : 'Quản lý công việc';
 
@@ -783,50 +765,48 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           />
         </div>
       )}
-      <WorkFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        mode="create"
-        form={createForm}
-        onSubmit={(values) => createMutation.mutate(values)}
-        isSaving={createMutation.isPending}
-        title={
-          createChildOf
-            ? `Thêm đầu mục con cho “${createChildOf.title}”`
-            : 'Thêm công việc'
-        }
-        {...submitProps}
-      />
-      <WorkFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        mode="edit"
-        form={editForm}
-        onSubmit={(values) => editMutation.mutate(values)}
-        isSaving={editMutation.isPending}
-        title="Chỉnh sửa công việc"
-        {...submitProps}
-      />
       <WorkDetailDialog
-        open={viewOpen}
+        open={createOpen || viewOpen}
         onOpenChange={(open) => {
+          if (createOpen) {
+            handleCreateOpenChange(open);
+            return;
+          }
+
           setViewOpen(open);
           if (!open) setViewingWork(null);
         }}
-        work={detailWork}
-        parentWork={detailParent}
-        children={detailChildren}
-        isLoading={workDetailQuery.isPending}
-        errorMessage={
-          workDetailQuery.isError
-            ? getApiErrorMessage(workDetailQuery.error)
+        mode={createOpen ? 'create' : 'edit'}
+        title={
+          createOpen
+            ? createChildOf
+              ? `Thêm đầu mục con cho “${createChildOf.title}”`
+              : 'Thêm công việc'
             : undefined
         }
+        work={createOpen ? null : detailWork}
+        children={createOpen ? [] : detailChildren}
+        isLoading={createOpen ? false : workDetailQuery.isPending}
+        errorMessage={
+          createOpen || !workDetailQuery.isError
+            ? undefined
+            : getApiErrorMessage(workDetailQuery.error)
+        }
+        form={createOpen ? createForm : editForm}
+        isSaving={
+          createOpen ? createMutation.isPending : editMutation.isPending
+        }
+        statusOptions={statusOptions}
+        priorityOptions={priorityOptions}
         assigneeEmployeeOptions={employeeOptions}
-        parentOptions={parentOptions}
-        templateOptions={templateOptions}
-        onEdit={openEditFromDetail}
-        onCreateChild={openCreateChildFromDetail}
+        customerOptions={customerOptions}
+        contractOptions={contractOptions}
+        onSave={(values) =>
+          createOpen
+            ? createMutation.mutateAsync(values)
+            : editMutation.mutateAsync(values)
+        }
+        onCreateChild={createOpen ? undefined : openCreateChildFromDetail}
       />
       <ConfirmDialog
         open={Boolean(deletingWork)}
