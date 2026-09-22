@@ -274,11 +274,13 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     value: item.id,
     label: item.label,
     searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
+    data: { secondaryLabel: item.secondaryLabel },
   }));
   const contractOptions = (linkQuery.data?.contracts ?? []).map((item) => ({
     value: item.id,
     label: item.label,
     searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
+    data: { secondaryLabel: item.secondaryLabel },
   }));
 
   const openView = useCallback(

@@ -28,7 +28,6 @@ import {
   IDENTITY_AVATAR_TONES,
 } from '@/components/common/gradient-avatar';
 import {
-  isWorkOverdue,
   WORK_PRIORITY_LABELS,
   WORK_STATUS_LABELS,
   WORK_STATUSES,
@@ -182,16 +181,14 @@ export function WorkKanbanCard({
   disabled = false,
   isSaving = false,
 }: WorkKanbanCardProps) {
-  const overdue = isWorkOverdue(work);
   const descriptionPreview = getRichTextPlainText(work.description);
 
   const cardContent = (
     <div
       className={cn(
         'rounded-md border border-border border-s-4 bg-card p-3 shadow-xs transition-shadow hover:shadow-sm',
-        overdue && 'border-s-admin-red-primary',
       )}
-      style={overdue ? undefined : { borderInlineStartColor: work.color }}
+      style={{ borderInlineStartColor: work.color }}
     >
       <div className="flex flex-col gap-2.5">
         <div className="flex items-start justify-between gap-2">
@@ -203,7 +200,16 @@ export function WorkKanbanCard({
               className="h-auto max-w-full justify-start whitespace-normal p-0 text-left text-sm font-medium leading-5 text-foreground hover:text-primary"
               onClick={() => onOpen(work)}
             >
-              <span className="line-clamp-2">{work.title}</span>
+              <span
+                className={cn(
+                  'line-clamp-2',
+                  work.status === 'completed' && 'line-through',
+                  work.status === 'cancelled' &&
+                    'text-destructive line-through decoration-destructive',
+                )}
+              >
+                {work.title}
+              </span>
             </Button>
           </div>
           {isSaving ? (
@@ -226,18 +232,14 @@ export function WorkKanbanCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
-                  className={cn(
-                    'size-3.5 shrink-0 rounded-full',
-                    WORK_KANBAN_STATUS_INDICATOR_CLASSES[work.status],
-                  )}
+                  className="size-3.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: work.color }}
                   role="img"
-                  aria-label={`Trạng thái: ${WORK_STATUS_LABELS[work.status]}`}
+                  aria-label="Màu công việc"
                   tabIndex={0}
                 />
               </TooltipTrigger>
-              <TooltipContent>
-                Trạng thái: {WORK_STATUS_LABELS[work.status]}
-              </TooltipContent>
+              <TooltipContent>Màu công việc</TooltipContent>
             </Tooltip>
             <span className="min-w-0 truncate text-[11px] text-muted-foreground">
               {work.code}

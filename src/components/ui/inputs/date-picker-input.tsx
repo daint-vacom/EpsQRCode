@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, ComponentProps, FocusEvent } from 'react';
 import type { VariantProps } from 'class-variance-authority';
 import { format, isValid, parse } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, Clock3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input, type inputVariants } from '@/components/ui/input';
 import {
@@ -13,9 +14,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const DATE_INPUT_FORMAT = 'dd/MM/yyyy';
 const ISO_DATE_FORMAT = 'yyyy-MM-dd';
+const TIME_INPUT_FORMAT = 'HH:mm';
+const TIME_HOURS = Array.from({ length: 24 }, (_, index) => index);
+const TIME_MINUTES = Array.from({ length: 60 }, (_, index) => index);
 
 function formatDateInput(date: Date | null | undefined): string {
   if (!date || !isValid(date)) return '';
@@ -46,6 +51,47 @@ function parseDateInput(value: string): Date | undefined {
   }
 
   return parsedDate;
+}
+
+function normalizeTimeInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length <= 2) return digits;
+
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function isValidTimeInput(value: string): boolean {
+  return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function formatTimeValue(value: string): string {
+  const match = value.trim().match(/^(\d{1,2}):(\d{1,2})/);
+  if (match) {
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const formattedValue = `${String(hours).padStart(2, '0')}:${String(
+      minutes,
+    ).padStart(2, '0')}`;
+
+    return isValidTimeInput(formattedValue) ? formattedValue : '';
+  }
+
+  const normalizedValue = normalizeTimeInput(value);
+  return isValidTimeInput(normalizedValue) ? normalizedValue : '';
+}
+
+function scrollTimeOptionIntoView(option: HTMLButtonElement | undefined) {
+  if (!option) return;
+
+  const viewport = option.closest<HTMLElement>(
+    '[data-radix-scroll-area-viewport]',
+  );
+  if (!viewport) return;
+
+  viewport.scrollTop = Math.max(
+    0,
+    option.offsetTop - (viewport.clientHeight - option.offsetHeight) / 2,
+  );
 }
 
 export interface DatePickerInputProps
@@ -97,11 +143,33 @@ export function DatePickerInput({
   const [calendarDate, setCalendarDate] = useState<Date | undefined>(
     selectedDate,
   );
+  const [timeText, setTimeText] = useState(() => formatTimeValue(timeValue));
+  const [isTimeOpen, setIsTimeOpen] = useState(false);
+  const hourOptionRefs = useRef(new Map<number, HTMLButtonElement>());
+  const minuteOptionRefs = useRef(new Map<number, HTMLButtonElement>());
 
   useEffect(() => {
     setDateText(formatDateInput(selectedDate));
     setCalendarDate(selectedDate);
   }, [selectedDate]);
+
+  useEffect(() => {
+    setTimeText(formatTimeValue(timeValue));
+  }, [timeValue]);
+
+  const selectedTime = formatTimeValue(timeText) || '00:00';
+  const [selectedHour, selectedMinute] = selectedTime.split(':').map(Number);
+
+  useEffect(() => {
+    if (!isTimeOpen) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      scrollTimeOptionIntoView(hourOptionRefs.current.get(selectedHour));
+      scrollTimeOptionIntoView(minuteOptionRefs.current.get(selectedMinute));
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isTimeOpen, selectedHour, selectedMinute]);
 
   const emitChange = (date: Date | undefined) => {
     if (valueMode === 'iso-date') {
@@ -150,13 +218,61 @@ export function DatePickerInput({
     setIsOpen(false);
   };
 
+  const handleTimeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = normalizeTimeInput(event.target.value);
+    setTimeText(nextValue);
+
+    if (!nextValue || isValidTimeInput(nextValue)) {
+      onTimeChange?.(nextValue);
+    }
+  };
+
+  const handleTimeBlur = (event: FocusEvent<HTMLInputElement>) => {
+    if (!timeText) {
+      if (timeValue) onTimeChange?.('');
+    } else if (!isValidTimeInput(timeText)) {
+      setTimeText(formatTimeValue(timeValue));
+    }
+
+    onTimeBlur?.(event);
+  };
+
+  const handleTimePartChange = (part: 'hour' | 'minute', nextValue: number) => {
+    const [currentHour, currentMinute] = selectedTime.split(':').map(Number);
+    const nextTime = `${String(
+      part === 'hour' ? nextValue : currentHour,
+    ).padStart(2, '0')}:${String(
+      part === 'minute' ? nextValue : currentMinute,
+    ).padStart(2, '0')}`;
+
+    setTimeText(nextTime);
+    onTimeChange?.(nextTime);
+  };
+
+  const handleSetCurrentTime = () => {
+    const now = new Date();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(
+      now.getMinutes(),
+    ).padStart(2, '0')}`;
+
+    setTimeText(currentTime);
+    onTimeChange?.(currentTime);
+    setIsTimeOpen(false);
+  };
+
+  const handleClearTime = () => {
+    setTimeText('');
+    onTimeChange?.('');
+    setIsTimeOpen(false);
+  };
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverAnchor asChild>
         <div
           className={cn(
             'w-full',
-            showTime && 'grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2',
+            showTime && 'grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2',
           )}
         >
           <div className="relative min-w-0">
@@ -184,15 +300,105 @@ export function DatePickerInput({
             </PopoverTrigger>
           </div>
           {showTime ? (
-            <Input
-              type="time"
-              variant={variant}
-              value={timeValue}
-              aria-label={timeLabel ?? 'Giờ'}
-              aria-invalid={props['aria-invalid']}
-              onChange={(event) => onTimeChange?.(event.target.value)}
-              onBlur={onTimeBlur}
-            />
+            <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+              <div className="relative min-w-0">
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={5}
+                  placeholder={TIME_INPUT_FORMAT}
+                  variant={variant}
+                  value={timeText}
+                  aria-label={timeLabel ?? 'Giờ'}
+                  aria-invalid={props['aria-invalid']}
+                  className="pe-8 text-center tabular-nums"
+                  onChange={handleTimeChange}
+                  onBlur={handleTimeBlur}
+                />
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Chọn giờ"
+                    className="absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                  >
+                    <Clock3 className="size-3.5" />
+                  </button>
+                </PopoverTrigger>
+              </div>
+              <PopoverContent className="w-52 p-2" align="end" sideOffset={6}>
+                <div className="mb-2 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 text-muted-foreground"
+                    onClick={handleSetCurrentTime}
+                  >
+                    Hiện tại
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 text-muted-foreground"
+                    onClick={handleClearTime}
+                  >
+                    Xóa
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <ScrollArea className="h-48" viewportClassName="px-1">
+                    <div className="space-y-0.5">
+                      {TIME_HOURS.map((hour) => (
+                        <button
+                          key={hour}
+                          ref={(element) => {
+                            if (element) {
+                              hourOptionRefs.current.set(hour, element);
+                            } else {
+                              hourOptionRefs.current.delete(hour);
+                            }
+                          }}
+                          type="button"
+                          data-selected={selectedHour === hour}
+                          aria-label={`Giờ ${String(hour).padStart(2, '0')}`}
+                          aria-pressed={selectedHour === hour}
+                          className="h-7 w-full rounded-md px-2 text-xs tabular-nums text-foreground transition-colors hover:bg-accent data-[selected=true]:bg-primary data-[selected=true]:font-medium data-[selected=true]:text-primary-foreground data-[selected=true]:shadow-sm"
+                          onClick={() => handleTimePartChange('hour', hour)}
+                        >
+                          {String(hour).padStart(2, '0')}
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  <ScrollArea className="h-48" viewportClassName="px-1">
+                    <div className="space-y-0.5">
+                      {TIME_MINUTES.map((minute) => (
+                        <button
+                          key={minute}
+                          ref={(element) => {
+                            if (element) {
+                              minuteOptionRefs.current.set(minute, element);
+                            } else {
+                              minuteOptionRefs.current.delete(minute);
+                            }
+                          }}
+                          type="button"
+                          data-selected={selectedMinute === minute}
+                          aria-label={`Phút ${String(minute).padStart(2, '0')}`}
+                          aria-pressed={selectedMinute === minute}
+                          className="h-7 w-full rounded-md px-2 text-xs tabular-nums text-foreground transition-colors hover:bg-accent data-[selected=true]:bg-primary data-[selected=true]:font-medium data-[selected=true]:text-primary-foreground data-[selected=true]:shadow-sm"
+                          onClick={() => handleTimePartChange('minute', minute)}
+                        >
+                          {String(minute).padStart(2, '0')}
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
+            </Popover>
           ) : null}
         </div>
       </PopoverAnchor>

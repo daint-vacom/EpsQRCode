@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AtSign,
+  Building2,
   CalendarDays,
   ChevronRight,
   Clock3,
@@ -11,6 +12,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Paperclip,
+  Pencil,
   Plus,
   Send,
   Smile,
@@ -27,6 +29,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ColorInput } from '@/components/ui/color-input';
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -46,15 +55,22 @@ import {
 } from '@/components/ui/form';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import { SectionLoading } from '@/components/ui/loading';
-import {
-  MultiSelect,
-  type MultiSelectOption,
-} from '@/components/ui/multi-select';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import {
+  RichTextContent,
+  RichTextEditor,
+} from '@/components/ui/rich-text-editor';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomerIdentity } from '../../customers/components/customer-identity';
 import {
   toWorkFormValues,
   workProgress,
@@ -98,31 +114,6 @@ function getInitials(name: string) {
     .slice(-2)
     .map((part) => part[0]?.toUpperCase())
     .join('');
-}
-
-function EmptyPreview({
-  icon: Icon,
-  title,
-  description,
-  action,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/10 px-5 py-8 text-center">
-      <span className="mb-3 flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Icon className="size-4.5" />
-      </span>
-      <p className="text-sm font-medium text-foreground">{title}</p>
-      <p className="mt-1 max-w-md text-sm leading-6 text-muted-foreground">
-        {description}
-      </p>
-      {action ? <div className="mt-4">{action}</div> : null}
-    </div>
-  );
 }
 
 function SectionHeading({
@@ -241,20 +232,7 @@ function WorkChildren({
             </div>
           ))}
         </div>
-      ) : (
-        <EmptyPreview
-          icon={ListChecks}
-          title="Chưa có công việc con"
-          description="Bạn có thể thêm đầu mục con để theo dõi các phần việc độc lập."
-          action={
-            onCreateChild ? (
-              <Button type="button" size="sm" onClick={onCreateChild}>
-                <Plus /> Thêm công việc con
-              </Button>
-            ) : null
-          }
-        />
-      )}
+      ) : null}
     </section>
   );
 }
@@ -270,16 +248,6 @@ function WorkAttachments() {
         action={
           <Button type="button" variant="outline" size="sm" disabled>
             <Upload /> Thêm tệp
-          </Button>
-        }
-      />
-      <EmptyPreview
-        icon={Paperclip}
-        title="Chưa có tệp đính kèm"
-        description="Tệp thiết kế, tài liệu và các file liên quan sẽ xuất hiện tại đây."
-        action={
-          <Button type="button" variant="outline" size="sm" disabled>
-            <Upload /> Chọn tệp
           </Button>
         }
       />
@@ -340,11 +308,6 @@ function WorkComments() {
           </div>
         </div>
       </div>
-      <EmptyPreview
-        icon={MessageCircle}
-        title="Chưa có bình luận"
-        description="Trao đổi của nhóm về công việc sẽ được hiển thị tại đây."
-      />
     </section>
   );
 }
@@ -356,22 +319,184 @@ function WorkReadOnlyProperty({
 }: {
   icon: LucideIcon;
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
-    <div className="grid items-center grid-cols-[7rem_minmax(0,1fr)] gap-x-2">
-      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="grid items-start grid-cols-[8.75rem_minmax(0,1fr)] gap-x-2">
+      <span className="flex items-center gap-2 whitespace-nowrap pt-0.5 text-xs text-muted-foreground">
         <Icon className="size-3.5 shrink-0" />
         {label}
       </span>
       <span
         className={cn(
-          'min-w-0 truncate text-sm',
+          'min-w-0 text-sm',
           value === '—' ? 'text-muted-foreground' : 'text-foreground',
         )}
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+type WorkLinkPickerKind = 'customer' | 'contract';
+
+function getWorkLinkOptionLabel(option: MultiSelectOption) {
+  if (typeof option.label === 'string' || typeof option.label === 'number') {
+    return String(option.label);
+  }
+
+  return option.ariaLabel ?? option.value;
+}
+
+function getWorkLinkOptionCode(option: MultiSelectOption) {
+  if (!option.data || typeof option.data !== 'object') return '';
+
+  const data = option.data as {
+    code?: unknown;
+    secondaryLabel?: unknown;
+  };
+  const code = data.secondaryLabel ?? data.code;
+
+  return typeof code === 'string' ? code : '';
+}
+
+function WorkLinkIdentity({
+  option,
+  kind,
+}: {
+  option: MultiSelectOption;
+  kind: WorkLinkPickerKind;
+}) {
+  const name = getWorkLinkOptionLabel(option);
+  const code = getWorkLinkOptionCode(option);
+
+  if (kind === 'customer') {
+    return (
+      <CustomerIdentity
+        customer={{ name, customerCode: code, imageUrl: null }}
+        className="min-w-0"
+      />
+    );
+  }
+
+  return (
+    <span className="flex min-w-0 items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <FileText className="size-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-medium text-foreground">
+          {name}
+        </span>
+        {code ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            {code}
+          </span>
+        ) : null}
+      </span>
+    </span>
+  );
+}
+
+function WorkLinkPicker({
+  value,
+  options,
+  kind,
+  onChange,
+  disabled,
+}: {
+  value: string[];
+  options: MultiSelectOption[];
+  kind: WorkLinkPickerKind;
+  onChange: (value: string[]) => void;
+  disabled: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const selectedOptions = value
+    .map((item) => options.find((option) => option.value === item))
+    .filter((option): option is MultiSelectOption => Boolean(option));
+  const availableOptions = options.filter(
+    (option) => !value.includes(option.value),
+  );
+
+  return (
+    <div className="min-w-0 space-y-2">
+      {selectedOptions.map((option) => {
+        const optionLabel = getWorkLinkOptionLabel(option);
+
+        return (
+          <div
+            key={option.value}
+            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 shadow-xs shadow-black/5"
+          >
+            <div className="min-w-0 flex-1">
+              <WorkLinkIdentity option={option} kind={kind} />
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              mode="icon"
+              size="sm"
+              aria-label={`Bỏ ${optionLabel}`}
+              title={`Bỏ ${optionLabel}`}
+              onClick={() =>
+                onChange(value.filter((item) => item !== option.value))
+              }
+              disabled={disabled}
+            >
+              <X />
+            </Button>
+          </div>
+        );
+      })}
+
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="px-2 text-muted-foreground"
+            disabled={disabled || availableOptions.length === 0}
+          >
+            <Plus /> Thêm
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) min-w-64 p-0"
+        >
+          <Command>
+            <CommandInput
+              placeholder={
+                kind === 'customer' ? 'Tìm khách hàng...' : 'Tìm hợp đồng...'
+              }
+            />
+            <CommandList>
+              <CommandEmpty>
+                {kind === 'customer'
+                  ? 'Không có khách hàng phù hợp'
+                  : 'Không có hợp đồng phù hợp'}
+              </CommandEmpty>
+              {availableOptions.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={`${getWorkLinkOptionLabel(option)} ${getWorkLinkOptionCode(option)} ${option.searchableText ?? ''}`}
+                  disabled={option.disabled}
+                  onSelect={() => {
+                    onChange([...value, option.value]);
+                    setOpen(false);
+                  }}
+                  className="min-h-12"
+                >
+                  <WorkLinkIdentity option={option} kind={kind} />
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
@@ -382,12 +507,16 @@ function WorkProperties({
   isSaving,
   onDirty,
   assigneeEmployeeOptions,
+  customerOptions,
+  contractOptions,
 }: {
   work: WorkItem | null;
   form: UseFormReturn<WorkFormValues>;
   isSaving: boolean;
   onDirty: () => void;
   assigneeEmployeeOptions: SelectOption[];
+  customerOptions: MultiSelectOption[];
+  contractOptions: MultiSelectOption[];
 }) {
   return (
     <div className="space-y-4 px-6 py-5">
@@ -398,11 +527,11 @@ function WorkProperties({
           <FormItem
             variant="compact"
             layout="horizontal"
-            labelWidth="sm"
+            labelWidth="md"
             labelGap="sm"
           >
-            <FormLabel className="flex items-center gap-2">
-              <UserRound className="size-3.5" /> Người phụ trách
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <UserRound className="size-3.5" /> NV phụ trách
             </FormLabel>
             <FormControl>
               <OptionSelect
@@ -432,11 +561,11 @@ function WorkProperties({
           <FormItem
             variant="compact"
             layout="horizontal"
-            labelWidth="sm"
+            labelWidth="md"
             labelGap="sm"
           >
-            <FormLabel className="flex items-center gap-2">
-              <CalendarDays className="size-3.5" /> Bắt đầu dự kiến
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <CalendarDays className="size-3.5" /> Từ
             </FormLabel>
             <FormControl>
               <DatePickerInput
@@ -480,11 +609,11 @@ function WorkProperties({
           <FormItem
             variant="compact"
             layout="horizontal"
-            labelWidth="sm"
+            labelWidth="md"
             labelGap="sm"
           >
-            <FormLabel className="flex items-center gap-2">
-              <CalendarDays className="size-3.5" /> Kết thúc dự kiến
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <CalendarDays className="size-3.5" /> Đến
             </FormLabel>
             <FormControl>
               <DatePickerInput
@@ -525,22 +654,92 @@ function WorkProperties({
         <>
           <WorkReadOnlyProperty
             icon={Clock3}
-            label="Bắt đầu thực tế"
+            label="Thực tế"
             value={
-              work.actualStartedAt ? formatDateTime(work.actualStartedAt) : '—'
-            }
-          />
-          <WorkReadOnlyProperty
-            icon={Clock3}
-            label="Kết thúc thực tế"
-            value={
-              work.actualCompletedAt
-                ? formatDateTime(work.actualCompletedAt)
-                : '—'
+              work.actualStartedAt || work.actualCompletedAt ? (
+                <div className="space-y-0.5">
+                  <div className="truncate">
+                    <span className="text-muted-foreground">Từ:</span>{' '}
+                    {work.actualStartedAt
+                      ? formatDateTime(work.actualStartedAt)
+                      : '—'}
+                  </div>
+                  <div className="truncate">
+                    <span className="text-muted-foreground">Đến:</span>{' '}
+                    {work.actualCompletedAt
+                      ? formatDateTime(work.actualCompletedAt)
+                      : '—'}
+                  </div>
+                </div>
+              ) : (
+                '—'
+              )
             }
           />
         </>
       ) : null}
+
+      <Separator />
+
+      <FormField
+        control={form.control}
+        name="customerIds"
+        render={({ field }) => (
+          <FormItem
+            variant="compact"
+            layout="horizontal"
+            labelWidth="md"
+            labelGap="sm"
+          >
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <Building2 className="size-3.5" /> Khách hàng
+            </FormLabel>
+            <FormControl>
+              <WorkLinkPicker
+                value={field.value}
+                options={customerOptions}
+                kind="customer"
+                onChange={(value) => {
+                  field.onChange(value);
+                  onDirty();
+                }}
+                disabled={isSaving}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="contractIds"
+        render={({ field }) => (
+          <FormItem
+            variant="compact"
+            layout="horizontal"
+            labelWidth="md"
+            labelGap="sm"
+          >
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <FileText className="size-3.5" /> Hợp đồng
+            </FormLabel>
+            <FormControl>
+              <WorkLinkPicker
+                value={field.value}
+                options={contractOptions}
+                kind="contract"
+                onChange={(value) => {
+                  field.onChange(value);
+                  onDirty();
+                }}
+                disabled={isSaving}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }
@@ -567,11 +766,20 @@ export function WorkDetailDialog({
   const isCreateMode = mode === 'create';
   const dialogTitle =
     title ?? (isCreateMode ? 'Thêm công việc' : 'Chi tiết công việc');
+  const childCountLabel = work
+    ? `${work.completedChildCount}/${work.childCount}`
+    : '0/0';
+  // TODO(work-detail-dialog): derive these counts from the attachments and
+  // comment feeds when their backend contracts are available.
+  const attachmentCount = 0;
+  const commentCount = 0;
   const [activeTab, setActiveTab] = useState<WorkDetailTab>('details');
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [isDescriptionEditing, setIsDescriptionEditing] =
+    useState(isCreateMode);
   const trackingKeyRef = useRef<string | null>(null);
   const dialogKey = open
     ? (work?.id ?? (isCreateMode ? 'create' : null))
@@ -597,12 +805,13 @@ export function WorkDetailDialog({
     setConfirmCloseOpen(false);
     setConfirmAction(null);
     setIsConfirming(false);
+    setIsDescriptionEditing(isCreateMode);
     const frameId = requestAnimationFrame(() => {
       trackingKeyRef.current = dialogKey;
     });
 
     return () => cancelAnimationFrame(frameId);
-  }, [dialogKey, form, open, work]);
+  }, [dialogKey, form, isCreateMode, open, work]);
 
   const requestClose = (nextOpen: boolean) => {
     if (nextOpen) {
@@ -632,6 +841,7 @@ export function WorkDetailDialog({
       form.reset();
     }
     setHasPendingChanges(false);
+    setIsDescriptionEditing(isCreateMode);
     setConfirmCloseOpen(false);
     setConfirmAction(null);
   };
@@ -649,6 +859,9 @@ export function WorkDetailDialog({
   const handleSave = async (values: WorkFormValues) => {
     await onSave(values);
     setHasPendingChanges(false);
+    if (!isCreateMode) {
+      setIsDescriptionEditing(false);
+    }
   };
 
   const saveBeforeCreateChild = async () => {
@@ -917,91 +1130,70 @@ export function WorkDetailDialog({
                         className="w-full justify-start gap-5 overflow-x-auto"
                       >
                         <TabsTrigger value="details">
-                          <FileText /> Chi tiết
+                          <FileText /> Mô tả
                         </TabsTrigger>
                         <TabsTrigger value="children">
                           <ListChecks /> Công việc con
+                          <Badge variant="secondary" size="sm">
+                            {childCountLabel}
+                          </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="attachments">
                           <Paperclip /> Tệp đính kèm
+                          <Badge variant="secondary" size="sm">
+                            {attachmentCount}
+                          </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="comments">
                           <MessageCircle /> Bình luận
+                          <Badge variant="secondary" size="sm">
+                            {commentCount}
+                          </Badge>
                         </TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="details" className="mt-6">
                         <section className="space-y-3">
-                          <SectionHeading title="Mô tả" />
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="sr-only">Mô tả</FormLabel>
-                                <FormControl>
-                                  <RichTextEditor
-                                    value={field.value}
-                                    onChange={(value) => {
-                                      field.onChange(value);
-                                      markDirty();
-                                    }}
-                                    onBlur={() => field.onBlur()}
-                                    disabled={isSaving}
-                                    placeholder="Mô tả mục tiêu, bối cảnh hoặc kết quả cần đạt..."
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <div className="mt-6 space-y-4">
+                          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                             <FormField
                               control={form.control}
-                              name="customerIds"
+                              name="description"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Khách hàng liên quan</FormLabel>
-                                  <FormControl>
-                                    <MultiSelect
-                                      value={field.value}
-                                      onChange={(value) => {
-                                        field.onChange(value);
-                                        markDirty();
-                                      }}
-                                      options={customerOptions}
-                                      searchPlaceholder="Tìm khách hàng..."
-                                      emptyMessage="Không có khách hàng phù hợp"
-                                      disabled={isSaving}
-                                    />
-                                  </FormControl>
+                                  {isCreateMode || isDescriptionEditing ? (
+                                    <FormControl>
+                                      <RichTextEditor
+                                        value={field.value}
+                                        onChange={(value) => {
+                                          field.onChange(value);
+                                          markDirty();
+                                        }}
+                                        onBlur={() => field.onBlur()}
+                                        disabled={isSaving}
+                                        placeholder="Mô tả mục tiêu, bối cảnh hoặc kết quả cần đạt..."
+                                      />
+                                    </FormControl>
+                                  ) : (
+                                    <RichTextContent content={field.value} />
+                                  )}
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
-                            <FormField
-                              control={form.control}
-                              name="contractIds"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Hợp đồng liên quan</FormLabel>
-                                  <FormControl>
-                                    <MultiSelect
-                                      value={field.value}
-                                      onChange={(value) => {
-                                        field.onChange(value);
-                                        markDirty();
-                                      }}
-                                      options={contractOptions}
-                                      searchPlaceholder="Tìm hợp đồng..."
-                                      emptyMessage="Không có hợp đồng phù hợp"
-                                      disabled={isSaving}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                            {!isCreateMode && !isDescriptionEditing ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                mode="icon"
+                                size="sm"
+                                aria-label="Chỉnh sửa mô tả"
+                                title="Chỉnh sửa mô tả"
+                                onClick={() => setIsDescriptionEditing(true)}
+                                disabled={isSaving}
+                              >
+                                <Pencil />
+                              </Button>
+                            ) : null}
                           </div>
                         </section>
                       </TabsContent>
@@ -1016,13 +1208,7 @@ export function WorkDetailDialog({
                               onCreateChild ? requestCreateChild : undefined
                             }
                           />
-                        ) : (
-                          <EmptyPreview
-                            icon={ListChecks}
-                            title="Công việc con"
-                            description="Lưu công việc hiện tại trước khi thêm công việc con."
-                          />
-                        )}
+                        ) : null}
                       </TabsContent>
 
                       <TabsContent value="attachments" className="mt-6">
@@ -1043,6 +1229,8 @@ export function WorkDetailDialog({
                     isSaving={isSaving}
                     onDirty={markDirty}
                     assigneeEmployeeOptions={assigneeEmployeeOptions}
+                    customerOptions={customerOptions}
+                    contractOptions={contractOptions}
                   />
                 </aside>
               </div>

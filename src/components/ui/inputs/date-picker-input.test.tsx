@@ -117,9 +117,94 @@ describe('DatePickerInput', () => {
 
     const timeInput = screen.getByLabelText('Giờ bắt đầu');
     expect(timeInput).toHaveValue('08:30');
+    expect(timeInput).toHaveAttribute('type', 'text');
+    expect(timeInput).toHaveAttribute('inputmode', 'numeric');
+    expect(timeInput).toHaveAttribute('placeholder', 'HH:mm');
 
     fireEvent.change(timeInput, { target: { value: '09:45' } });
 
     expect(handleTimeChange).toHaveBeenCalledWith('09:45');
+  });
+
+  it('formats numeric time input as 24-hour HH:mm', () => {
+    const handleTimeChange = vi.fn();
+
+    render(
+      <DatePickerInput
+        aria-label="Ngày bắt đầu"
+        timeLabel="Giờ bắt đầu"
+        showTime
+        onTimeChange={handleTimeChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Giờ bắt đầu'), {
+      target: { value: '0945' },
+    });
+
+    expect(screen.getByLabelText('Giờ bắt đầu')).toHaveValue('09:45');
+    expect(handleTimeChange).toHaveBeenCalledWith('09:45');
+  });
+
+  it('opens a scrollable hour and minute picker from the clock button', () => {
+    const handleTimeChange = vi.fn();
+
+    render(
+      <DatePickerInput
+        aria-label="Ngày bắt đầu"
+        timeLabel="Giờ bắt đầu"
+        showTime
+        timeValue="08:30"
+        onTimeChange={handleTimeChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn giờ' }));
+
+    expect(screen.queryByText('Chọn thời gian')).not.toBeInTheDocument();
+    expect(screen.queryByText('Giờ', { exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByText('Phút', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Giờ 08' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Phút 30' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Giờ 18' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Phút 45' }));
+
+    expect(handleTimeChange).toHaveBeenLastCalledWith('18:45');
+  });
+
+  it('sets the current time or clears the time from the picker actions', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 20, 14, 7));
+
+    try {
+      const handleTimeChange = vi.fn();
+
+      render(
+        <DatePickerInput
+          aria-label="Ngày bắt đầu"
+          timeLabel="Giờ bắt đầu"
+          showTime
+          timeValue="08:30"
+          onTimeChange={handleTimeChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Chọn giờ' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
+      expect(handleTimeChange).toHaveBeenLastCalledWith('');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Chọn giờ' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Hiện tại' }));
+      expect(handleTimeChange).toHaveBeenLastCalledWith('14:07');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

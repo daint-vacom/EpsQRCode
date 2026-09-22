@@ -164,8 +164,8 @@ function DashboardCard({
   headerAction?: ReactNode;
 }) {
   return (
-    <Card className={className}>
-      <CardHeader sectionBorders="default">
+    <Card className={className} sectionBorders="default">
+      <CardHeader>
         <CardHeading>
           <CardTitle>{title}</CardTitle>
         </CardHeading>

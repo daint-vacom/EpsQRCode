@@ -32,7 +32,7 @@ const formItemVariants = cva('', {
     layout: {
       stacked: 'flex flex-col',
       horizontal:
-        '[--form-item-label-width:8.75rem] grid items-center grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] gap-x-3 gap-y-1 [&>[data-slot=form-message]]:col-start-2 [&>[data-slot=form-description]]:col-start-2',
+        '[--form-item-label-width:8.75rem] grid items-start grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] gap-x-3 gap-y-1 [&>[data-slot=form-message]]:col-start-2 [&>[data-slot=form-description]]:col-start-2',
     },
     variant: {
       default: 'gap-2.5',
@@ -97,7 +97,7 @@ const useFormField = () => {
     throw new Error('useFormField should be used within <FormField>');
   }
 
-  const { id, variant: itemVariant } = itemContext;
+  const { id, variant: itemVariant, layout } = itemContext;
 
   return {
     id,
@@ -106,6 +106,7 @@ const useFormField = () => {
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
     itemVariant,
+    layout,
     ...fieldState,
   };
 };
@@ -113,11 +114,13 @@ const useFormField = () => {
 type FormItemContextValue = {
   id: string;
   variant: FormLabelVariant;
+  layout: FormItemLayout;
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>({
   id: '',
   variant: 'default',
+  layout: 'stacked',
 });
 
 function FormItem({
@@ -137,7 +140,7 @@ function FormItem({
   const { error } = useFormField();
 
   return (
-    <FormItemContext.Provider value={{ id, variant }}>
+    <FormItemContext.Provider value={{ id, variant, layout }}>
       <div
         data-slot="form-item"
         className={cn(
@@ -157,13 +160,14 @@ function FormLabel({
   ...props
 }: React.ComponentProps<typeof LabelPrimitive.Root> &
   VariantProps<typeof formLabelVariants>) {
-  const { formItemId, itemVariant } = useFormField();
+  const { formItemId, itemVariant, layout } = useFormField();
 
   return (
     <Label
       data-slot="form-label"
       className={cn(
         formLabelVariants({ variant: variant ?? itemVariant }),
+        layout === 'horizontal' && 'pt-2',
         className,
       )}
       htmlFor={formItemId}
