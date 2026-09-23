@@ -1,30 +1,24 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getApiErrorMessage } from '@/lib/errors';
-import { cn } from '@/lib/utils';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import {
-  OptionSelect,
-  type OptionSelectProps,
-  type SelectOption,
-} from '@/components/ui/option-select';
+  SelectWithAvatar,
+  type SelectWithAvatarOption,
+  type SelectWithAvatarProps,
+} from '@/components/ui/select-with-avatar';
+import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   loadCustomerSelectOptions,
   type CustomerSelectOption,
 } from '../api/customers.api';
-import { CustomerIdentity } from './customer-identity';
 
 export type { CustomerSelectOption } from '../api/customers.api';
 
 export interface CustomerSelectProps extends Omit<
-  OptionSelectProps<CustomerSelectOption>,
-  | 'options'
-  | 'loading'
-  | 'loadingMessage'
-  | 'onSelect'
-  | 'selectedOption'
-  | 'renderOption'
+  SelectWithAvatarProps<CustomerSelectOption>,
+  'options' | 'loading' | 'loadingMessage' | 'onSelect' | 'selectedOption'
 > {
   selectedCustomer?: CustomerSelectOption;
   onSelect?: (customer: CustomerSelectOption | undefined) => void;
@@ -32,10 +26,13 @@ export interface CustomerSelectProps extends Omit<
 
 function toOption(
   customer: CustomerSelectOption,
-): SelectOption<CustomerSelectOption> {
+): SelectWithAvatarOption<CustomerSelectOption> {
   return {
     value: customer.id,
-    label: <CustomerIdentity customer={customer} />,
+    label: customer.name,
+    code: customer.customerCode,
+    avatarUrl: customer.imageUrl,
+    avatarTone: IDENTITY_AVATAR_TONES.customer,
     searchableText: `${customer.name} ${customer.customerCode}`,
     data: customer,
   };
@@ -48,6 +45,8 @@ export function CustomerSelect({
   searchPlaceholder = 'Tìm khách hàng...',
   emptyMessage = 'Không tìm thấy khách hàng',
   disabled = false,
+  size = 'md',
+  variant = 'normal',
   className,
   onSelect,
   ...props
@@ -72,7 +71,7 @@ export function CustomerSelect({
     : undefined;
 
   return (
-    <OptionSelect
+    <SelectWithAvatar
       {...props}
       value={value}
       options={options}
@@ -85,11 +84,9 @@ export function CustomerSelect({
       loading={query.isPending}
       loadingMessage="Đang tải danh sách khách hàng..."
       disabled={disabled || !userId || !tenantId}
-      renderOption={(option) => option.label}
-      className={cn(
-        'h-auto min-h-14 border-transparent bg-transparent py-2 shadow-none hover:bg-accent data-[state=open]:bg-accent',
-        className,
-      )}
+      size={size}
+      variant={variant}
+      className={className}
       onSelect={(option) => onSelect?.(option?.data)}
     />
   );

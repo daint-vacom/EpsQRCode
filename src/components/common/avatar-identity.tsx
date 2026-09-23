@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { AlertTriangle, CircleAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +37,27 @@ export function getAvatarInitials(name: string) {
     .join('');
 }
 
+export function formatIdentityTooltip(code: string | undefined, name: string) {
+  return code ? `${code} - ${name}` : name;
+}
+
+export function AvatarIdentityTooltip({
+  name,
+  code,
+  children,
+}: {
+  name: string;
+  code?: string;
+  children: ReactElement;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent>{formatIdentityTooltip(code, name)}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function AvatarIdentity({
   name,
   code,
@@ -46,24 +67,26 @@ export function AvatarIdentity({
   className,
 }: AvatarIdentityData & { badge?: ReactNode; className?: string }) {
   return (
-    <span className={cn('group flex min-w-0 items-center gap-3', className)}>
-      <GradientAvatar
-        src={avatarUrl}
-        alt={name}
-        fallback={getAvatarInitials(name)}
-        tone={tone}
-        className="size-9 rounded-lg text-sm transition-transform group-hover:scale-105"
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
-          {name}
-        </span>
-        <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs leading-4 text-muted-foreground">
-          <span className="min-w-0 truncate">{code}</span>
-          {badge}
+    <AvatarIdentityTooltip name={name} code={code}>
+      <span className={cn('group flex min-w-0 items-center gap-3', className)}>
+        <GradientAvatar
+          src={avatarUrl}
+          alt={name}
+          fallback={getAvatarInitials(name)}
+          tone={tone}
+          className="size-9 rounded-lg text-sm transition-transform group-hover:scale-105"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
+            {name}
+          </span>
+          <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs leading-4 text-muted-foreground">
+            <span className="min-w-0 truncate">{code}</span>
+            {badge}
+          </span>
         </span>
       </span>
-    </span>
+    </AvatarIdentityTooltip>
   );
 }
 

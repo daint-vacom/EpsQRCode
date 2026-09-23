@@ -37,7 +37,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { EmployeeIdentity } from '../../employees/components/employee-identity';
+import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   createWorkItem,
   deleteWorkItem,
@@ -251,17 +251,12 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   );
   const employeeOptions = (employeeQuery.data ?? []).map((item) => ({
     value: item.id,
-    label: (
-      <EmployeeIdentity
-        employee={{
-          displayName: item.label,
-          employeeCode: item.employeeCode,
-          avatarUrl: item.avatarUrl,
-          userId: item.userId,
-        }}
-      />
-    ),
+    label: item.label,
+    code: item.employeeCode,
+    avatarUrl: item.avatarUrl,
+    avatarTone: IDENTITY_AVATAR_TONES.employee,
     searchableText: `${item.label} ${item.employeeCode}`,
+    data: item,
   }));
   const assigneeAvatarUrls = useMemo(
     () =>

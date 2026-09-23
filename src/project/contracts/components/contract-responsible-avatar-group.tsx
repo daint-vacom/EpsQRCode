@@ -5,6 +5,7 @@ import {
   AvatarGroupItem,
   AvatarGroupTooltip,
 } from '@/components/ui/avatar-group';
+import { formatIdentityTooltip } from '@/components/common/avatar-identity';
 import {
   GradientAvatar,
   IDENTITY_AVATAR_TONES,
@@ -45,8 +46,12 @@ export function ContractResponsibleAvatarGroup({
               className="size-9 rounded-full border-2 border-background"
             />
             <AvatarGroupTooltip>
-              <span>{employee.displayName}</span>
-              <span className="text-white/70">{employee.employeeCode}</span>
+              <span>
+                {formatIdentityTooltip(
+                  employee.employeeCode,
+                  employee.displayName,
+                )}
+              </span>
             </AvatarGroupTooltip>
           </AvatarGroupItem>
         ))}

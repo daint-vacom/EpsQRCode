@@ -67,6 +67,10 @@ import {
   RichTextContent,
   RichTextEditor,
 } from '@/components/ui/rich-text-editor';
+import {
+  SelectWithAvatar,
+  type SelectWithAvatarOption,
+} from '@/components/ui/select-with-avatar';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -74,6 +78,7 @@ import { CustomerIdentity } from '../../customers/components/customer-identity';
 import {
   toWorkFormValues,
   workProgress,
+  type WorkEmployeeOption,
   type WorkFormValues,
   type WorkItem,
 } from '../model/work';
@@ -95,7 +100,7 @@ interface WorkDetailDialogProps {
   isSaving?: boolean;
   statusOptions: SelectOption[];
   priorityOptions: SelectOption[];
-  assigneeEmployeeOptions: SelectOption[];
+  assigneeEmployeeOptions: SelectWithAvatarOption<WorkEmployeeOption>[];
   customerOptions: MultiSelectOption[];
   contractOptions: MultiSelectOption[];
   onSave: (values: WorkFormValues) => Promise<unknown> | void;
@@ -514,7 +519,7 @@ function WorkProperties({
   form: UseFormReturn<WorkFormValues>;
   isSaving: boolean;
   onDirty: () => void;
-  assigneeEmployeeOptions: SelectOption[];
+  assigneeEmployeeOptions: SelectWithAvatarOption<WorkEmployeeOption>[];
   customerOptions: MultiSelectOption[];
   contractOptions: MultiSelectOption[];
 }) {
@@ -534,7 +539,7 @@ function WorkProperties({
               <UserRound className="size-3.5" /> NV phụ trách
             </FormLabel>
             <FormControl>
-              <OptionSelect
+              <SelectWithAvatar
                 value={field.value}
                 onChange={(value) => {
                   field.onChange(value);
@@ -544,8 +549,7 @@ function WorkProperties({
                 placeholder="Chọn nhân viên"
                 searchPlaceholder="Tìm theo tên hoặc mã nhân viên..."
                 emptyMessage="Không tìm thấy nhân viên phù hợp"
-                renderOption={(option) => option.label}
-                className="h-auto min-h-14 border-transparent bg-transparent py-2 shadow-none hover:bg-accent data-[state=open]:bg-accent"
+                variant="normal"
                 disabled={isSaving}
               />
             </FormControl>
