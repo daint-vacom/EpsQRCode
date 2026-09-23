@@ -68,6 +68,7 @@ export const workDefaultValues: WorkFormValues = {
   color: '#2563eb',
   customerIds: [],
   contractIds: [],
+  labelIds: [],
 };
 
 type WorkFormSource = WorkItem;
@@ -99,6 +100,7 @@ export function mapWorkToFormValues(entity: WorkFormSource): WorkFormValues {
     color: entity.color || '#2563eb',
     customerIds: entity.customers.map((item) => item.id),
     contractIds: entity.contracts.map((item) => item.id),
+    labelIds: entity.labels.map((item) => item.id),
   };
 }
 
@@ -135,6 +137,7 @@ interface WorkFormProps {
   assigneeEmployeeIdOptions: SelectOption[];
   customerIdsOptions: MultiSelectOption[];
   contractIdsOptions: MultiSelectOption[];
+  labelIdsOptions: MultiSelectOption[];
 }
 
 export function WorkForm({
@@ -148,6 +151,7 @@ export function WorkForm({
   assigneeEmployeeIdOptions,
   customerIdsOptions,
   contractIdsOptions,
+  labelIdsOptions,
 }: WorkFormProps) {
   return (
     <Form {...form}>
@@ -339,6 +343,25 @@ export function WorkForm({
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="labelIds"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Nhãn công việc</FormLabel>
+                            <FormControl>
+                              <MultiSelect
+                                value={field.value}
+                                onChange={field.onChange}
+                                options={labelIdsOptions}
+                                searchPlaceholder="Tìm nhãn..."
+                                emptyMessage="Không có nhãn phù hợp"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </section>
                 </TabsContent>
@@ -513,6 +536,7 @@ interface WorkFormDialogProps {
   assigneeEmployeeIdOptions: SelectOption[];
   customerIdsOptions: MultiSelectOption[];
   contractIdsOptions: MultiSelectOption[];
+  labelIdsOptions: MultiSelectOption[];
 }
 
 export function WorkFormDialog({
@@ -528,6 +552,7 @@ export function WorkFormDialog({
   assigneeEmployeeIdOptions,
   customerIdsOptions,
   contractIdsOptions,
+  labelIdsOptions,
 }: WorkFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<WorkFormTab>('details');
@@ -592,6 +617,7 @@ export function WorkFormDialog({
               assigneeEmployeeIdOptions={assigneeEmployeeIdOptions}
               customerIdsOptions={customerIdsOptions}
               contractIdsOptions={contractIdsOptions}
+              labelIdsOptions={labelIdsOptions}
             />
           </div>
 

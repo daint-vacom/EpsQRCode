@@ -1030,7 +1030,7 @@ function WorkProperties({
             </FormLabel>
             <FormControl>
               <WorkLabelPicker
-                value={field.value}
+                value={field.value ?? []}
                 options={labelOptions}
                 disabled={isSaving}
                 onChange={(value) => {

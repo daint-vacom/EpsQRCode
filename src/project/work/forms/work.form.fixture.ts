@@ -129,6 +129,15 @@ const spec: FormSpec = {
       searchPlaceholder: 'Tìm hợp đồng...',
       emptyMessage: 'Không có hợp đồng phù hợp',
     },
+    {
+      kind: 'multiselect',
+      name: 'labelIds',
+      label: 'Nhãn công việc',
+      width: 'full',
+      optionsFrom: 'prop',
+      searchPlaceholder: 'Tìm nhãn...',
+      emptyMessage: 'Không có nhãn phù hợp',
+    },
   ],
 };
 
