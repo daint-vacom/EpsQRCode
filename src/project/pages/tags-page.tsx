@@ -57,6 +57,7 @@ import {
 } from '../tags/forms/tag-group-form.generated';
 import {
   emptyTagGroupForm,
+  WORK_TAG_GROUP_CODE,
   type Tag,
   type TagFormValues,
   type TagGroup,
@@ -128,14 +129,22 @@ export function TagsPage() {
   const isSoftwareAccountCatalogGroup =
     selectedGroup?.kind === 'software_account_catalog';
   const isFinanceCategoryGroup = selectedGroup?.kind === 'finance_category';
+  const canCreateTag =
+    selectedGroup?.code === WORK_TAG_GROUP_CODE ||
+    hasPermission('system:tag:create');
   const tagGroups = orderedGroups.filter((group) => group.kind === 'tag');
+  const tagGroupOptions =
+    selectedGroup?.code === WORK_TAG_GROUP_CODE ? [selectedGroup] : tagGroups;
   const tableRows = useMemo(
     () => tags.filter((tag) => tag.groupId === activeGroupId),
     [activeGroupId, tags],
   );
 
   const invalidateWorkspace = () =>
-    queryClient.invalidateQueries({ queryKey: ['project', 'tags', userId] });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['project', 'tags', userId] }),
+      queryClient.invalidateQueries({ queryKey: ['project', 'work'] }),
+    ]);
 
   const groupForm = useTagGroupForm();
   const tagCreateForm = useTagForm();
@@ -210,6 +219,8 @@ export function TagsPage() {
       setPendingDelete({ kind: 'tag', id: row.id, name: row.name });
     },
     onToggleGroup: () => undefined,
+    canUpdateTag: hasPermission('system:tag:update'),
+    canDeleteTag: hasPermission('system:tag:delete'),
   });
   const table = useReactTable({
     data: tableRows,
@@ -407,7 +418,7 @@ export function TagsPage() {
                     <Button
                       type="button"
                       variant="primary"
-                      disabled={!activeGroupId}
+                      disabled={!activeGroupId || !canCreateTag}
                       onClick={() => openCreateTag()}
                       data-shortcut-action="create"
                     >
@@ -475,7 +486,7 @@ export function TagsPage() {
         onSubmit={(values) => tagMutation.mutate({ values, tag: null })}
         isSaving={tagMutation.isPending}
         title="Thêm danh mục"
-        groupIdOptions={tagGroups.map((group) => ({
+        groupIdOptions={tagGroupOptions.map((group) => ({
           value: group.id,
           label: group.name,
         }))}
@@ -492,7 +503,7 @@ export function TagsPage() {
         }}
         isSaving={tagMutation.isPending}
         title="Sửa danh mục"
-        groupIdOptions={tagGroups.map((group) => ({
+        groupIdOptions={tagGroupOptions.map((group) => ({
           value: group.id,
           label: group.name,
         }))}

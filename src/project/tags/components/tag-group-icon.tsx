@@ -2,6 +2,7 @@ import {
   BarChart3,
   Blocks,
   Building2,
+  ClipboardList,
   FileText,
   Folder,
   KeyRound,
@@ -27,6 +28,7 @@ const SYSTEM_MODULE_ICONS: Record<string, LucideIcon> = {
 const SYSTEM_GROUP_ICONS: Record<string, LucideIcon> = {
   employees: Users,
   'software-accounts': KeyRound,
+  'work-labels': ClipboardList,
 };
 
 export interface TagGroupIconProps {

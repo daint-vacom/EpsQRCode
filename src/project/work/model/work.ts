@@ -56,6 +56,7 @@ export const workFormSchema = z
     color: hexColor,
     customerIds: z.array(z.string().uuid()),
     contractIds: z.array(z.string().uuid()),
+    labelIds: z.array(z.string().uuid()),
   })
   .superRefine((value, ctx) => {
     if (
@@ -102,6 +103,29 @@ export interface WorkLinkOption {
   secondaryLabel?: string;
 }
 
+export interface WorkLabel {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export const WORK_LABEL_COLORS = [
+  '#2563eb',
+  '#7c3aed',
+  '#db2777',
+  '#ea580c',
+  '#16a34a',
+  '#0891b2',
+] as const;
+
+export function getWorkLabelColor(name: string) {
+  const hash = Array.from(name.trim().toLocaleLowerCase('vi')).reduce(
+    (value, character) => (value * 31 + character.charCodeAt(0)) >>> 0,
+    0,
+  );
+  return WORK_LABEL_COLORS[hash % WORK_LABEL_COLORS.length];
+}
+
 export interface WorkItem {
   id: string;
   tenantId: string;
@@ -127,6 +151,7 @@ export interface WorkItem {
   completedChildCount: number;
   customers: WorkLinkOption[];
   contracts: WorkLinkOption[];
+  labels: WorkLabel[];
   createdAt: string;
   updatedAt: string;
 }
@@ -183,6 +208,7 @@ export const workDefaultValues: WorkFormValues = {
   color: '#2563eb',
   customerIds: [],
   contractIds: [],
+  labelIds: [],
 };
 
 export const workTemplateDefaultValues: WorkTemplateFormValues = {
@@ -244,6 +270,16 @@ export function mapWorkRpcRow(row: Record<string, unknown>): WorkItem {
     completedChildCount: toNumber(row.completedChildCount),
     customers: toLinks(row.customers),
     contracts: toLinks(row.contracts),
+    labels: Array.isArray(row.labels)
+      ? row.labels.map((item) => {
+          const label = item as Record<string, unknown>;
+          return {
+            id: String(label.id),
+            name: String(label.name ?? ''),
+            color: String(label.color ?? '#2563eb'),
+          };
+        })
+      : [],
     createdAt: String(row.createdAt ?? ''),
     updatedAt: String(row.updatedAt ?? ''),
   };
@@ -284,5 +320,6 @@ export function toWorkFormValues(work: WorkItem): WorkFormValues {
     color: work.color || '#2563eb',
     customerIds: work.customers.map((item) => item.id),
     contractIds: work.contracts.map((item) => item.id),
+    labelIds: work.labels.map((item) => item.id),
   };
 }

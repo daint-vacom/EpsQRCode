@@ -136,15 +136,21 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   },
 ];
 
-export type ProjectEntity = 'customer' | 'contract' | 'employee';
+export type ProjectEntity = 'customer' | 'contract' | 'work' | 'employee';
 
 const PROJECT_ENTITY_BY_MENU_PATH: Readonly<Record<string, ProjectEntity>> = {
   [ROUTES.PROJECT.CUSTOMERS]: 'customer',
   [ROUTES.PROJECT.CONTRACTS]: 'contract',
+  [ROUTES.PROJECT.WORK]: 'work',
   [ROUTES.PROJECT.EMPLOYEES]: 'employee',
 };
 
-/** Thứ tự các đối tượng nghiệp vụ được lấy từ menu sidebar thực tế. */
-export const PROJECT_ENTITY_ORDER = PROJECT_MENU_GROUPS.flatMap((group) =>
-  group.items.map((item) => PROJECT_ENTITY_BY_MENU_PATH[item.path]),
+/** Thứ tự các nhóm đối tượng công việc lấy từ menu sidebar thực tế. */
+export const PROJECT_TAG_GROUP_ENTITY_ORDER = PROJECT_MENU_GROUPS.flatMap(
+  (group) => group.items.map((item) => PROJECT_ENTITY_BY_MENU_PATH[item.path]),
 ).filter((entity): entity is ProjectEntity => Boolean(entity));
+
+/** Thứ tự đối tượng đang hỗ trợ trường dữ liệu tùy chỉnh. */
+export const PROJECT_ENTITY_ORDER = PROJECT_TAG_GROUP_ENTITY_ORDER.filter(
+  (entity): entity is Exclude<ProjectEntity, 'work'> => entity !== 'work',
+);

@@ -4,6 +4,7 @@ export const EMPLOYEE_TAG_GROUP_CODE = 'employees' as const;
 export const CUSTOMER_TAG_GROUP_CODE = 'customers' as const;
 export const CONTRACT_TAG_GROUP_CODE = 'contracts' as const;
 export const SOFTWARE_ACCOUNT_CATALOG_GROUP_CODE = 'software-accounts' as const;
+export const WORK_TAG_GROUP_CODE = 'work-labels' as const;
 
 export const TAG_GROUP_KINDS = [
   'tag',

@@ -40,14 +40,19 @@ import { Switch } from '@/components/ui/switch';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   createWorkItem,
+  createWorkLabel,
   deleteWorkItem,
+  deleteWorkItemAttachment,
   loadCurrentWorkEmployeeId,
   loadWorkEmployeeOptions,
+  loadWorkItemAttachments,
   loadWorkItems,
+  loadWorkLabels,
   loadWorkLinkOptions,
   loadWorkTree,
   updateWorkItem,
   updateWorkItemStatus,
+  uploadWorkItemAttachments,
 } from '../api/work.api';
 import { WorkDetailDialog } from '../components/work-detail-dialog';
 import {
@@ -210,6 +215,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     queryFn: () => loadWorkLinkOptions(tenantId!),
     enabled: Boolean(tenantId),
   });
+  const workLabelsQuery = useQuery({
+    queryKey: ['project', 'work', 'labels', tenantId],
+    queryFn: () => loadWorkLabels(tenantId!),
+    enabled: Boolean(tenantId),
+  });
   const filters: WorkListFilters = {
     search,
     statuses:
@@ -231,6 +241,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const workDetailQuery = useQuery({
     queryKey: ['project', 'work', 'detail', tenantId, viewingWork?.id],
     queryFn: () => loadWorkTree(tenantId!, viewingWork!.id),
+    enabled: Boolean(tenantId && viewOpen && viewingWork),
+  });
+  const workAttachmentsQuery = useQuery({
+    queryKey: ['project', 'work', 'attachments', tenantId, viewingWork?.id],
+    queryFn: () => loadWorkItemAttachments(tenantId!, viewingWork!.id),
     enabled: Boolean(tenantId && viewOpen && viewingWork),
   });
   const updateKanbanColumns = useCallback((next: WorkKanbanColumns) => {
@@ -337,11 +352,23 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     }
   };
   const createMutation = useMutation({
-    mutationFn: (values: WorkFormValues) => createWorkItem(tenantId!, values),
+    mutationFn: ({
+      values,
+      attachments,
+    }: {
+      values: WorkFormValues;
+      attachments: File[];
+    }) => {
+      if (!tenantId || !userId) {
+        throw new Error('Không xác định được tài khoản hoặc tenant hiện tại.');
+      }
+      return createWorkItem(tenantId, userId, values, attachments);
+    },
     onSuccess: async () => {
       toast.success('Đã tạo công việc.');
       setCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
+      await queryClient.invalidateQueries({ queryKey: ['project', 'tags'] });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -352,12 +379,60 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       toast.success('Đã cập nhật công việc.');
       editForm.reset(values);
       await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
+      await queryClient.invalidateQueries({ queryKey: ['project', 'tags'] });
       await queryClient.refetchQueries({
         queryKey: ['project', 'work', 'list'],
         type: 'active',
       });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const createWorkLabelMutation = useMutation({
+    mutationFn: (name: string) => {
+      if (!tenantId) throw new Error('Không xác định được tenant hiện tại.');
+      return createWorkLabel(tenantId, name);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'labels', tenantId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ['project', 'tags'] });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const uploadAttachmentsMutation = useMutation({
+    mutationFn: (files: File[]) => {
+      if (!tenantId || !viewingWork || !userId) {
+        throw new Error(
+          'Không xác định được công việc hoặc tài khoản hiện tại.',
+        );
+      }
+      return uploadWorkItemAttachments(tenantId, viewingWork.id, userId, files);
+    },
+    onSuccess: () => toast.success('Đã thêm tệp đính kèm.'),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onSettled: async () => {
+      if (!tenantId || !viewingWork) return;
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'attachments', tenantId, viewingWork.id],
+      });
+    },
+  });
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: (attachmentId: string) => {
+      if (!tenantId || !viewingWork) {
+        throw new Error('Không xác định được công việc hiện tại.');
+      }
+      return deleteWorkItemAttachment(tenantId, viewingWork.id, attachmentId);
+    },
+    onSuccess: () => toast.success('Đã xóa tệp đính kèm.'),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onSettled: async () => {
+      if (!tenantId || !viewingWork) return;
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'attachments', tenantId, viewingWork.id],
+      });
+    },
   });
   const calendarUpdateMutation = useMutation({
     mutationFn: ({ work, event }: { work: WorkItem; event: CalendarEvent }) =>
@@ -380,6 +455,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       toast.success('Đã xóa công việc.');
       setDeletingWork(null);
       await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
+      await queryClient.invalidateQueries({ queryKey: ['project', 'tags'] });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -798,9 +874,28 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         assigneeEmployeeOptions={employeeOptions}
         customerOptions={customerOptions}
         contractOptions={contractOptions}
-        onSave={(values) =>
+        labelOptions={workLabelsQuery.data ?? []}
+        attachments={createOpen ? [] : (workAttachmentsQuery.data ?? [])}
+        isAttachmentsLoading={!createOpen && workAttachmentsQuery.isPending}
+        isUploadingAttachments={uploadAttachmentsMutation.isPending}
+        attachmentErrorMessage={
+          createOpen || !workAttachmentsQuery.isError
+            ? undefined
+            : getApiErrorMessage(workAttachmentsQuery.error)
+        }
+        onCreateLabel={(name) => createWorkLabelMutation.mutateAsync(name)}
+        onUploadAttachments={(files) =>
+          uploadAttachmentsMutation.mutateAsync(files)
+        }
+        onDeleteAttachment={(attachmentId) =>
+          deleteAttachmentMutation.mutateAsync(attachmentId)
+        }
+        onSave={(values, attachments) =>
           createOpen
-            ? createMutation.mutateAsync(values)
+            ? createMutation.mutateAsync({
+                values,
+                attachments: attachments ?? [],
+              })
             : editMutation.mutateAsync(values)
         }
         onCreateChild={createOpen ? undefined : openCreateChildFromDetail}

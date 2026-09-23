@@ -1,13 +1,22 @@
+import {
+  deleteFileLink,
+  listFilesForSubject,
+  uploadFilesForSubject,
+} from '@/project/files/api/files.api';
+import type { FileAttachment } from '@/project/files/model/file';
+import { WORK_TAG_GROUP_CODE } from '@/project/tags/model/tag';
+import { WORK_ATTACHMENTS_BUCKET } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   WorkEmployeeOption,
   WorkFormValues,
   WorkItem,
+  WorkLabel,
   WorkListFilters,
   WorkTemplate,
   WorkTemplateFormValues,
 } from '../model/work';
-import { mapWorkRpcRow } from '../model/work';
+import { getWorkLabelColor, mapWorkRpcRow } from '../model/work';
 
 async function request<T>(requestPromise: Promise<unknown>): Promise<T> {
   return (await requestPromise) as T;
@@ -34,6 +43,148 @@ export async function loadCurrentWorkEmployeeId(
 export interface WorkListResult {
   items: WorkItem[];
   total: number;
+}
+
+interface WorkLabelRow {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
+function mapWorkLabel(row: WorkLabelRow): WorkLabel {
+  return {
+    id: row.id,
+    name: row.name,
+    color: row.color ?? getWorkLabelColor(row.name),
+  };
+}
+
+export async function loadWorkLabels(tenantId: string): Promise<WorkLabel[]> {
+  assertSupabaseConfigured();
+  const groups = await request<Array<{ id: string }>>(
+    supabaseApi.get('/tag_groups', {
+      params: {
+        select: 'id',
+        tenant_id: `eq.${tenantId}`,
+        code: `eq.${WORK_TAG_GROUP_CODE}`,
+        kind: 'eq.tag',
+        is_active: 'eq.true',
+        limit: '1',
+      },
+    }),
+  );
+  const groupId = groups[0]?.id;
+  if (!groupId) return [];
+
+  const rows = await request<WorkLabelRow[]>(
+    supabaseApi.get('/tags', {
+      params: {
+        select: 'id,name,color',
+        tenant_id: `eq.${tenantId}`,
+        group_id: `eq.${groupId}`,
+        is_active: 'eq.true',
+        order: 'name.asc',
+      },
+    }),
+  );
+  return rows.map(mapWorkLabel);
+}
+
+export async function createWorkLabel(
+  tenantId: string,
+  name: string,
+  color?: string,
+): Promise<WorkLabel> {
+  assertSupabaseConfigured();
+  const normalizedName = name.trim();
+  if (!normalizedName) throw new Error('Vui lòng nhập tên nhãn.');
+  const normalizedColor = color?.trim() || getWorkLabelColor(normalizedName);
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) {
+    throw new Error('Màu nhãn phải có dạng #RRGGBB.');
+  }
+
+  const existing = (await loadWorkLabels(tenantId)).find(
+    (label) =>
+      label.name.toLocaleLowerCase('vi') ===
+      normalizedName.toLocaleLowerCase('vi'),
+  );
+  if (existing) return existing;
+
+  const groups = await request<Array<{ id: string }>>(
+    supabaseApi.get('/tag_groups', {
+      params: {
+        select: 'id',
+        tenant_id: `eq.${tenantId}`,
+        code: `eq.${WORK_TAG_GROUP_CODE}`,
+        kind: 'eq.tag',
+        is_active: 'eq.true',
+        limit: '1',
+      },
+    }),
+  );
+  const groupId = groups[0]?.id;
+  if (!groupId) throw new Error('Không tìm thấy nhóm nhãn công việc.');
+
+  try {
+    const rows = await request<WorkLabelRow[]>(
+      supabaseApi.post(
+        '/tags',
+        {
+          tenant_id: tenantId,
+          group_id: groupId,
+          code: `work-label-${crypto.randomUUID()}`,
+          name: normalizedName,
+          description: '',
+          color: normalizedColor,
+          sort_order: 0,
+        },
+        { headers: { Prefer: 'return=representation' } },
+      ),
+    );
+    if (!rows[0]) throw new Error('Không thể tạo nhãn công việc.');
+    return mapWorkLabel(rows[0]);
+  } catch (error) {
+    const existingLabel = (await loadWorkLabels(tenantId).catch(() => [])).find(
+      (label) =>
+        label.name.toLocaleLowerCase('vi') ===
+        normalizedName.toLocaleLowerCase('vi'),
+    );
+    if (existingLabel) return existingLabel;
+    throw error;
+  }
+}
+
+async function loadWorkItemLabels(
+  tenantId: string,
+  workItemIds: string[],
+): Promise<Map<string, WorkLabel[]>> {
+  if (workItemIds.length === 0) return new Map();
+  const assignments = await request<
+    Array<{ subject_id: string; tag_id: string }>
+  >(
+    supabaseApi.get('/tag_assignments', {
+      params: {
+        select: 'subject_id,tag_id',
+        tenant_id: `eq.${tenantId}`,
+        subject_type: 'eq.work_item',
+        subject_id: `in.(${workItemIds.join(',')})`,
+      },
+    }),
+  );
+  if (assignments.length === 0) return new Map();
+
+  const labels = await loadWorkLabels(tenantId);
+  const labelsById = new Map(labels.map((label) => [label.id, label]));
+  const labelsByWorkItemId = new Map<string, WorkLabel[]>();
+  for (const assignment of assignments) {
+    const label = labelsById.get(assignment.tag_id);
+    if (!label) continue;
+    labelsByWorkItemId.set(assignment.subject_id, [
+      ...(labelsByWorkItemId.get(assignment.subject_id) ?? []),
+      label,
+    ]);
+  }
+  return labelsByWorkItemId;
 }
 
 function toPayload(values: WorkFormValues) {
@@ -82,8 +233,18 @@ export async function loadWorkItems(
       { signal },
     ),
   );
+  const labelIdsByWorkItemId = await loadWorkItemLabels(
+    tenantId,
+    (response.items ?? []).map((row) => String(row.id)),
+  );
   return {
-    items: (response.items ?? []).map(mapWorkRpcRow),
+    items: (response.items ?? []).map((row) => {
+      const item = mapWorkRpcRow(row);
+      return {
+        ...item,
+        labels: labelIdsByWorkItemId.get(item.id) ?? [],
+      };
+    }),
     total: Number(response.total ?? 0),
   };
 }
@@ -110,14 +271,31 @@ export async function loadWorkTree(tenantId: string, workItemId: string) {
   };
 }
 
-export async function createWorkItem(tenantId: string, values: WorkFormValues) {
+export async function createWorkItem(
+  tenantId: string,
+  userId: string,
+  values: WorkFormValues,
+  attachments: File[] = [],
+) {
   assertSupabaseConfigured();
-  return request<string>(
+  const workItemId = await request<string>(
     supabaseApi.post('/rpc/create_work_item', {
       p_tenant_id: tenantId,
       p_payload: toPayload(values),
     }),
   );
+  try {
+    await replaceWorkItemLabels(tenantId, workItemId, values.labelIds);
+    await uploadWorkItemAttachments(tenantId, workItemId, userId, attachments);
+  } catch (error) {
+    await supabaseApi
+      .delete('/work_items', {
+        params: { id: `eq.${workItemId}`, tenant_id: `eq.${tenantId}` },
+      })
+      .catch(() => undefined);
+    throw error;
+  }
+  return workItemId;
 }
 
 export async function updateWorkItem(
@@ -152,6 +330,55 @@ export async function updateWorkItem(
     values.customerIds,
     values.contractIds,
   );
+  await replaceWorkItemLabels(tenantId, workItemId, values.labelIds);
+}
+
+async function replaceWorkItemLabels(
+  tenantId: string,
+  workItemId: string,
+  labelIds: string[],
+) {
+  await request(
+    supabaseApi.post('/rpc/replace_work_item_labels', {
+      p_tenant_id: tenantId,
+      p_work_item_id: workItemId,
+      p_label_ids: labelIds,
+    }),
+  );
+}
+
+export function loadWorkItemAttachments(
+  tenantId: string,
+  workItemId: string,
+): Promise<FileAttachment[]> {
+  return listFilesForSubject(tenantId, 'work_item', workItemId);
+}
+
+export function uploadWorkItemAttachments(
+  tenantId: string,
+  workItemId: string,
+  userId: string,
+  files: File[],
+) {
+  return uploadFilesForSubject(
+    tenantId,
+    'work_item',
+    workItemId,
+    userId,
+    files,
+    {
+      storageBucket: WORK_ATTACHMENTS_BUCKET,
+      storagePathPrefix: workItemId,
+    },
+  );
+}
+
+export function deleteWorkItemAttachment(
+  tenantId: string,
+  workItemId: string,
+  attachmentId: string,
+) {
+  return deleteFileLink(tenantId, attachmentId, 'work_item', workItemId);
 }
 
 async function replaceWorkLinks(
@@ -192,6 +419,12 @@ async function replaceWorkLinks(
 
 export async function deleteWorkItem(tenantId: string, workItemId: string) {
   assertSupabaseConfigured();
+  const attachments = await loadWorkItemAttachments(tenantId, workItemId);
+  await Promise.all(
+    attachments.map((attachment) =>
+      deleteWorkItemAttachment(tenantId, workItemId, attachment.id),
+    ),
+  );
   await supabaseApi.delete('/work_items', {
     params: { id: `eq.${workItemId}`, tenant_id: `eq.${tenantId}` },
   });

@@ -1,8 +1,10 @@
 import {
+  createSignedStorageUrl,
   getPublicStorageUrl,
   removeStorageObjects,
   TENANT_ASSETS_BUCKET,
   uploadStorageObject,
+  WORK_ATTACHMENTS_BUCKET,
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type { FileAttachment, FileSubjectType } from '../model/file';
@@ -53,6 +55,7 @@ function fileRowsById(rows: FileRow[]) {
 function mapFileAttachment(
   link: FileLinkRow,
   file: FileRow,
+  url: string,
   uploadedByNameByUserId?: Map<string, string>,
 ): FileAttachment {
   return {
@@ -67,7 +70,7 @@ function mapFileAttachment(
     sizeBytes: numberValue(file.size_bytes),
     storageBucket: file.storage_bucket,
     storagePath: file.storage_path,
-    url: getPublicStorageUrl(file.storage_bucket, file.storage_path),
+    url,
     uploadedBy: file.uploaded_by,
     uploadedByName: file.uploaded_by
       ? (uploadedByNameByUserId?.get(file.uploaded_by) ?? null)
@@ -75,6 +78,12 @@ function mapFileAttachment(
     createdBy: link.created_by,
     createdAt: link.created_at,
   };
+}
+
+async function getFileUrl(file: FileRow) {
+  return file.storage_bucket === WORK_ATTACHMENTS_BUCKET
+    ? createSignedStorageUrl(file.storage_bucket, file.storage_path)
+    : getPublicStorageUrl(file.storage_bucket, file.storage_path);
 }
 
 export async function listFilesForSubject(
@@ -114,10 +123,26 @@ export async function listFilesForSubject(
   );
   const filesById = fileRowsById(files);
 
-  return links.flatMap((link) => {
+  const linkedFiles = links.flatMap((link) => {
     const file = filesById.get(link.file_id);
-    return file ? [mapFileAttachment(link, file, uploadedByNameByUserId)] : [];
+    return file ? [{ link, file }] : [];
   });
+  return Promise.all(
+    linkedFiles.map(async ({ link, file }) =>
+      mapFileAttachment(
+        link,
+        file,
+        await getFileUrl(file),
+        uploadedByNameByUserId,
+      ),
+    ),
+  );
+}
+
+export interface FileUploadOptions {
+  storageBucket?: string;
+  /** Folder between tenant ID and file ID. Defaults to `files`. */
+  storagePathPrefix?: string;
 }
 
 export async function uploadFilesForSubject(
@@ -126,6 +151,7 @@ export async function uploadFilesForSubject(
   subjectId: string,
   userId: string,
   files: File[],
+  options: FileUploadOptions = {},
 ) {
   assertSupabaseConfigured();
   if (files.length === 0) return;
@@ -135,15 +161,17 @@ export async function uploadFilesForSubject(
   const linkIds: string[] = [];
   const fileRows: Array<Record<string, string | number>> = [];
   const linkRows: Array<Record<string, string | number>> = [];
+  const storageBucket = options.storageBucket ?? TENANT_ASSETS_BUCKET;
+  const storagePathPrefix = options.storagePathPrefix ?? 'files';
 
   try {
     for (const file of files) {
       const fileId = crypto.randomUUID();
       const linkId = crypto.randomUUID();
-      const storagePath = `${tenantId}/files/${fileId}/${safeFileName(file.name)}`;
+      const storagePath = `${tenantId}/${storagePathPrefix}/${fileId}/${safeFileName(file.name)}`;
 
       await uploadStorageObject({
-        bucket: TENANT_ASSETS_BUCKET,
+        bucket: storageBucket,
         path: storagePath,
         file,
       });
@@ -154,7 +182,7 @@ export async function uploadFilesForSubject(
       fileRows.push({
         id: fileId,
         tenant_id: tenantId,
-        storage_bucket: TENANT_ASSETS_BUCKET,
+        storage_bucket: storageBucket,
         storage_path: storagePath,
         file_name: file.name,
         mime_type: file.type || 'application/octet-stream',
@@ -201,7 +229,7 @@ export async function uploadFilesForSubject(
         }),
       )
       .catch(() => undefined);
-    await removeStorageObjects(TENANT_ASSETS_BUCKET, uploadedPaths).catch(
+    await removeStorageObjects(storageBucket, uploadedPaths).catch(
       () => undefined,
     );
     throw error;

@@ -3,6 +3,7 @@ import {
   AtSign,
   Building2,
   CalendarDays,
+  Check,
   ChevronRight,
   Clock3,
   Copy,
@@ -16,6 +17,8 @@ import {
   Plus,
   Send,
   Smile,
+  Tag,
+  Trash2,
   Upload,
   UserRound,
   X,
@@ -75,12 +78,14 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { CustomerIdentity } from '../../customers/components/customer-identity';
+import type { FileAttachment } from '../../files/model/file';
 import {
   toWorkFormValues,
   workProgress,
   type WorkEmployeeOption,
   type WorkFormValues,
   type WorkItem,
+  type WorkLabel,
 } from '../model/work';
 import { WorkStatusBadge } from './work-status-badge';
 
@@ -103,7 +108,18 @@ interface WorkDetailDialogProps {
   assigneeEmployeeOptions: SelectWithAvatarOption<WorkEmployeeOption>[];
   customerOptions: MultiSelectOption[];
   contractOptions: MultiSelectOption[];
-  onSave: (values: WorkFormValues) => Promise<unknown> | void;
+  labelOptions: WorkLabel[];
+  attachments: FileAttachment[];
+  isAttachmentsLoading?: boolean;
+  isUploadingAttachments?: boolean;
+  attachmentErrorMessage?: string;
+  onCreateLabel: (name: string) => Promise<WorkLabel>;
+  onUploadAttachments: (files: File[]) => Promise<unknown>;
+  onDeleteAttachment: (attachmentId: string) => Promise<unknown>;
+  onSave: (
+    values: WorkFormValues,
+    attachments?: File[],
+  ) => Promise<unknown> | void;
   onCreateChild?: (work: WorkItem) => void;
 }
 
@@ -242,20 +258,332 @@ function WorkChildren({
   );
 }
 
-function WorkAttachments() {
-  // TODO(work-detail-dialog): connect attachments query, upload, preview and
-  // item actions when the backend file contract is available.
+function WorkLabelPill({
+  label,
+  onRemove,
+  disabled,
+}: {
+  label: WorkLabel;
+  onRemove?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <span
+      className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium"
+      style={{
+        color: label.color,
+        borderColor: `${label.color}66`,
+        backgroundColor: `${label.color}1a`,
+      }}
+    >
+      {label.name}
+      {onRemove ? (
+        <button
+          type="button"
+          className="rounded-sm opacity-70 hover:opacity-100 disabled:cursor-not-allowed"
+          aria-label={`Bỏ nhãn ${label.name}`}
+          title={`Bỏ nhãn ${label.name}`}
+          onClick={onRemove}
+          disabled={disabled}
+        >
+          <X className="size-3" />
+        </button>
+      ) : null}
+    </span>
+  );
+}
+
+function WorkLabelPicker({
+  value,
+  options,
+  disabled,
+  onChange,
+  onCreateLabel,
+}: {
+  value: string[];
+  options: WorkLabel[];
+  disabled: boolean;
+  onChange: (value: string[]) => void;
+  onCreateLabel: (name: string) => Promise<WorkLabel>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const selected = value
+    .map((id) => options.find((option) => option.id === id))
+    .filter((option): option is WorkLabel => Boolean(option));
+  const normalizedSearch = search.trim();
+  const matchingLabelExists = options.some(
+    (option) =>
+      option.name.toLocaleLowerCase('vi') ===
+      normalizedSearch.toLocaleLowerCase('vi'),
+  );
+
+  const createLabel = async () => {
+    if (!normalizedSearch || isCreating) return;
+    setIsCreating(true);
+    try {
+      const label = await onCreateLabel(normalizedSearch);
+      if (!value.includes(label.id)) onChange([...value, label.id]);
+      setSearch('');
+      setOpen(false);
+    } catch {
+      // The page mutation displays the normalized API error.
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <div className="min-w-0 space-y-2">
+      {selected.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {selected.map((label) => (
+            <WorkLabelPill
+              key={label.id}
+              label={label}
+              disabled={disabled}
+              onRemove={() => onChange(value.filter((id) => id !== label.id))}
+            />
+          ))}
+        </div>
+      ) : null}
+      <Popover
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen);
+          if (!nextOpen) setSearch('');
+        }}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="px-2 text-muted-foreground"
+            disabled={disabled}
+          >
+            <Plus /> Thêm
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-72 p-0">
+          <Command shouldFilter>
+            <CommandInput
+              value={search}
+              onValueChange={setSearch}
+              maxLength={40}
+              placeholder="Tìm hoặc tạo nhãn..."
+            />
+            <CommandList>
+              <CommandEmpty>Không có nhãn phù hợp</CommandEmpty>
+              {options.map((label) => {
+                const isSelected = value.includes(label.id);
+                return (
+                  <CommandItem
+                    key={label.id}
+                    value={label.name}
+                    onSelect={() =>
+                      onChange(
+                        isSelected
+                          ? value.filter((id) => id !== label.id)
+                          : [...value, label.id],
+                      )
+                    }
+                  >
+                    <span
+                      className="size-3 rounded-full"
+                      style={{ backgroundColor: label.color }}
+                    />
+                    <span className="min-w-0 flex-1 truncate">
+                      {label.name}
+                    </span>
+                    <Check
+                      className={cn(
+                        'size-4',
+                        isSelected ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                  </CommandItem>
+                );
+              })}
+            </CommandList>
+            {normalizedSearch && !matchingLabelExists ? (
+              <div className="border-t border-border p-1.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => void createLabel()}
+                  disabled={disabled || isCreating}
+                  loading={isCreating}
+                  loadingText="Đang tạo..."
+                >
+                  <Plus /> Tạo nhãn “{normalizedSearch}”
+                </Button>
+              </div>
+            ) : null}
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function formatFileSize(sizeBytes: number) {
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function WorkAttachments({
+  mode,
+  attachments,
+  pendingFiles,
+  isLoading,
+  isUploading,
+  disabled,
+  errorMessage,
+  onAddFiles,
+  onRemovePendingFile,
+  onDeleteAttachment,
+}: {
+  mode: 'create' | 'edit';
+  attachments: FileAttachment[];
+  pendingFiles: File[];
+  isLoading: boolean;
+  isUploading: boolean;
+  disabled: boolean;
+  errorMessage?: string;
+  onAddFiles: (files: File[]) => void;
+  onRemovePendingFile: (index: number) => void;
+  onDeleteAttachment: (attachmentId: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const attachmentCount =
+    mode === 'edit' ? attachments.length : pendingFiles.length;
+
   return (
     <section className="space-y-3">
       <SectionHeading
         title="Tệp đính kèm"
-        count="0"
+        count={String(attachmentCount)}
         action={
-          <Button type="button" variant="outline" size="sm" disabled>
-            <Upload /> Thêm tệp
-          </Button>
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              className="sr-only"
+              aria-label="Chọn tệp đính kèm"
+              onChange={(event) => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                event.currentTarget.value = '';
+                if (files.length) onAddFiles(files);
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => inputRef.current?.click()}
+              disabled={disabled}
+              loading={isUploading}
+              loadingText="Đang tải lên..."
+            >
+              <Upload /> Thêm tệp
+            </Button>
+          </>
         }
       />
+      {errorMessage ? (
+        <p className="text-sm text-destructive" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
+      {isLoading ? (
+        <SectionLoading
+          className="min-h-32 bg-transparent"
+          label="Đang tải tệp..."
+        />
+      ) : null}
+      {!isLoading && mode === 'edit' ? (
+        <div className="divide-y divide-border rounded-md border border-border">
+          {attachments.map((attachment) => (
+            <div
+              key={attachment.id}
+              className="flex min-w-0 items-center gap-3 px-3 py-2.5"
+            >
+              <FileText className="size-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate text-sm font-medium hover:text-primary hover:underline"
+                  title={attachment.fileName}
+                >
+                  {attachment.fileName}
+                </a>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatFileSize(attachment.sizeBytes)} ·{' '}
+                  {formatDateTime(attachment.createdAt)}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                mode="icon"
+                size="sm"
+                aria-label={`Xóa tệp ${attachment.fileName}`}
+                title={`Xóa tệp ${attachment.fileName}`}
+                onClick={() => onDeleteAttachment(attachment.id)}
+                disabled={disabled}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+          ))}
+          {attachments.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">
+              Chưa có tệp đính kèm.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      {mode === 'create' && pendingFiles.length === 0 ? (
+        <p className="rounded-md border border-dashed border-border px-3 py-8 text-center text-sm text-muted-foreground">
+          Chưa có tệp đính kèm.
+        </p>
+      ) : null}
+      {mode === 'create'
+        ? pendingFiles.map((file, index) => (
+            <div
+              key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+              className="flex min-w-0 items-center gap-3 rounded-md border border-border px-3 py-2.5"
+            >
+              <FileText className="size-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium" title={file.name}>
+                  {file.name}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatFileSize(file.size)} · Chờ lưu công việc
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                mode="icon"
+                size="sm"
+                aria-label={`Bỏ tệp ${file.name}`}
+                onClick={() => onRemovePendingFile(index)}
+              >
+                <X />
+              </Button>
+            </div>
+          ))
+        : null}
     </section>
   );
 }
@@ -514,6 +842,8 @@ function WorkProperties({
   assigneeEmployeeOptions,
   customerOptions,
   contractOptions,
+  labelOptions,
+  onCreateLabel,
 }: {
   work: WorkItem | null;
   form: UseFormReturn<WorkFormValues>;
@@ -522,6 +852,8 @@ function WorkProperties({
   assigneeEmployeeOptions: SelectWithAvatarOption<WorkEmployeeOption>[];
   customerOptions: MultiSelectOption[];
   contractOptions: MultiSelectOption[];
+  labelOptions: WorkLabel[];
+  onCreateLabel: (name: string) => Promise<WorkLabel>;
 }) {
   return (
     <div className="space-y-4 px-6 py-5">
@@ -683,6 +1015,36 @@ function WorkProperties({
         </>
       ) : null}
 
+      <FormField
+        control={form.control}
+        name="labelIds"
+        render={({ field }) => (
+          <FormItem
+            variant="compact"
+            layout="horizontal"
+            labelWidth="md"
+            labelGap="sm"
+          >
+            <FormLabel className="flex items-center gap-2 whitespace-nowrap">
+              <Tag className="size-3.5" /> Nhãn công việc
+            </FormLabel>
+            <FormControl>
+              <WorkLabelPicker
+                value={field.value}
+                options={labelOptions}
+                disabled={isSaving}
+                onChange={(value) => {
+                  field.onChange(value);
+                  onDirty();
+                }}
+                onCreateLabel={onCreateLabel}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
       <Separator />
 
       <FormField
@@ -764,6 +1126,14 @@ export function WorkDetailDialog({
   assigneeEmployeeOptions,
   customerOptions,
   contractOptions,
+  labelOptions,
+  attachments,
+  isAttachmentsLoading = false,
+  isUploadingAttachments = false,
+  attachmentErrorMessage,
+  onCreateLabel,
+  onUploadAttachments,
+  onDeleteAttachment,
   onSave,
   onCreateChild,
 }: WorkDetailDialogProps) {
@@ -773,10 +1143,10 @@ export function WorkDetailDialog({
   const childCountLabel = work
     ? `${work.completedChildCount}/${work.childCount}`
     : '0/0';
-  // TODO(work-detail-dialog): derive these counts from the attachments and
-  // comment feeds when their backend contracts are available.
-  const attachmentCount = 0;
   const commentCount = 0;
+  const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<File[]>(
+    [],
+  );
   const [activeTab, setActiveTab] = useState<WorkDetailTab>('details');
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -861,7 +1231,8 @@ export function WorkDetailDialog({
   };
 
   const handleSave = async (values: WorkFormValues) => {
-    await onSave(values);
+    await onSave(values, isCreateMode ? pendingAttachmentFiles : undefined);
+    if (isCreateMode) setPendingAttachmentFiles([]);
     setHasPendingChanges(false);
     if (!isCreateMode) {
       setIsDescriptionEditing(false);
@@ -1103,14 +1474,6 @@ export function WorkDetailDialog({
                           </FormItem>
                         )}
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled
-                      >
-                        <Plus /> Thêm nhãn
-                      </Button>
                     </div>
                   </header>
 
@@ -1145,7 +1508,9 @@ export function WorkDetailDialog({
                         <TabsTrigger value="attachments">
                           <Paperclip /> Tệp đính kèm
                           <Badge variant="secondary" size="sm">
-                            {attachmentCount}
+                            {isCreateMode
+                              ? pendingAttachmentFiles.length
+                              : attachments.length}
                           </Badge>
                         </TabsTrigger>
                         <TabsTrigger value="comments">
@@ -1222,7 +1587,39 @@ export function WorkDetailDialog({
                       </TabsContent>
 
                       <TabsContent value="attachments" className="mt-6">
-                        <WorkAttachments />
+                        <WorkAttachments
+                          mode={isCreateMode ? 'create' : 'edit'}
+                          attachments={attachments}
+                          pendingFiles={pendingAttachmentFiles}
+                          isLoading={isAttachmentsLoading}
+                          isUploading={isUploadingAttachments}
+                          disabled={isUploadingAttachments || isSaving}
+                          errorMessage={attachmentErrorMessage}
+                          onAddFiles={(files) => {
+                            if (isCreateMode) {
+                              setPendingAttachmentFiles((current) => [
+                                ...current,
+                                ...files,
+                              ]);
+                            } else {
+                              void onUploadAttachments(files).catch(
+                                () => undefined,
+                              );
+                            }
+                          }}
+                          onRemovePendingFile={(index) =>
+                            setPendingAttachmentFiles((current) =>
+                              current.filter(
+                                (_, currentIndex) => currentIndex !== index,
+                              ),
+                            )
+                          }
+                          onDeleteAttachment={(attachmentId) =>
+                            void onDeleteAttachment(attachmentId).catch(
+                              () => undefined,
+                            )
+                          }
+                        />
                       </TabsContent>
 
                       <TabsContent value="comments" className="mt-6">
@@ -1241,6 +1638,8 @@ export function WorkDetailDialog({
                     assigneeEmployeeOptions={assigneeEmployeeOptions}
                     customerOptions={customerOptions}
                     contractOptions={contractOptions}
+                    labelOptions={labelOptions}
+                    onCreateLabel={onCreateLabel}
                   />
                 </aside>
               </div>

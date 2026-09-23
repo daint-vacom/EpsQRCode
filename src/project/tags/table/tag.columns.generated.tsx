@@ -84,6 +84,8 @@ export interface UseTagColumnsParams {
   onEdit: (row: Tag) => void;
   onDelete: (row: Tag) => void;
   onToggleGroup: (groupId: string) => void;
+  canUpdateTag?: boolean;
+  canDeleteTag?: boolean;
 }
 
 export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
@@ -182,31 +184,31 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
                 Thêm danh mục
               </DataGridActionButton>
             ) : null}
-            {!row.isSystem ? (
-              <>
-                <DataGridActionButton
-                  action="edit"
-                  tooltip="Sửa"
-                  type="button"
-                  mode="icon"
-                  size="sm"
-                  aria-label={`Sửa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
-                  onClick={() => params.onEdit(row)}
-                >
-                  <Pencil className="size-4" />
-                </DataGridActionButton>
-                <DataGridActionButton
-                  action="delete"
-                  tooltip="Xóa"
-                  type="button"
-                  mode="icon"
-                  size="sm"
-                  aria-label={`Xóa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
-                  onClick={() => params.onDelete(row)}
-                >
-                  <Trash2 className="size-4" />
-                </DataGridActionButton>
-              </>
+            {!row.isSystem && params.canUpdateTag !== false ? (
+              <DataGridActionButton
+                action="edit"
+                tooltip="Sửa"
+                type="button"
+                mode="icon"
+                size="sm"
+                aria-label={`Sửa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
+                onClick={() => params.onEdit(row)}
+              >
+                <Pencil className="size-4" />
+              </DataGridActionButton>
+            ) : null}
+            {!row.isSystem && params.canDeleteTag !== false ? (
+              <DataGridActionButton
+                action="delete"
+                tooltip="Xóa"
+                type="button"
+                mode="icon"
+                size="sm"
+                aria-label={`Xóa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
+                onClick={() => params.onDelete(row)}
+              >
+                <Trash2 className="size-4" />
+              </DataGridActionButton>
             ) : null}
           </div>
         ),

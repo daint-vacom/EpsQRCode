@@ -1,5 +1,6 @@
 export const FILE_SUBJECT_TYPES = {
   contract: 'contract',
+  workItem: 'work_item',
 } as const;
 
 export type FileSubjectType =
