@@ -1,6 +1,7 @@
 export const FILE_SUBJECT_TYPES = {
   contract: 'contract',
   workItem: 'work_item',
+  workTemplate: 'work_template',
 } as const;
 
 export type FileSubjectType =
@@ -24,6 +25,7 @@ export interface FileAttachment {
   uploadedByName: string | null;
   createdBy: string | null;
   createdAt: string;
+  isDeleted?: boolean;
 }
 
 export type FilePreviewSource = Pick<FileAttachment, 'fileName' | 'mimeType'>;

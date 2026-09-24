@@ -6,7 +6,13 @@ import {
   useReactTable,
   type PaginationState,
 } from '@tanstack/react-table';
-import { ClipboardList, Plus, RefreshCw, TriangleAlert } from 'lucide-react';
+import {
+  ChevronDown,
+  ClipboardList,
+  Plus,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatDate, formatDateTime } from '@/lib/date';
@@ -29,6 +35,14 @@ import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   EventCalendar,
   type CalendarEvent,
 } from '@/components/ui/event-calendar';
@@ -49,6 +63,8 @@ import {
   loadWorkItems,
   loadWorkLabels,
   loadWorkLinkOptions,
+  loadWorkTemplate,
+  loadWorkTemplates,
   loadWorkTree,
   updateWorkItem,
   updateWorkItemStatus,
@@ -71,6 +87,7 @@ import { useWorkForm } from '../forms/work-form.generated';
 import {
   isWorkOverdue,
   toWorkFormValues,
+  toWorkFormValuesFromTemplate,
   WORK_PRIORITY_LABELS,
   WORK_STATUS_LABELS,
   type WorkFormValues,
@@ -78,6 +95,7 @@ import {
   type WorkListFilters,
   type WorkPriority,
   type WorkStatus,
+  type WorkTemplate,
 } from '../model/work';
 import {
   useWorkColumns,
@@ -197,6 +215,9 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     new Map(),
   );
   const [savingWorkIds, setSavingWorkIds] = useState<Set<string>>(new Set());
+  const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(
+    null,
+  );
   const createForm = useWorkForm();
   const editForm = useWorkForm();
 
@@ -218,6 +239,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const workLabelsQuery = useQuery({
     queryKey: ['project', 'work', 'labels', tenantId],
     queryFn: () => loadWorkLabels(tenantId!),
+    enabled: Boolean(tenantId),
+  });
+  const workTemplatesQuery = useQuery({
+    queryKey: ['project', 'work', 'templates', tenantId, 'active'],
+    queryFn: () => loadWorkTemplates(tenantId!, { activeOnly: true }),
     enabled: Boolean(tenantId),
   });
   const filters: WorkListFilters = {
@@ -303,10 +329,14 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   );
 
   const openCreate = useCallback(
-    (parent?: WorkItem | null, calendarStartAt?: Date) => {
+    (
+      parent?: WorkItem | null,
+      calendarStartAt?: Date,
+      initialValues?: WorkFormValues,
+    ) => {
       setCreateChildOf(parent ?? null);
       const nextValues = {
-        ...createForm.getValues(),
+        ...(initialValues ?? createForm.getValues()),
         parentId: parent?.id ?? '',
       };
       if (calendarStartAt) {
@@ -324,6 +354,21 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     },
     [createForm],
   );
+  const openCreateFromTemplate = async (templateId: string) => {
+    if (!tenantId) return;
+    setLoadingTemplateId(templateId);
+    try {
+      const template: WorkTemplate = await loadWorkTemplate(
+        tenantId,
+        templateId,
+      );
+      openCreate(null, undefined, toWorkFormValuesFromTemplate(template));
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setLoadingTemplateId(null);
+    }
+  };
   useEffect(() => {
     const parentId = searchParams.get('parent');
     if (!parentId || createOpen || !works.length) return;
@@ -747,9 +792,59 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
               onValueChange={(value) => setView(value as WorkView)}
             />
             <Separator orientation="vertical" className="mx-1 h-6" />
-            <Button onClick={() => openCreate()}>
-              <Plus /> Thêm công việc
-            </Button>
+            <div className="inline-flex">
+              <Button className="rounded-e-none" onClick={() => openCreate()}>
+                <Plus /> Thêm công việc
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    className="-ms-px rounded-s-none px-2"
+                    aria-label="Tạo công việc từ mẫu"
+                    disabled={Boolean(loadingTemplateId)}
+                  >
+                    <ChevronDown />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel>Tạo từ mẫu công việc</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {workTemplatesQuery.isPending ? (
+                    <DropdownMenuItem disabled>
+                      Đang tải mẫu...
+                    </DropdownMenuItem>
+                  ) : workTemplatesQuery.isError ? (
+                    <DropdownMenuItem disabled>
+                      Không tải được danh sách mẫu công việc
+                    </DropdownMenuItem>
+                  ) : workTemplatesQuery.data?.length ? (
+                    workTemplatesQuery.data.map((template) => (
+                      <DropdownMenuItem
+                        key={template.id}
+                        disabled={Boolean(loadingTemplateId)}
+                        onSelect={() =>
+                          void openCreateFromTemplate(template.id)
+                        }
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">
+                            {template.name}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {template.code} · {template.childCount} công việc
+                            con
+                          </span>
+                        </span>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      Chưa có mẫu công việc đang dùng
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </>
         }
       />

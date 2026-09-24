@@ -7,11 +7,12 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { ColorInput } from '@/components/ui/color-input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -30,22 +31,28 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { MultiSelect } from '@/components/ui/multi-select';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
+import { OptionSelect } from '@/components/ui/option-select';
+import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  toWorkTemplateFormValues,
   workTemplateFormSchema,
   type WorkTemplateFormValues,
+  type WorkTemplateSummary,
 } from '../model/work';
 
 export const workTemplateDefaultValues: WorkTemplateFormValues = {
   code: '',
   name: '',
   description: '',
-  stepTitles: '',
+  priority: 'normal',
+  assigneeEmployeeId: '',
+  color: '#2563eb',
+  labelIds: [],
 };
-
-// TODO(scaffold): replace with the real entity type used for edit-mode mapping.
-type WorkTemplateFormSource = unknown;
 
 export function useWorkTemplateForm(
   options?: Omit<UseFormProps<WorkTemplateFormValues>, 'resolver'>,
@@ -58,23 +65,27 @@ export function useWorkTemplateForm(
 }
 
 export function mapWorkTemplateToFormValues(
-  entity: WorkTemplateFormSource,
+  entity: WorkTemplateSummary,
 ): WorkTemplateFormValues {
-  // TODO(scaffold): map entity → form values for edit mode.
-  void entity;
-  return workTemplateDefaultValues;
+  return toWorkTemplateFormValues(entity);
 }
 
 interface WorkTemplateFormProps {
   form: UseFormReturn<WorkTemplateFormValues>;
   onSubmit: (values: WorkTemplateFormValues) => void;
   id?: string;
+  priorityOptions: SelectOption[];
+  assigneeEmployeeIdOptions: SelectOption[];
+  labelIdsOptions: MultiSelectOption[];
 }
 
 export function WorkTemplateForm({
   form,
   onSubmit,
   id = 'workTemplate-form',
+  priorityOptions,
+  assigneeEmployeeIdOptions,
+  labelIdsOptions,
 }: WorkTemplateFormProps) {
   return (
     <Form {...form}>
@@ -128,15 +139,77 @@ export function WorkTemplateForm({
 
           <FormField
             control={form.control}
-            name="stepTitles"
+            name="priority"
+            render={({ field }) => (
+              <FormItem className="md:col-span-6">
+                <FormLabel>Mức độ ưu tiên</FormLabel>
+                <FormControl>
+                  <OptionSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={priorityOptions}
+                    searchable={false}
+                    placeholder="Chọn mức độ"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="assigneeEmployeeId"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Các bước mặc định</FormLabel>
+                <FormLabel>Nhân viên phụ trách</FormLabel>
                 <FormControl>
-                  <Textarea
-                    rows={6}
-                    placeholder="Mỗi dòng là một bước công việc"
-                    {...field}
+                  <OptionSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={assigneeEmployeeIdOptions}
+                    searchable={false}
+                    placeholder="Chọn nhân viên"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem className="md:col-span-6">
+                <FormLabel>Màu công việc</FormLabel>
+                <FormControl>
+                  <ColorInput
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    variant="md"
+                    expanded
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="labelIds"
+            render={({ field }) => (
+              <FormItem className="md:col-span-12">
+                <FormLabel>Nhãn công việc</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    options={labelIdsOptions}
+                    searchPlaceholder="Tìm nhãn..."
+                    emptyMessage="Không có nhãn phù hợp"
                   />
                 </FormControl>
                 <FormMessage />
@@ -157,6 +230,10 @@ interface WorkTemplateFormDialogProps {
   onSubmit: (values: WorkTemplateFormValues) => void;
   isSaving?: boolean;
   title?: string;
+  priorityOptions: SelectOption[];
+  assigneeEmployeeIdOptions: SelectOption[];
+  labelIdsOptions: MultiSelectOption[];
+  children?: ReactNode;
 }
 
 export function WorkTemplateFormDialog({
@@ -167,6 +244,10 @@ export function WorkTemplateFormDialog({
   onSubmit,
   isSaving = false,
   title,
+  priorityOptions,
+  assigneeEmployeeIdOptions,
+  labelIdsOptions,
+  children,
 }: WorkTemplateFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -201,13 +282,13 @@ export function WorkTemplateFormDialog({
     <>
       <Dialog open={open} onOpenChange={requestClose}>
         <DialogContent
-          className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          className="flex max-w-4xl flex-col gap-0 overflow-hidden p-0"
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
             <DialogTitle>{title ?? 'Thêm mẫu công việc'}</DialogTitle>
             <DialogDescription>
-              Định nghĩa các bước thường lặp lại để tạo công việc nhanh hơn.
+              Lưu sẵn thông tin công việc, công việc con và tệp dùng lại.
             </DialogDescription>
           </DialogHeader>
 
@@ -216,7 +297,11 @@ export function WorkTemplateFormDialog({
               form={form}
               onSubmit={onSubmit}
               id="workTemplate-form"
+              priorityOptions={priorityOptions}
+              assigneeEmployeeIdOptions={assigneeEmployeeIdOptions}
+              labelIdsOptions={labelIdsOptions}
             />
+            {children}
           </div>
 
           <DialogFooter className="shrink-0 px-6 py-4">

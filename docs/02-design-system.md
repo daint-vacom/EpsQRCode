@@ -56,6 +56,30 @@ Use the live tokens as source of truth. This document does not duplicate a color
 - Align numeric values for scanning and use Vietnamese formatting utilities.
 - Keep row actions discoverable without flooding every row with text buttons.
 
+### Responsive column sizing and browser review
+
+- Size fixed columns from their real content and cell padding. For switches, checkboxes, and icon actions,
+  use the known control dimensions; for text columns, account for the header and representative cell values.
+  If the value has a known maximum length, size for that bound. If it is unbounded, choose a sensible maximum
+  and use intentional truncation rather than allowing that column to grow indefinitely.
+- Keep utility columns compact and stable. Designate the main descriptive column (for example, a name/title
+  column) to receive the remaining table width so wide screens use the available space without stretching
+  every column.
+- Calculate the main column width from the table viewport and the widths of the currently visible fixed
+  columns: `max(minimumMainWidth, viewportWidth - sum(visibleFixedColumnWidths))`. Keep a minimum width that
+  preserves readable content; when the viewport is narrower than the combined minimums, retain horizontal
+  scrolling instead of shrinking the main column below that minimum.
+- Recalculate the main column when the table viewport resizes or column visibility changes. A `ResizeObserver`
+  can track the viewport. Hidden columns must not consume width in the calculation.
+- After every change to column sizing, visibility, or table layout, inspect the affected page in a browser
+  before finishing. Check the actual table with representative content at the target wide viewport (use the
+  product's 1366px and 1920px reference widths when applicable), and also check a narrower viewport when the
+  change can affect horizontal scrolling.
+- In the browser, confirm headers and body cells share the same column boundaries, headers are fully visible,
+  truncation is intentional, fixed columns remain compact, and no large blank strip remains inside the table
+  because the table stopped before the available viewport. Recheck after each sizing adjustment rather than
+  relying only on source inspection or a build.
+
 ### Editor table có reorder và focus
 
 - Với editor table có kéo thả, `DndContext` và `SortableContext` phải bao quanh toàn bộ

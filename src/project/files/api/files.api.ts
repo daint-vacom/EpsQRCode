@@ -19,6 +19,8 @@ interface FileRow {
   size_bytes: number | string;
   uploaded_by: string | null;
   created_at: string;
+  status: 'active' | 'deleted' | 'quarantined';
+  deleted_at: string | null;
 }
 
 interface FileLinkRow {
@@ -77,10 +79,12 @@ function mapFileAttachment(
       : null,
     createdBy: link.created_by,
     createdAt: link.created_at,
+    isDeleted: file.status === 'deleted' || Boolean(file.deleted_at),
   };
 }
 
 async function getFileUrl(file: FileRow) {
+  if (file.status === 'deleted' || file.deleted_at) return '';
   return file.storage_bucket === WORK_ATTACHMENTS_BUCKET
     ? createSignedStorageUrl(file.storage_bucket, file.storage_path)
     : getPublicStorageUrl(file.storage_bucket, file.storage_path);
@@ -114,10 +118,9 @@ export async function listFilesForSubject(
       '/files',
       queryParams({
         select:
-          'id,tenant_id,storage_bucket,storage_path,file_name,mime_type,size_bytes,uploaded_by,created_at',
+          'id,tenant_id,storage_bucket,storage_path,file_name,mime_type,size_bytes,uploaded_by,created_at,status,deleted_at',
         tenant_id: `eq.${tenantId}`,
         id: `in.(${fileIds.join(',')})`,
-        status: 'eq.active',
       }),
     ),
   );
@@ -263,7 +266,7 @@ export async function deleteFileLink(
     supabaseApi.get(
       '/files',
       queryParams({
-        select: 'id,storage_bucket,storage_path',
+        select: 'id,storage_bucket,storage_path,status,deleted_at',
         tenant_id: `eq.${tenantId}`,
         id: `eq.${link.file_id}`,
         limit: '1',
@@ -303,7 +306,11 @@ export async function deleteFileLink(
       }),
     ),
   );
-  if (files.length > 0) {
+  if (
+    files.length > 0 &&
+    files[0].status !== 'deleted' &&
+    !files[0].deleted_at
+  ) {
     await removeStorageObjects(
       files[0].storage_bucket,
       files.map((file) => file.storage_path),

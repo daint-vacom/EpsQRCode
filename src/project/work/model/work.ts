@@ -93,9 +93,21 @@ export const workTemplateFormSchema = z.object({
   code: z.string().trim().min(1, 'Vui lòng nhập mã mẫu.'),
   name: z.string().trim().min(1, 'Vui lòng nhập tên mẫu.'),
   description: z.string().trim().max(5000, 'Mô tả không quá 5.000 ký tự.'),
-  stepTitles: z.string().trim(),
+  priority: z.enum(WORK_PRIORITIES),
+  assigneeEmployeeId: optionalUuid,
+  color: hexColor,
+  labelIds: z.array(z.string().uuid()),
 });
 export type WorkTemplateFormValues = z.infer<typeof workTemplateFormSchema>;
+
+export interface WorkTemplateChildFormValues {
+  title: string;
+  description: string;
+  priority: WorkPriority;
+  assigneeEmployeeId: string;
+  color: string;
+  labelIds: string[];
+}
 
 export interface WorkLinkOption {
   id: string;
@@ -156,25 +168,30 @@ export interface WorkItem {
   updatedAt: string;
 }
 
-export interface WorkTemplateStep {
+export interface WorkTemplateChild extends WorkTemplateChildFormValues {
   id: string;
-  title: string;
-  description: string;
   sortOrder: number;
-  plannedDays: number | null;
-  isRequired: boolean;
+  labels: WorkLabel[];
 }
 
-export interface WorkTemplate {
+export interface WorkTemplateSummary {
   id: string;
   tenantId: string;
   code: string;
   name: string;
   description: string;
+  priority: WorkPriority;
+  assigneeEmployeeId: string | null;
+  color: string;
+  labels: WorkLabel[];
+  childCount: number;
   isActive: boolean;
-  steps: WorkTemplateStep[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface WorkTemplate extends WorkTemplateSummary {
+  children: WorkTemplateChild[];
 }
 
 export interface WorkEmployeeOption extends WorkLinkOption {
@@ -215,8 +232,44 @@ export const workTemplateDefaultValues: WorkTemplateFormValues = {
   code: '',
   name: '',
   description: '',
-  stepTitles: '',
+  priority: 'normal',
+  assigneeEmployeeId: '',
+  color: '#2563eb',
+  labelIds: [],
 };
+
+export function toWorkTemplateFormValues(
+  template: WorkTemplateSummary,
+): WorkTemplateFormValues {
+  return {
+    code: template.code,
+    name: template.name,
+    description: template.description,
+    priority: template.priority,
+    assigneeEmployeeId: template.assigneeEmployeeId ?? '',
+    color: template.color,
+    labelIds: template.labels.map((label) => label.id),
+  };
+}
+
+export function toWorkFormValuesFromTemplate(
+  template: WorkTemplate,
+): WorkFormValues {
+  return {
+    ...workDefaultValues,
+    title: template.name,
+    description: template.description,
+    priority: template.priority,
+    assigneeEmployeeId: template.assigneeEmployeeId ?? '',
+    templateId: template.id,
+    plannedStartDate: '',
+    plannedEndDate: '',
+    color: template.color,
+    customerIds: [],
+    contractIds: [],
+    labelIds: template.labels.map((label) => label.id),
+  };
+}
 
 export function mapWorkRpcRow(row: Record<string, unknown>): WorkItem {
   const toNumber = (value: unknown) => Number(value ?? 0);

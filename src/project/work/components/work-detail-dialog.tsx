@@ -4,10 +4,7 @@ import {
   Building2,
   CalendarDays,
   Check,
-  ChevronRight,
   Clock3,
-  Copy,
-  Ellipsis,
   FileText,
   ListChecks,
   MessageCircle,
@@ -40,14 +37,7 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { DialogFooter } from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -87,6 +77,10 @@ import {
   type WorkItem,
   type WorkLabel,
 } from '../model/work';
+import {
+  WorkEditorDialogFrame,
+  WorkEditorDialogGrid,
+} from './work-editor-dialog-layout';
 import { WorkStatusBadge } from './work-status-badge';
 
 type WorkDetailTab = 'details' | 'children' | 'attachments' | 'comments';
@@ -109,6 +103,7 @@ interface WorkDetailDialogProps {
   customerOptions: MultiSelectOption[];
   contractOptions: MultiSelectOption[];
   labelOptions: WorkLabel[];
+  additionalProperties?: ReactNode;
   attachments: FileAttachment[];
   isAttachmentsLoading?: boolean;
   isUploadingAttachments?: boolean;
@@ -293,7 +288,7 @@ function WorkLabelPill({
   );
 }
 
-function WorkLabelPicker({
+export function WorkLabelPicker({
   value,
   options,
   disabled,
@@ -516,20 +511,34 @@ function WorkAttachments({
             >
               <FileText className="size-4 shrink-0 text-primary" />
               <div className="min-w-0 flex-1">
-                <a
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block truncate text-sm font-medium hover:text-primary hover:underline"
-                  title={attachment.fileName}
-                >
-                  {attachment.fileName}
-                </a>
+                {attachment.isDeleted ? (
+                  <span
+                    className="block truncate text-sm font-medium text-muted-foreground"
+                    title={attachment.fileName}
+                  >
+                    {attachment.fileName}
+                  </span>
+                ) : (
+                  <a
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate text-sm font-medium hover:text-primary hover:underline"
+                    title={attachment.fileName}
+                  >
+                    {attachment.fileName}
+                  </a>
+                )}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {formatFileSize(attachment.sizeBytes)} ·{' '}
                   {formatDateTime(attachment.createdAt)}
                 </p>
               </div>
+              {attachment.isDeleted ? (
+                <Badge variant="outline" className="shrink-0 text-xs">
+                  Đã xóa
+                </Badge>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"
@@ -844,6 +853,7 @@ function WorkProperties({
   contractOptions,
   labelOptions,
   onCreateLabel,
+  additionalFields,
 }: {
   work: WorkItem | null;
   form: UseFormReturn<WorkFormValues>;
@@ -854,9 +864,11 @@ function WorkProperties({
   contractOptions: MultiSelectOption[];
   labelOptions: WorkLabel[];
   onCreateLabel: (name: string) => Promise<WorkLabel>;
+  additionalFields?: ReactNode;
 }) {
   return (
     <div className="space-y-4 px-6 py-5">
+      {additionalFields}
       <FormField
         control={form.control}
         name="assigneeEmployeeId"
@@ -1127,6 +1139,7 @@ export function WorkDetailDialog({
   customerOptions,
   contractOptions,
   labelOptions,
+  additionalProperties,
   attachments,
   isAttachmentsLoading = false,
   isUploadingAttachments = false,
@@ -1266,73 +1279,17 @@ export function WorkDetailDialog({
   const showFooter = isCreateMode || isDirty;
 
   return (
-    <Dialog open={open} onOpenChange={requestClose}>
-      <DialogContent
-        className="flex min-h-0 flex-col gap-0 overflow-hidden p-0"
-        size="large"
-        showCloseButton={false}
-        aria-labelledby="work-detail-dialog-title"
+    <>
+      <WorkEditorDialogFrame
+        open={open}
+        onOpenChange={requestClose}
+        title={dialogTitle}
+        entityCode={work?.code}
+        closeLabel={
+          isCreateMode ? 'Đóng tạo công việc' : 'Đóng chi tiết công việc'
+        }
+        isCloseDisabled={isSaving || isConfirming}
       >
-        <DialogHeader className="shrink-0 px-6 py-4 text-start">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">{dialogTitle}</span>
-              {work ? (
-                <>
-                  <ChevronRight className="size-3.5 shrink-0" />
-                  <Badge variant="secondary" className="text-sm font-normal">
-                    {work.code}
-                  </Badge>
-                </>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 items-center gap-0.5">
-              <Button
-                type="button"
-                variant="ghost"
-                mode="icon"
-                size="sm"
-                disabled
-                aria-label="Sao chép liên kết"
-              >
-                <Copy />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                mode="icon"
-                size="sm"
-                disabled
-                aria-label="Thao tác khác"
-              >
-                <Ellipsis />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                mode="icon"
-                size="sm"
-                aria-label={
-                  isCreateMode
-                    ? 'Đóng tạo công việc'
-                    : 'Đóng chi tiết công việc'
-                }
-                onClick={() => requestClose(false)}
-                disabled={isSaving || isConfirming}
-              >
-                <X />
-              </Button>
-            </div>
-          </div>
-          <DialogTitle id="work-detail-dialog-title" className="sr-only">
-            {work?.title ?? dialogTitle}
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Không gian chỉnh sửa chi tiết công việc.
-          </DialogDescription>
-        </DialogHeader>
-
         {showLoading ? (
           <SectionLoading
             className="min-h-80 flex-1 rounded-none bg-transparent"
@@ -1345,291 +1302,294 @@ export function WorkDetailDialog({
               onSubmit={form.handleSubmit(handleSave)}
               className="flex min-h-0 flex-1 flex-col"
             >
-              <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_28rem]">
-                <main className="min-h-0 overflow-y-auto px-6 pb-8 pt-0">
-                  <header className="pb-4">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem className="min-w-0">
-                          <FormLabel className="sr-only">
-                            Tên công việc
-                          </FormLabel>
-                          <FormControl>
-                            <Textarea
-                              rows={1}
-                              variant="lg"
-                              className="min-h-10 resize-none overflow-hidden border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight shadow-none [field-sizing:content] focus-visible:bg-transparent focus-visible:ring-0"
-                              placeholder={
-                                isCreateMode ? 'Tên công việc' : undefined
-                              }
-                              {...field}
-                              onChange={(event) => {
-                                field.onChange(event);
-                                markDirty();
-                              }}
-                              disabled={isSaving}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+              <WorkEditorDialogGrid
+                main={
+                  <main className="min-h-0 overflow-y-auto px-6 pb-8 pt-0">
+                    <header className="pb-4">
                       <FormField
                         control={form.control}
-                        name="color"
+                        name="title"
                         render={({ field }) => (
-                          <FormItem className="shrink-0 space-y-1">
+                          <FormItem className="min-w-0">
                             <FormLabel className="sr-only">
-                              Màu công việc
+                              Tên công việc
                             </FormLabel>
                             <FormControl>
-                              <ColorInput
-                                variant="md"
-                                triggerVariant="ghost"
-                                value={field.value}
-                                onValueChange={(value) => {
-                                  field.onChange(value);
+                              <Textarea
+                                rows={1}
+                                variant="lg"
+                                className="min-h-10 resize-none overflow-hidden border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight shadow-none [field-sizing:content] focus-visible:bg-transparent focus-visible:ring-0"
+                                placeholder={
+                                  isCreateMode ? 'Tên công việc' : undefined
+                                }
+                                {...field}
+                                onChange={(event) => {
+                                  field.onChange(event);
                                   markDirty();
                                 }}
-                                onBlur={field.onBlur}
-                                className="size-7 rounded-md p-1"
                                 disabled={isSaving}
                               />
                             </FormControl>
-                            <FormMessage className="sr-only" />
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="sr-only">
-                              Trạng thái
-                            </FormLabel>
-                            <FormControl>
-                              <OptionSelect
-                                value={field.value}
-                                onChange={(value) => {
-                                  field.onChange(value);
-                                  markDirty();
-                                }}
-                                options={statusOptions}
-                                searchable={false}
-                                canDeselect={false}
-                                disabled={isSaving}
-                                triggerMode="chevron"
-                                className="h-7 w-auto min-w-0 border-0 bg-transparent p-0 shadow-none"
-                                renderOption={(option) => (
-                                  <WorkStatusBadge
-                                    status={option.value as WorkItem['status']}
-                                    size="sm"
-                                  />
-                                )}
-                                triggerContent={(option) =>
-                                  option ? (
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <FormField
+                          control={form.control}
+                          name="color"
+                          render={({ field }) => (
+                            <FormItem className="shrink-0 space-y-1">
+                              <FormLabel className="sr-only">
+                                Màu công việc
+                              </FormLabel>
+                              <FormControl>
+                                <ColorInput
+                                  variant="md"
+                                  triggerVariant="ghost"
+                                  value={field.value}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    markDirty();
+                                  }}
+                                  onBlur={field.onBlur}
+                                  className="size-7 rounded-md p-1"
+                                  disabled={isSaving}
+                                />
+                              </FormControl>
+                              <FormMessage className="sr-only" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="sr-only">
+                                Trạng thái
+                              </FormLabel>
+                              <FormControl>
+                                <OptionSelect
+                                  value={field.value}
+                                  onChange={(value) => {
+                                    field.onChange(value);
+                                    markDirty();
+                                  }}
+                                  options={statusOptions}
+                                  searchable={false}
+                                  canDeselect={false}
+                                  disabled={isSaving}
+                                  triggerMode="chevron"
+                                  className="h-7 w-auto min-w-0 border-0 bg-transparent p-0 shadow-none"
+                                  renderOption={(option) => (
                                     <WorkStatusBadge
                                       status={
                                         option.value as WorkItem['status']
                                       }
                                       size="sm"
                                     />
-                                  ) : undefined
-                                }
-                              />
-                            </FormControl>
-                            <FormMessage className="sr-only" />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="priority"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="sr-only">
-                              Mức độ ưu tiên
-                            </FormLabel>
-                            <FormControl>
-                              <OptionSelect
-                                value={field.value}
-                                onChange={(value) => {
-                                  field.onChange(value);
-                                  markDirty();
-                                }}
-                                options={priorityOptions}
-                                searchable={false}
-                                canDeselect={false}
-                                disabled={isSaving}
-                                triggerMode="chevron"
-                                className="h-7 w-auto min-w-0 border-0 bg-transparent p-0 shadow-none"
-                              />
-                            </FormControl>
-                            <FormMessage className="sr-only" />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </header>
+                                  )}
+                                  triggerContent={(option) =>
+                                    option ? (
+                                      <WorkStatusBadge
+                                        status={
+                                          option.value as WorkItem['status']
+                                        }
+                                        size="sm"
+                                      />
+                                    ) : undefined
+                                  }
+                                />
+                              </FormControl>
+                              <FormMessage className="sr-only" />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="sr-only">
+                                Mức độ ưu tiên
+                              </FormLabel>
+                              <FormControl>
+                                <OptionSelect
+                                  value={field.value}
+                                  onChange={(value) => {
+                                    field.onChange(value);
+                                    markDirty();
+                                  }}
+                                  options={priorityOptions}
+                                  searchable={false}
+                                  canDeselect={false}
+                                  disabled={isSaving}
+                                  triggerMode="chevron"
+                                  className="h-7 w-auto min-w-0 border-0 bg-transparent p-0 shadow-none"
+                                />
+                              </FormControl>
+                              <FormMessage className="sr-only" />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </header>
 
-                  <div className="mt-2 space-y-6">
-                    {errorMessage ? (
-                      <p className="text-sm text-destructive" role="alert">
-                        Không tải được dữ liệu mới nhất: {errorMessage}
-                      </p>
-                    ) : null}
+                    <div className="mt-2 space-y-6">
+                      {errorMessage ? (
+                        <p className="text-sm text-destructive" role="alert">
+                          Không tải được dữ liệu mới nhất: {errorMessage}
+                        </p>
+                      ) : null}
 
-                    <Tabs
-                      value={activeTab}
-                      onValueChange={(value) =>
-                        setActiveTab(value as WorkDetailTab)
-                      }
-                      className="flex flex-col"
-                    >
-                      <TabsList
-                        variant="line"
-                        size="md"
-                        className="w-full justify-start gap-5 overflow-x-auto"
+                      <Tabs
+                        value={activeTab}
+                        onValueChange={(value) =>
+                          setActiveTab(value as WorkDetailTab)
+                        }
+                        className="flex flex-col"
                       >
-                        <TabsTrigger value="details">
-                          <FileText /> Mô tả
-                        </TabsTrigger>
-                        <TabsTrigger value="children">
-                          <ListChecks /> Công việc con
-                          <Badge variant="secondary" size="sm">
-                            {childCountLabel}
-                          </Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="attachments">
-                          <Paperclip /> Tệp đính kèm
-                          <Badge variant="secondary" size="sm">
-                            {isCreateMode
-                              ? pendingAttachmentFiles.length
-                              : attachments.length}
-                          </Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="comments">
-                          <MessageCircle /> Bình luận
-                          <Badge variant="secondary" size="sm">
-                            {commentCount}
-                          </Badge>
-                        </TabsTrigger>
-                      </TabsList>
+                        <TabsList
+                          variant="line"
+                          size="md"
+                          className="w-full justify-start gap-5 overflow-x-auto"
+                        >
+                          <TabsTrigger value="details">
+                            <FileText /> Mô tả
+                          </TabsTrigger>
+                          <TabsTrigger value="children">
+                            <ListChecks /> Công việc con
+                            <Badge variant="secondary" size="sm">
+                              {childCountLabel}
+                            </Badge>
+                          </TabsTrigger>
+                          <TabsTrigger value="attachments">
+                            <Paperclip /> Tệp đính kèm
+                            <Badge variant="secondary" size="sm">
+                              {isCreateMode
+                                ? pendingAttachmentFiles.length
+                                : attachments.length}
+                            </Badge>
+                          </TabsTrigger>
+                          <TabsTrigger value="comments">
+                            <MessageCircle /> Bình luận
+                            <Badge variant="secondary" size="sm">
+                              {commentCount}
+                            </Badge>
+                          </TabsTrigger>
+                        </TabsList>
 
-                      <TabsContent value="details" className="mt-6">
-                        <section className="space-y-3">
-                          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                            <FormField
-                              control={form.control}
-                              name="description"
-                              render={({ field }) => (
-                                <FormItem>
-                                  {isCreateMode || isDescriptionEditing ? (
-                                    <FormControl>
-                                      <RichTextEditor
-                                        value={field.value}
+                        <TabsContent value="details" className="mt-6">
+                          <section className="space-y-3">
+                            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                              <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    {isCreateMode || isDescriptionEditing ? (
+                                      <FormControl>
+                                        <RichTextEditor
+                                          value={field.value}
+                                          onChange={(value) => {
+                                            field.onChange(value);
+                                            markDirty();
+                                          }}
+                                          onBlur={() => field.onBlur()}
+                                          disabled={isSaving}
+                                          placeholder="Mô tả mục tiêu, bối cảnh hoặc kết quả cần đạt..."
+                                        />
+                                      </FormControl>
+                                    ) : (
+                                      <RichTextContent
+                                        content={field.value}
                                         onChange={(value) => {
                                           field.onChange(value);
                                           markDirty();
                                         }}
-                                        onBlur={() => field.onBlur()}
-                                        disabled={isSaving}
-                                        placeholder="Mô tả mục tiêu, bối cảnh hoặc kết quả cần đạt..."
                                       />
-                                    </FormControl>
-                                  ) : (
-                                    <RichTextContent
-                                      content={field.value}
-                                      onChange={(value) => {
-                                        field.onChange(value);
-                                        markDirty();
-                                      }}
-                                    />
-                                  )}
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            {!isCreateMode && !isDescriptionEditing ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                mode="icon"
-                                size="sm"
-                                aria-label="Chỉnh sửa mô tả"
-                                title="Chỉnh sửa mô tả"
-                                onClick={() => setIsDescriptionEditing(true)}
-                                disabled={isSaving}
-                              >
-                                <Pencil />
-                              </Button>
-                            ) : null}
-                          </div>
-                        </section>
-                      </TabsContent>
+                                    )}
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              {!isCreateMode && !isDescriptionEditing ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  mode="icon"
+                                  size="sm"
+                                  aria-label="Chỉnh sửa mô tả"
+                                  title="Chỉnh sửa mô tả"
+                                  onClick={() => setIsDescriptionEditing(true)}
+                                  disabled={isSaving}
+                                >
+                                  <Pencil />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </section>
+                        </TabsContent>
 
-                      <TabsContent value="children" className="mt-6">
-                        {work ? (
-                          <WorkChildren
-                            work={work}
-                            children={children}
-                            isLoading={isLoading}
-                            onCreateChild={
-                              onCreateChild ? requestCreateChild : undefined
+                        <TabsContent value="children" className="mt-6">
+                          {work ? (
+                            <WorkChildren
+                              work={work}
+                              children={children}
+                              isLoading={isLoading}
+                              onCreateChild={
+                                onCreateChild ? requestCreateChild : undefined
+                              }
+                            />
+                          ) : null}
+                        </TabsContent>
+
+                        <TabsContent value="attachments" className="mt-6">
+                          <WorkAttachments
+                            mode={isCreateMode ? 'create' : 'edit'}
+                            attachments={attachments}
+                            pendingFiles={pendingAttachmentFiles}
+                            isLoading={isAttachmentsLoading}
+                            isUploading={isUploadingAttachments}
+                            disabled={isUploadingAttachments || isSaving}
+                            errorMessage={attachmentErrorMessage}
+                            onAddFiles={(files) => {
+                              if (isCreateMode) {
+                                setPendingAttachmentFiles((current) => [
+                                  ...current,
+                                  ...files,
+                                ]);
+                              } else {
+                                void onUploadAttachments(files).catch(
+                                  () => undefined,
+                                );
+                              }
+                            }}
+                            onRemovePendingFile={(index) =>
+                              setPendingAttachmentFiles((current) =>
+                                current.filter(
+                                  (_, currentIndex) => currentIndex !== index,
+                                ),
+                              )
+                            }
+                            onDeleteAttachment={(attachmentId) =>
+                              void onDeleteAttachment(attachmentId).catch(
+                                () => undefined,
+                              )
                             }
                           />
-                        ) : null}
-                      </TabsContent>
+                        </TabsContent>
 
-                      <TabsContent value="attachments" className="mt-6">
-                        <WorkAttachments
-                          mode={isCreateMode ? 'create' : 'edit'}
-                          attachments={attachments}
-                          pendingFiles={pendingAttachmentFiles}
-                          isLoading={isAttachmentsLoading}
-                          isUploading={isUploadingAttachments}
-                          disabled={isUploadingAttachments || isSaving}
-                          errorMessage={attachmentErrorMessage}
-                          onAddFiles={(files) => {
-                            if (isCreateMode) {
-                              setPendingAttachmentFiles((current) => [
-                                ...current,
-                                ...files,
-                              ]);
-                            } else {
-                              void onUploadAttachments(files).catch(
-                                () => undefined,
-                              );
-                            }
-                          }}
-                          onRemovePendingFile={(index) =>
-                            setPendingAttachmentFiles((current) =>
-                              current.filter(
-                                (_, currentIndex) => currentIndex !== index,
-                              ),
-                            )
-                          }
-                          onDeleteAttachment={(attachmentId) =>
-                            void onDeleteAttachment(attachmentId).catch(
-                              () => undefined,
-                            )
-                          }
-                        />
-                      </TabsContent>
-
-                      <TabsContent value="comments" className="mt-6">
-                        <WorkComments />
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-                </main>
-
-                <aside className="min-h-0 overflow-y-auto border-t border-border lg:border-s lg:border-t-0">
+                        <TabsContent value="comments" className="mt-6">
+                          <WorkComments />
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+                  </main>
+                }
+                properties={
                   <WorkProperties
                     work={work}
                     form={form}
@@ -1640,35 +1600,38 @@ export function WorkDetailDialog({
                     contractOptions={contractOptions}
                     labelOptions={labelOptions}
                     onCreateLabel={onCreateLabel}
+                    additionalFields={additionalProperties}
                   />
-                </aside>
-              </div>
-              {showFooter ? (
-                <DialogFooter className="shrink-0 px-6 py-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      isCreateMode ? onOpenChange(false) : discardChanges()
-                    }
-                    disabled={isSaving}
-                  >
-                    {isCreateMode ? 'Hủy' : 'Hủy thay đổi'}
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSaving}
-                    loadingText="Đang lưu..."
-                  >
-                    {isCreateMode ? 'Lưu' : 'Lưu thay đổi'}
-                  </Button>
-                </DialogFooter>
-              ) : null}
+                }
+                footer={
+                  showFooter ? (
+                    <DialogFooter className="shrink-0 px-6 py-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          isCreateMode ? onOpenChange(false) : discardChanges()
+                        }
+                        disabled={isSaving}
+                      >
+                        {isCreateMode ? 'Hủy' : 'Hủy thay đổi'}
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        loading={isSaving}
+                        loadingText="Đang lưu..."
+                      >
+                        {isCreateMode ? 'Lưu' : 'Lưu thay đổi'}
+                      </Button>
+                    </DialogFooter>
+                  ) : null
+                }
+              />
             </form>
           </Form>
         )}
-      </DialogContent>
+      </WorkEditorDialogFrame>
       <ConfirmDialog
         open={confirmCloseOpen}
         onOpenChange={(nextOpen) => {
@@ -1700,6 +1663,6 @@ export function WorkDetailDialog({
             : confirmDiscardChanges
         }
       />
-    </Dialog>
+    </>
   );
 }

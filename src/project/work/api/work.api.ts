@@ -5,7 +5,7 @@ import {
 } from '@/project/files/api/files.api';
 import type { FileAttachment } from '@/project/files/model/file';
 import { WORK_TAG_GROUP_CODE } from '@/project/tags/model/tag';
-import { WORK_ATTACHMENTS_BUCKET } from '@/lib/storage';
+import { removeStorageObjects, WORK_ATTACHMENTS_BUCKET } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   WorkEmployeeOption,
@@ -14,7 +14,9 @@ import type {
   WorkLabel,
   WorkListFilters,
   WorkTemplate,
+  WorkTemplateChildFormValues,
   WorkTemplateFormValues,
+  WorkTemplateSummary,
 } from '../model/work';
 import { getWorkLabelColor, mapWorkRpcRow } from '../model/work';
 
@@ -289,6 +291,15 @@ export async function createWorkItem(
     await uploadWorkItemAttachments(tenantId, workItemId, userId, attachments);
   } catch (error) {
     await supabaseApi
+      .delete('/file_links', {
+        params: {
+          tenant_id: `eq.${tenantId}`,
+          subject_type: 'eq.work_item',
+          subject_id: `eq.${workItemId}`,
+        },
+      })
+      .catch(() => undefined);
+    await supabaseApi
       .delete('/work_items', {
         params: { id: `eq.${workItemId}`, tenant_id: `eq.${tenantId}` },
       })
@@ -514,73 +525,323 @@ export async function loadWorkLinkOptions(tenantId: string) {
 
 export async function loadWorkTemplates(
   tenantId: string,
-): Promise<WorkTemplate[]> {
+  options: { activeOnly?: boolean } = {},
+): Promise<WorkTemplateSummary[]> {
   assertSupabaseConfigured();
-  const [templates, steps] = await Promise.all([
+  const [templates, children, assignments, labels] = await Promise.all([
     request<Array<Record<string, unknown>>>(
       supabaseApi.get('/work_templates', {
-        params: { select: '*', tenant_id: `eq.${tenantId}`, order: 'name.asc' },
-      }),
-    ),
-    request<Array<Record<string, unknown>>>(
-      supabaseApi.get('/work_template_steps', {
         params: {
-          select: '*',
+          select:
+            'id,tenant_id,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
           tenant_id: `eq.${tenantId}`,
-          order: 'sort_order.asc',
+          ...(options.activeOnly ? { is_active: 'eq.true' } : {}),
+          order: 'name.asc',
         },
       }),
     ),
+    request<Array<Record<string, unknown>>>(
+      supabaseApi.get('/work_template_items', {
+        params: {
+          select: 'id,template_id',
+          tenant_id: `eq.${tenantId}`,
+        },
+      }),
+    ),
+    request<Array<{ subject_id: string; tag_id: string }>>(
+      supabaseApi.get('/tag_assignments', {
+        params: {
+          select: 'subject_id,tag_id',
+          tenant_id: `eq.${tenantId}`,
+          subject_type: 'eq.work_template',
+        },
+      }),
+    ),
+    loadWorkLabels(tenantId),
   ]);
+  const labelsById = new Map(labels.map((label) => [label.id, label]));
   return templates.map((row) => ({
     id: String(row.id),
     tenantId: String(row.tenant_id),
     code: String(row.code),
     name: String(row.name),
     description: String(row.description ?? ''),
+    priority: String(
+      row.priority ?? 'normal',
+    ) as WorkTemplateSummary['priority'],
+    assigneeEmployeeId: row.assignee_employee_id
+      ? String(row.assignee_employee_id)
+      : null,
+    color: String(row.color ?? '#2563eb'),
+    labels: assignments
+      .filter((assignment) => assignment.subject_id === row.id)
+      .flatMap((assignment) => {
+        const label = labelsById.get(assignment.tag_id);
+        return label ? [label] : [];
+      }),
+    childCount: children.filter((child) => child.template_id === row.id).length,
     isActive: Boolean(row.is_active),
-    steps: steps
-      .filter((step) => step.template_id === row.id)
-      .map((step) => ({
-        id: String(step.id),
-        title: String(step.title),
-        description: String(step.description ?? ''),
-        sortOrder: Number(step.sort_order ?? 0),
-        plannedDays:
-          step.planned_days == null ? null : Number(step.planned_days),
-        isRequired: Boolean(step.is_required),
-      })),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   }));
 }
 
-export async function createWorkTemplate(
+export async function loadWorkTemplate(
   tenantId: string,
+  templateId: string,
+): Promise<WorkTemplate> {
+  assertSupabaseConfigured();
+  const templates = await request<Array<Record<string, unknown>>>(
+    supabaseApi.get('/work_templates', {
+      params: {
+        select:
+          'id,tenant_id,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+        tenant_id: `eq.${tenantId}`,
+        id: `eq.${templateId}`,
+        limit: '1',
+      },
+    }),
+  );
+  const row = templates[0];
+  if (!row) throw new Error('Không tìm thấy mẫu công việc.');
+
+  const children = await request<Array<Record<string, unknown>>>(
+    supabaseApi.get('/work_template_items', {
+      params: {
+        select:
+          'id,template_id,title,description,priority,assignee_employee_id,color,sort_order',
+        tenant_id: `eq.${tenantId}`,
+        template_id: `eq.${templateId}`,
+        order: 'sort_order.asc,id.asc',
+      },
+    }),
+  );
+  const childIds = children.map((child) => String(child.id));
+  const subjectIds = [templateId, ...childIds];
+  const [assignments, labels] = await Promise.all([
+    request<
+      Array<{ subject_type: string; subject_id: string; tag_id: string }>
+    >(
+      supabaseApi.get('/tag_assignments', {
+        params: {
+          select: 'subject_type,subject_id,tag_id',
+          tenant_id: `eq.${tenantId}`,
+          subject_type: 'in.(work_template,work_template_item)',
+          subject_id: `in.(${subjectIds.join(',')})`,
+        },
+      }),
+    ),
+    loadWorkLabels(tenantId),
+  ]);
+  const labelsById = new Map(labels.map((label) => [label.id, label]));
+  const labelsFor = (subjectType: string, subjectId: string) =>
+    assignments
+      .filter(
+        (assignment) =>
+          assignment.subject_type === subjectType &&
+          assignment.subject_id === subjectId,
+      )
+      .flatMap((assignment) => {
+        const label = labelsById.get(assignment.tag_id);
+        return label ? [label] : [];
+      });
+
+  return {
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    code: String(row.code),
+    name: String(row.name),
+    description: String(row.description ?? ''),
+    priority: String(row.priority ?? 'normal') as WorkTemplate['priority'],
+    assigneeEmployeeId: row.assignee_employee_id
+      ? String(row.assignee_employee_id)
+      : null,
+    color: String(row.color ?? '#2563eb'),
+    labels: labelsFor('work_template', templateId),
+    childCount: children.length,
+    isActive: Boolean(row.is_active),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    children: children.map((child) => {
+      const childId = String(child.id);
+      return {
+        id: childId,
+        title: String(child.title ?? ''),
+        description: String(child.description ?? ''),
+        priority: String(
+          child.priority ?? 'normal',
+        ) as WorkTemplate['priority'],
+        assigneeEmployeeId: child.assignee_employee_id
+          ? String(child.assignee_employee_id)
+          : '',
+        color: String(child.color ?? '#2563eb'),
+        sortOrder: Number(child.sort_order ?? 0),
+        labels: labelsFor('work_template_item', childId),
+        labelIds: labelsFor('work_template_item', childId).map(
+          (label) => label.id,
+        ),
+      };
+    }),
+  };
+}
+
+export async function saveWorkTemplate(
+  tenantId: string,
+  templateId: string | null,
   values: WorkTemplateFormValues,
+  children: WorkTemplateChildFormValues[],
 ) {
   assertSupabaseConfigured();
-  const steps = values.stepTitles
-    .split('\n')
-    .map((title) => title.trim())
-    .filter(Boolean)
-    .map((title, index) => ({
-      title,
-      description: '',
-      plannedDays: null,
-      isRequired: true,
-      sortOrder: index,
-    }));
   return request<string>(
-    supabaseApi.post('/rpc/create_work_template', {
+    supabaseApi.post('/rpc/save_work_template', {
       p_tenant_id: tenantId,
+      p_template_id: templateId,
       p_payload: {
         code: values.code.trim(),
         name: values.name.trim(),
         description: values.description.trim(),
-        isActive: true,
+        priority: values.priority,
+        assigneeEmployeeId: values.assigneeEmployeeId || null,
+        color: values.color,
       },
-      p_steps: steps,
+      p_children: children.map(
+        ({
+          title,
+          description,
+          priority,
+          assigneeEmployeeId,
+          color,
+          labelIds,
+        }) => ({
+          title: title.trim(),
+          description: description.trim(),
+          priority,
+          assigneeEmployeeId: assigneeEmployeeId || null,
+          color,
+          labelIds,
+        }),
+      ),
+      p_label_ids: values.labelIds,
     }),
   );
+}
+
+export async function updateWorkTemplatesAvailability(
+  tenantId: string,
+  templateIds: string[],
+  isActive: boolean,
+) {
+  assertSupabaseConfigured();
+  if (templateIds.length === 0) return;
+  await supabaseApi.patch(
+    '/work_templates',
+    { is_active: isActive },
+    {
+      params: {
+        id: `in.(${templateIds.join(',')})`,
+        tenant_id: `eq.${tenantId}`,
+      },
+    },
+  );
+}
+
+export async function deleteWorkTemplates(
+  tenantId: string,
+  templateIds: string[],
+): Promise<{ storageCleanupFailed: boolean }> {
+  assertSupabaseConfigured();
+  const uniqueTemplateIds = Array.from(new Set(templateIds));
+  if (uniqueTemplateIds.length === 0) {
+    return { storageCleanupFailed: false };
+  }
+
+  const templateData = await Promise.all(
+    uniqueTemplateIds.map(async (templateId) => {
+      const [template, attachments] = await Promise.all([
+        loadWorkTemplate(tenantId, templateId),
+        loadWorkTemplateAttachments(tenantId, templateId),
+      ]);
+      return { template, attachments };
+    }),
+  );
+
+  let storageCleanupFailed = false;
+  for (const { template, attachments } of templateData) {
+    for (const attachment of attachments) {
+      const result = await deleteWorkTemplateAttachment(
+        tenantId,
+        template.id,
+        attachment.id,
+      );
+      storageCleanupFailed ||= result.storageCleanupFailed;
+    }
+  }
+
+  await request(
+    supabaseApi.post('/rpc/delete_work_templates', {
+      p_tenant_id: tenantId,
+      p_template_ids: uniqueTemplateIds,
+    }),
+  );
+
+  return { storageCleanupFailed };
+}
+
+export function loadWorkTemplateAttachments(
+  tenantId: string,
+  templateId: string,
+): Promise<FileAttachment[]> {
+  return listFilesForSubject(tenantId, 'work_template', templateId);
+}
+
+export function uploadWorkTemplateAttachments(
+  tenantId: string,
+  templateId: string,
+  userId: string,
+  files: File[],
+) {
+  return uploadFilesForSubject(
+    tenantId,
+    'work_template',
+    templateId,
+    userId,
+    files,
+    {
+      storageBucket: WORK_ATTACHMENTS_BUCKET,
+      storagePathPrefix: templateId,
+    },
+  );
+}
+
+export async function deleteWorkTemplateAttachment(
+  tenantId: string,
+  templateId: string,
+  attachmentId: string,
+): Promise<{ storageCleanupFailed: boolean }> {
+  assertSupabaseConfigured();
+  const response = await request<{
+    storageBucket: string | null;
+    storagePath: string | null;
+    removeStorageObject: boolean;
+  }>(
+    supabaseApi.post('/rpc/delete_work_template_attachment', {
+      p_tenant_id: tenantId,
+      p_template_id: templateId,
+      p_attachment_id: attachmentId,
+    }),
+  );
+  if (
+    !response.removeStorageObject ||
+    !response.storageBucket ||
+    !response.storagePath
+  ) {
+    return { storageCleanupFailed: false };
+  }
+  try {
+    await removeStorageObjects(response.storageBucket, [response.storagePath]);
+    return { storageCleanupFailed: false };
+  } catch {
+    // The database has already detached the template and tombstoned work refs.
+    return { storageCleanupFailed: true };
+  }
 }
