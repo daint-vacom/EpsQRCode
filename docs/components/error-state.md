@@ -7,8 +7,9 @@ do not present an empty result as an error.
 or in the content area of an existing parent card. Do not wrap it in another `Card`; preserve the parent
 card's header and static labels so the error appears on the surface the user is already viewing.
 
-Keep the page toolbar outside the error state. Provide a specific title and useful description, plus an
-`onRetry` action when the failed request can be retried.
+Keep the page toolbar outside the error state. Provide a specific title and an `onRetry` action when
+the failed request can be retried. Add a useful description when it helps explain the failure; do not
+use test or preview copy in user-facing errors.
 
 Use a page-wide `ErrorState` only when the core object for a single-object detail page failed to load.
 For example, if a customer detail page cannot fetch the customer itself, show the error in the detail
@@ -28,7 +29,6 @@ content area. This is the expected pattern for dashboard data clusters and indep
   <CardContent className="p-0">
     <ErrorState
       title="Không tải được kế hoạch thu tiền"
-      description={getApiErrorMessage(query.error)}
       onRetry={() => void query.refetch()}
       className="min-h-72"
     />
@@ -37,3 +37,7 @@ content area. This is the expected pattern for dashboard data clusters and indep
 ```
 
 Props: `title` is required; `description`, `onRetry`, `retryLabel`, and `className` are optional.
+
+Dashboard presentation: large data cards use a concise error title and retry action without a
+description. The four small statistic cards show the actual error message on one line, with the retry
+action below it.

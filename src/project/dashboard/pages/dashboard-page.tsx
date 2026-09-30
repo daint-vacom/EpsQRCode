@@ -31,10 +31,6 @@ import {
 } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
-import {
-  PageStatePreviewSelect,
-  type PageStatePreview,
-} from '@/components/ui/page-state-preview-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   CONTRACT_STATUS_LABELS,
@@ -69,10 +65,6 @@ const AGING_LABELS: Record<DashboardReceivableAgingBucket, string> = {
   overdue_31_60: 'Quá hạn 31–60 ngày',
   overdue_over_60: 'Quá hạn trên 60 ngày',
 };
-
-const PAGE_STATE_PREVIEW_ERROR = new Error(
-  'Đây là trạng thái lỗi xem trước để kiểm tra giao diện.',
-);
 
 const METRIC_TONE_CLASSES = {
   blue: 'bg-admin-blue-bg text-admin-blue-primary',
@@ -114,7 +106,7 @@ function MetricCard({
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{label}</p>
           {error ? (
-            <div className="mt-2 flex min-w-0 items-center gap-1">
+            <div className="mt-2 min-w-0">
               <p
                 className="truncate text-xs text-destructive"
                 title={getApiErrorMessage(error)}
@@ -126,7 +118,7 @@ function MetricCard({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 shrink-0 px-2"
+                  className="mt-1 h-7 px-2"
                   onClick={onRetry}
                 >
                   Thử lại
@@ -328,14 +320,12 @@ function DashboardPaymentPlanContractsCard({
   contracts,
   isLoading,
   isError,
-  error,
   onRetry,
 }: {
   range: DashboardPaymentPlanRange;
   contracts: DashboardPaymentPlanContract[];
   isLoading: boolean;
   isError: boolean;
-  error: unknown;
   onRetry: () => void;
 }) {
   return (
@@ -353,7 +343,6 @@ function DashboardPaymentPlanContractsCard({
       ) : isError ? (
         <ErrorState
           title="Không tải được hợp đồng cần phải thu"
-          description={getApiErrorMessage(error)}
           onRetry={onRetry}
           className="min-h-72"
         />
@@ -389,8 +378,6 @@ function DashboardPaymentPlanContractsCard({
 }
 
 export function DashboardPage() {
-  const [pageStatePreview, setPageStatePreview] =
-    useState<PageStatePreview>('idle');
   const [selectedPaymentPlanMonthStart, setSelectedPaymentPlanMonthStart] =
     useState<string | null>(null);
   const paymentPlanContractsRange = selectedPaymentPlanMonthStart
@@ -463,41 +450,21 @@ export function DashboardPage() {
       title="Tổng quan"
       icon={LayoutDashboard}
       actions={
-        <>
-          <PageStatePreviewSelect
-            value={pageStatePreview}
-            onChange={setPageStatePreview}
-          />
-          {tenantQuery.isPending || tenantQuery.isPermissionsPending ? null : (
-            <Button
-              variant="outline"
-              size="md"
-              onClick={refresh}
-              disabled={isRefreshing || pageStatePreview !== 'idle'}
-              aria-label="Làm mới dữ liệu tổng quan"
-            >
-              <RefreshCw
-                className={isRefreshing ? 'animate-spin' : undefined}
-              />
-              Làm mới
-            </Button>
-          )}
-        </>
+        <Button
+          variant="outline"
+          size="md"
+          onClick={refresh}
+          disabled={isRefreshing}
+          aria-label="Làm mới dữ liệu tổng quan"
+        >
+          <RefreshCw className={isRefreshing ? 'animate-spin' : undefined} />
+          Làm mới
+        </Button>
       }
     />
   );
 
-  if (pageStatePreview === 'loading') {
-    return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
-        {pageHeader}
-        <DashboardLoadingState range={paymentPlanContractsRange} />
-      </div>
-    );
-  }
-
   if (
-    pageStatePreview !== 'error' &&
     !tenantQuery.isError &&
     (tenantQuery.isPending || tenantQuery.isPermissionsPending)
   ) {
@@ -510,54 +477,38 @@ export function DashboardPage() {
   }
 
   const tenantError = tenantQuery.isError ? tenantQuery.error : undefined;
-  const previewError =
-    pageStatePreview === 'error' ? PAGE_STATE_PREVIEW_ERROR : undefined;
   const retryQuery = (refetch: () => Promise<unknown>) => {
-    if (pageStatePreview === 'error') {
-      setPageStatePreview('idle');
-    }
     return tenantError ? tenantQuery.refetch() : refetch();
   };
   const customerStatsError =
-    previewError ??
     tenantError ??
     (canViewCustomers && customerStatsQuery.isError
       ? customerStatsQuery.error
       : undefined);
   const employeeStatsError =
-    previewError ??
     tenantError ??
     (canViewEmployees && employeeStatsQuery.isError
       ? employeeStatsQuery.error
       : undefined);
   const dashboardError =
-    previewError ??
     tenantError ??
     (canViewContracts && dashboardQuery.isError
       ? dashboardQuery.error
       : undefined);
   const paymentPlanError =
-    previewError ??
     tenantError ??
     (canViewContracts && paymentPlanQuery.isError
       ? paymentPlanQuery.error
       : undefined);
   const paymentPlanContractsError =
-    previewError ??
     tenantError ??
     (canViewContracts && paymentPlanContractsQuery.isError
       ? paymentPlanContractsQuery.error
       : undefined);
   const isDashboardLoading =
-    pageStatePreview !== 'error' &&
-    !tenantError &&
-    canViewContracts &&
-    dashboardQuery.isPending;
+    !tenantError && canViewContracts && dashboardQuery.isPending;
   const isPaymentPlanLoading =
-    pageStatePreview !== 'error' &&
-    !tenantError &&
-    canViewContracts &&
-    paymentPlanQuery.isPending;
+    !tenantError && canViewContracts && paymentPlanQuery.isPending;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
@@ -606,7 +557,6 @@ export function DashboardPage() {
           {dashboardError ? (
             <ErrorState
               title="Không tải được số liệu công nợ"
-              description={getApiErrorMessage(dashboardError)}
               onRetry={() => void retryQuery(() => dashboardQuery.refetch())}
             />
           ) : (
@@ -656,7 +606,6 @@ export function DashboardPage() {
               ) : paymentPlanError ? (
                 <ErrorState
                   title="Không tải được kế hoạch thu tiền"
-                  description={getApiErrorMessage(paymentPlanError)}
                   onRetry={() =>
                     void retryQuery(() => paymentPlanQuery.refetch())
                   }
@@ -685,13 +634,8 @@ export function DashboardPage() {
             <DashboardPaymentPlanContractsCard
               range={paymentPlanContractsRange}
               contracts={paymentPlanContracts ?? []}
-              isLoading={
-                pageStatePreview !== 'error' &&
-                !tenantError &&
-                paymentPlanContractsQuery.isPending
-              }
+              isLoading={!tenantError && paymentPlanContractsQuery.isPending}
               isError={Boolean(paymentPlanContractsError)}
-              error={paymentPlanContractsError}
               onRetry={() =>
                 void retryQuery(() => paymentPlanContractsQuery.refetch())
               }
@@ -703,7 +647,6 @@ export function DashboardPage() {
               {dashboardError ? (
                 <ErrorState
                   title="Không tải được dữ liệu tuổi nợ"
-                  description={getApiErrorMessage(dashboardError)}
                   onRetry={() =>
                     void retryQuery(() => dashboardQuery.refetch())
                   }
@@ -736,7 +679,6 @@ export function DashboardPage() {
               {dashboardError ? (
                 <ErrorState
                   title="Không tải được trạng thái hợp đồng"
-                  description={getApiErrorMessage(dashboardError)}
                   onRetry={() =>
                     void retryQuery(() => dashboardQuery.refetch())
                   }
