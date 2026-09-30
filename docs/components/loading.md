@@ -6,6 +6,9 @@ Use the shared loading components instead of adding a one-off spinner or loading
 
 Use inside `CardContent` when a card-sized content area is waiting for data. It uses a large rotating
 dot-circle indicator and reserves a bordered content area so the surrounding card chrome stays stable.
+Keep the card title, section labels, and other static content outside the loading surface. When the
+card structure is known, prefer skeletons sized to the pending data region so users can still see what
+the card contains.
 
 ```tsx
 <CardContent>
@@ -35,14 +38,21 @@ motion with the same 0.6-second rhythm as the reference loader.
 
 ## PageLoading
 
-Use when the page's main content cannot render until its initial data is ready. It displays the project
-logo as a borderless square loader that flips horizontally, then vertically, matching the app favicon.
+Use only when the page's content structure genuinely cannot render until its initial data is ready. It
+displays the project logo as a borderless square loader that flips horizontally, then vertically,
+matching the app favicon. Keep the page toolbar outside the loading condition. If the page structure is
+known, keep its static headings and labels visible and use skeletons only for the server-backed content.
 
 ```tsx
-return query.isPending ? (
-  <PageLoading label="Đang tải dữ liệu..." />
-) : (
-  <PageContent />
+return (
+  <>
+    <PageHeader title="Tổng quan" />
+    {query.isPending ? (
+      <PageLoading label="Đang tải dữ liệu..." />
+    ) : (
+      <PageContent />
+    )}
+  </>
 );
 ```
 

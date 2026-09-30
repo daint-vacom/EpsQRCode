@@ -13,15 +13,16 @@ ownership contract; detailed APIs live in [`docs/components/`](./components/).
 
 ## Lookup
 
-| Need | Project API | Guide |
-| --- | --- | --- |
-| Button or icon action | `Button` | [`components/button.md`](./components/button.md) |
-| Form controls | `Input`, `Select`, `Combobox`, `MultiSelect`, `NumericInput`, `Form*` | [`components/forms.md`](./components/forms.md) |
-| Paginated table | `DataGrid`, `DataGridTable`, `DataGridPagination` | [`components/data-grid.md`](./components/data-grid.md) |
-| Status and identity display | `Badge`, `StatusBadge`, `Avatar`, `RelativeTime` | [`components/display.md`](./components/display.md) |
-| Loading states | `CardLoading`, `SectionLoading`, `PageLoading` | [`components/loading.md`](./components/loading.md) |
-| Modal or confirmation | `Dialog`, `Sheet`, `Drawer`, `AlertDialog` | inspect matching `src/components/ui` source |
-| Shared formatting and validation | `src/lib/*` | [`07-lib-utilities.md`](./07-lib-utilities.md) |
+| Need                             | Project API                                                           | Guide                                                      |
+| -------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Button or icon action            | `Button`                                                              | [`components/button.md`](./components/button.md)           |
+| Form controls                    | `Input`, `Select`, `Combobox`, `MultiSelect`, `NumericInput`, `Form*` | [`components/forms.md`](./components/forms.md)             |
+| Paginated table                  | `DataGrid`, `DataGridTable`, `DataGridPagination`                     | [`components/data-grid.md`](./components/data-grid.md)     |
+| Status and identity display      | `Badge`, `StatusBadge`, `Avatar`, `RelativeTime`                      | [`components/display.md`](./components/display.md)         |
+| Loading states                   | `CardLoading`, `SectionLoading`, `PageLoading`                        | [`components/loading.md`](./components/loading.md)         |
+| Data-load errors                 | `ErrorState`                                                          | [`components/error-state.md`](./components/error-state.md) |
+| Modal or confirmation            | `Dialog`, `Sheet`, `Drawer`, `AlertDialog`                            | inspect matching `src/components/ui` source                |
+| Shared formatting and validation | `src/lib/*`                                                           | [`07-lib-utilities.md`](./07-lib-utilities.md)             |
 
 For builder-covered surfaces, start from [`src/builders/README.md`](../src/builders/README.md), not the
 component API.

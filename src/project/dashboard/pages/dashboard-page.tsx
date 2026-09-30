@@ -29,7 +29,12 @@ import {
   CardHeading,
   CardTitle,
 } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
 import { PageHeader } from '@/components/ui/page-header';
+import {
+  PageStatePreviewSelect,
+  type PageStatePreview,
+} from '@/components/ui/page-state-preview-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   CONTRACT_STATUS_LABELS,
@@ -65,6 +70,10 @@ const AGING_LABELS: Record<DashboardReceivableAgingBucket, string> = {
   overdue_over_60: 'Quá hạn trên 60 ngày',
 };
 
+const PAGE_STATE_PREVIEW_ERROR = new Error(
+  'Đây là trạng thái lỗi xem trước để kiểm tra giao diện.',
+);
+
 const METRIC_TONE_CLASSES = {
   blue: 'bg-admin-blue-bg text-admin-blue-primary',
   success: 'bg-admin-success-bg text-admin-success-text',
@@ -88,19 +97,43 @@ function MetricCard({
   icon: Icon,
   tone,
   isLoading,
+  error,
+  onRetry,
 }: {
   label: string;
   value: ReactNode;
   icon: LucideIcon;
   tone: MetricTone;
   isLoading?: boolean;
+  error?: unknown;
+  onRetry?: () => void;
 }) {
   return (
     <Card>
       <CardContent className="flex items-start justify-between gap-3 p-4">
         <div className="min-w-0">
           <p className="text-sm text-muted-foreground">{label}</p>
-          {isLoading ? (
+          {error ? (
+            <div className="mt-2 flex min-w-0 items-center gap-1">
+              <p
+                className="truncate text-xs text-destructive"
+                title={getApiErrorMessage(error)}
+              >
+                {getApiErrorMessage(error)}
+              </p>
+              {onRetry ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 shrink-0 px-2"
+                  onClick={onRetry}
+                >
+                  Thử lại
+                </Button>
+              ) : null}
+            </div>
+          ) : isLoading ? (
             <Skeleton className="mt-2 h-7 w-28" />
           ) : (
             <p className="mt-1 truncate text-xl font-semibold tracking-tight text-foreground tabular-nums">
@@ -184,6 +217,104 @@ function EmptyDashboardState({ message }: { message: string }) {
   );
 }
 
+function DashboardLoadingState({
+  range,
+}: {
+  range: DashboardPaymentPlanRange;
+}) {
+  return (
+    <div
+      className="space-y-4"
+      role="status"
+      aria-label="Đang tải dữ liệu tổng quan"
+      aria-busy="true"
+    >
+      <div className="grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+          <MetricCard
+            label="Khách hàng"
+            value=""
+            icon={Users}
+            tone="blue"
+            isLoading
+          />
+          <MetricCard
+            label="Nhân viên"
+            value=""
+            icon={UserRound}
+            tone="success"
+            isLoading
+          />
+          <MetricCard
+            label="Hợp đồng hiệu lực"
+            value=""
+            icon={FileText}
+            tone="success"
+            isLoading
+          />
+          <MetricCard
+            label="Sắp hết hạn"
+            value=""
+            icon={CalendarClock}
+            tone="amber"
+            isLoading
+          />
+        </div>
+        <DashboardCard title="Công nợ phải thu" className="h-full">
+          <CardContent className="divide-y divide-border p-0">
+            <DashboardDebtRow
+              label="Còn phải thu"
+              value=""
+              icon={WalletCards}
+              tone="blue"
+              isLoading
+            />
+            <DashboardDebtRow
+              label="Công nợ quá hạn"
+              value=""
+              icon={AlertTriangle}
+              tone="red"
+              isLoading
+            />
+          </CardContent>
+        </DashboardCard>
+      </div>
+
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.95fr)] xl:items-start">
+        <DashboardCard title="Kế hoạch thu tiền">
+          <CardContent className="pt-4">
+            <Skeleton className="h-72 w-full" />
+          </CardContent>
+        </DashboardCard>
+        <DashboardCard
+          title="Hợp đồng cần phải thu"
+          className="h-full min-w-0 overflow-hidden"
+          headerAction={
+            <span className="shrink-0 text-sm font-semibold text-primary">
+              {formatDashboardPaymentPlanRange(range)}
+            </span>
+          }
+        >
+          <ListSkeleton />
+        </DashboardCard>
+      </div>
+
+      <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+        <DashboardCard title="Tuổi nợ phải thu">
+          <CardContent className="pt-4">
+            <Skeleton className="h-72 w-full" />
+          </CardContent>
+        </DashboardCard>
+        <DashboardCard title="Trạng thái hợp đồng">
+          <CardContent className="pt-4">
+            <Skeleton className="h-72 w-full" />
+          </CardContent>
+        </DashboardCard>
+      </div>
+    </div>
+  );
+}
+
 function DashboardListEmpty({ message }: { message: string }) {
   return (
     <div className="flex min-h-44 items-center justify-center px-5 text-center text-sm text-muted-foreground">
@@ -220,15 +351,12 @@ function DashboardPaymentPlanContractsCard({
       {isLoading ? (
         <ListSkeleton />
       ) : isError ? (
-        <div className="flex min-h-72 flex-col items-center justify-center gap-3 px-5 text-center">
-          <TriangleAlert className="size-7 text-destructive" />
-          <p className="text-sm text-muted-foreground">
-            {getApiErrorMessage(error)}
-          </p>
-          <Button variant="outline" onClick={onRetry}>
-            Thử lại
-          </Button>
-        </div>
+        <ErrorState
+          title="Không tải được hợp đồng cần phải thu"
+          description={getApiErrorMessage(error)}
+          onRetry={onRetry}
+          className="min-h-72"
+        />
       ) : contracts.length ? (
         <CardContent className="max-h-72 overflow-auto divide-y divide-border p-0">
           {contracts.map((item) => (
@@ -261,6 +389,8 @@ function DashboardPaymentPlanContractsCard({
 }
 
 export function DashboardPage() {
+  const [pageStatePreview, setPageStatePreview] =
+    useState<PageStatePreview>('idle');
   const [selectedPaymentPlanMonthStart, setSelectedPaymentPlanMonthStart] =
     useState<string | null>(null);
   const paymentPlanContractsRange = selectedPaymentPlanMonthStart
@@ -287,9 +417,9 @@ export function DashboardPage() {
     (item) => item.monthStart === selectedPaymentPlanMonthStart,
   );
 
-  const isDashboardLoading = canViewContracts && dashboardQuery.isPending;
-  const isPaymentPlanLoading = canViewContracts && paymentPlanQuery.isPending;
   const isRefreshing =
+    tenantQuery.isPending ||
+    tenantQuery.isPermissionsPending ||
     dashboardQuery.isFetching ||
     paymentPlanQuery.isFetching ||
     paymentPlanContractsQuery.isFetching ||
@@ -297,6 +427,10 @@ export function DashboardPage() {
     employeeStatsQuery.isFetching;
 
   const refresh = () => {
+    if (tenantQuery.isError) {
+      void tenantQuery.refetch();
+      return;
+    }
     void Promise.all([
       canViewContracts ? dashboardQuery.refetch() : Promise.resolve(),
       canViewContracts ? paymentPlanQuery.refetch() : Promise.resolve(),
@@ -329,41 +463,101 @@ export function DashboardPage() {
       title="Tổng quan"
       icon={LayoutDashboard}
       actions={
-        <Button
-          variant="outline"
-          size="md"
-          onClick={refresh}
-          disabled={isRefreshing}
-          aria-label="Làm mới dữ liệu tổng quan"
-        >
-          <RefreshCw className={isRefreshing ? 'animate-spin' : undefined} />
-          Làm mới
-        </Button>
+        <>
+          <PageStatePreviewSelect
+            value={pageStatePreview}
+            onChange={setPageStatePreview}
+          />
+          {tenantQuery.isPending || tenantQuery.isPermissionsPending ? null : (
+            <Button
+              variant="outline"
+              size="md"
+              onClick={refresh}
+              disabled={isRefreshing || pageStatePreview !== 'idle'}
+              aria-label="Làm mới dữ liệu tổng quan"
+            >
+              <RefreshCw
+                className={isRefreshing ? 'animate-spin' : undefined}
+              />
+              Làm mới
+            </Button>
+          )}
+        </>
       }
     />
   );
 
-  if (tenantQuery.isError) {
+  if (pageStatePreview === 'loading') {
     return (
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
         {pageHeader}
-        <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
-          <TriangleAlert className="size-8 text-destructive" />
-          <div>
-            <CardTitle>Không xác định được tổ chức hiện tại</CardTitle>
-            <CardDescription className="mt-1">
-              {getApiErrorMessage(tenantQuery.error)}
-            </CardDescription>
-          </div>
-          <Button variant="outline" onClick={() => void tenantQuery.refetch()}>
-            Thử lại
-          </Button>
-        </Card>
+        <DashboardLoadingState range={paymentPlanContractsRange} />
       </div>
     );
   }
 
-  const hasDashboardError = canViewContracts && dashboardQuery.isError;
+  if (
+    pageStatePreview !== 'error' &&
+    !tenantQuery.isError &&
+    (tenantQuery.isPending || tenantQuery.isPermissionsPending)
+  ) {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
+        {pageHeader}
+        <DashboardLoadingState range={paymentPlanContractsRange} />
+      </div>
+    );
+  }
+
+  const tenantError = tenantQuery.isError ? tenantQuery.error : undefined;
+  const previewError =
+    pageStatePreview === 'error' ? PAGE_STATE_PREVIEW_ERROR : undefined;
+  const retryQuery = (refetch: () => Promise<unknown>) => {
+    if (pageStatePreview === 'error') {
+      setPageStatePreview('idle');
+    }
+    return tenantError ? tenantQuery.refetch() : refetch();
+  };
+  const customerStatsError =
+    previewError ??
+    tenantError ??
+    (canViewCustomers && customerStatsQuery.isError
+      ? customerStatsQuery.error
+      : undefined);
+  const employeeStatsError =
+    previewError ??
+    tenantError ??
+    (canViewEmployees && employeeStatsQuery.isError
+      ? employeeStatsQuery.error
+      : undefined);
+  const dashboardError =
+    previewError ??
+    tenantError ??
+    (canViewContracts && dashboardQuery.isError
+      ? dashboardQuery.error
+      : undefined);
+  const paymentPlanError =
+    previewError ??
+    tenantError ??
+    (canViewContracts && paymentPlanQuery.isError
+      ? paymentPlanQuery.error
+      : undefined);
+  const paymentPlanContractsError =
+    previewError ??
+    tenantError ??
+    (canViewContracts && paymentPlanContractsQuery.isError
+      ? paymentPlanContractsQuery.error
+      : undefined);
+  const isDashboardLoading =
+    pageStatePreview !== 'error' &&
+    !tenantError &&
+    canViewContracts &&
+    dashboardQuery.isPending;
+  const isPaymentPlanLoading =
+    pageStatePreview !== 'error' &&
+    !tenantError &&
+    canViewContracts &&
+    paymentPlanQuery.isPending;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
@@ -377,6 +571,8 @@ export function DashboardPage() {
             icon={Users}
             tone="blue"
             isLoading={canViewCustomers && customerStatsQuery.isPending}
+            error={customerStatsError}
+            onRetry={() => void retryQuery(() => customerStatsQuery.refetch())}
           />
           <MetricCard
             label="Nhân viên"
@@ -384,6 +580,8 @@ export function DashboardPage() {
             icon={UserRound}
             tone="success"
             isLoading={canViewEmployees && employeeStatsQuery.isPending}
+            error={employeeStatsError}
+            onRetry={() => void retryQuery(() => employeeStatsQuery.refetch())}
           />
           <MetricCard
             label="Hợp đồng hiệu lực"
@@ -391,6 +589,8 @@ export function DashboardPage() {
             icon={FileText}
             tone="success"
             isLoading={isDashboardLoading}
+            error={dashboardError}
+            onRetry={() => void retryQuery(() => dashboardQuery.refetch())}
           />
           <MetricCard
             label="Sắp hết hạn"
@@ -398,31 +598,43 @@ export function DashboardPage() {
             icon={CalendarClock}
             tone="amber"
             isLoading={isDashboardLoading}
+            error={dashboardError}
+            onRetry={() => void retryQuery(() => dashboardQuery.refetch())}
           />
         </div>
         <DashboardCard title="Công nợ phải thu" className="h-full">
-          <CardContent className="divide-y divide-border p-0">
-            <DashboardDebtRow
-              label="Còn phải thu"
-              value={displayCurrency(statistics?.receivables.totalOutstanding)}
-              icon={WalletCards}
-              tone="blue"
-              isLoading={isDashboardLoading}
+          {dashboardError ? (
+            <ErrorState
+              title="Không tải được số liệu công nợ"
+              description={getApiErrorMessage(dashboardError)}
+              onRetry={() => void retryQuery(() => dashboardQuery.refetch())}
             />
-            <DashboardDebtRow
-              label="Công nợ quá hạn"
-              value={displayCurrency(
-                statistics?.receivables.overdueOutstanding,
-              )}
-              icon={AlertTriangle}
-              tone="red"
-              isLoading={isDashboardLoading}
-            />
-          </CardContent>
+          ) : (
+            <CardContent className="divide-y divide-border p-0">
+              <DashboardDebtRow
+                label="Còn phải thu"
+                value={displayCurrency(
+                  statistics?.receivables.totalOutstanding,
+                )}
+                icon={WalletCards}
+                tone="blue"
+                isLoading={isDashboardLoading}
+              />
+              <DashboardDebtRow
+                label="Công nợ quá hạn"
+                value={displayCurrency(
+                  statistics?.receivables.overdueOutstanding,
+                )}
+                icon={AlertTriangle}
+                tone="red"
+                isLoading={isDashboardLoading}
+              />
+            </CardContent>
+          )}
         </DashboardCard>
       </div>
 
-      {!canViewContracts ? (
+      {!canViewContracts && !tenantError ? (
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-muted-foreground" />
           <div>
@@ -433,22 +645,6 @@ export function DashboardPage() {
             </CardDescription>
           </div>
         </Card>
-      ) : hasDashboardError ? (
-        <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
-          <TriangleAlert className="size-8 text-destructive" />
-          <div>
-            <CardTitle>Không tải được dữ liệu tổng quan</CardTitle>
-            <CardDescription className="mt-1">
-              {getApiErrorMessage(dashboardQuery.error)}
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => void dashboardQuery.refetch()}
-          >
-            Thử lại
-          </Button>
-        </Card>
       ) : (
         <>
           <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.95fr)] xl:items-start">
@@ -457,19 +653,15 @@ export function DashboardPage() {
                 <div className="p-5">
                   <Skeleton className="h-72 w-full" />
                 </div>
-              ) : paymentPlanQuery.isError ? (
-                <div className="flex h-72 flex-col items-center justify-center gap-3 px-5 text-center">
-                  <TriangleAlert className="size-7 text-destructive" />
-                  <p className="text-sm text-muted-foreground">
-                    {getApiErrorMessage(paymentPlanQuery.error)}
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={() => void paymentPlanQuery.refetch()}
-                  >
-                    Thử lại
-                  </Button>
-                </div>
+              ) : paymentPlanError ? (
+                <ErrorState
+                  title="Không tải được kế hoạch thu tiền"
+                  description={getApiErrorMessage(paymentPlanError)}
+                  onRetry={() =>
+                    void retryQuery(() => paymentPlanQuery.refetch())
+                  }
+                  className="min-h-72"
+                />
               ) : paymentPlan?.length ? (
                 <CardContent className="pt-4">
                   <PaymentPlanChart
@@ -493,16 +685,31 @@ export function DashboardPage() {
             <DashboardPaymentPlanContractsCard
               range={paymentPlanContractsRange}
               contracts={paymentPlanContracts ?? []}
-              isLoading={paymentPlanContractsQuery.isPending}
-              isError={paymentPlanContractsQuery.isError}
-              error={paymentPlanContractsQuery.error}
-              onRetry={() => void paymentPlanContractsQuery.refetch()}
+              isLoading={
+                pageStatePreview !== 'error' &&
+                !tenantError &&
+                paymentPlanContractsQuery.isPending
+              }
+              isError={Boolean(paymentPlanContractsError)}
+              error={paymentPlanContractsError}
+              onRetry={() =>
+                void retryQuery(() => paymentPlanContractsQuery.refetch())
+              }
             />
           </div>
 
           <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
             <DashboardCard title="Tuổi nợ phải thu">
-              {isDashboardLoading ? (
+              {dashboardError ? (
+                <ErrorState
+                  title="Không tải được dữ liệu tuổi nợ"
+                  description={getApiErrorMessage(dashboardError)}
+                  onRetry={() =>
+                    void retryQuery(() => dashboardQuery.refetch())
+                  }
+                  className="min-h-72"
+                />
+              ) : isDashboardLoading ? (
                 <div className="p-5">
                   <Skeleton className="h-72 w-full" />
                 </div>
@@ -526,7 +733,16 @@ export function DashboardPage() {
             </DashboardCard>
 
             <DashboardCard title="Trạng thái hợp đồng">
-              {isDashboardLoading ? (
+              {dashboardError ? (
+                <ErrorState
+                  title="Không tải được trạng thái hợp đồng"
+                  description={getApiErrorMessage(dashboardError)}
+                  onRetry={() =>
+                    void retryQuery(() => dashboardQuery.refetch())
+                  }
+                  className="min-h-72"
+                />
+              ) : isDashboardLoading ? (
                 <div className="p-5">
                   <Skeleton className="h-72 w-full" />
                 </div>

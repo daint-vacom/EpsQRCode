@@ -11,7 +11,7 @@ export function PageBackButton({
   return (
     <Button
       {...props}
-      variant="outline"
+      variant="ghost"
       mode="icon"
       size="icon"
       aria-label={props['aria-label'] ?? label}

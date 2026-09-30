@@ -164,6 +164,15 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Control APIs:
 [`components/forms.md`](./components/forms.md).
 
+## Page States And Loading
+
+- Every page has three UI states: **Idle**, **loading**, and **error**. Idle is the loaded page, including a purposeful empty state when there is no data. Loading and error preserve the page's location and navigation context.
+- While loading, use skeletons only for content that depends on pending server data. Keep static structure visible, including the page toolbar, section and card titles, field or metric labels, tabs, table headers, and other known headings. Users should still be able to understand what the page contains before its data arrives.
+- Match each skeleton to its data region and preserve the surrounding layout. Do not replace a whole page, section, or card with one undifferentiated skeleton when its static structure is already known.
+- For pages composed of independent server queries, show loading and error feedback in the affected section while keeping unrelated sections and their headings visible. Use a page-wide loading surface only when the page structure genuinely cannot render before its initial data is available; keep the page toolbar outside that surface.
+- A page-wide error is reserved for a detail page centered on one object when that object's core data could not be loaded. On multi-tab detail pages, a core-object failure may replace the detail content with a page-wide error, while a failure in one tab or UI cluster stays inside that tab or cluster. Dashboards always show errors within the affected data cluster; one failed query must not replace the whole dashboard.
+- Error states explain what failed and offer a relevant retry or recovery action when available. Use the shared `ErrorState` for data-load failures. It has no card or surface of its own: place it on the page background or directly in the content area of an existing parent card, and never wrap it in another card. Keep the page toolbar and static section/card headings visible.
+
 ## Actions And Feedback
 
 - One clear primary action per task region.
