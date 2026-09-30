@@ -14,7 +14,6 @@ import type {
   WorkLabel,
   WorkListFilters,
   WorkTemplate,
-  WorkTemplateChildFormValues,
   WorkTemplateFormValues,
   WorkTemplateSummary,
 } from '../model/work';
@@ -430,10 +429,28 @@ async function replaceWorkLinks(
 
 export async function deleteWorkItem(tenantId: string, workItemId: string) {
   assertSupabaseConfigured();
-  const attachments = await loadWorkItemAttachments(tenantId, workItemId);
+  const children = await request<Array<{ id: string }>>(
+    supabaseApi.get('/work_items', {
+      params: {
+        select: 'id',
+        tenant_id: `eq.${tenantId}`,
+        parent_id: `eq.${workItemId}`,
+      },
+    }),
+  );
+  const attachmentsByWorkItem = await Promise.all(
+    [workItemId, ...children.map((child) => child.id)].map(
+      async (subjectId) => ({
+        workItemId: subjectId,
+        attachments: await loadWorkItemAttachments(tenantId, subjectId),
+      }),
+    ),
+  );
   await Promise.all(
-    attachments.map((attachment) =>
-      deleteWorkItemAttachment(tenantId, workItemId, attachment.id),
+    attachmentsByWorkItem.flatMap(({ workItemId: subjectId, attachments }) =>
+      attachments.map((attachment) =>
+        deleteWorkItemAttachment(tenantId, subjectId, attachment.id),
+      ),
     ),
   );
   await supabaseApi.delete('/work_items', {
@@ -528,37 +545,39 @@ export async function loadWorkTemplates(
   options: { activeOnly?: boolean } = {},
 ): Promise<WorkTemplateSummary[]> {
   assertSupabaseConfigured();
-  const [templates, children, assignments, labels] = await Promise.all([
-    request<Array<Record<string, unknown>>>(
-      supabaseApi.get('/work_templates', {
-        params: {
-          select:
-            'id,tenant_id,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
-          tenant_id: `eq.${tenantId}`,
-          ...(options.activeOnly ? { is_active: 'eq.true' } : {}),
-          order: 'name.asc',
-        },
-      }),
-    ),
-    request<Array<Record<string, unknown>>>(
-      supabaseApi.get('/work_template_items', {
-        params: {
-          select: 'id,template_id',
-          tenant_id: `eq.${tenantId}`,
-        },
-      }),
-    ),
-    request<Array<{ subject_id: string; tag_id: string }>>(
-      supabaseApi.get('/tag_assignments', {
-        params: {
-          select: 'subject_id,tag_id',
-          tenant_id: `eq.${tenantId}`,
-          subject_type: 'eq.work_template',
-        },
-      }),
-    ),
-    loadWorkLabels(tenantId),
-  ]);
+  const [templates, templatesWithParents, assignments, labels] =
+    await Promise.all([
+      request<Array<Record<string, unknown>>>(
+        supabaseApi.get('/work_templates', {
+          params: {
+            select:
+              'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+            tenant_id: `eq.${tenantId}`,
+            parent_id: 'is.null',
+            ...(options.activeOnly ? { is_active: 'eq.true' } : {}),
+            order: 'name.asc',
+          },
+        }),
+      ),
+      request<Array<Record<string, unknown>>>(
+        supabaseApi.get('/work_templates', {
+          params: {
+            select: 'id,parent_id',
+            tenant_id: `eq.${tenantId}`,
+          },
+        }),
+      ),
+      request<Array<{ subject_id: string; tag_id: string }>>(
+        supabaseApi.get('/tag_assignments', {
+          params: {
+            select: 'subject_id,tag_id',
+            tenant_id: `eq.${tenantId}`,
+            subject_type: 'eq.work_template',
+          },
+        }),
+      ),
+      loadWorkLabels(tenantId),
+    ]);
   const labelsById = new Map(labels.map((label) => [label.id, label]));
   return templates.map((row) => ({
     id: String(row.id),
@@ -573,13 +592,17 @@ export async function loadWorkTemplates(
       ? String(row.assignee_employee_id)
       : null,
     color: String(row.color ?? '#2563eb'),
+    parentId: row.parent_id ? String(row.parent_id) : null,
+    sortOrder: Number(row.sort_order ?? 0),
     labels: assignments
       .filter((assignment) => assignment.subject_id === row.id)
       .flatMap((assignment) => {
         const label = labelsById.get(assignment.tag_id);
         return label ? [label] : [];
       }),
-    childCount: children.filter((child) => child.template_id === row.id).length,
+    childCount: templatesWithParents.filter(
+      (child) => child.parent_id === row.id,
+    ).length,
     isActive: Boolean(row.is_active),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -595,7 +618,7 @@ export async function loadWorkTemplate(
     supabaseApi.get('/work_templates', {
       params: {
         select:
-          'id,tenant_id,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
         tenant_id: `eq.${tenantId}`,
         id: `eq.${templateId}`,
         limit: '1',
@@ -605,18 +628,18 @@ export async function loadWorkTemplate(
   const row = templates[0];
   if (!row) throw new Error('Không tìm thấy mẫu công việc.');
 
-  const children = await request<Array<Record<string, unknown>>>(
-    supabaseApi.get('/work_template_items', {
+  const childRows = await request<Array<Record<string, unknown>>>(
+    supabaseApi.get('/work_templates', {
       params: {
         select:
-          'id,template_id,title,description,priority,assignee_employee_id,color,sort_order',
+          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
         tenant_id: `eq.${tenantId}`,
-        template_id: `eq.${templateId}`,
+        parent_id: `eq.${templateId}`,
         order: 'sort_order.asc,id.asc',
       },
     }),
   );
-  const childIds = children.map((child) => String(child.id));
+  const childIds = childRows.map((child) => String(child.id));
   const subjectIds = [templateId, ...childIds];
   const [assignments, labels] = await Promise.all([
     request<
@@ -626,7 +649,7 @@ export async function loadWorkTemplate(
         params: {
           select: 'subject_type,subject_id,tag_id',
           tenant_id: `eq.${tenantId}`,
-          subject_type: 'in.(work_template,work_template_item)',
+          subject_type: 'eq.work_template',
           subject_id: `in.(${subjectIds.join(',')})`,
         },
       }),
@@ -646,56 +669,54 @@ export async function loadWorkTemplate(
         return label ? [label] : [];
       });
 
+  const toSummary = (
+    templateRow: Record<string, unknown>,
+    templateChildren: number,
+  ): WorkTemplateSummary => {
+    const id = String(templateRow.id);
+    return {
+      id,
+      tenantId: String(templateRow.tenant_id),
+      parentId: templateRow.parent_id ? String(templateRow.parent_id) : null,
+      sortOrder: Number(templateRow.sort_order ?? 0),
+      code: String(templateRow.code),
+      name: String(templateRow.name),
+      description: String(templateRow.description ?? ''),
+      priority: String(
+        templateRow.priority ?? 'normal',
+      ) as WorkTemplate['priority'],
+      assigneeEmployeeId: templateRow.assignee_employee_id
+        ? String(templateRow.assignee_employee_id)
+        : null,
+      color: String(templateRow.color ?? '#2563eb'),
+      labels: labelsFor('work_template', id),
+      childCount: templateChildren,
+      isActive: Boolean(templateRow.is_active),
+      createdAt: String(templateRow.created_at),
+      updatedAt: String(templateRow.updated_at),
+    };
+  };
+
   return {
-    id: String(row.id),
-    tenantId: String(row.tenant_id),
-    code: String(row.code),
-    name: String(row.name),
-    description: String(row.description ?? ''),
-    priority: String(row.priority ?? 'normal') as WorkTemplate['priority'],
-    assigneeEmployeeId: row.assignee_employee_id
-      ? String(row.assignee_employee_id)
-      : null,
-    color: String(row.color ?? '#2563eb'),
-    labels: labelsFor('work_template', templateId),
-    childCount: children.length,
-    isActive: Boolean(row.is_active),
-    createdAt: String(row.created_at),
-    updatedAt: String(row.updated_at),
-    children: children.map((child) => {
-      const childId = String(child.id);
-      return {
-        id: childId,
-        title: String(child.title ?? ''),
-        description: String(child.description ?? ''),
-        priority: String(
-          child.priority ?? 'normal',
-        ) as WorkTemplate['priority'],
-        assigneeEmployeeId: child.assignee_employee_id
-          ? String(child.assignee_employee_id)
-          : '',
-        color: String(child.color ?? '#2563eb'),
-        sortOrder: Number(child.sort_order ?? 0),
-        labels: labelsFor('work_template_item', childId),
-        labelIds: labelsFor('work_template_item', childId).map(
-          (label) => label.id,
-        ),
-      };
-    }),
+    ...toSummary(row, childRows.length),
+    children: childRows.map((child) => toSummary(child, 0)),
   };
 }
 
 export async function saveWorkTemplate(
   tenantId: string,
   templateId: string | null,
+  parentId: string | null,
+  sortOrder: number,
   values: WorkTemplateFormValues,
-  children: WorkTemplateChildFormValues[],
 ) {
   assertSupabaseConfigured();
   return request<string>(
     supabaseApi.post('/rpc/save_work_template', {
       p_tenant_id: tenantId,
       p_template_id: templateId,
+      p_parent_id: parentId,
+      p_sort_order: sortOrder,
       p_payload: {
         code: values.code.trim(),
         name: values.name.trim(),
@@ -704,23 +725,6 @@ export async function saveWorkTemplate(
         assigneeEmployeeId: values.assigneeEmployeeId || null,
         color: values.color,
       },
-      p_children: children.map(
-        ({
-          title,
-          description,
-          priority,
-          assigneeEmployeeId,
-          color,
-          labelIds,
-        }) => ({
-          title: title.trim(),
-          description: description.trim(),
-          priority,
-          assigneeEmployeeId: assigneeEmployeeId || null,
-          color,
-          labelIds,
-        }),
-      ),
       p_label_ids: values.labelIds,
     }),
   );
@@ -757,23 +761,28 @@ export async function deleteWorkTemplates(
 
   const templateData = await Promise.all(
     uniqueTemplateIds.map(async (templateId) => {
-      const [template, attachments] = await Promise.all([
-        loadWorkTemplate(tenantId, templateId),
-        loadWorkTemplateAttachments(tenantId, templateId),
-      ]);
-      return { template, attachments };
+      const template = await loadWorkTemplate(tenantId, templateId);
+      const attachmentsByTemplate = await Promise.all(
+        [template, ...template.children].map(async (item) => ({
+          templateId: item.id,
+          attachments: await loadWorkTemplateAttachments(tenantId, item.id),
+        })),
+      );
+      return attachmentsByTemplate;
     }),
   );
 
   let storageCleanupFailed = false;
-  for (const { template, attachments } of templateData) {
-    for (const attachment of attachments) {
-      const result = await deleteWorkTemplateAttachment(
-        tenantId,
-        template.id,
-        attachment.id,
-      );
-      storageCleanupFailed ||= result.storageCleanupFailed;
+  for (const templates of templateData) {
+    for (const { templateId, attachments } of templates) {
+      for (const attachment of attachments) {
+        const result = await deleteWorkTemplateAttachment(
+          tenantId,
+          templateId,
+          attachment.id,
+        );
+        storageCleanupFailed ||= result.storageCleanupFailed;
+      }
     }
   }
 

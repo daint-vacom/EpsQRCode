@@ -334,6 +334,10 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       calendarStartAt?: Date,
       initialValues?: WorkFormValues,
     ) => {
+      if (parent?.parentId) {
+        toast.error('Phần mềm chỉ hỗ trợ tối đa hai cấp công việc.');
+        return;
+      }
       setCreateChildOf(parent ?? null);
       const nextValues = {
         ...(initialValues ?? createForm.getValues()),
@@ -993,7 +997,11 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
               })
             : editMutation.mutateAsync(values)
         }
-        onCreateChild={createOpen ? undefined : openCreateChildFromDetail}
+        onCreateChild={
+          !createOpen && viewingWork && viewingWork.parentId === null
+            ? openCreateChildFromDetail
+            : undefined
+        }
       />
       <ConfirmDialog
         open={Boolean(deletingWork)}

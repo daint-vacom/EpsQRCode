@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   FileText,
   ListChecks,
@@ -61,6 +61,8 @@ interface WorkTemplateDialogProps {
   onCreateLabel: (name: string) => Promise<WorkLabel>;
   childCount: number;
   attachmentCount: number;
+  allowChildren?: boolean;
+  preserveTabOnOpen?: boolean;
   childrenEditor: ReactNode;
   attachmentsEditor: ReactNode;
 }
@@ -82,16 +84,19 @@ export function WorkTemplateDialog({
   onCreateLabel,
   childCount,
   attachmentCount,
+  allowChildren = true,
+  preserveTabOnOpen = false,
   childrenEditor,
   attachmentsEditor,
 }: WorkTemplateDialogProps) {
   const [activeTab, setActiveTab] = useState<WorkTemplateTab>('details');
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const formId = useId();
   const entityCode = form.watch('code');
 
   useEffect(() => {
-    if (open) setActiveTab('details');
-  }, [open]);
+    if (open && !preserveTabOnOpen) setActiveTab('details');
+  }, [open, preserveTabOnOpen]);
 
   const requestClose = (nextOpen: boolean) => {
     if (nextOpen) {
@@ -164,7 +169,7 @@ export function WorkTemplateDialog({
         {loadStateContent ?? (
           <Form {...form}>
             <form
-              id="work-template-form"
+              id={formId}
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex min-h-0 flex-1 flex-col"
             >
@@ -262,12 +267,14 @@ export function WorkTemplateDialog({
                         <TabsTrigger value="details">
                           <FileText /> Mô tả
                         </TabsTrigger>
-                        <TabsTrigger value="children">
-                          <ListChecks /> Công việc con
-                          <Badge variant="secondary" size="sm">
-                            {childCount}
-                          </Badge>
-                        </TabsTrigger>
+                        {allowChildren ? (
+                          <TabsTrigger value="children">
+                            <ListChecks /> Công việc con
+                            <Badge variant="secondary" size="sm">
+                              {childCount}
+                            </Badge>
+                          </TabsTrigger>
+                        ) : null}
                         <TabsTrigger value="attachments">
                           <Paperclip /> Tệp đính kèm
                           <Badge variant="secondary" size="sm">
@@ -297,9 +304,11 @@ export function WorkTemplateDialog({
                         />
                       </TabsContent>
 
-                      <TabsContent value="children" className="mt-6">
-                        {childrenEditor}
-                      </TabsContent>
+                      {allowChildren ? (
+                        <TabsContent value="children" className="mt-6">
+                          {childrenEditor}
+                        </TabsContent>
+                      ) : null}
 
                       <TabsContent value="attachments" className="mt-6">
                         {attachmentsEditor}

@@ -39,6 +39,13 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DialogFooter } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Form,
   FormControl,
   FormField,
@@ -156,19 +163,32 @@ function SectionHeading({
   );
 }
 
-function WorkChildren({
-  work,
+export interface WorkChildrenPanelItem {
+  id: string;
+  title: string;
+  status: WorkItem['status'];
+  plannedEndDate: string | null;
+  plannedEndTime: string | null;
+  assigneeName: string;
+}
+
+export function WorkChildrenPanel({
+  count,
+  progress,
   children,
   isLoading,
   onCreateChild,
+  onEditChild,
+  onDeleteChild,
 }: {
-  work: WorkItem;
-  children: WorkItem[];
+  count: string;
+  progress: number;
+  children: WorkChildrenPanelItem[];
   isLoading: boolean;
   onCreateChild?: () => void;
+  onEditChild?: (child: WorkChildrenPanelItem) => void;
+  onDeleteChild?: (child: WorkChildrenPanelItem) => void;
 }) {
-  const progress = work.childCount ? workProgress(work) : 0;
-
   if (isLoading) {
     return (
       <SectionLoading
@@ -182,7 +202,7 @@ function WorkChildren({
     <section className="space-y-3">
       <SectionHeading
         title="Công việc con"
-        count={`${work.completedChildCount}/${work.childCount}`}
+        count={count}
         action={
           onCreateChild ? (
             <Button
@@ -235,21 +255,77 @@ function WorkChildren({
                   </AvatarFallback>
                 </Avatar>
               ) : null}
-              <Button
-                type="button"
-                variant="ghost"
-                mode="icon"
-                size="sm"
-                disabled
-                aria-label={`Thao tác với ${child.title}`}
-              >
-                <MoreHorizontal />
-              </Button>
+              {onEditChild || onDeleteChild ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      size="sm"
+                      aria-label={`Thao tác với ${child.title}`}
+                    >
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {onEditChild ? (
+                      <DropdownMenuItem onSelect={() => onEditChild(child)}>
+                        <Pencil /> Sửa công việc con
+                      </DropdownMenuItem>
+                    ) : null}
+                    {onEditChild && onDeleteChild ? (
+                      <DropdownMenuSeparator />
+                    ) : null}
+                    {onDeleteChild ? (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => onDeleteChild(child)}
+                      >
+                        <Trash2 /> Xóa công việc con
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  mode="icon"
+                  size="sm"
+                  disabled
+                  aria-label={`Thao tác với ${child.title}`}
+                >
+                  <MoreHorizontal />
+                </Button>
+              )}
             </div>
           ))}
         </div>
       ) : null}
     </section>
+  );
+}
+
+function WorkChildren({
+  work,
+  children,
+  isLoading,
+  onCreateChild,
+}: {
+  work: WorkItem;
+  children: WorkItem[];
+  isLoading: boolean;
+  onCreateChild?: () => void;
+}) {
+  return (
+    <WorkChildrenPanel
+      count={`${work.completedChildCount}/${work.childCount}`}
+      progress={work.childCount ? workProgress(work) : 0}
+      children={children}
+      isLoading={isLoading}
+      onCreateChild={onCreateChild}
+    />
   );
 }
 

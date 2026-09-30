@@ -68,7 +68,6 @@ import {
   WORK_PRIORITIES,
   WORK_PRIORITY_LABELS,
   workTemplateDefaultValues,
-  type WorkTemplateChildFormValues,
   type WorkTemplateFormValues,
   type WorkTemplateSummary,
 } from '../model/work';
@@ -91,11 +90,24 @@ const WORK_TEMPLATE_FIXED_COLUMN_WIDTHS = {
 } as const;
 
 interface SaveTemplateVariables {
+  editor: 'root' | 'child';
   templateId: string | null;
+  parentId: string | null;
+  sortOrder: number;
   values: WorkTemplateFormValues;
-  children: WorkTemplateChildFormValues[];
   files: File[];
   attachmentIdsToDelete: string[];
+  keepEditorState?: boolean;
+  successMessage?: string;
+}
+
+function normalizeTemplateValues(values: WorkTemplateFormValues) {
+  const description = values.description
+    .trim()
+    .replace(/<p><br\s*\/?><\/p>$/gi, '')
+    .replace(/^<p>([\s\S]*)<\/p>$/i, '$1')
+    .trim();
+  return JSON.stringify({ ...values, description });
 }
 
 export function WorkTemplatesPage() {
@@ -110,7 +122,28 @@ export function WorkTemplatesPage() {
     null,
   );
   const templateLoadRequestRef = useRef(0);
-  const [children, setChildren] = useState<WorkTemplateChildFormValues[]>([]);
+  const [children, setChildren] = useState<WorkTemplateSummary[]>([]);
+  const [childDialogOpen, setChildDialogOpen] = useState(false);
+  const [childMode, setChildMode] = useState<'create' | 'edit'>('create');
+  const [childTemplateId, setChildTemplateId] = useState<string | null>(null);
+  const [isLoadingChildTemplate, setIsLoadingChildTemplate] = useState(false);
+  const [childTemplateLoadError, setChildTemplateLoadError] = useState<
+    string | null
+  >(null);
+  const childTemplateLoadRequestRef = useRef(0);
+  const [pendingChildTemplateId, setPendingChildTemplateId] = useState<
+    string | null
+  >(null);
+  const [confirmSaveBeforeChildOpen, setConfirmSaveBeforeChildOpen] =
+    useState(false);
+  const [preserveTabOnOpen, setPreserveTabOnOpen] = useState(false);
+  const [childAttachments, setChildAttachments] = useState<
+    Awaited<ReturnType<typeof loadWorkTemplateAttachments>>
+  >([]);
+  const [childPendingFiles, setChildPendingFiles] = useState<File[]>([]);
+  const [childDeletedAttachmentIds, setChildDeletedAttachmentIds] = useState<
+    string[]
+  >([]);
   const [attachments, setAttachments] = useState<
     Awaited<ReturnType<typeof loadWorkTemplateAttachments>>
   >([]);
@@ -130,6 +163,17 @@ export function WorkTemplatesPage() {
   const tableViewportRef = useRef<HTMLDivElement>(null);
   const [tableViewportWidth, setTableViewportWidth] = useState(0);
   const form = useWorkTemplateForm();
+  const childForm = useWorkTemplateForm();
+  const [savedFormValues, setSavedFormValues] = useState(
+    workTemplateDefaultValues,
+  );
+  const isFormDirty = form.formState.isDirty;
+  const hasParentEdits =
+    (isFormDirty &&
+      normalizeTemplateValues(form.getValues()) !==
+        normalizeTemplateValues(savedFormValues)) ||
+    pendingFiles.length > 0 ||
+    deletedAttachmentIds.length > 0;
   const query = useQuery({
     queryKey: [...queryKey, tenantId],
     queryFn: () => loadWorkTemplates(tenantId!),
@@ -163,12 +207,16 @@ export function WorkTemplatesPage() {
       const savedTemplateId = await saveWorkTemplate(
         tenantId,
         variables.templateId,
+        variables.parentId,
+        variables.sortOrder,
         variables.values,
-        variables.children,
       );
-      if (variables.templateId === null) {
+      if (variables.templateId === null && variables.editor === 'root') {
         setTemplateId(savedTemplateId);
         setMode('edit');
+      } else if (variables.templateId === null) {
+        setChildTemplateId(savedTemplateId);
+        setChildMode('edit');
       }
       let storageCleanupFailed = false;
       try {
@@ -178,7 +226,10 @@ export function WorkTemplatesPage() {
           userId,
           variables.files,
         );
-        if (variables.files.length) setPendingFiles([]);
+        if (variables.files.length) {
+          if (variables.editor === 'root') setPendingFiles([]);
+          else setChildPendingFiles([]);
+        }
         for (const attachmentId of variables.attachmentIdsToDelete) {
           const result = await deleteWorkTemplateAttachment(
             tenantId,
@@ -186,16 +237,25 @@ export function WorkTemplatesPage() {
             attachmentId,
           );
           storageCleanupFailed ||= result.storageCleanupFailed;
-          setAttachments((current) =>
-            current.filter((attachment) => attachment.id !== attachmentId),
-          );
-          setDeletedAttachmentIds((current) =>
-            current.filter((id) => id !== attachmentId),
-          );
+          if (variables.editor === 'root') {
+            setAttachments((current) =>
+              current.filter((attachment) => attachment.id !== attachmentId),
+            );
+            setDeletedAttachmentIds((current) =>
+              current.filter((id) => id !== attachmentId),
+            );
+          } else {
+            setChildAttachments((current) =>
+              current.filter((attachment) => attachment.id !== attachmentId),
+            );
+            setChildDeletedAttachmentIds((current) =>
+              current.filter((id) => id !== attachmentId),
+            );
+          }
         }
       } catch (error) {
         throw new Error(
-          `Mẫu đã được lưu, nhưng chưa xử lý xong tệp đính kèm: ${getApiErrorMessage(error)}`,
+          `${variables.editor === 'child' ? 'Mẫu công việc con' : 'Mẫu công việc'} đã được lưu, nhưng chưa xử lý xong tệp đính kèm: ${getApiErrorMessage(error)}`,
         );
       }
       return {
@@ -204,23 +264,64 @@ export function WorkTemplatesPage() {
         storageCleanupFailed,
       };
     },
-    onSuccess: async ({ wasCreated, storageCleanupFailed }) => {
+    onSuccess: async ({ id, wasCreated, storageCleanupFailed }, variables) => {
+      if (variables.editor === 'child') {
+        setChildTemplateId(id);
+        setChildMode('edit');
+        setChildPendingFiles([]);
+        setChildDeletedAttachmentIds([]);
+        setChildDialogOpen(false);
+        setChildTemplateLoadError(null);
+        setIsLoadingChildTemplate(false);
+        setPendingChildTemplateId(null);
+        setPreserveTabOnOpen(true);
+        setOpen(true);
+        if (tenantId && variables.parentId) {
+          void loadWorkTemplate(tenantId, variables.parentId)
+            .then((parent) => setChildren(parent.children))
+            .catch(() => {
+              toast.warning(
+                'Mẫu con đã được lưu, nhưng danh sách công việc con chưa thể làm mới.',
+              );
+            });
+        }
+      } else if (variables.keepEditorState) {
+        setTemplateId(id);
+        setMode('edit');
+        form.reset(variables.values);
+        setSavedFormValues(variables.values);
+        setPendingFiles([]);
+        setDeletedAttachmentIds([]);
+        if (tenantId) {
+          try {
+            setAttachments(await loadWorkTemplateAttachments(tenantId, id));
+          } catch {
+            // Keep the editor usable; attachment loading has its own retry path.
+          }
+        }
+      }
       if (storageCleanupFailed) {
         toast.warning(
           'Mẫu đã lưu và tệp đã được đánh dấu xóa, nhưng chưa thể dọn dữ liệu tệp khỏi kho lưu trữ.',
         );
       } else {
         toast.success(
-          wasCreated ? 'Đã tạo mẫu công việc.' : 'Đã cập nhật mẫu công việc.',
+          variables.successMessage ??
+            (wasCreated
+              ? 'Đã tạo mẫu công việc.'
+              : 'Đã cập nhật mẫu công việc.'),
         );
       }
-      setOpen(false);
-      setTemplateId(null);
-      setChildren([]);
-      setAttachments([]);
-      setPendingFiles([]);
-      setDeletedAttachmentIds([]);
-      form.reset(workTemplateDefaultValues);
+      if (variables.editor === 'root' && !variables.keepEditorState) {
+        setOpen(false);
+        setTemplateId(null);
+        setChildren([]);
+        setAttachments([]);
+        setPendingFiles([]);
+        setDeletedAttachmentIds([]);
+        setSavedFormValues(workTemplateDefaultValues);
+        form.reset(workTemplateDefaultValues);
+      }
       await queryClient.invalidateQueries({ queryKey });
     },
     onError: (error) => {
@@ -273,6 +374,12 @@ export function WorkTemplatesPage() {
     onSuccess: async ({ storageCleanupFailed }, templatesToDelete) => {
       setDeletingTemplates(null);
       setRowSelection({});
+      const deletedIds = new Set(
+        templatesToDelete.map((template) => template.id),
+      );
+      setChildren((current) =>
+        current.filter((child) => !deletedIds.has(child.id)),
+      );
       if (storageCleanupFailed) {
         toast.warning(
           `Đã xóa ${templatesToDelete.length} mẫu công việc, nhưng chưa dọn được một số tệp khỏi kho lưu trữ.`,
@@ -291,11 +398,6 @@ export function WorkTemplatesPage() {
   const priorityOptions = WORK_PRIORITIES.map((value) => ({
     value,
     label: WORK_PRIORITY_LABELS[value],
-  }));
-  const childLabelOptions = labelOptions.map((label) => ({
-    value: label.id,
-    label: label.name,
-    data: { color: label.color },
   }));
   const assigneeOptions = employeeOptions.map((employee) => ({
     value: employee.id,
@@ -320,17 +422,10 @@ export function WorkTemplatesPage() {
       ]);
       if (requestId !== templateLoadRequestRef.current) return;
 
-      form.reset(toWorkTemplateFormValues(template));
-      setChildren(
-        template.children.map((child) => ({
-          title: child.title,
-          description: child.description,
-          priority: child.priority,
-          assigneeEmployeeId: child.assigneeEmployeeId,
-          color: child.color,
-          labelIds: child.labelIds,
-        })),
-      );
+      const values = toWorkTemplateFormValues(template);
+      form.reset(values);
+      setSavedFormValues(values);
+      setChildren(template.children);
       setAttachments(existingAttachments);
       setPendingFiles([]);
       setDeletedAttachmentIds([]);
@@ -345,27 +440,87 @@ export function WorkTemplatesPage() {
     }
   };
 
+  const loadChildTemplateForEdit = async (
+    id: string,
+    parentTemplateId: string,
+  ) => {
+    const requestId = childTemplateLoadRequestRef.current + 1;
+    childTemplateLoadRequestRef.current = requestId;
+    setIsLoadingChildTemplate(true);
+    setChildTemplateLoadError(null);
+
+    try {
+      const [child, existingAttachments] = await Promise.all([
+        loadWorkTemplate(tenantId!, id),
+        loadWorkTemplateAttachments(tenantId!, id),
+      ]);
+      if (requestId !== childTemplateLoadRequestRef.current) return;
+      if (child.parentId !== parentTemplateId) {
+        throw new Error('Mẫu công việc con không thuộc mẫu cha hiện tại.');
+      }
+      childForm.reset(toWorkTemplateFormValues(child));
+      setChildAttachments(existingAttachments);
+      setChildPendingFiles([]);
+      setChildDeletedAttachmentIds([]);
+    } catch (error) {
+      if (requestId === childTemplateLoadRequestRef.current) {
+        setChildTemplateLoadError(getApiErrorMessage(error));
+      }
+    } finally {
+      if (requestId === childTemplateLoadRequestRef.current) {
+        setIsLoadingChildTemplate(false);
+      }
+    }
+  };
+
   const startCreate = () => {
     templateLoadRequestRef.current += 1;
     setIsLoadingTemplate(false);
     setTemplateLoadError(null);
     setMode('create');
     setTemplateId(null);
+    setSavedFormValues(workTemplateDefaultValues);
     setChildren([]);
+    setChildDialogOpen(false);
+    setChildMode('create');
+    setChildTemplateId(null);
+    childTemplateLoadRequestRef.current += 1;
+    setIsLoadingChildTemplate(false);
+    setChildTemplateLoadError(null);
+    setPendingChildTemplateId(null);
+    setConfirmSaveBeforeChildOpen(false);
+    setPreserveTabOnOpen(false);
+    setChildAttachments([]);
+    setChildPendingFiles([]);
+    setChildDeletedAttachmentIds([]);
     setAttachments([]);
     setPendingFiles([]);
     setDeletedAttachmentIds([]);
     form.reset(workTemplateDefaultValues);
+    childForm.reset(workTemplateDefaultValues);
     setOpen(true);
   };
 
   const startEdit = (id: string) => {
     setMode('edit');
     setTemplateId(id);
+    setSavedFormValues(workTemplateDefaultValues);
     setIsLoadingTemplate(true);
     setTemplateLoadError(null);
     form.reset(workTemplateDefaultValues);
     setChildren([]);
+    setChildDialogOpen(false);
+    setChildMode('create');
+    setChildTemplateId(null);
+    childTemplateLoadRequestRef.current += 1;
+    setIsLoadingChildTemplate(false);
+    setChildTemplateLoadError(null);
+    setPendingChildTemplateId(null);
+    setConfirmSaveBeforeChildOpen(false);
+    setPreserveTabOnOpen(false);
+    setChildAttachments([]);
+    setChildPendingFiles([]);
+    setChildDeletedAttachmentIds([]);
     setAttachments([]);
     setPendingFiles([]);
     setDeletedAttachmentIds([]);
@@ -382,18 +537,120 @@ export function WorkTemplatesPage() {
     setOpen(nextOpen);
   };
 
-  const handleSubmit = (values: WorkTemplateFormValues) => {
-    if (children.some((child) => !child.title.trim())) {
-      toast.error('Vui lòng nhập tên cho tất cả công việc con.');
+  const handleChildDialogOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setChildDialogOpen(true);
       return;
     }
+    if (mutation.isPending) return;
+    childTemplateLoadRequestRef.current += 1;
+    setIsLoadingChildTemplate(false);
+    setChildTemplateLoadError(null);
+    setChildDialogOpen(false);
+    setPendingChildTemplateId(null);
+    setPreserveTabOnOpen(true);
+    setOpen(true);
+  };
+
+  const handleSubmit = (values: WorkTemplateFormValues) => {
     mutation.mutate({
+      editor: 'root',
       templateId,
+      parentId: null,
+      sortOrder: 0,
       values,
-      children,
       files: pendingFiles,
       attachmentIdsToDelete: deletedAttachmentIds,
     });
+  };
+
+  const beginChildEditor = (
+    childId: string | null,
+    parentTemplateId = templateId,
+  ) => {
+    if (!parentTemplateId) {
+      toast.error('Hãy lưu mẫu công việc cha trước khi thêm mẫu con.');
+      return;
+    }
+    childTemplateLoadRequestRef.current += 1;
+    setChildMode(childId ? 'edit' : 'create');
+    setChildTemplateId(childId);
+    setPendingChildTemplateId(null);
+    setChildTemplateLoadError(null);
+    setIsLoadingChildTemplate(Boolean(childId));
+    setChildAttachments([]);
+    setChildPendingFiles([]);
+    setChildDeletedAttachmentIds([]);
+    childForm.reset(workTemplateDefaultValues);
+    setOpen(false);
+    setChildDialogOpen(true);
+    if (childId) {
+      void loadChildTemplateForEdit(childId, parentTemplateId);
+    }
+  };
+
+  const requestChildEditor = (childId: string | null) => {
+    setPendingChildTemplateId(childId);
+    if (mode === 'create' || !templateId || hasParentEdits) {
+      setConfirmSaveBeforeChildOpen(true);
+      return;
+    }
+    beginChildEditor(childId);
+  };
+
+  const saveParentBeforeChild = async () => {
+    if (!(await form.trigger())) {
+      setConfirmSaveBeforeChildOpen(false);
+      return;
+    }
+    const childId = pendingChildTemplateId;
+    try {
+      const saved = await mutation.mutateAsync({
+        editor: 'root',
+        templateId,
+        parentId: null,
+        sortOrder: 0,
+        values: form.getValues(),
+        files: pendingFiles,
+        attachmentIdsToDelete: deletedAttachmentIds,
+        keepEditorState: true,
+        successMessage: 'Đã lưu mẫu công việc.',
+      });
+      setConfirmSaveBeforeChildOpen(false);
+      beginChildEditor(childId, saved.id);
+    } catch {
+      // The mutation shows the API error and leaves the parent dialog in place.
+    }
+  };
+
+  const saveTemplateChild = async (values: WorkTemplateFormValues) => {
+    if (!templateId) {
+      toast.error('Hãy lưu mẫu công việc cha trước khi lưu mẫu con.');
+      return;
+    }
+    const existingChild = children.find(
+      (child) => child.id === childTemplateId,
+    );
+    try {
+      await mutation.mutateAsync({
+        editor: 'child',
+        templateId: childTemplateId,
+        parentId: templateId,
+        sortOrder:
+          existingChild?.sortOrder ??
+          children.reduce((max, child) => Math.max(max, child.sortOrder), -1) +
+            1,
+        values,
+        files: childPendingFiles,
+        attachmentIdsToDelete: childDeletedAttachmentIds,
+        successMessage:
+          childMode === 'create'
+            ? 'Đã thêm mẫu công việc con.'
+            : 'Đã cập nhật mẫu công việc con.',
+      });
+    } catch {
+      // The mutation shows the API error and leaves the child dialog open.
+    }
   };
 
   const filteredTemplates = useMemo(() => {
@@ -654,6 +911,21 @@ export function WorkTemplatesPage() {
         }}
       />
 
+      <ConfirmDialog
+        open={confirmSaveBeforeChildOpen}
+        onOpenChange={(nextOpen) => {
+          setConfirmSaveBeforeChildOpen(nextOpen);
+          if (!nextOpen) setPendingChildTemplateId(null);
+        }}
+        title="Lưu mẫu công việc cha trước khi mở mẫu con?"
+        description="Cần lưu mẫu công việc cha trước khi thêm hoặc sửa một mẫu công việc con. Các thay đổi chưa lưu trên mẫu cha sẽ được lưu trước."
+        confirmLabel="Lưu và tiếp tục"
+        cancelLabel="Ở lại"
+        isConfirming={mutation.isPending}
+        closeOnConfirm={false}
+        onConfirm={() => void saveParentBeforeChild()}
+      />
+
       <WorkTemplateDialog
         open={open}
         onOpenChange={handleTemplateDialogOpenChange}
@@ -673,13 +945,16 @@ export function WorkTemplatesPage() {
         onCreateLabel={(name) => createLabelMutation.mutateAsync(name)}
         childCount={children.length}
         attachmentCount={attachments.length + pendingFiles.length}
+        allowChildren
+        preserveTabOnOpen={preserveTabOnOpen}
         childrenEditor={
           <WorkTemplateEditorSections
             section="children"
             children={children}
-            onChildrenChange={setChildren}
             employeeOptions={employeeOptions}
-            labelOptions={childLabelOptions}
+            onAddChild={() => requestChildEditor(null)}
+            onEditChild={requestChildEditor}
+            onDeleteChild={(child) => setDeletingTemplates([child])}
             attachments={attachments}
             pendingFiles={pendingFiles}
             deletedAttachmentIds={deletedAttachmentIds}
@@ -691,14 +966,53 @@ export function WorkTemplatesPage() {
           <WorkTemplateEditorSections
             section="attachments"
             children={children}
-            onChildrenChange={setChildren}
             employeeOptions={employeeOptions}
-            labelOptions={childLabelOptions}
             attachments={attachments}
             pendingFiles={pendingFiles}
             deletedAttachmentIds={deletedAttachmentIds}
             onPendingFilesChange={setPendingFiles}
             onDeletedAttachmentIdsChange={setDeletedAttachmentIds}
+          />
+        }
+      />
+
+      <WorkTemplateDialog
+        open={childDialogOpen}
+        onOpenChange={handleChildDialogOpenChange}
+        mode={childMode}
+        form={childForm}
+        onSubmit={saveTemplateChild}
+        isSaving={mutation.isPending}
+        isLoading={isLoadingChildTemplate}
+        errorMessage={childTemplateLoadError}
+        onRetry={() => {
+          if (childTemplateId && templateId) {
+            void loadChildTemplateForEdit(childTemplateId, templateId);
+          }
+        }}
+        title={
+          childMode === 'create'
+            ? 'Thêm mẫu công việc con'
+            : 'Sửa mẫu công việc con'
+        }
+        priorityOptions={priorityOptions}
+        assigneeOptions={assigneeOptions}
+        labelOptions={labelOptions}
+        onCreateLabel={(name) => createLabelMutation.mutateAsync(name)}
+        childCount={0}
+        attachmentCount={childAttachments.length + childPendingFiles.length}
+        allowChildren={false}
+        childrenEditor={null}
+        attachmentsEditor={
+          <WorkTemplateEditorSections
+            section="attachments"
+            children={[]}
+            employeeOptions={employeeOptions}
+            attachments={childAttachments}
+            pendingFiles={childPendingFiles}
+            deletedAttachmentIds={childDeletedAttachmentIds}
+            onPendingFilesChange={setChildPendingFiles}
+            onDeletedAttachmentIdsChange={setChildDeletedAttachmentIds}
           />
         }
       />

@@ -100,15 +100,6 @@ export const workTemplateFormSchema = z.object({
 });
 export type WorkTemplateFormValues = z.infer<typeof workTemplateFormSchema>;
 
-export interface WorkTemplateChildFormValues {
-  title: string;
-  description: string;
-  priority: WorkPriority;
-  assigneeEmployeeId: string;
-  color: string;
-  labelIds: string[];
-}
-
 export interface WorkLinkOption {
   id: string;
   label: string;
@@ -168,15 +159,11 @@ export interface WorkItem {
   updatedAt: string;
 }
 
-export interface WorkTemplateChild extends WorkTemplateChildFormValues {
-  id: string;
-  sortOrder: number;
-  labels: WorkLabel[];
-}
-
 export interface WorkTemplateSummary {
   id: string;
   tenantId: string;
+  parentId: string | null;
+  sortOrder: number;
   code: string;
   name: string;
   description: string;
@@ -191,7 +178,7 @@ export interface WorkTemplateSummary {
 }
 
 export interface WorkTemplate extends WorkTemplateSummary {
-  children: WorkTemplateChild[];
+  children: WorkTemplateSummary[];
 }
 
 export interface WorkEmployeeOption extends WorkLinkOption {
