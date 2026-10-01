@@ -42,6 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   EventCalendar,
   type CalendarEvent,
@@ -137,6 +138,14 @@ const priorityFilterOptions = [
 ];
 const boardViewContentClassName =
   'flex min-h-0 flex-1 overflow-auto px-4 pb-4 pt-0';
+
+function WorkSectionEmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-40 items-center justify-center px-5 py-8 text-center text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+}
 
 function parseWorkDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
@@ -666,8 +675,36 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const detailWork = workDetailQuery.data?.root ?? viewingWork;
   const detailChildren = workDetailQuery.data?.children ?? [];
   const pageTitle = scope === 'mine' ? 'Việc của tôi' : 'Quản lý công việc';
+  const currentEmployeeError =
+    scope === 'mine' && currentEmployeeQuery.isError
+      ? currentEmployeeQuery.error
+      : undefined;
+  const workDataError =
+    scope === 'mine'
+      ? (currentEmployeeError ??
+        (workQuery.isError ? workQuery.error : undefined))
+      : undefined;
+  const showWorkDataError = scope === 'mine' && Boolean(workDataError);
+  const isWorkLoading =
+    (scope === 'mine' && currentEmployeeQuery.isPending) ||
+    (scope === 'all' && workQuery.isPending) ||
+    (scope === 'mine' &&
+      Boolean(currentEmployeeQuery.data) &&
+      workQuery.isPending);
+  const hasNoCurrentEmployee =
+    scope === 'mine' &&
+    currentEmployeeQuery.isSuccess &&
+    !currentEmployeeQuery.data;
+  const retryWorkQuery = () => {
+    void (currentEmployeeError
+      ? currentEmployeeQuery.refetch()
+      : workQuery.refetch());
+  };
+  const workErrorDescription = workDataError
+    ? getApiErrorMessage(workDataError)
+    : undefined;
 
-  if (workQuery.isError) {
+  if (scope === 'all' && workQuery.isError) {
     return (
       <div className="flex h-full flex-col gap-5 overflow-auto p-4 lg:p-5">
         <PageHeader
@@ -858,13 +895,23 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
             {kanbanFilterBar}
           </CardHeader>
           <CardContent className={boardViewContentClassName}>
-            <WorkOverview
-              works={works}
-              onOpen={openView}
-              savingWorkIds={savingWorkIds}
-              assigneeAvatarUrls={assigneeAvatarUrls}
-              isLoading={workQuery.isPending}
-            />
+            {showWorkDataError ? (
+              <ErrorState
+                title="Không tải được danh sách công việc"
+                description={workErrorDescription}
+                onRetry={retryWorkQuery}
+              />
+            ) : hasNoCurrentEmployee ? (
+              <WorkSectionEmptyState message="Tài khoản hiện tại chưa được liên kết với hồ sơ nhân viên nên chưa thể lọc việc của tôi." />
+            ) : (
+              <WorkOverview
+                works={works}
+                onOpen={openView}
+                savingWorkIds={savingWorkIds}
+                assigneeAvatarUrls={assigneeAvatarUrls}
+                isLoading={isWorkLoading}
+              />
+            )}
           </CardContent>
         </Card>
       ) : view === 'list' ? (
@@ -872,24 +919,36 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
           <CardHeader className="flex-row items-center gap-4">
             {workFilterBar}
           </CardHeader>
-          <DataGrid
-            table={table}
-            recordCount={workQuery.data?.total ?? 0}
-            isLoading={workQuery.isPending}
-            isFetching={workQuery.isFetching}
-            emptyMessage="Chưa có công việc"
-            tableLayout={{ dense: true, columnsVisibility: false }}
-          >
-            <CardTable className="min-h-0 flex-1">
-              <ScrollArea className="h-full">
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </CardTable>
-            <CardFooter className="justify-between">
-              <DataGridPagination />
-            </CardFooter>
-          </DataGrid>
+          {showWorkDataError ? (
+            <CardContent className="flex min-h-0 flex-1 items-center justify-center p-0">
+              <ErrorState
+                title="Không tải được danh sách công việc"
+                description={workErrorDescription}
+                onRetry={retryWorkQuery}
+              />
+            </CardContent>
+          ) : hasNoCurrentEmployee ? (
+            <WorkSectionEmptyState message="Tài khoản hiện tại chưa được liên kết với hồ sơ nhân viên nên chưa thể lọc việc của tôi." />
+          ) : (
+            <DataGrid
+              table={table}
+              recordCount={workQuery.data?.total ?? 0}
+              isLoading={isWorkLoading}
+              isFetching={workQuery.isFetching}
+              emptyMessage="Chưa có công việc"
+              tableLayout={{ dense: true, columnsVisibility: false }}
+            >
+              <CardTable className="min-h-0 flex-1">
+                <ScrollArea className="h-full">
+                  <DataGridTable />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </CardTable>
+              <CardFooter className="justify-between">
+                <DataGridPagination />
+              </CardFooter>
+            </DataGrid>
+          )}
         </Card>
       ) : view === 'kanban' ? (
         <Card className="min-h-0 flex-1 overflow-hidden">
@@ -906,35 +965,56 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
             </label>
           </CardHeader>
           <CardContent className={boardViewContentClassName}>
-            <WorkKanban
-              columns={kanbanColumns}
-              onColumnsChange={updateKanbanColumns}
-              onMove={moveKanban}
-              onOpen={openView}
-              savingWorkIds={savingWorkIds}
-              assigneeAvatarUrls={assigneeAvatarUrls}
-              isLoading={workQuery.isPending}
-              showAllStatuses={showAllKanbanStatuses}
-            />
+            {showWorkDataError ? (
+              <ErrorState
+                title="Không tải được danh sách công việc"
+                description={workErrorDescription}
+                onRetry={retryWorkQuery}
+              />
+            ) : hasNoCurrentEmployee ? (
+              <WorkSectionEmptyState message="Tài khoản hiện tại chưa được liên kết với hồ sơ nhân viên nên chưa thể lọc việc của tôi." />
+            ) : (
+              <WorkKanban
+                columns={kanbanColumns}
+                onColumnsChange={updateKanbanColumns}
+                onMove={moveKanban}
+                onOpen={openView}
+                savingWorkIds={savingWorkIds}
+                assigneeAvatarUrls={assigneeAvatarUrls}
+                isLoading={isWorkLoading}
+                showAllStatuses={showAllKanbanStatuses}
+              />
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="min-h-0 flex-1 overflow-hidden">
-          <EventCalendar
-            events={calendarEvents}
-            initialView="month"
-            allowEventCreation
-            onEventCreate={(startTime) => openCreate(null, startTime)}
-            onEventSelect={(event) => {
-              const work = works.find((item) => item.id === event.id);
-              if (work) openView(work);
-            }}
-            onEventUpdate={(event) => {
-              const work = works.find((item) => item.id === event.id);
-              if (!work) return;
-              calendarUpdateMutation.mutate({ work, event });
-            }}
-          />
+          {showWorkDataError ? (
+            <ErrorState
+              title="Không tải được lịch công việc"
+              description={workErrorDescription}
+              onRetry={retryWorkQuery}
+            />
+          ) : hasNoCurrentEmployee ? (
+            <WorkSectionEmptyState message="Tài khoản hiện tại chưa được liên kết với hồ sơ nhân viên nên chưa thể lọc việc của tôi." />
+          ) : (
+            <EventCalendar
+              events={calendarEvents}
+              initialView="month"
+              allowEventCreation
+              isLoading={scope === 'mine' && isWorkLoading}
+              onEventCreate={(startTime) => openCreate(null, startTime)}
+              onEventSelect={(event) => {
+                const work = works.find((item) => item.id === event.id);
+                if (work) openView(work);
+              }}
+              onEventUpdate={(event) => {
+                const work = works.find((item) => item.id === event.id);
+                if (!work) return;
+                calendarUpdateMutation.mutate({ work, event });
+              }}
+            />
+          )}
         </div>
       )}
       <WorkDetailDialog

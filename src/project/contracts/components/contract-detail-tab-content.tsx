@@ -40,7 +40,6 @@ import {
   CardTitle,
   CardToolbar,
 } from '@/components/ui/card';
-import { CardEmptyState } from '@/components/ui/card-empty-state';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
@@ -52,6 +51,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   FileUploadContent,
   type FileUploadContentHandle,
@@ -661,7 +661,7 @@ export function ContractVersionsContent({
 
   if (contract.versions.length === 0) {
     return (
-      <CardEmptyState
+      <EmptyState
         icon={FileText}
         title="Chưa có phiên bản"
         description="Hợp đồng chưa có phiên bản chính sách."

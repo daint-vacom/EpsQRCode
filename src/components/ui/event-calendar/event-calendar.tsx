@@ -27,6 +27,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SectionLoading } from '@/components/ui/loading';
 import { AgendaView } from './agenda-view';
 import { CalendarDndProvider } from './calendar-dnd-context';
 import {
@@ -63,6 +64,7 @@ export interface EventCalendarProps {
   className?: string;
   initialView?: CalendarView;
   allowEventCreation?: boolean;
+  isLoading?: boolean;
 }
 
 export function EventCalendar({
@@ -75,6 +77,7 @@ export function EventCalendar({
   className,
   initialView = 'month',
   allowEventCreation = true,
+  isLoading = false,
 }: EventCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>(initialView);
@@ -305,38 +308,50 @@ export function EventCalendar({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-          {view === 'month' ? (
-            <MonthView
-              currentDate={currentDate}
-              events={events}
-              onEventSelect={handleEventSelect}
-              onEventCreate={handleEventCreate}
+        <div
+          className="flex min-h-0 flex-1 flex-col overflow-auto"
+          aria-busy={isLoading}
+        >
+          {isLoading ? (
+            <SectionLoading
+              className="min-h-0 flex-1 rounded-none bg-transparent"
+              label="Đang tải lịch..."
             />
-          ) : null}
-          {view === 'week' ? (
-            <WeekView
-              currentDate={currentDate}
-              events={events}
-              onEventSelect={handleEventSelect}
-              onEventCreate={handleEventCreate}
-            />
-          ) : null}
-          {view === 'day' ? (
-            <DayView
-              currentDate={currentDate}
-              events={events}
-              onEventSelect={handleEventSelect}
-              onEventCreate={handleEventCreate}
-            />
-          ) : null}
-          {view === 'agenda' ? (
-            <AgendaView
-              currentDate={currentDate}
-              events={events}
-              onEventSelect={handleEventSelect}
-            />
-          ) : null}
+          ) : (
+            <>
+              {view === 'month' ? (
+                <MonthView
+                  currentDate={currentDate}
+                  events={events}
+                  onEventSelect={handleEventSelect}
+                  onEventCreate={handleEventCreate}
+                />
+              ) : null}
+              {view === 'week' ? (
+                <WeekView
+                  currentDate={currentDate}
+                  events={events}
+                  onEventSelect={handleEventSelect}
+                  onEventCreate={handleEventCreate}
+                />
+              ) : null}
+              {view === 'day' ? (
+                <DayView
+                  currentDate={currentDate}
+                  events={events}
+                  onEventSelect={handleEventSelect}
+                  onEventCreate={handleEventCreate}
+                />
+              ) : null}
+              {view === 'agenda' ? (
+                <AgendaView
+                  currentDate={currentDate}
+                  events={events}
+                  onEventSelect={handleEventSelect}
+                />
+              ) : null}
+            </>
+          )}
         </div>
 
         {allowEventCreation && !onEventCreate ? (

@@ -17,6 +17,7 @@ import {
   type KanbanMoveEvent,
   type KanbanMovePreviewEvent,
 } from '@/components/ui/kanban';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
@@ -303,6 +304,15 @@ export function WorkKanbanCard({
   );
 }
 
+export function WorkKanbanCardSkeleton() {
+  return (
+    <Skeleton
+      aria-hidden="true"
+      className="h-28 w-full rounded-md border border-border border-s-4 shadow-xs"
+    />
+  );
+}
+
 function WorkKanbanColumn({
   status,
   works,
@@ -362,9 +372,9 @@ function WorkKanbanColumn({
         className="min-h-[27rem] gap-2.5 p-0.5"
       >
         {isLoading ? (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 p-4 text-center text-xs text-muted-foreground">
-            Đang tải công việc...
-          </div>
+          Array.from({ length: 3 }, (_, index) => (
+            <WorkKanbanCardSkeleton key={index} />
+          ))
         ) : works.length ? (
           works.map((work) => (
             <WorkKanbanCard
@@ -380,7 +390,11 @@ function WorkKanbanColumn({
               isSaving={savingWorkIds?.has(work.id)}
             />
           ))
-        ) : null}
+        ) : (
+          <p className="px-2 py-2 text-center text-sm text-muted-foreground">
+            Công việc trống
+          </p>
+        )}
       </KanbanColumnContent>
     </KanbanColumn>
   );
