@@ -140,7 +140,7 @@ export function FinanceAccountDetailPage() {
       <PageHeader
         title={account?.name ?? 'Chi tiết tài khoản'}
         icon={Landmark}
-        onBack={() => navigate(ROUTES.PROJECT.FINANCE_ACCOUNTS)}
+        showBackButton
         actions={
           account && canManage ? (
             <>
@@ -152,10 +152,13 @@ export function FinanceAccountDetailPage() {
                 type="button"
                 variant="destructive"
                 appearance="outline"
+                mode="icon"
+                size="icon"
+                aria-label={`Xóa tài khoản ${account.name}`}
+                title={`Xóa tài khoản ${account.name}`}
                 onClick={() => setDeleteOpen(true)}
               >
                 <Trash2 className="size-4" />
-                Xóa tài khoản
               </Button>
               <Button asChild variant="primary">
                 <Link

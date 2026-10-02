@@ -158,10 +158,10 @@ export function CustomerFilterForm({
             name="businessRegistrationCode"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Mã số đăng ký</FormLabel>
+                <FormLabel>Mã số thuế</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Tìm theo mã số đăng ký"
+                    placeholder="Tìm theo mã số thuế"
                     variant="md"
                     {...field}
                   />

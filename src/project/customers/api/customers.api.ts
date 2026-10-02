@@ -123,13 +123,15 @@ export interface CustomerWorkspace {
 export type CustomerSelectOption = Pick<
   Customer,
   'id' | 'customerCode' | 'name' | 'imageUrl'
->;
+> &
+  Partial<Pick<Customer, 'status'>>;
 
 interface CustomerSelectRow {
   id: string;
   customer_code: string;
   name: string;
   image_url: string | null;
+  status: Customer['status'];
 }
 
 export async function loadCustomerSelectOptions(
@@ -142,7 +144,7 @@ export async function loadCustomerSelectOptions(
     supabaseApi.get(
       '/customers',
       queryParams({
-        select: 'id,customer_code,name,image_url',
+        select: 'id,customer_code,name,image_url,status',
         tenant_id: `eq.${tenantId}`,
         status: 'eq.active',
         order: 'name.asc',
@@ -155,6 +157,7 @@ export async function loadCustomerSelectOptions(
     customerCode: row.customer_code,
     name: row.name,
     imageUrl: row.image_url,
+    status: row.status,
   }));
 }
 

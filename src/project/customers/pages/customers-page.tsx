@@ -840,6 +840,23 @@ export function CustomersPage() {
           }
         />
       </CollapsibleContent>
+      {showResponsibilityFilters ? (
+        <CustomerResponsibilityFilterRow
+          mode={responsibilityFilterMode}
+          onModeChange={setResponsibilityFilterMode}
+          tagOptions={customerTagOptions}
+          selectedTagIds={filters.tagIds}
+          onTagIdsChange={(value) => setFilter('tagIds', value)}
+          employeeOptions={
+            customerResponsibilityFilterOptionsQuery.data?.employees ?? []
+          }
+          selectedEmployeeIds={filters.responsibleEmployeeIds ?? []}
+          onEmployeeIdsChange={(value) =>
+            setFilter('responsibleEmployeeIds', value)
+          }
+          disabled={customerResponsibilityFilterOptionsQuery.isPending}
+        />
+      ) : null}
       <CustomerTable
         table={table}
         total={total}
@@ -953,25 +970,6 @@ export function CustomersPage() {
               isSaving={savedViewMutation.isPending}
             />
           </>
-        }
-        secondaryRow={
-          showResponsibilityFilters ? (
-            <CustomerResponsibilityFilterRow
-              mode={responsibilityFilterMode}
-              onModeChange={setResponsibilityFilterMode}
-              tagOptions={customerTagOptions}
-              selectedTagIds={filters.tagIds}
-              onTagIdsChange={(value) => setFilter('tagIds', value)}
-              employeeOptions={
-                customerResponsibilityFilterOptionsQuery.data?.employees ?? []
-              }
-              selectedEmployeeIds={filters.responsibleEmployeeIds ?? []}
-              onEmployeeIdsChange={(value) =>
-                setFilter('responsibleEmployeeIds', value)
-              }
-              disabled={customerResponsibilityFilterOptionsQuery.isPending}
-            />
-          ) : null
         }
         tableLayout={{ showInlineFilters }}
         cardClassName="min-h-[32rem]"

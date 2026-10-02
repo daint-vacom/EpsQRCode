@@ -27,6 +27,16 @@ ownership contract; detailed APIs live in [`docs/components/`](./components/).
 For builder-covered surfaces, start from [`src/builders/README.md`](../src/builders/README.md), not the
 component API.
 
+## PageHeader Toolbar
+
+- Keep page actions visible on the toolbar by default. Use `PageHeaderOverflowMenu` only when the user
+  explicitly asks to group particular actions into a three-dot menu.
+- Use the `Search` icon for lookup (`Tra cứu`) actions.
+- Render a delete action directly on the toolbar as an icon-only button with an accessible name. In an
+  overflow menu, use a trash icon and a clear text label so the menu item remains identifiable.
+- Keep the back button opt-in with `showBackButton`; it navigates to the previous history entry by
+  default, while `onBack` is reserved for flows that need a specific destination or custom behavior.
+
 `DialogContent` keeps its default width when `size` is omitted. Use `size="large"` for a wider dialog
 with the shared `max-w-7xl` limit.
 

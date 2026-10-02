@@ -11,6 +11,8 @@ interface ImageAvatarProps {
   fallback: string;
   fallbackTone?: GradientAvatarTone;
   className?: string;
+  statusRingClassName?: string;
+  fallbackClassName?: string;
 }
 
 export function ImageAvatar({
@@ -19,6 +21,8 @@ export function ImageAvatar({
   fallback,
   fallbackTone = 'amber',
   className,
+  statusRingClassName,
+  fallbackClassName,
 }: ImageAvatarProps) {
   const [hasError, setHasError] = useState(false);
   const imageSource = src?.trim() && !hasError ? src : null;
@@ -32,7 +36,7 @@ export function ImageAvatar({
       src={imageSource}
       alt={alt}
       onError={() => setHasError(true)}
-      className={cn('shrink-0 object-cover', className)}
+      className={cn('shrink-0 object-cover', className, statusRingClassName)}
     />
   ) : (
     <span
@@ -40,6 +44,8 @@ export function ImageAvatar({
         'flex shrink-0 items-center justify-center border bg-gradient-to-br font-bold shadow-sm',
         GRADIENT_AVATAR_TONE_CLASSES[fallbackTone],
         className,
+        statusRingClassName,
+        fallbackClassName,
       )}
     >
       {fallback}

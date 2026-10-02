@@ -242,7 +242,7 @@ export const customerFilterFormSchema = z.object({
   businessRegistrationCode: z
     .string()
     .trim()
-    .max(100, 'Mã số đăng ký không được quá 100 ký tự.'),
+    .max(100, 'Mã số thuế không được quá 100 ký tự.'),
   countryCode: z.string().trim().max(10, 'Mã quốc gia không hợp lệ.'),
   region: z.string().trim().max(100, 'Khu vực không được quá 100 ký tự.'),
   contactSearch: z

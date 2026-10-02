@@ -1,4 +1,5 @@
 import type { TableSpec } from '@/builders/table';
+import { CUSTOMER_STATUS_BADGE_CONFIG } from '../components/customer-status-badge-config';
 
 const spec: TableSpec = {
   entity: 'Customer',
@@ -44,32 +45,13 @@ const spec: TableSpec = {
       id: 'status',
       header: 'Trạng thái',
       field: 'status',
-      config: {
-        active: {
-          label: 'Đang hoạt động',
-          className:
-            'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-          dotClassName: 'bg-admin-success-dot opacity-100',
-        },
-        inactive: {
-          label: 'Ngừng hoạt động',
-          className:
-            'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-          dotClassName: 'bg-admin-red-primary opacity-100',
-        },
-        uncontacted: {
-          label: 'Chưa liên hệ',
-          className:
-            'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-          dotClassName: 'bg-admin-neutral-400 opacity-100',
-        },
-      },
+      config: CUSTOMER_STATUS_BADGE_CONFIG,
       sizePreset: 'badge',
     },
     {
       kind: 'text',
       id: 'businessRegistrationCode',
-      header: 'Mã số đăng ký',
+      header: 'Mã số thuế',
       field: 'businessRegistrationCode',
       headerClassName: 'min-w-[170px]',
       sizePreset: 'short',

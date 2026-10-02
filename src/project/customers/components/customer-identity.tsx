@@ -1,10 +1,11 @@
 import { AvatarIdentity } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import type { Customer } from '../model/customer';
+import { getCustomerAvatarStatusRingClassName } from './customer-avatar';
 
 export type CustomerIdentityData = Pick<
   Customer,
-  'name' | 'customerCode' | 'imageUrl'
+  'name' | 'customerCode' | 'imageUrl' | 'status'
 >;
 
 export function CustomerIdentity({
@@ -20,6 +21,11 @@ export function CustomerIdentity({
       code={customer.customerCode}
       avatarUrl={customer.imageUrl}
       tone={IDENTITY_AVATAR_TONES.customer}
+      avatarClassName="rounded-full"
+      statusRingClassName={getCustomerAvatarStatusRingClassName(
+        customer.status,
+        'small',
+      )}
       className={className}
     />
   );

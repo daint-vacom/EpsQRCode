@@ -34,6 +34,8 @@ interface GradientAvatarProps {
   fallback: string;
   tone?: GradientAvatarTone;
   className?: string;
+  statusRingClassName?: string;
+  fallbackClassName?: string;
 }
 
 export function GradientAvatar({
@@ -42,6 +44,8 @@ export function GradientAvatar({
   fallback,
   tone = 'slate',
   className,
+  statusRingClassName,
+  fallbackClassName,
 }: GradientAvatarProps) {
   const [imageStatus, setImageStatus] = React.useState<
     'loading' | 'loaded' | 'error'
@@ -54,7 +58,13 @@ export function GradientAvatar({
   const showImage = Boolean(src) && imageStatus === 'loaded';
 
   return (
-    <Avatar className={cn('size-9 overflow-hidden rounded-full', className)}>
+    <Avatar
+      className={cn(
+        'size-9 overflow-hidden rounded-full',
+        className,
+        statusRingClassName,
+      )}
+    >
       {src ? (
         <img
           src={src}
@@ -74,6 +84,7 @@ export function GradientAvatar({
           className={cn(
             'flex h-full w-full items-center justify-center rounded-full border bg-gradient-to-br text-sm font-bold shadow-sm',
             GRADIENT_AVATAR_TONE_CLASSES[tone],
+            fallbackClassName,
           )}
         >
           {fallback}

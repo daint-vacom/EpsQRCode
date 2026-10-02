@@ -66,11 +66,13 @@ import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import { CustomerResponsibilityTab } from '../components/customer-responsibility-tab';
 import { CustomerSoftwareAccountsEditorTable } from '../components/customer-software-accounts-editor.generated';
+import { CustomerStatusBadge } from '../components/customer-status-badge';
 import {
   createEmptyCustomerSoftwareAccount,
   customerFormSchema,
   type Customer,
   type CustomerFormValues,
+  type CustomerStatus,
 } from '../model/customer';
 import type { CustomerResponsibilityAssignmentInput } from '../model/customer-responsibility';
 
@@ -252,10 +254,10 @@ export function CustomerForm({
     <Form {...form}>
       <form
         id={id}
-        className="min-h-0 lg:h-full"
+        className="min-h-0 lg:flex lg:flex-1 lg:flex-col"
         onSubmit={form.handleSubmit(onSubmit, onValidationError)}
       >
-        <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
+        <div className="grid min-h-0 grid-cols-1 gap-6 lg:flex-1 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:grid-rows-1">
           <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
             <div className="space-y-4 pb-5 lg:pb-6">
               <FormField
@@ -312,7 +314,7 @@ export function CustomerForm({
                 name="businessRegistrationCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mã số thuế / QHNS / ĐKKD</FormLabel>
+                    <FormLabel>Mã số thuế</FormLabel>
                     <FormControl>
                       <Input variant="md" {...field} />
                     </FormControl>
@@ -345,7 +347,7 @@ export function CustomerForm({
             </div>
           </div>
 
-          <div className="min-w-0 lg:min-h-0">
+          <div className="min-w-0 lg:min-h-0 lg:overflow-hidden">
             <Tabs
               value={activeTab}
               onValueChange={(value) =>
@@ -395,7 +397,11 @@ export function CustomerForm({
                               >
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue>
+                                      <CustomerStatusBadge
+                                        status={field.value}
+                                      />
+                                    </SelectValue>
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -404,7 +410,9 @@ export function CustomerForm({
                                       key={opt.value}
                                       value={opt.value}
                                     >
-                                      {opt.label}
+                                      <CustomerStatusBadge
+                                        status={opt.value as CustomerStatus}
+                                      />
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -1097,7 +1105,7 @@ export function CustomerFormDialog({
             <DialogTitle>{title ?? 'Thêm khách hàng'}</DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:flex lg:flex-col lg:overflow-hidden">
             <CustomerForm
               form={form}
               onSubmit={onSubmit}

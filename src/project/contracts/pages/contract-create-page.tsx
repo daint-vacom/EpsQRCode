@@ -225,6 +225,7 @@ export function ContractCreatePage() {
         customerCode: detail.customer.customerCode,
         name: detail.customer.name,
         imageUrl: detail.customer.imageUrl,
+        status: detail.customer.status,
       });
       const nextLines = toEditableLines(detail, version?.id);
       setFeeLines(
@@ -669,6 +670,7 @@ export function ContractCreatePage() {
         <PageHeader
           title={isEditMode ? 'Chỉnh sửa hợp đồng' : 'Thêm hợp đồng'}
           icon={FileText}
+          showBackButton={isEditMode}
           backLabel="Quay lại chi tiết hợp đồng"
           onBack={isEditMode ? handleCancel : undefined}
           titleAside={

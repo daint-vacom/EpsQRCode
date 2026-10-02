@@ -31,7 +31,7 @@ const spec: ColumnFilterSpec = {
       type: 'search',
       name: 'businessRegistrationCode',
       placeholder: '',
-      ariaLabel: 'Tìm theo mã số đăng ký',
+      ariaLabel: 'Tìm theo mã số thuế',
       className: 'min-w-0 w-full shrink-0 bg-background',
     },
     {

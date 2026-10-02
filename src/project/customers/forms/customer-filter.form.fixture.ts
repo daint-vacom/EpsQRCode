@@ -37,9 +37,9 @@ const spec: FormSpec = {
     {
       kind: 'text',
       name: 'businessRegistrationCode',
-      label: 'Mã số đăng ký',
+      label: 'Mã số thuế',
       width: 'full',
-      placeholder: 'Tìm theo mã số đăng ký',
+      placeholder: 'Tìm theo mã số thuế',
     },
     {
       kind: 'text',

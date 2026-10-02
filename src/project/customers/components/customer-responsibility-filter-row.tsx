@@ -1,4 +1,6 @@
+import { useRef } from 'react';
 import type { TagSelectOption } from '@/project/tags/model/tag';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import type {
@@ -30,10 +32,21 @@ export function CustomerResponsibilityFilterRow({
   onEmployeeIdsChange,
   disabled = false,
 }: CustomerResponsibilityFilterRowProps) {
+  const optionsScrollRef = useRef<HTMLDivElement>(null);
   const isGroupMode = mode === 'group';
   const selectedIds = isGroupMode ? selectedTagIds : selectedEmployeeIds;
   const selectedId = selectedIds[0] ?? null;
   const options = isGroupMode ? tagOptions : employeeOptions;
+
+  function scrollOptions(direction: -1 | 1) {
+    const container = optionsScrollRef.current;
+    if (!container) return;
+
+    container.scrollBy({
+      left: direction * Math.max(180, container.clientWidth * 0.8),
+      behavior: 'smooth',
+    });
+  }
 
   function selectId(id: string) {
     if (isGroupMode) onTagIdsChange([id]);
@@ -63,7 +76,21 @@ export function CustomerResponsibilityFilterRow({
         className="shrink-0"
       />
       <span className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+      <Button
+        type="button"
+        variant="ghost"
+        mode="icon"
+        size="md"
+        className="shrink-0 rounded-full"
+        aria-label="Cuộn danh sách sang trái"
+        title="Cuộn sang trái"
+        disabled={disabled}
+        onClick={() => scrollOptions(-1)}
+      >
+        <ChevronLeft aria-hidden="true" />
+      </Button>
       <div
+        ref={optionsScrollRef}
         className="min-w-0 flex-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label={
           isGroupMode ? 'Lọc theo nhóm danh mục' : 'Lọc theo nhân viên'
@@ -132,15 +159,21 @@ export function CustomerResponsibilityFilterRow({
               </Button>
             );
           })}
-          {options.length === 0 ? (
-            <span className="shrink-0 px-1 text-xs text-muted-foreground">
-              {isGroupMode
-                ? 'Chưa có nhóm danh mục.'
-                : 'Chưa có nhân viên phụ trách.'}
-            </span>
-          ) : null}
         </div>
       </div>
+      <Button
+        type="button"
+        variant="ghost"
+        mode="icon"
+        size="md"
+        className="shrink-0 rounded-full"
+        aria-label="Cuộn danh sách sang phải"
+        title="Cuộn sang phải"
+        disabled={disabled}
+        onClick={() => scrollOptions(1)}
+      >
+        <ChevronRight aria-hidden="true" />
+      </Button>
     </div>
   );
 }

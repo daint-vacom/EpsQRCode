@@ -75,7 +75,7 @@ function getCustomerGeneralFields(
       searchText: BUSINESS_TYPE_LABELS[customer.businessType],
     },
     {
-      label: 'Mã số thuế / QHNS / ĐKKD',
+      label: 'Mã số thuế',
       value: displayValue(customer.businessRegistrationCode),
       searchText: customer.businessRegistrationCode,
     },

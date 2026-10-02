@@ -24,6 +24,9 @@ export interface SelectWithAvatarOption<T = unknown> extends Omit<
   avatarUrl?: string | null;
   avatarFallback?: string;
   avatarTone?: GradientAvatarTone;
+  avatarClassName?: string;
+  avatarStatusRingClassName?: string;
+  avatarFallbackClassName?: string;
 }
 
 export interface SelectWithAvatarProps<T = unknown> extends Omit<
@@ -32,6 +35,7 @@ export interface SelectWithAvatarProps<T = unknown> extends Omit<
   | 'selectedOption'
   | 'renderOption'
   | 'triggerContent'
+  | 'optionContentClassName'
   | 'size'
   | 'className'
 > {
@@ -64,10 +68,13 @@ function SelectWithAvatarIdentity<T>({
           alt={option.label}
           fallback={fallback}
           tone={option.avatarTone ?? IDENTITY_AVATAR_TONES.employee}
+          statusRingClassName={option.avatarStatusRingClassName}
+          fallbackClassName={option.avatarFallbackClassName}
           className={cn(
             isLarge
               ? 'size-9 rounded-lg text-sm'
               : 'size-6 rounded-lg text-[10px]',
+            option.avatarClassName,
           )}
         />
         <span className="min-w-0 flex-1 truncate text-start">
@@ -108,6 +115,7 @@ export function SelectWithAvatar<T>({
     <OptionSelect<T>
       {...props}
       size={size}
+      optionContentClassName="overflow-visible"
       className={cn(variantClassName, sizeClassName, className)}
       renderOption={(option) => (
         <SelectWithAvatarIdentity

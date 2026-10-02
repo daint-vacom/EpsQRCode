@@ -296,12 +296,12 @@ export function useCustomerColumns(
       }),
       col.text({
         id: 'businessRegistrationCode',
-        header: 'Mã số đăng ký',
+        header: 'Mã số thuế',
         get: (row) => row.businessRegistrationCode,
         headerFilter: textFilter(
           params.businessRegistrationCode,
           params.onBusinessRegistrationCodeChange,
-          'Tìm theo mã số đăng ký',
+          'Tìm theo mã số thuế',
         ),
         headerClassName: 'min-w-[170px]',
         size: 180,

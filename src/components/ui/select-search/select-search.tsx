@@ -48,6 +48,7 @@ export interface SelectSearchProps<T = unknown> {
     | ((option: SearchSelectOption<T> | undefined) => ReactNode);
   triggerMode?: 'full' | 'chevron';
   className?: string;
+  optionContentClassName?: string;
   size?: 'sm' | 'md' | 'lg';
   'aria-invalid'?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -119,6 +120,7 @@ export function SelectSearch<T = unknown>({
   triggerContent,
   triggerMode = 'full',
   className,
+  optionContentClassName,
   size = 'md',
   'aria-invalid': ariaInvalid,
   onOpenChange,
@@ -282,7 +284,12 @@ export function SelectSearch<T = unknown>({
                           option.disabled && 'text-disabled-foreground',
                         )}
                       >
-                        <span className="min-w-0 flex-1 truncate">
+                        <span
+                          className={cn(
+                            'min-w-0 flex-1 truncate',
+                            optionContentClassName,
+                          )}
+                        >
                           {renderOption
                             ? renderOption(option, isSelected)
                             : option.label}

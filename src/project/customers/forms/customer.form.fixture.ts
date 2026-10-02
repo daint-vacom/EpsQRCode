@@ -26,7 +26,7 @@ const spec: FormSpec = {
     {
       kind: 'text',
       name: 'businessRegistrationCode',
-      label: 'Mã số thuế / QHNS / ĐKKD',
+      label: 'Mã số thuế',
       width: 'normal',
     },
     {

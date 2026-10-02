@@ -1,30 +1,18 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, Info, Mail, Pencil, Phone, Trash2 } from 'lucide-react';
+import { Pencil, Search, Trash2, UserRoundSearch } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardHeading,
-  CardTitle,
-} from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
+import { PageHeader } from '@/components/ui/page-header';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { Tag } from '@/components/ui/tag';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import {
   EntityDetailInformationCard,
   EntityDetailInformationGrid,
@@ -48,135 +36,81 @@ import { CustomerEditDialog } from '../components/customer-edit-dialog';
 import { CustomerOverviewContent } from '../components/customer-overview-content';
 import { CustomerResponsibilityPanel } from '../components/customer-responsibility-panel';
 import { CustomerSoftwareAccountsPanel } from '../components/customer-software-accounts-panel';
-import {
-  BUSINESS_TYPE_LABELS,
-  CUSTOMER_STATUS_LABELS,
-  VAT_DECLARATION_PERIOD_LABELS,
-  type Customer,
-} from '../model/customer';
+import { CustomerStatusBadge } from '../components/customer-status-badge';
+import { BUSINESS_TYPE_LABELS, type Customer } from '../model/customer';
 
 function CustomerProfileCard({ customer }: { customer: Customer }) {
-  const statusColor =
-    customer.status === 'active'
-      ? '#16a34a'
-      : customer.status === 'inactive'
-        ? '#dc2626'
-        : '#64748b';
-
   return (
     <EntityDetailProfileCard
       avatar={
         <CustomerAvatar
           customer={customer}
-          className="size-24 rounded-2xl text-2xl"
+          ringSize="large"
+          className="size-24 rounded-full text-2xl"
         />
       }
       title={customer.name}
       subtitle={customer.customerCode}
-    >
-      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Phone className="size-4 shrink-0" />
-        <span className="truncate">
-          {customer.phone || 'Chưa có số điện thoại'}
-        </span>
-      </div>
-      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Mail className="size-4 shrink-0" />
-        <span className="truncate">{customer.email || 'Chưa có email'}</span>
-      </div>
-      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-        <Building2 className="size-4 shrink-0" />
-        <span className="truncate">
-          {BUSINESS_TYPE_LABELS[customer.businessType]}
-        </span>
-      </div>
-      <Tag size="sm" shape="circle" color={statusColor}>
-        {CUSTOMER_STATUS_LABELS[customer.status]}
-      </Tag>
-    </EntityDetailProfileCard>
+    />
   );
 }
 
-function CustomerInformationCard({
-  customer,
-  onEdit,
-  onDelete,
-  onShowDetails,
+function CustomerInformationItem({
+  label,
+  value,
 }: {
-  customer: Customer;
-  onEdit: () => void;
-  onDelete: () => void;
-  onShowDetails: () => void;
+  label: string;
+  value: ReactNode;
 }) {
   return (
-    <EntityDetailInformationCard
-      actions={
-        <>
-          <Button type="button" variant="ghost" onClick={onShowDetails}>
-            <Info />
-            Tra cứu
-          </Button>
-          <ShortcutTooltip label="Sửa thông tin" shortcut="Alt + E">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onEdit}
-              data-shortcut-action="edit"
-            >
-              <Pencil />
-              Sửa thông tin
-            </Button>
-          </ShortcutTooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="destructive"
-                appearance="ghost"
-                mode="icon"
-                aria-label={`Xóa khách hàng ${customer.name}`}
-                onClick={onDelete}
-              >
-                <Trash2 />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Xóa khách hàng</TooltipContent>
-          </Tooltip>
-        </>
-      }
-    >
-      <EntityDetailInformationGrid>
-        <EntityDetailInformationItem
-          label="Mã số thuế / QHNS / ĐKKD"
+    <EntityDetailInformationItem
+      label={label}
+      value={value}
+      className="grid grid-cols-[minmax(7rem,0.85fr)_minmax(0,1.15fr)] items-start gap-x-3 space-y-0 [&>p]:min-w-0 [&>p]:break-words [&>p]:[overflow-wrap:anywhere] [&>div]:min-w-0 [&>div]:break-words [&>div]:[overflow-wrap:anywhere]"
+    />
+  );
+}
+
+function CustomerInformationCard({ customer }: { customer: Customer }) {
+  return (
+    <EntityDetailInformationCard>
+      <EntityDetailInformationGrid className="grid-flow-row grid-cols-1 sm:grid-flow-col sm:grid-cols-2 sm:grid-rows-5 xl:grid-cols-2">
+        <CustomerInformationItem
+          label="Trạng thái"
+          value={<CustomerStatusBadge status={customer.status} />}
+        />
+        <CustomerInformationItem
+          label="Số điện thoại"
+          value={customer.phone || 'Chưa có số điện thoại'}
+        />
+        <CustomerInformationItem
+          label="Email"
+          value={customer.email || 'Chưa có email'}
+        />
+        <CustomerInformationItem
+          label="Loại hình doanh nghiệp"
+          value={BUSINESS_TYPE_LABELS[customer.businessType]}
+        />
+        <CustomerInformationItem
+          label="Mã số thuế"
           value={customer.businessRegistrationCode}
         />
-        <EntityDetailInformationItem
+        <CustomerInformationItem
           label="Tỉnh/Thành phố"
           value={customer.regionName}
         />
-        <EntityDetailInformationItem
+        <CustomerInformationItem
           label="Quận/Huyện"
           value={customer.districtName}
         />
-        <EntityDetailInformationItem
-          label="Phường/Xã"
-          value={customer.wardName}
-        />
-        <EntityDetailInformationItem
+        <CustomerInformationItem label="Phường/Xã" value={customer.wardName} />
+        <CustomerInformationItem
           label="Số nhà, tên đường"
           value={customer.streetAddress}
         />
-        <EntityDetailInformationItem
+        <CustomerInformationItem
           label="Người liên hệ"
           value={customer.contactName}
-        />
-        <EntityDetailInformationItem
-          label="Chức danh"
-          value={customer.contactTitle}
-        />
-        <EntityDetailInformationItem
-          label="Kỳ kê khai thuế GTGT"
-          value={VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod]}
         />
       </EntityDetailInformationGrid>
     </EntityDetailInformationCard>
@@ -275,36 +209,69 @@ export function CustomerDetailPage() {
     staleTime: 60 * 1000,
   });
 
+  const pageHeader = (
+    <PageHeader
+      title={customerQuery.data?.name ?? 'Chi tiết khách hàng'}
+      icon={UserRoundSearch}
+      showBackButton
+      actions={
+        customerQuery.data ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDetailDialogOpen(true)}
+            >
+              <Search />
+              Tra cứu
+            </Button>
+            <ShortcutTooltip label="Sửa thông tin" shortcut="Alt + E">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditDialogOpen(true)}
+                data-shortcut-action="edit"
+              >
+                <Pencil />
+                Sửa thông tin
+              </Button>
+            </ShortcutTooltip>
+            <Button
+              type="button"
+              variant="destructive"
+              appearance="outline"
+              mode="icon"
+              size="icon"
+              aria-label={`Xóa khách hàng ${customerQuery.data.name}`}
+              title={`Xóa khách hàng ${customerQuery.data.name}`}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </>
+        ) : undefined
+      }
+    />
+  );
+
   if (customerQuery.isPending) {
     return (
-      <PageLoading
-        label="Đang tải thông tin khách hàng..."
-        className="h-full"
-      />
+      <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
+        {pageHeader}
+        <PageLoading label="Đang tải thông tin khách hàng..." />
+      </div>
     );
   }
 
   if (customerQuery.isError || !customerQuery.data) {
     return (
-      <div className="flex h-full items-center justify-center p-4 lg:p-5">
-        <Card className="max-w-lg text-center">
-          <CardHeader>
-            <CardHeading>
-              <CardTitle>Không tải được khách hàng</CardTitle>
-              <CardDescription className="mt-2">
-                {getApiErrorMessage(customerQuery.error)}
-              </CardDescription>
-            </CardHeading>
-          </CardHeader>
-          <CardContent className="flex justify-center gap-2 pt-0">
-            <Button variant="outline" onClick={() => navigate(-1)}>
-              Quay lại
-            </Button>
-            <Button variant="primary" onClick={() => customerQuery.refetch()}>
-              Thử lại
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
+        {pageHeader}
+        <ErrorState
+          title="Không tải được khách hàng"
+          description={getApiErrorMessage(customerQuery.error)}
+          onRetry={() => void customerQuery.refetch()}
+        />
       </div>
     );
   }
@@ -312,17 +279,11 @@ export function CustomerDetailPage() {
   const customer = customerQuery.data;
 
   return (
-    <>
+    <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
+      {pageHeader}
       <CustomerDetailLayout
         profile={<CustomerProfileCard customer={customer} />}
-        information={
-          <CustomerInformationCard
-            customer={customer}
-            onShowDetails={() => setDetailDialogOpen(true)}
-            onEdit={() => setEditDialogOpen(true)}
-            onDelete={() => setDeleteDialogOpen(true)}
-          />
-        }
+        information={<CustomerInformationCard customer={customer} />}
         overviewContent={<CustomerOverviewContent customer={customer} />}
         debtsContent={<CustomerDebtsTab customer={customer} />}
         contractsContent={<CustomerContractsTable customerId={customer.id} />}
@@ -342,6 +303,7 @@ export function CustomerDetailPage() {
             error={customerSoftwareAccountsQuery.error}
           />
         }
+        className="h-auto min-h-0 overflow-visible p-0 lg:p-0"
       />
       <CustomerDetailDialog
         open={detailDialogOpen}
@@ -380,6 +342,6 @@ export function CustomerDetailPage() {
         confirmVariant="destructive"
         onConfirm={() => deleteMutation.mutate(customer.id)}
       />
-    </>
+    </div>
   );
 }

@@ -174,6 +174,7 @@ export function ContractTemplateEditPage() {
             ? 'Quay lại thông tin mẫu hợp đồng'
             : 'Quay lại danh sách mẫu hợp đồng'
         }
+        showBackButton
         onBack={() => navigate(returnTo)}
         actions={
           <>

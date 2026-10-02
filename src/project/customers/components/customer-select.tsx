@@ -13,6 +13,7 @@ import {
   loadCustomerSelectOptions,
   type CustomerSelectOption,
 } from '../api/customers.api';
+import { getCustomerAvatarStatusRingClassName } from './customer-avatar';
 
 export type { CustomerSelectOption } from '../api/customers.api';
 
@@ -33,6 +34,11 @@ function toOption(
     code: customer.customerCode,
     avatarUrl: customer.imageUrl,
     avatarTone: IDENTITY_AVATAR_TONES.customer,
+    avatarClassName: 'rounded-full',
+    avatarStatusRingClassName: getCustomerAvatarStatusRingClassName(
+      customer.status,
+      'small',
+    ),
     searchableText: `${customer.name} ${customer.customerCode}`,
     data: customer,
   };

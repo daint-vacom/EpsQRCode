@@ -18,6 +18,9 @@ export interface AvatarIdentityData {
   code: string;
   avatarUrl?: string | null;
   tone?: GradientAvatarTone;
+  avatarClassName?: string;
+  statusRingClassName?: string;
+  fallbackClassName?: string;
 }
 
 export type AvatarIdentityAlertTone = 'warning' | 'destructive' | 'info';
@@ -63,6 +66,9 @@ export function AvatarIdentity({
   code,
   avatarUrl,
   tone = IDENTITY_AVATAR_TONES.employee,
+  avatarClassName,
+  statusRingClassName,
+  fallbackClassName,
   badge,
   className,
 }: AvatarIdentityData & { badge?: ReactNode; className?: string }) {
@@ -74,7 +80,12 @@ export function AvatarIdentity({
           alt={name}
           fallback={getAvatarInitials(name)}
           tone={tone}
-          className="size-9 rounded-lg text-sm transition-transform group-hover:scale-105"
+          className={cn(
+            'size-9 rounded-lg text-sm transition-transform group-hover:scale-105',
+            avatarClassName,
+          )}
+          statusRingClassName={statusRingClassName}
+          fallbackClassName={fallbackClassName}
         />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold leading-5 text-foreground transition-colors group-hover:text-primary">
