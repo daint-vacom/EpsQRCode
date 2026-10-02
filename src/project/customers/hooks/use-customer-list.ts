@@ -71,7 +71,7 @@ export function useCustomerList({
       contactSearch: { omit: [''] },
       phone: { omit: [''] },
       email: { omit: [''] },
-      addressDetail: { omit: [''] },
+      address: { omit: [''] },
       statuses: {
         param: 'statuses',
         serialize: (value) => (value.length > 0 ? value.join(',') : undefined),
@@ -126,10 +126,8 @@ export function useCustomerList({
           : '',
       phone: typeof queryParams.phone === 'string' ? queryParams.phone : '',
       email: typeof queryParams.email === 'string' ? queryParams.email : '',
-      addressDetail:
-        typeof queryParams.addressDetail === 'string'
-          ? queryParams.addressDetail
-          : '',
+      address:
+        typeof queryParams.address === 'string' ? queryParams.address : '',
       note: typeof queryParams.note === 'string' ? queryParams.note : '',
       customFields: parseCustomFieldFilters(queryParams.customFields),
     } satisfies CustomerListFieldFilters,

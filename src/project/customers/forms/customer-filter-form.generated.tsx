@@ -52,7 +52,7 @@ export const customerFilterDefaultValues: CustomerFilterFormValues = {
   contactSearch: '',
   phone: '',
   email: '',
-  addressDetail: '',
+  address: '',
   tagIds: [],
   statuses: [],
   note: '',
@@ -178,7 +178,7 @@ export function CustomerFilterForm({
               'contactSearch',
               'phone',
               'email',
-              'addressDetail',
+              'address',
             ] as const
           ).map((fieldName) => {
             const labels = {
@@ -187,7 +187,7 @@ export function CustomerFilterForm({
               contactSearch: 'Liên hệ',
               phone: 'Số điện thoại',
               email: 'Email',
-              addressDetail: 'Địa chỉ chi tiết',
+              address: 'Địa chỉ',
             };
             const placeholders = {
               countryCode: 'Nhập mã quốc gia',
@@ -195,7 +195,7 @@ export function CustomerFilterForm({
               contactSearch: 'Tìm theo số điện thoại hoặc email',
               phone: 'Tìm theo số điện thoại',
               email: 'Tìm theo email',
-              addressDetail: 'Tìm theo địa chỉ',
+              address: 'Tìm theo địa chỉ',
             };
             return (
               <FormField

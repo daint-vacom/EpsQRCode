@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
-import { TagSelect } from '@/project/tags/components/tag-select';
 import type { SoftwareAccountCatalog } from '@/project/tags/model/software-account-catalog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, MapPin, Plus, RefreshCw, UserRound } from 'lucide-react';
@@ -66,15 +65,16 @@ import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import { CustomerResponsibilityTab } from '../components/customer-responsibility-tab';
 import { CustomerSoftwareAccountsEditorTable } from '../components/customer-software-accounts-editor.generated';
-import { CustomerStatusBadge } from '../components/customer-status-badge';
 import {
   createEmptyCustomerSoftwareAccount,
   customerFormSchema,
+  getCustomerFullAddress,
   type Customer,
   type CustomerFormValues,
   type CustomerStatus,
 } from '../model/customer';
 import type { CustomerResponsibilityAssignmentInput } from '../model/customer-responsibility';
+import { CustomerGroupTagsField } from './customer-group-tags-field';
 
 const businessTypeOptions = [
   { value: 'individual', label: 'Cá nhân' },
@@ -117,6 +117,12 @@ const statusOptions = [
   { value: 'uncontacted', label: 'Chưa liên hệ' },
 ];
 
+const statusTextClasses: Record<CustomerStatus, string> = {
+  active: 'text-admin-success-text',
+  inactive: 'text-admin-red-dark',
+  uncontacted: 'text-muted-foreground',
+};
+
 const vatDeclarationPeriodOptions = [
   { value: 'monthly', label: 'Theo tháng' },
   { value: 'quarterly', label: 'Theo quý' },
@@ -138,7 +144,6 @@ export const customerDefaultValues: CustomerFormValues = {
   status: 'active',
   phone: '',
   email: '',
-  addressDetail: '',
   contactName: '',
   contactTitle: '',
   establishedDate: null,
@@ -174,7 +179,6 @@ export function mapCustomerToFormValues(entity: Customer): CustomerFormValues {
     status: entity.status,
     phone: entity.phone,
     email: entity.email,
-    addressDetail: entity.addressDetail,
     contactName: entity.contactName,
     contactTitle: entity.contactTitle,
     establishedDate: entity.establishedDate
@@ -247,6 +251,18 @@ export function CustomerForm({
     ),
   };
   const countryCode = form.watch('countryCode');
+  const streetAddress = form.watch('streetAddress');
+  const regionCode = form.watch('regionCode');
+  const regionName = form.watch('regionName');
+  const fullAddress = getCustomerFullAddress({
+    streetAddress,
+    regionName:
+      countryCode === 'VN'
+        ? (regionCodeOptions.find((option) => option.value === regionCode)
+            ?.label ?? '')
+        : regionName,
+    countryCode,
+  });
   const activeCustomFields = customFields.filter(
     (customField) => customField.isActive,
   );
@@ -255,7 +271,19 @@ export function CustomerForm({
       <form
         id={id}
         className="min-h-0 lg:flex lg:flex-1 lg:flex-col"
-        onSubmit={form.handleSubmit(onSubmit, onValidationError)}
+        onSubmit={form.handleSubmit(
+          (values) =>
+            onSubmit({
+              ...values,
+              regionName:
+                values.countryCode === 'VN'
+                  ? (regionCodeOptions.find(
+                      (option) => option.value === values.regionCode,
+                    )?.label ?? values.regionName)
+                  : values.regionName,
+            }),
+          onValidationError,
+        )}
       >
         <div className="grid min-h-0 grid-cols-1 gap-6 lg:flex-1 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:grid-rows-1">
           <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
@@ -281,7 +309,7 @@ export function CustomerForm({
                 control={form.control}
                 name="customerCode"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem layout="horizontal" labelWidth="md">
                     <FormLabel>
                       Mã khách hàng<span className="text-destructive"> *</span>
                     </FormLabel>
@@ -297,7 +325,7 @@ export function CustomerForm({
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem layout="horizontal" labelWidth="md">
                     <FormLabel>
                       Tên khách hàng<span className="text-destructive"> *</span>
                     </FormLabel>
@@ -313,7 +341,7 @@ export function CustomerForm({
                 control={form.control}
                 name="businessRegistrationCode"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem layout="horizontal" labelWidth="md">
                     <FormLabel>Mã số thuế</FormLabel>
                     <FormControl>
                       <Input variant="md" {...field} />
@@ -327,17 +355,12 @@ export function CustomerForm({
                 control={form.control}
                 name="customerGroupTagIds"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem layout="horizontal" labelWidth="md">
                     <FormLabel>Nhóm khách hàng</FormLabel>
                     <FormControl>
-                      <TagSelect
+                      <CustomerGroupTagsField
                         value={field.value}
                         onChange={field.onChange}
-                        moduleCodes={['customers']}
-                        allowCustomGroups={false}
-                        placeholder="Chọn nhóm khách hàng"
-                        searchPlaceholder="Tìm nhóm khách hàng..."
-                        emptyMessage="Không tìm thấy nhóm khách hàng"
                       />
                     </FormControl>
                     <FormMessage />
@@ -389,34 +412,37 @@ export function CustomerForm({
                           control={form.control}
                           name="status"
                           render={({ field }) => (
-                            <FormItem className="md:col-span-2">
+                            <FormItem
+                              layout="horizontal"
+                              labelWidth="md"
+                              className="md:col-span-2"
+                            >
                               <FormLabel>Trạng thái</FormLabel>
-                              <Select
+                              <RadioGroup
                                 value={field.value}
                                 onValueChange={field.onChange}
+                                name={field.name}
+                                aria-label="Trạng thái khách hàng"
+                                className="flex flex-wrap gap-x-5 gap-y-2"
                               >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue>
-                                      <CustomerStatusBadge
-                                        status={field.value}
-                                      />
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {statusOptions.map((opt) => (
-                                    <SelectItem
-                                      key={opt.value}
-                                      value={opt.value}
+                                {statusOptions.map((opt) => (
+                                  <label
+                                    key={opt.value}
+                                    className="flex cursor-pointer items-center gap-2 text-sm"
+                                  >
+                                    <RadioGroupItem value={opt.value} />
+                                    <span
+                                      className={
+                                        statusTextClasses[
+                                          opt.value as CustomerStatus
+                                        ]
+                                      }
                                     >
-                                      <CustomerStatusBadge
-                                        status={opt.value as CustomerStatus}
-                                      />
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                      {opt.label}
+                                    </span>
+                                  </label>
+                                ))}
+                              </RadioGroup>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -427,7 +453,7 @@ export function CustomerForm({
                         control={form.control}
                         name="businessType"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Loại hình đơn vị</FormLabel>
                             <Select
                               value={field.value}
@@ -455,7 +481,7 @@ export function CustomerForm({
                         control={form.control}
                         name="establishedDate"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Ngày thành lập</FormLabel>
                             <FormControl>
                               <DatePickerInput
@@ -476,7 +502,11 @@ export function CustomerForm({
                         control={form.control}
                         name="vatDeclarationPeriod"
                         render={({ field }) => (
-                          <FormItem className="md:col-span-2">
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            className="md:col-span-2"
+                          >
                             <FormLabel>
                               Kỳ kê khai thuế GTGT
                               <span className="text-destructive"> *</span>
@@ -516,7 +546,11 @@ export function CustomerForm({
                         control={form.control}
                         name="contactName"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            className="md:col-span-2"
+                          >
                             <FormLabel>Người liên hệ</FormLabel>
                             <FormControl>
                               <Input variant="md" {...field} />
@@ -530,7 +564,7 @@ export function CustomerForm({
                         control={form.control}
                         name="contactTitle"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Chức danh</FormLabel>
                             <FormControl>
                               <Input variant="md" {...field} />
@@ -544,7 +578,7 @@ export function CustomerForm({
                         control={form.control}
                         name="phone"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Số điện thoại</FormLabel>
                             <FormControl>
                               <Input type="tel" variant="md" {...field} />
@@ -558,7 +592,11 @@ export function CustomerForm({
                         control={form.control}
                         name="email"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            className="md:col-span-2"
+                          >
                             <FormLabel>Email</FormLabel>
                             <FormControl>
                               <Input type="email" variant="md" {...field} />
@@ -576,7 +614,7 @@ export function CustomerForm({
                         control={form.control}
                         name="countryCode"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Quốc gia</FormLabel>
                             <FormControl>
                               <CountrySelect
@@ -599,12 +637,20 @@ export function CustomerForm({
                           control={form.control}
                           name="regionCode"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem layout="horizontal" labelWidth="md">
                               <FormLabel>Tỉnh/Thành phố</FormLabel>
                               <FormControl>
                                 <VietnamRegionSelect
                                   value={field.value}
-                                  onValueChange={field.onChange}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    form.setValue(
+                                      'regionName',
+                                      regionCodeOptions.find(
+                                        (option) => option.value === value,
+                                      )?.label ?? '',
+                                    );
+                                  }}
                                   options={regionCodeOptions}
                                 />
                               </FormControl>
@@ -617,7 +663,7 @@ export function CustomerForm({
                           control={form.control}
                           name="regionName"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem layout="horizontal" labelWidth="md">
                               <FormLabel>Tỉnh/Bang/Khu vực</FormLabel>
                               <FormControl>
                                 <Input
@@ -636,7 +682,7 @@ export function CustomerForm({
                         control={form.control}
                         name="districtName"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Quận/Huyện</FormLabel>
                             <FormControl>
                               <Input variant="md" {...field} />
@@ -650,7 +696,7 @@ export function CustomerForm({
                         control={form.control}
                         name="wardName"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem layout="horizontal" labelWidth="md">
                             <FormLabel>Phường/Xã</FormLabel>
                             <FormControl>
                               <Input variant="md" {...field} />
@@ -664,7 +710,11 @@ export function CustomerForm({
                         control={form.control}
                         name="streetAddress"
                         render={({ field }) => (
-                          <FormItem className="md:col-span-2">
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            className="md:col-span-2"
+                          >
                             <FormLabel>Số nhà, tên đường</FormLabel>
                             <FormControl>
                               <Input variant="md" {...field} />
@@ -674,19 +724,14 @@ export function CustomerForm({
                         )}
                       />
 
-                      <FormField
-                        control={form.control}
-                        name="addressDetail"
-                        render={({ field }) => (
-                          <FormItem className="md:col-span-2">
-                            <FormLabel>Địa chỉ đầy đủ</FormLabel>
-                            <FormControl>
-                              <Input variant="md" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 md:col-span-2">
+                        <span className="pt-2 text-sm text-foreground">
+                          Địa chỉ đầy đủ
+                        </span>
+                        <div className="flex min-h-9 items-center break-words text-sm text-foreground">
+                          {fullAddress || '—'}
+                        </div>
+                      </div>
                     </div>
                   </FormSection>
                 </div>
@@ -832,7 +877,7 @@ function CustomerCustomFieldInput({
       control={form.control}
       name={fieldName as never}
       render={({ field }) => (
-        <FormItem>
+        <FormItem layout="horizontal" labelWidth="md">
           <FormLabel>
             {customField.label}
             {customField.isRequired ? (
@@ -897,10 +942,7 @@ interface CustomerFormDialogProps {
 }
 
 type CustomerFormTab =
-  | 'general'
-  | 'custom'
-  | 'responsibility'
-  | 'softwareAccounts';
+  'general' | 'custom' | 'responsibility' | 'softwareAccounts';
 
 function collectCustomerFormErrorPaths(
   errors: FieldErrors<CustomerFormValues>,

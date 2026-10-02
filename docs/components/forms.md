@@ -155,6 +155,24 @@ Nhóm 1 cấp qua `group`; số đếm qua `count`. Với `nestedOptions`, group
 group có thể chọn/bỏ chọn toàn bộ leaf. Search fuzzy giữ lại group cha khi leaf con khớp. Popover
 **giữ mở** khi toggle (đúng UX multi-select).
 
+### TagSelect — chọn nhiều nhãn theo nhóm
+
+Dùng `TagSelect` từ `@/project/tags/components/tag-select` khi dữ liệu lấy từ danh mục nhãn dùng chung:
+
+```tsx
+<TagSelect
+  value={tagIds}
+  onChange={setTagIds}
+  moduleCodes={['customers']}
+  variant="button"
+/>
+```
+
+`variant="input"` (mặc định) hiển thị badge đã chọn ngay trong select input. `variant="button"` hiển thị
+nút ghost **Thêm nhãn** và badge đã chọn bên dưới. Cả hai dạng đều hỗ trợ tìm kiếm, chọn nhiều và chọn/bỏ
+chọn toàn bộ nhãn trong nhóm. `allowCustomGroups` bật (mặc định) để lấy thêm nhóm nhãn tenant tự tạo
+(`module_code = null`) bên cạnh các nhóm trong `moduleCodes`.
+
 ---
 
 ## NumericInput — ô số định dạng VN

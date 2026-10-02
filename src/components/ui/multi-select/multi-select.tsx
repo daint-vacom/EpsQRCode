@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { ComponentProps, KeyboardEvent, ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
 import { ChevronsUpDown, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,10 @@ export interface MultiSelectProps<T = unknown> {
   selectedOptionsLayout?: 'inline' | 'stacked';
   size?: MultiSelectSize;
   ariaLabel?: string;
+  triggerVariant?: ComponentProps<typeof Button>['variant'];
+  triggerMode?: ComponentProps<typeof Button>['mode'];
+  triggerStartIcon?: ReactNode;
+  triggerEndIcon?: ReactNode;
   className?: string;
 }
 
@@ -105,6 +109,10 @@ export function MultiSelect<T = unknown>({
   selectedOptionsLayout = 'inline',
   size,
   ariaLabel,
+  triggerVariant = 'outline',
+  triggerMode = 'input',
+  triggerStartIcon,
+  triggerEndIcon,
   className,
 }: MultiSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
@@ -131,6 +139,12 @@ export function MultiSelect<T = unknown>({
     ? Math.max(0, selectedOptions.length - visibleChipLimit)
     : 0;
   const hasSelection = selectedOptions.length > 0;
+  const endIcon =
+    triggerEndIcon === undefined ? (
+      <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+    ) : (
+      triggerEndIcon
+    );
 
   const handleOpenChange = (nextOpen: boolean) => {
     setIsOpen(nextOpen);
@@ -222,6 +236,7 @@ export function MultiSelect<T = unknown>({
 
   const triggerContent = (
     <>
+      {triggerStartIcon}
       <span
         className={cn(
           'flex min-w-0 flex-1 items-center gap-1.5 text-start',
@@ -305,7 +320,7 @@ export function MultiSelect<T = unknown>({
           </span>
         ) : null}
       </span>
-      <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+      {endIcon}
     </>
   );
 
@@ -339,8 +354,8 @@ export function MultiSelect<T = unknown>({
             aria-expanded={isOpen}
             aria-busy={loading}
             disabled={disabled}
-            variant="outline"
-            mode="input"
+            variant={triggerVariant}
+            mode={triggerMode}
             autoHeight={isStacked}
             placeholder={!hasSelection || !showSelectedOptionsInTrigger}
             className={cn(

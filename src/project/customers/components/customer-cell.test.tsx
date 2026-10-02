@@ -20,7 +20,6 @@ const customer: Customer = {
   streetAddress: '1 Đường Mẫu',
   phone: '0900000000',
   email: 'contact@example.com',
-  addressDetail: '1 Đường Mẫu',
   contactName: 'Nguyễn Văn A',
   contactTitle: 'Giám đốc',
   establishedDate: null,

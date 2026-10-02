@@ -1,5 +1,5 @@
-import { Tag } from '@/components/ui/tag';
 import type { TagSelectOption } from '../model/tag';
+import { TagBadge } from './tag-badge';
 
 export interface TagListProps {
   tags: readonly Pick<TagSelectOption, 'id' | 'name' | 'color'>[];
@@ -17,9 +17,9 @@ export function TagList({ tags, maxVisible = 2 }: TagListProps) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1">
       {visibleTags.map((tag) => (
-        <Tag key={tag.id} color={tag.color} size="sm" className="max-w-32">
+        <TagBadge key={tag.id} color={tag.color} size="md" className="max-w-32">
           <span className="truncate">{tag.name}</span>
-        </Tag>
+        </TagBadge>
       ))}
       {hiddenCount > 0 ? (
         <span className="text-xs font-medium text-muted-foreground">

@@ -83,7 +83,7 @@ const CUSTOMER_SELECTION_HIDDEN_COLUMNS = [
   'countryCode',
   'phone',
   'email',
-  'addressDetail',
+  'address',
   'note',
 ] as const;
 
@@ -161,9 +161,8 @@ export function EmployeeCustomerSelectionStep({
     onPhoneChange: (value) => tableState.setFilter('phone', value),
     email: tableState.filters.email,
     onEmailChange: (value) => tableState.setFilter('email', value),
-    addressDetail: tableState.filters.addressDetail,
-    onAddressDetailChange: (value) =>
-      tableState.setFilter('addressDetail', value),
+    address: tableState.filters.address,
+    onAddressChange: (value) => tableState.setFilter('address', value),
     statuses: tableState.filters.statuses,
     onStatusesChange: (value) =>
       tableState.setFilter(

@@ -114,7 +114,6 @@ export const customerFormSchema = z.object({
   streetAddress: z.string().trim(),
   phone: z.string().trim(),
   email: z.string().trim().email('Email không hợp lệ.').or(z.literal('')),
-  addressDetail: z.string().trim(),
   contactName: z.string().trim(),
   contactTitle: z.string().trim(),
   establishedDate: z.date().nullable(),
@@ -151,7 +150,8 @@ export interface Customer {
   streetAddress: string;
   phone: string;
   email: string;
-  addressDetail: string;
+  /** Derived from streetAddress, regionName, and countryCode; never persisted. */
+  fullAddress?: string;
   contactName: string;
   contactTitle: string;
   establishedDate: string | null;
@@ -177,7 +177,6 @@ export interface CustomerRow {
   street_address: string;
   phone: string;
   email: string;
-  address_detail: string;
   contact_name: string;
   contact_title: string;
   established_date: string | null;
@@ -198,7 +197,7 @@ export interface CustomerListFieldFilters {
   contactSearch: string;
   phone: string;
   email: string;
-  addressDetail: string;
+  address: string;
   note: string;
   customFields: Record<string, string>;
 }
@@ -224,7 +223,7 @@ export interface CustomerListFilters {
   contactSearch: string;
   phone: string;
   email: string;
-  addressDetail: string;
+  address: string;
   statuses: CustomerStatus[];
   tagIds: string[];
   responsibleEmployeeIds?: string[];
@@ -251,10 +250,7 @@ export const customerFilterFormSchema = z.object({
     .max(100, 'Liên hệ không được quá 100 ký tự.'),
   phone: z.string().trim().max(100, 'Số điện thoại không được quá 100 ký tự.'),
   email: z.string().trim().max(100, 'Email không được quá 100 ký tự.'),
-  addressDetail: z
-    .string()
-    .trim()
-    .max(200, 'Địa chỉ không được quá 200 ký tự.'),
+  address: z.string().trim().max(200, 'Địa chỉ không được quá 200 ký tự.'),
   tagIds: z.array(z.string()),
   statuses: z.array(z.enum(CUSTOMER_STATUSES)),
   note: z.string().trim().max(500, 'Ghi chú không được quá 500 ký tự.'),
@@ -273,7 +269,7 @@ export const CUSTOMER_LIST_INITIAL_FILTERS: CustomerListFilters = {
   contactSearch: '',
   phone: '',
   email: '',
-  addressDetail: '',
+  address: '',
   statuses: [],
   tagIds: [],
   responsibleEmployeeIds: [],
@@ -304,7 +300,6 @@ export const emptyCustomerForm: CustomerFormValues = {
   streetAddress: '',
   phone: '',
   email: '',
-  addressDetail: '',
   contactName: '',
   contactTitle: '',
   establishedDate: null,
@@ -332,7 +327,11 @@ export function mapCustomerRow(row: CustomerRow): Customer {
     streetAddress: row.street_address ?? '',
     phone: row.phone,
     email: row.email,
-    addressDetail: row.address_detail,
+    fullAddress: getCustomerFullAddress({
+      streetAddress: row.street_address,
+      regionName: row.region_name,
+      countryCode: row.country_code,
+    }),
     contactName: row.contact_name ?? '',
     contactTitle: row.contact_title ?? '',
     establishedDate: row.established_date ?? null,
@@ -371,7 +370,6 @@ export function mapCustomerToFormValues(
     streetAddress: customer.streetAddress,
     phone: customer.phone,
     email: customer.email,
-    addressDetail: customer.addressDetail,
     contactName: customer.contactName,
     contactTitle: customer.contactTitle,
     establishedDate: customer.establishedDate
@@ -386,4 +384,54 @@ export function mapCustomerToFormValues(
     status: customer.status,
     customFields: customer.customFields,
   };
+}
+
+export function getCustomerFullAddress({
+  streetAddress,
+  regionName,
+  countryCode,
+}: {
+  streetAddress: string | null | undefined;
+  regionName: string | null | undefined;
+  countryCode: string | null | undefined;
+}): string {
+  const countryLabel =
+    CUSTOMER_COUNTRY_OPTIONS.find((option) => option.value === countryCode)
+      ?.label ?? countryCode;
+  const normalizedStreet = removeTrailingAddressPart(
+    removeTrailingAddressPart(streetAddress?.trim() ?? '', countryLabel),
+    regionName,
+  );
+
+  return [normalizedStreet, regionName, countryLabel]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(', ');
+}
+
+function removeTrailingAddressPart(
+  address: string,
+  part: string | null | undefined,
+): string {
+  const trimmedPart = part?.trim();
+  if (!address || !trimmedPart) return address;
+
+  const variants = [
+    trimmedPart,
+    trimmedPart.replace(/^(?:tỉnh|thành phố)\s+/iu, ''),
+  ];
+  for (const variant of new Set(variants)) {
+    if (!variant) continue;
+    const escapedVariant = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const suffixPattern = new RegExp(`(?:,\\s*|\\s+)${escapedVariant}$`, 'iu');
+    const shortenedAddress = address
+      .replace(suffixPattern, '')
+      .replace(/[,\s]+$/u, '')
+      .trim();
+    if (shortenedAddress && shortenedAddress.length < address.length) {
+      return shortenedAddress;
+    }
+  }
+
+  return address;
 }

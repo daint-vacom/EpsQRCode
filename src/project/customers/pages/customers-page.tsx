@@ -110,7 +110,7 @@ const customerDefaultColumnVisibility = {
   region: false,
   phone: false,
   email: false,
-  addressDetail: false,
+  address: false,
   note: false,
 };
 
@@ -711,8 +711,8 @@ export function CustomersPage() {
     onPhoneChange: (value) => setFilter('phone', value),
     email: filters.email,
     onEmailChange: (value) => setFilter('email', value),
-    addressDetail: filters.addressDetail,
-    onAddressDetailChange: (value) => setFilter('addressDetail', value),
+    address: filters.address,
+    onAddressChange: (value) => setFilter('address', value),
     statuses: filters.statuses,
     onStatusesChange: (value) =>
       setFilter('statuses', value as typeof filters.statuses),

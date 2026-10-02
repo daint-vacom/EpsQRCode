@@ -31,7 +31,7 @@ describe('customer saved view config', () => {
         contactSearch: '',
         phone: '',
         email: '',
-        addressDetail: '',
+        address: '',
         statuses: ['active'],
         tagIds: ['tag-1'],
         responsibleEmployeeIds: [],

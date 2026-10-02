@@ -78,8 +78,8 @@ const spec: FormSpec = {
     },
     {
       kind: 'text',
-      name: 'addressDetail',
-      label: 'Địa chỉ chi tiết',
+      name: 'address',
+      label: 'Địa chỉ',
       width: 'full',
       placeholder: 'Tìm theo địa chỉ',
     },

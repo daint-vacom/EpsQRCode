@@ -10,6 +10,7 @@ const tagOptions: TagSelectOption[] = [
     name: 'VIP',
     color: '#16a34a',
     groupId: 'group-1',
+    groupCode: 'customer-labels',
     groupName: 'Nhóm khách hàng',
     moduleCode: 'customers',
     isSystem: false,

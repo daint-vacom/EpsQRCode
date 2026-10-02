@@ -14,11 +14,20 @@ import { Badge, BadgeDot } from '@/components/ui/badge';
 <Badge variant="success" appearance="light" className="gap-1.5">
   <BadgeDot className="bg-admin-success-dot opacity-100" />
   Hoạt động
-</Badge>
+</Badge>;
 ```
 
 Variant: `primary | secondary | success | warning | info | outline | destructive`. Nếu cần biến thể
 ổn định cho vai trò/trạng thái dùng nhiều → **thêm variant vào `badge.tsx`**, không rải class màu ở page.
+
+## TagBadge — badge nhãn
+
+Nhãn dùng kiểu neutral soft; màu riêng chỉ đánh dấu bằng chấm tròn ở đầu badge. Import từ
+`@/project/tags/components/tag-badge`.
+
+```tsx
+<TagBadge color={tag.color}>{tag.name}</TagBadge>
+```
 
 ---
 
@@ -28,14 +37,25 @@ Map `enum trạng thái → nhãn + màu` qua một config, tránh switch-case r
 `@/components/ui/data-grid-columns`.
 
 ```tsx
-import { StatusBadge, type StatusBadgeConfig } from '@/components/ui/data-grid-columns';
+import {
+  StatusBadge,
+  type StatusBadgeConfig,
+} from '@/components/ui/data-grid-columns';
 
 const config: StatusBadgeConfig<'active' | 'locked'> = {
-  active: { label: 'Hoạt động', className: 'bg-admin-success-bg text-admin-success-text', dotClassName: 'bg-admin-success-dot' },
-  locked: { label: 'Đã khóa', variant: 'outline', dotClassName: 'bg-admin-neutral-400' },
+  active: {
+    label: 'Hoạt động',
+    className: 'bg-admin-success-bg text-admin-success-text',
+    dotClassName: 'bg-admin-success-dot',
+  },
+  locked: {
+    label: 'Đã khóa',
+    variant: 'outline',
+    dotClassName: 'bg-admin-neutral-400',
+  },
 };
 
-<StatusBadge status={row.status} config={config} />
+<StatusBadge status={row.status} config={config} />;
 ```
 
 `StatusBadgeConfig<TStatus> = Record<TStatus, { label: string; variant?: BadgeProps['variant']; dotClassName?: string; className?: string }>`.
@@ -50,10 +70,12 @@ Trạng thái thiếu trong config → render thẳng chuỗi (không crash). Tr
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 <Avatar className="size-9">
-  <AvatarFallback className={cn('bg-gradient-to-br font-bold', avatarClasses[emp.avatar])}>
+  <AvatarFallback
+    className={cn('bg-gradient-to-br font-bold', avatarClasses[emp.avatar])}
+  >
     {emp.initials}
   </AvatarFallback>
-</Avatar>
+</Avatar>;
 ```
 
 Map gradient theo domain giữ ở cấp trang là chấp nhận được.

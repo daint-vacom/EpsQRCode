@@ -231,7 +231,7 @@ export async function loadTagSelectOptions(
     supabaseApi.get(
       '/tag_groups',
       queryParams({
-        select: 'id,name,module_code,is_system,is_active,kind',
+        select: 'id,code,name,module_code,is_system,is_active,kind',
         kind: 'eq.tag',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
@@ -265,6 +265,7 @@ export async function loadTagSelectOptions(
         name: tag.name,
         color: tag.color,
         groupId: tag.group_id,
+        groupCode: group.code,
         groupName: group.name,
         moduleCode: group.module_code,
         isSystem: group.is_system,
@@ -304,7 +305,7 @@ export async function loadSubjectTagFilter(
     supabaseApi.get(
       '/tag_groups',
       queryParams({
-        select: 'id,name,module_code,is_system,is_active,kind',
+        select: 'id,code,name,module_code,is_system,is_active,kind',
         kind: 'eq.tag',
         tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
@@ -352,6 +353,7 @@ export async function loadSubjectTagFilter(
         name: tag.name,
         color: tag.color,
         groupId: tag.group_id,
+        groupCode: group.code,
         groupName: group.name,
         moduleCode: group.module_code,
         isSystem: group.is_system,

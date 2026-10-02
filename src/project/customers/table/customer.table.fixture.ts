@@ -88,9 +88,9 @@ const spec: TableSpec = {
     },
     {
       kind: 'text',
-      id: 'addressDetail',
-      header: 'Địa chỉ chi tiết',
-      field: 'addressDetail',
+      id: 'address',
+      header: 'Địa chỉ',
+      field: 'fullAddress',
       headerClassName: 'min-w-[240px]',
       sizePreset: 'extraLong',
     },

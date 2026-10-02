@@ -86,6 +86,7 @@ export interface TagSelectOption {
   name: string;
   color: string | null;
   groupId: string;
+  groupCode: string;
   groupName: string;
   moduleCode: string | null;
   isSystem: boolean;

@@ -473,7 +473,6 @@ function toPayload(values: CustomerFormValues) {
     street_address: values.streetAddress,
     phone: values.phone,
     email: values.email,
-    address_detail: values.addressDetail,
     contact_name: values.contactName,
     contact_title: values.contactTitle,
     established_date:

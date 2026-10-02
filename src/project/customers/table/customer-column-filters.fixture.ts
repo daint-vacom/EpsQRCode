@@ -66,7 +66,7 @@ const spec: ColumnFilterSpec = {
     },
     {
       type: 'search',
-      name: 'addressDetail',
+      name: 'address',
       placeholder: '',
       ariaLabel: 'Tìm theo địa chỉ',
       className: 'min-w-0 w-full shrink-0 bg-background',

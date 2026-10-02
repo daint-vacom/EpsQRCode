@@ -87,8 +87,8 @@ export interface UseCustomerColumnsParams {
   onPhoneChange: (value: string) => void;
   email: string;
   onEmailChange: (value: string) => void;
-  addressDetail: string;
-  onAddressDetailChange: (value: string) => void;
+  address: string;
+  onAddressChange: (value: string) => void;
   statuses: string[];
   onStatusesChange: (value: string[]) => void;
   note: string;
@@ -381,12 +381,12 @@ export function useCustomerColumns(
         enableSorting: false,
       }),
       col.text({
-        id: 'addressDetail',
-        header: 'Địa chỉ chi tiết',
-        get: (row) => row.addressDetail,
+        id: 'address',
+        header: 'Địa chỉ',
+        get: (row) => row.fullAddress ?? '',
         headerFilter: textFilter(
-          params.addressDetail,
-          params.onAddressDetailChange,
+          params.address,
+          params.onAddressChange,
           'Tìm theo địa chỉ',
         ),
         headerClassName: 'min-w-[240px]',

@@ -12,6 +12,7 @@ import { EmployeeCell } from '../../employees/components/employee-cell';
 import {
   BUSINESS_TYPE_LABELS,
   CUSTOMER_STATUS_LABELS,
+  getCustomerFullAddress,
   VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
   type CustomerSoftwareAccount,
@@ -44,6 +45,7 @@ function joinSearchText(...values: unknown[]) {
 function getCustomerGeneralFields(
   customer: Customer,
 ): EntityDetailDialogField[] {
+  const fullAddress = getCustomerFullAddress(customer);
   const country = COUNTRY_OPTIONS.find(
     (option) => option.value === customer.countryCode,
   );
@@ -106,8 +108,8 @@ function getCustomerGeneralFields(
     },
     {
       label: 'Địa chỉ đầy đủ',
-      value: displayValue(customer.addressDetail),
-      searchText: customer.addressDetail,
+      value: displayValue(fullAddress),
+      searchText: fullAddress,
     },
     {
       label: 'Người liên hệ',
@@ -176,6 +178,7 @@ function getCustomerCustomFields(
 }
 
 function buildGeneralSearchText(customer: Customer) {
+  const fullAddress = getCustomerFullAddress(customer);
   return joinSearchText(
     'thông tin chung',
     customer.name,
@@ -187,7 +190,7 @@ function buildGeneralSearchText(customer: Customer) {
     customer.districtName,
     customer.wardName,
     customer.streetAddress,
-    customer.addressDetail,
+    fullAddress,
     customer.contactName,
     customer.contactTitle,
     customer.establishedDate,

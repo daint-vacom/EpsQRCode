@@ -91,7 +91,7 @@ export function CustomerEditDialog({
   });
   const customerTagFilterQuery = useSubjectTagFilter('customer', {
     moduleCodes: [CUSTOMER_TAG_GROUP_CODE],
-    allowCustomGroups: false,
+    allowCustomGroups: true,
   });
   const customerSoftwareAccountsQuery = useQuery({
     queryKey: [
@@ -127,9 +127,9 @@ export function CustomerEditDialog({
     }
 
     const customerGroupTagIds =
-      customerTagFilterQuery.data?.tagsBySubjectId[customer.id]
-        ?.filter((tag) => tag.moduleCode === CUSTOMER_TAG_GROUP_CODE)
-        .map((tag) => tag.id) ?? [];
+      customerTagFilterQuery.data?.tagsBySubjectId[customer.id].map(
+        (tag) => tag.id,
+      ) ?? [];
 
     form.reset({
       ...mapCustomerToFormValues(customer),

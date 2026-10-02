@@ -39,7 +39,6 @@ describe('customer custom field values', () => {
       streetAddress: '',
       phone: '',
       email: '',
-      addressDetail: '',
       contactName: '',
       contactTitle: '',
       establishedDate: null,

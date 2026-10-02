@@ -99,10 +99,7 @@ export function normalizeCustomerSavedViewConfig(
           : '',
       phone: typeof rawFilters.phone === 'string' ? rawFilters.phone : '',
       email: typeof rawFilters.email === 'string' ? rawFilters.email : '',
-      addressDetail:
-        typeof rawFilters.addressDetail === 'string'
-          ? rawFilters.addressDetail
-          : '',
+      address: typeof rawFilters.address === 'string' ? rawFilters.address : '',
       statuses: stringArray(rawFilters.statuses).filter(
         (item): item is CustomerListFilters['statuses'][number] =>
           CUSTOMER_STATUSES.includes(
