@@ -15,6 +15,8 @@ import type {
   CustomerRow,
   CustomerSoftwareAccount,
   CustomerStatus,
+  CustomerTabSummary,
+  CustomerTabSummaryRpcRow,
 } from '../model/customer';
 import { mapCustomerRow, normalizeCustomFieldValues } from '../model/customer';
 import type {
@@ -91,6 +93,25 @@ function queryParams(params: Record<string, string>) {
 
 function numberValue(value: number | string | null | undefined) {
   return value == null ? 0 : typeof value === 'number' ? value : Number(value);
+}
+
+function nullableNumberValue(value: number | string | null) {
+  return value == null ? null : numberValue(value);
+}
+
+function mapCustomerTabSummary(
+  row: CustomerTabSummaryRpcRow,
+): CustomerTabSummary {
+  return {
+    debtCount: nullableNumberValue(row.debt_count),
+    dueOrOverdueDebtCount: nullableNumberValue(row.due_or_overdue_debt_count),
+    contractCount: nullableNumberValue(row.contract_count),
+    dueOrOverdueContractCount: nullableNumberValue(
+      row.due_or_overdue_contract_count,
+    ),
+    responsibleEmployeeCount: numberValue(row.responsible_employee_count),
+    softwareAccountCount: nullableNumberValue(row.software_account_count),
+  };
 }
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -230,9 +251,28 @@ export async function loadCustomerList(
   );
 
   return {
-    customers: response.items.map(mapCustomerRow),
+    customers: response.items.map((row) => ({
+      ...mapCustomerRow(row),
+      tabSummary: mapCustomerTabSummary(row.tab_summary),
+    })),
     total: numberValue(response.total),
   };
+}
+
+export async function loadCustomerTabSummary(
+  tenantId: string,
+  customerId: string,
+): Promise<CustomerTabSummary> {
+  assertSupabaseConfigured();
+  const rows = await request<CustomerTabSummaryRpcRow[]>(
+    supabaseApi.post('/rpc/get_customer_tab_summaries', {
+      p_tenant_id: tenantId,
+      p_customer_ids: [customerId],
+    }),
+  );
+  const row = rows[0];
+  if (!row) throw new Error('Không tìm thấy thống kê tab khách hàng.');
+  return mapCustomerTabSummary(row);
 }
 
 export async function loadCustomerResponsibilityWorkspace(

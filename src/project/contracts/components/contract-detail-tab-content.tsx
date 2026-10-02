@@ -76,6 +76,7 @@ import {
 } from '@/components/ui/table';
 import { getDashboardPaymentPlanRange } from '../../dashboard/model/dashboard';
 import { buildOfficeViewerUrl, isOfficeDocument } from '../../files/model/file';
+import { PaymentPlanCardTitle } from '../../shared/components/payment-plan-card-title';
 import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import {
   activateContract,
@@ -365,7 +366,7 @@ function ContractChartCard({
   description,
   children,
 }: {
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
 }) {
@@ -373,7 +374,7 @@ function ContractChartCard({
     <Card className="min-w-0 overflow-hidden">
       <CardHeader>
         <CardHeading>
-          <CardTitle className="text-base">{title}</CardTitle>
+          {title}
           {description ? (
             <CardDescription>{description}</CardDescription>
           ) : null}
@@ -414,7 +415,9 @@ export function ContractOverviewContent({
         <ContractFeePaymentOverview contract={contract} />
       </div>
       <div className="mt-admin-page-section">
-        <ContractChartCard title="Kế hoạch thu tiền">
+        <ContractChartCard
+          title={<PaymentPlanCardTitle className="text-base" />}
+        >
           {paymentPlanData.length > 0 ? (
             <PaymentPlanChart
               data={paymentPlanData}

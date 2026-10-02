@@ -29,6 +29,7 @@ import { CountrySelect } from '@/components/ui/country-select';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -242,6 +243,7 @@ export function CustomerForm({
   softwareAccountCatalogs = [],
 }: CustomerFormProps) {
   const formErrors = form.formState.errors;
+  const softwareAccountCount = form.watch('softwareAccounts')?.length ?? 0;
   const tabErrorCounts = {
     general: getCustomerFormTabErrorCount(formErrors, 'general'),
     custom: getCustomerFormTabErrorCount(formErrors, 'custom'),
@@ -392,11 +394,16 @@ export function CustomerForm({
                     Nhân viên phụ trách
                   </TabsTrigger>
                 ) : null}
-                <TabsTrigger value="softwareAccounts">
+                <TabsTrigger
+                  value="softwareAccounts"
+                  count={softwareAccountCount}
+                  afterCount={
+                    <CustomerFormTabErrorBadge
+                      count={tabErrorCounts.softwareAccounts}
+                    />
+                  }
+                >
                   Tài khoản phần mềm
-                  <CustomerFormTabErrorBadge
-                    count={tabErrorCounts.softwareAccounts}
-                  />
                 </TabsTrigger>
               </TabsList>
 
@@ -1145,6 +1152,9 @@ export function CustomerFormDialog({
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
             <DialogTitle>{title ?? 'Thêm khách hàng'}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Cập nhật thông tin và thiết lập liên quan đến khách hàng.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 lg:flex lg:flex-col lg:overflow-hidden">

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorState } from '@/components/ui/error-state';
@@ -26,6 +27,7 @@ import {
   loadCustomerDetail,
   loadCustomerResponsibilityWorkspace,
   loadCustomerSoftwareAccounts,
+  loadCustomerTabSummary,
 } from '../api/customers.api';
 import { CustomerAvatar } from '../components/customer-avatar';
 import { CustomerContractsTable } from '../components/customer-contracts-table';
@@ -134,6 +136,29 @@ function useCustomerQuery() {
   });
 }
 
+function CustomerTabAlertBadge({
+  alertCount,
+  alertLabel,
+}: {
+  alertCount?: number | null;
+  alertLabel: string;
+}) {
+  if (alertCount == null || alertCount <= 0) return null;
+
+  return (
+    <Badge
+      size="sm"
+      shape="circle"
+      variant="destructive"
+      appearance="light"
+      aria-label={`${alertCount} ${alertLabel} cần xử lý`}
+      title={`${alertCount} ${alertLabel} cần xử lý`}
+    >
+      {alertCount}
+    </Badge>
+  );
+}
+
 export function CustomerDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -152,6 +177,23 @@ export function CustomerDetailPage() {
       navigate(ROUTES.PROJECT.CUSTOMERS, { replace: true });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+
+  const customerTabSummaryQuery = useQuery({
+    queryKey: [
+      'project',
+      'customers',
+      'tab-summary',
+      customerQuery.data?.tenantId,
+      customerQuery.data?.id,
+    ],
+    queryFn: () =>
+      loadCustomerTabSummary(
+        customerQuery.data!.tenantId,
+        customerQuery.data!.id,
+      ),
+    enabled: Boolean(customerQuery.data),
+    staleTime: 30 * 1000,
   });
 
   const customerCustomFieldsQuery = useQuery({
@@ -211,7 +253,7 @@ export function CustomerDetailPage() {
 
   const pageHeader = (
     <PageHeader
-      title={customerQuery.data?.name ?? 'Chi tiết khách hàng'}
+      title="Chi tiết khách hàng"
       icon={UserRoundSearch}
       showBackButton
       actions={
@@ -286,13 +328,28 @@ export function CustomerDetailPage() {
         information={<CustomerInformationCard customer={customer} />}
         overviewContent={<CustomerOverviewContent customer={customer} />}
         debtsContent={<CustomerDebtsTab customer={customer} />}
+        debtsCount={customerTabSummaryQuery.data?.debtCount}
+        debtsAlertBadge={
+          <CustomerTabAlertBadge
+            alertCount={customerTabSummaryQuery.data?.dueOrOverdueDebtCount}
+            alertLabel="khoản công nợ đến hạn hoặc quá hạn"
+          />
+        }
         contractsContent={<CustomerContractsTable customerId={customer.id} />}
+        contractsCount={customerTabSummaryQuery.data?.contractCount}
+        contractsAlertBadge={
+          <CustomerTabAlertBadge
+            alertCount={customerTabSummaryQuery.data?.dueOrOverdueContractCount}
+            alertLabel="hợp đồng có khoản thanh toán đến hạn hoặc quá hạn"
+          />
+        }
         employeesContent={
           <CustomerResponsibilityPanel
             customer={customer}
             canManage={hasPermission('customers:update')}
           />
         }
+        employeesCount={customerTabSummaryQuery.data?.responsibleEmployeeCount}
         softwareAccountsContent={
           <CustomerSoftwareAccountsPanel
             tenantId={customer.tenantId}
@@ -302,6 +359,9 @@ export function CustomerDetailPage() {
             isLoading={customerSoftwareAccountsQuery.isPending}
             error={customerSoftwareAccountsQuery.error}
           />
+        }
+        softwareAccountsCount={
+          customerTabSummaryQuery.data?.softwareAccountCount
         }
         className="h-auto min-h-0 overflow-visible p-0 lg:p-0"
       />

@@ -159,6 +159,16 @@ export interface Customer {
   status: CustomerStatus;
   note: string;
   customFields: Record<string, string>;
+  tabSummary?: CustomerTabSummary;
+}
+
+export interface CustomerTabSummary {
+  debtCount: number | null;
+  dueOrOverdueDebtCount: number | null;
+  contractCount: number | null;
+  dueOrOverdueContractCount: number | null;
+  responsibleEmployeeCount: number;
+  softwareAccountCount: number | null;
 }
 
 export interface CustomerRow {
@@ -284,6 +294,16 @@ export interface CustomerListResult {
 
 export interface CustomerListRpcRow extends CustomerRow {
   created_at: string;
+  tab_summary: CustomerTabSummaryRpcRow;
+}
+
+export interface CustomerTabSummaryRpcRow {
+  debt_count: number | string | null;
+  due_or_overdue_debt_count: number | string | null;
+  contract_count: number | string | null;
+  due_or_overdue_contract_count: number | string | null;
+  responsible_employee_count: number | string;
+  software_account_count: number | string | null;
 }
 
 export const emptyCustomerForm: CustomerFormValues = {

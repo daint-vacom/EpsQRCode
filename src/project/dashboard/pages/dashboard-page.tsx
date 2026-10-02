@@ -36,6 +36,7 @@ import {
   CONTRACT_STATUS_LABELS,
   type ContractStatus,
 } from '../../contracts/model/contract';
+import { PaymentPlanCardTitle } from '../../shared/components/payment-plan-card-title';
 import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import { DashboardContractStatusChart } from '../charts/dashboard-contract-status.chart.generated';
 import { DashboardReceivableAgingChart } from '../charts/dashboard-receivable-aging.chart.generated';
@@ -183,7 +184,7 @@ function DashboardCard({
   className,
   headerAction,
 }: {
-  title: string;
+  title: ReactNode;
   children: ReactNode;
   className?: string;
   headerAction?: ReactNode;
@@ -192,7 +193,7 @@ function DashboardCard({
     <Card className={className} sectionBorders="default">
       <CardHeader>
         <CardHeading>
-          <CardTitle>{title}</CardTitle>
+          {typeof title === 'string' ? <CardTitle>{title}</CardTitle> : title}
         </CardHeading>
         {headerAction}
       </CardHeader>
@@ -273,7 +274,7 @@ function DashboardLoadingState({
       </div>
 
       <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.95fr)] xl:items-start">
-        <DashboardCard title="Kế hoạch thu tiền">
+        <DashboardCard title={<PaymentPlanCardTitle />}>
           <CardContent className="pt-4">
             <Skeleton className="h-72 w-full" />
           </CardContent>
@@ -598,7 +599,7 @@ export function DashboardPage() {
       ) : (
         <>
           <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(20rem,0.95fr)] xl:items-start">
-            <DashboardCard title="Kế hoạch thu tiền">
+            <DashboardCard title={<PaymentPlanCardTitle />}>
               {isPaymentPlanLoading ? (
                 <div className="p-5">
                   <Skeleton className="h-72 w-full" />

@@ -162,6 +162,18 @@ export function CustomerDebtsTab({ customer }: { customer: Customer }) {
       await queryClient.invalidateQueries({
         queryKey: ['project', 'customers', 'overview', tenantId, customer.id],
       });
+      await queryClient.invalidateQueries({
+        queryKey: [
+          'project',
+          'customers',
+          'tab-summary',
+          tenantId,
+          customer.id,
+        ],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'customers', 'list'],
+      });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -198,6 +210,18 @@ export function CustomerDebtsTab({ customer }: { customer: Customer }) {
         }),
         queryClient.invalidateQueries({
           queryKey: ['project', 'customers', 'overview', tenantId, customer.id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: [
+            'project',
+            'customers',
+            'tab-summary',
+            tenantId,
+            customer.id,
+          ],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['project', 'customers', 'list'],
         }),
         queryClient.invalidateQueries({
           queryKey: ['project', 'finance', 'obligations', tenantId],

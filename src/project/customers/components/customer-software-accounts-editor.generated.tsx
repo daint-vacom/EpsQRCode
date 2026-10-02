@@ -81,16 +81,12 @@ function CustomerSoftwareAccountsEditorTableSortableRow({
 interface CustomerSoftwareAccountsEditorTableProps {
   form: UseFormReturn<CustomerFormValues>;
   createRow: () => CustomerSoftwareAccount;
-  toolbarContent?: ReactNode;
-  toolbarTitle?: ReactNode;
   catalogs: SoftwareAccountCatalog[];
 }
 
 export function CustomerSoftwareAccountsEditorTable({
   form,
   createRow,
-  toolbarContent,
-  toolbarTitle,
   catalogs,
 }: CustomerSoftwareAccountsEditorTableProps) {
   const { fields, append, remove, move } = useFieldArray({
@@ -120,24 +116,6 @@ export function CustomerSoftwareAccountsEditorTable({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
-      <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-sm font-semibold text-foreground">
-            {toolbarTitle ?? 'Tài khoản phần mềm'}
-          </h2>
-          <div className="text-xs text-muted-foreground">
-            {fields.length} dòng
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-          <Button type="button" variant="outline" onClick={handleAddRow}>
-            <Plus />
-            Thêm tài khoản
-          </Button>
-
-          {toolbarContent}
-        </div>
-      </div>
       <ScrollArea
         type="always"
         className="min-w-0 min-h-[360px] min-h-0 flex-1"
@@ -192,7 +170,7 @@ export function CustomerSoftwareAccountsEditorTable({
                             onClick={handleAddRow}
                           >
                             <Plus />
-                            Thêm dòng
+                            Thêm tài khoản
                           </Button>
                         </div>
                       </TableCell>
@@ -656,6 +634,14 @@ export function CustomerSoftwareAccountsEditorTable({
                 </TableBody>
               </table>
             </SortableContext>
+            {fields.length > 0 ? (
+              <div className="flex min-w-[1160px] items-center px-2 py-2">
+                <Button type="button" variant="ghost" onClick={handleAddRow}>
+                  <Plus />
+                  Thêm tài khoản
+                </Button>
+              </div>
+            ) : null}
           </DndContext>
         </div>
         <ScrollBar orientation="horizontal" />

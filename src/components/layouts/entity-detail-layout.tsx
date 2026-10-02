@@ -8,6 +8,7 @@ export interface EntityDetailTab {
   value: string;
   label: string;
   icon?: LucideIcon;
+  count?: number | null;
   badge?: ReactNode;
   content: ReactNode;
 }
@@ -127,10 +128,14 @@ export function EntityDetailTabs({
           const Icon = tab.icon;
 
           return (
-            <TabsTrigger key={tab.value} value={tab.value}>
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              count={tab.count}
+              afterCount={tab.badge}
+            >
               {Icon ? <Icon className="size-4" /> : null}
               {tab.label}
-              {tab.badge ? <span className="ms-1.5">{tab.badge}</span> : null}
             </TabsTrigger>
           );
         })}

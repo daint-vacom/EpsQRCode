@@ -7,6 +7,7 @@ const spec: FormSpec = {
   schemaName: 'customerFormSchema',
   valuesType: 'CustomerFormValues',
   title: 'Thêm khách hàng',
+  description: 'Cập nhật thông tin và thiết lập liên quan đến khách hàng.',
   specPath: 'src/project/customers/forms/customer.form.fixture.ts',
   fields: [
     {

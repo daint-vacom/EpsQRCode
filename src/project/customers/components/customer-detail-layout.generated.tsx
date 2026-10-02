@@ -22,9 +22,15 @@ export interface CustomerDetailLayoutProps {
   information: ReactNode;
   overviewContent: ReactNode;
   debtsContent: ReactNode;
+  debtsCount?: number | null;
+  debtsAlertBadge?: ReactNode;
   contractsContent: ReactNode;
+  contractsCount?: number | null;
+  contractsAlertBadge?: ReactNode;
   employeesContent: ReactNode;
+  employeesCount?: number | null;
   softwareAccountsContent: ReactNode;
+  softwareAccountsCount?: number | null;
   className?: string;
 }
 export function CustomerDetailLayout({
@@ -32,9 +38,15 @@ export function CustomerDetailLayout({
   information,
   overviewContent,
   debtsContent,
+  debtsCount,
+  debtsAlertBadge,
   contractsContent,
+  contractsCount,
+  contractsAlertBadge,
   employeesContent,
+  employeesCount,
   softwareAccountsContent,
+  softwareAccountsCount,
   className,
 }: CustomerDetailLayoutProps) {
   const tabs: EntityDetailTab[] = [
@@ -48,24 +60,30 @@ export function CustomerDetailLayout({
       value: 'debts',
       label: 'Công nợ',
       icon: CircleDollarSign,
+      count: debtsCount,
+      badge: debtsAlertBadge,
       content: debtsContent,
     },
     {
       value: 'contracts',
       label: 'Hợp đồng',
       icon: FileText,
+      count: contractsCount,
+      badge: contractsAlertBadge,
       content: contractsContent,
     },
     {
       value: 'employees',
       label: 'Nhân viên phụ trách',
       icon: Users,
+      count: employeesCount,
       content: employeesContent,
     },
     {
       value: 'softwareAccounts',
       label: 'Tài khoản phần mềm',
       icon: KeyRound,
+      count: softwareAccountsCount,
       content: softwareAccountsContent,
     },
   ];

@@ -44,6 +44,15 @@ export function useCustomerResponsibilityWorkspace({
           refetchType: 'all',
         }),
         queryClient.invalidateQueries({
+          queryKey: [
+            'project',
+            'customers',
+            'tab-summary',
+            tenantId,
+            customerId,
+          ],
+        }),
+        queryClient.invalidateQueries({
           queryKey: ['project', 'customers', 'list'],
         }),
         queryClient.invalidateQueries({

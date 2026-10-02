@@ -1,6 +1,9 @@
+import { useId, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { LucideIcon } from 'lucide-react';
 import {
+  ChevronDown,
+  ChevronUp,
   CircleCheck,
   FileText,
   ReceiptText,
@@ -16,12 +19,14 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardHeading,
   CardTitle,
 } from '@/components/ui/card';
 import { ProgressCircle } from '@/components/ui/progress';
 import { getDashboardPaymentPlanRange } from '../../dashboard/model/dashboard';
+import { PaymentPlanCardTitle } from '../../shared/components/payment-plan-card-title';
 import { PaymentPlanChart } from '../../shared/components/payment-plan-chart';
 import { loadCustomerOverview } from '../api/customer-overview.api';
 import type { Customer } from '../model/customer';
@@ -75,8 +80,14 @@ function PaymentMetric({
 
 function CustomerPaymentSummary({
   summary,
+  hasData,
+  detailsVisible,
+  detailsId,
 }: {
   summary: CustomerOverviewSummary;
+  hasData: boolean;
+  detailsVisible: boolean;
+  detailsId: string;
 }) {
   const { formatCurrency } = useNumberFormat();
   const formattedProgress = new Intl.NumberFormat('vi-VN', {
@@ -106,86 +117,100 @@ function CustomerPaymentSummary({
                 {formattedProgress}%
               </span>
               <span className="mt-0.5 text-xs text-muted-foreground">
-                Đã thanh toán
+                {hasData ? 'Đã thanh toán' : 'Chưa có dữ liệu'}
               </span>
             </div>
           </ProgressCircle>
         </div>
-        <div className="min-w-0 flex-1 divide-y divide-border">
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={FileText}
-              iconTone="info"
-              label="Hợp đồng đang hiệu lực"
-              value={String(summary.activeContractCount)}
-              valueClassName="text-primary"
-            />
+        <div className="min-w-0 flex-1">
+          <div className="divide-y divide-border">
+            <div className="py-2.5 first:pt-0 last:pb-0">
+              <PaymentMetric
+                icon={FileText}
+                iconTone="info"
+                label="Tổng đã phát sinh"
+                value={formatCurrency(
+                  summary.totalBilled,
+                  summary.currencyCode,
+                )}
+              />
+            </div>
+            <div className="py-2.5 first:pt-0 last:pb-0">
+              <PaymentMetric
+                icon={CircleCheck}
+                iconTone="success"
+                label="Đã thanh toán"
+                value={formatCurrency(summary.totalPaid, summary.currencyCode)}
+              />
+            </div>
+            <div className="py-2.5 first:pt-0 last:pb-0">
+              <PaymentMetric
+                icon={WalletCards}
+                iconTone="warning"
+                label="Còn phải thu"
+                value={formatCurrency(
+                  summary.totalOutstanding,
+                  summary.currencyCode,
+                )}
+                valueClassName="text-primary"
+              />
+            </div>
           </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={CircleCheck}
-              iconTone="success"
-              label="Hợp đồng đã chấm dứt"
-              value={String(summary.terminatedContractCount)}
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={FileText}
-              iconTone="info"
-              label="Tổng đã phát sinh"
-              value={formatCurrency(summary.totalBilled, summary.currencyCode)}
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={CircleCheck}
-              iconTone="success"
-              label="Đã thanh toán"
-              value={formatCurrency(summary.totalPaid, summary.currencyCode)}
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={WalletCards}
-              iconTone="warning"
-              label="Còn phải thu"
-              value={formatCurrency(
-                summary.totalOutstanding,
-                summary.currencyCode,
-              )}
-              valueClassName="text-primary"
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={TriangleAlert}
-              iconTone="danger"
-              label="Quá hạn"
-              value={formatCurrency(
-                summary.overdueOutstanding,
-                summary.currencyCode,
-              )}
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={WalletCards}
-              iconTone="warning"
-              label="Ứng trước chưa phân bổ"
-              value={formatCurrency(
-                summary.unappliedAdvance,
-                summary.currencyCode,
-              )}
-            />
-          </div>
-          <div className="py-2.5 first:pt-0 last:pb-0">
-            <PaymentMetric
-              icon={ReceiptText}
-              iconTone="info"
-              label="Tiền thu thực tế"
-              value={formatCurrency(summary.cashReceived, summary.currencyCode)}
-            />
+          <div
+            id={detailsId}
+            hidden={!detailsVisible}
+            className="divide-y divide-border border-t border-border"
+          >
+            <div className="py-2.5 first:pt-2.5 last:pb-0">
+              <PaymentMetric
+                icon={FileText}
+                iconTone="info"
+                label="Hợp đồng đang hiệu lực"
+                value={String(summary.activeContractCount)}
+                valueClassName="text-primary"
+              />
+            </div>
+            <div className="py-2.5 first:pt-2.5 last:pb-0">
+              <PaymentMetric
+                icon={CircleCheck}
+                iconTone="success"
+                label="Hợp đồng đã chấm dứt"
+                value={String(summary.terminatedContractCount)}
+              />
+            </div>
+            <div className="py-2.5 first:pt-2.5 last:pb-0">
+              <PaymentMetric
+                icon={TriangleAlert}
+                iconTone="danger"
+                label="Quá hạn"
+                value={formatCurrency(
+                  summary.overdueOutstanding,
+                  summary.currencyCode,
+                )}
+              />
+            </div>
+            <div className="py-2.5 first:pt-2.5 last:pb-0">
+              <PaymentMetric
+                icon={WalletCards}
+                iconTone="warning"
+                label="Ứng trước chưa phân bổ"
+                value={formatCurrency(
+                  summary.unappliedAdvance,
+                  summary.currencyCode,
+                )}
+              />
+            </div>
+            <div className="py-2.5 first:pt-2.5 last:pb-0">
+              <PaymentMetric
+                icon={ReceiptText}
+                iconTone="info"
+                label="Tiền thu thực tế"
+                value={formatCurrency(
+                  summary.cashReceived,
+                  summary.currencyCode,
+                )}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -194,6 +219,25 @@ function CustomerPaymentSummary({
 }
 
 function CustomerPaymentStatusCard({ data }: { data: CustomerOverviewData }) {
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const detailsId = useId();
+  const hasData = data.contracts.length > 0 || data.obligations.length > 0;
+  const summary = hasData
+    ? data.summary
+    : {
+        ...data.summary,
+        activeContractCount: 0,
+        terminatedContractCount: 0,
+        totalBilled: 0,
+        totalPaid: 0,
+        totalOutstanding: 0,
+        overdueOutstanding: 0,
+        unappliedAdvance: 0,
+        cashReceived: 0,
+        cashPaid: 0,
+        progressPercent: 0,
+      };
+
   return (
     <Card className="min-w-0 overflow-hidden xl:min-h-72">
       <CardHeader>
@@ -207,14 +251,30 @@ function CustomerPaymentStatusCard({ data }: { data: CustomerOverviewData }) {
         </CardHeading>
       </CardHeader>
       <CardContent className="pt-1">
-        {data.contracts.length > 0 || data.obligations.length > 0 ? (
-          <CustomerPaymentSummary summary={data.summary} />
-        ) : (
-          <div className="flex min-h-48 items-center justify-center text-center text-sm text-muted-foreground">
-            Chưa có dữ liệu thanh toán để hiển thị.
-          </div>
-        )}
+        <CustomerPaymentSummary
+          summary={summary}
+          hasData={hasData}
+          detailsVisible={detailsVisible}
+          detailsId={detailsId}
+        />
       </CardContent>
+      <CardFooter className="justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-expanded={detailsVisible}
+          aria-controls={detailsId}
+          onClick={() => setDetailsVisible((visible) => !visible)}
+        >
+          {detailsVisible ? (
+            <ChevronUp className="size-4" />
+          ) : (
+            <ChevronDown className="size-4" />
+          )}
+          {detailsVisible ? 'Ẩn chi tiết' : 'Hiện chi tiết'}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
@@ -303,26 +363,17 @@ function CustomerPaymentPlanCard({ data }: { data: CustomerOverviewData }) {
     <Card className="min-w-0 overflow-hidden">
       <CardHeader>
         <CardHeading>
-          <CardTitle>Kế hoạch thu tiền</CardTitle>
+          <PaymentPlanCardTitle />
         </CardHeading>
       </CardHeader>
       <CardContent className="space-y-6 pt-0">
-        {data.paymentPlanObligations.length > 0 ||
-        data.paymentPlanSources.length > 0 ? (
-          <PaymentPlanChart
-            data={paymentPlan}
-            valueFormatter={(value) =>
-              formatCompactCurrency(value, currencyCode)
-            }
-            axisValueFormatter={(value) =>
-              formatCompactCurrency(value, currencyCode)
-            }
-          />
-        ) : (
-          <div className="flex h-72 items-center justify-center text-center text-sm text-muted-foreground">
-            Chưa có dữ liệu kế hoạch thu tiền để hiển thị.
-          </div>
-        )}
+        <PaymentPlanChart
+          data={paymentPlan}
+          valueFormatter={(value) => formatCompactCurrency(value, currencyCode)}
+          axisValueFormatter={(value) =>
+            formatCompactCurrency(value, currencyCode)
+          }
+        />
       </CardContent>
     </Card>
   );

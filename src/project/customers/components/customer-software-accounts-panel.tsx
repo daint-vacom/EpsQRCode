@@ -85,6 +85,12 @@ export function CustomerSoftwareAccountsPanel({
     },
     onSuccess: (savedAccounts) => {
       queryClient.setQueryData(softwareAccountsQueryKey, savedAccounts);
+      void queryClient.invalidateQueries({
+        queryKey: ['project', 'customers', 'tab-summary', tenantId, customerId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['project', 'customers', 'list'],
+      });
       setAccountDialogOpen(false);
       setEditingAccount(null);
       toast.success(
@@ -104,6 +110,12 @@ export function CustomerSoftwareAccountsPanel({
       ),
     onSuccess: (savedAccounts) => {
       queryClient.setQueryData(softwareAccountsQueryKey, savedAccounts);
+      void queryClient.invalidateQueries({
+        queryKey: ['project', 'customers', 'tab-summary', tenantId, customerId],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ['project', 'customers', 'list'],
+      });
       setDeletingAccount(null);
       toast.success('Đã xóa tài khoản phần mềm.');
     },

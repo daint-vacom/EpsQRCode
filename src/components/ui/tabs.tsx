@@ -4,6 +4,7 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Tabs as TabsPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 // Variants for TabsList
 const tabsListVariants = cva('flex items-center shrink-0', {
@@ -181,16 +182,40 @@ function TabsList({
 
 function TabsTrigger({
   className,
+  count,
+  afterCount,
+  children,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger> & {
+  count?: number | null;
+  afterCount?: React.ReactNode;
+}) {
   const { variant, size } = React.useContext(TabsContext);
 
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
-      className={cn(tabsTriggerVariants({ variant, size }), className)}
+      className={cn(
+        tabsTriggerVariants({ variant, size }),
+        count != null && 'group gap-2',
+        className,
+      )}
       {...props}
-    />
+    >
+      {children}
+      {count != null ? (
+        <Badge
+          variant="secondary"
+          appearance="ghost"
+          size="sm"
+          shape="circle"
+          className="min-w-5 tabular-nums text-inherit group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground"
+        >
+          {count}
+        </Badge>
+      ) : null}
+      {afterCount}
+    </TabsPrimitive.Trigger>
   );
 }
 

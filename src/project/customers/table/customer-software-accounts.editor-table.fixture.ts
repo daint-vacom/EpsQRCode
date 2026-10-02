@@ -10,13 +10,6 @@ const spec: EditorTableSpec = {
   specPath:
     'src/project/customers/table/customer-software-accounts.editor-table.fixture.ts',
   tableMinWidthClass: 'min-w-[1160px]',
-  toolbar: {
-    title: 'Tài khoản phần mềm',
-    titleProp: 'toolbarTitle',
-    addLabel: 'Thêm tài khoản',
-    addVariant: 'outline',
-    contentPosition: 'afterAdd',
-  },
   viewport: { mode: 'remaining' },
   actions: {
     enabled: true,

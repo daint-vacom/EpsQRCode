@@ -127,7 +127,7 @@ export function CustomerEditDialog({
     }
 
     const customerGroupTagIds =
-      customerTagFilterQuery.data?.tagsBySubjectId[customer.id].map(
+      customerTagFilterQuery.data?.tagsBySubjectId?.[customer.id]?.map(
         (tag) => tag.id,
       ) ?? [];
 
