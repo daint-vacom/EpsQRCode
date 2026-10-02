@@ -8,6 +8,7 @@ const tabSchema = z.object({
   contentMode: z.enum(['table', 'custom']).default('table'),
   fieldProp: identifierSchema.optional(),
   contentProp: identifierSchema.optional(),
+  countProp: identifierSchema.optional(),
   searchTextProp: identifierSchema.optional(),
   searchMatchCountProp: identifierSchema.optional(),
 });
@@ -22,6 +23,7 @@ export const detailDialogSpecSchema = z
   .superRefine((spec, ctx) => {
     const values = new Set<string>();
     const contentProps = new Set<string>();
+    const countProps = new Set<string>();
     const searchTextProps = new Set<string>();
     const searchMatchCountProps = new Set<string>();
 
@@ -47,6 +49,17 @@ export const detailDialogSpecSchema = z
         });
       }
       contentProps.add(contentProp);
+
+      if (tab.countProp) {
+        if (countProps.has(tab.countProp)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `countProp bị trùng: ${tab.countProp}`,
+            path: ['tabs', index, 'countProp'],
+          });
+        }
+        countProps.add(tab.countProp);
+      }
 
       if (tab.searchTextProp) {
         if (searchTextProps.has(tab.searchTextProp)) {

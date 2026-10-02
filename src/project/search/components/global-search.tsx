@@ -114,7 +114,8 @@ function StatusLabel({ status }: { status: string | null }) {
       variant={getStatusVariant(status)}
       appearance="light"
       size="sm"
-      className="shrink-0"
+      className="max-w-28 shrink-0 truncate"
+      title={STATUS_LABELS[status] ?? status}
     >
       {STATUS_LABELS[status] ?? status}
     </Badge>
@@ -185,7 +186,7 @@ function SearchResultItem({
             <HighlightedText value={item.title} query={query} />
           </span>
           {item.code ? (
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span className="max-w-28 min-w-0 shrink truncate text-xs text-muted-foreground">
               <HighlightedText value={item.code} query={query} />
             </span>
           ) : null}
@@ -210,6 +211,7 @@ export function GlobalSearch() {
   const anchorRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef(new Map<string, HTMLButtonElement>());
   const search = useGlobalSearch(query);
+  const hasQuery = query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH;
 
   const sections = useMemo<SearchSection[]>(
     () =>
@@ -265,8 +267,14 @@ export function GlobalSearch() {
     navigate(getGlobalSearchResultPath(source, item));
   }
 
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    setOpen(value.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH);
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'ArrowDown') {
+      if (!hasQuery) return;
       event.preventDefault();
       setOpen(true);
       setActiveIndex((current) =>
@@ -297,7 +305,6 @@ export function GlobalSearch() {
     }
   }
 
-  const hasQuery = query.trim().length >= GLOBAL_SEARCH_MIN_QUERY_LENGTH;
   const hasResults = flattenedItems.length > 0;
   const isDark = shell.headerVariant === 'dark';
   const activeItem = flattenedItems[activeIndex];
@@ -306,114 +313,111 @@ export function GlobalSearch() {
     : undefined;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open && hasQuery} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
         <div ref={anchorRef} className="min-w-0">
           <SearchInput
             variant="header"
             value={query}
-            onSearch={setQuery}
-            onFocus={() => setOpen(true)}
+            onSearch={handleQueryChange}
+            onFocus={() => setOpen(hasQuery)}
             onKeyDown={handleKeyDown}
             placeholder="Tìm kiếm..."
             aria-label="Tìm kiếm khách hàng, hợp đồng, mẫu hợp đồng hoặc nhân viên"
             role="combobox"
-            aria-expanded={open}
-            aria-controls="global-search-results"
+            aria-expanded={open && hasQuery}
+            aria-controls={hasQuery ? 'global-search-results' : undefined}
             aria-activedescendant={activeItemId}
             aria-autocomplete="list"
             className={cn('w-52 sm:w-64 lg:w-72', isDark && 'text-white')}
           />
         </div>
       </PopoverAnchor>
-      <PopoverContent
-        id="global-search-results"
-        align="end"
-        side="bottom"
-        sideOffset={8}
-        className="w-[min(42rem,calc(100vw-2rem))] overflow-hidden p-0"
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        onInteractOutside={(event) => {
-          const target = event.target;
-          if (target instanceof Node && anchorRef.current?.contains(target)) {
-            event.preventDefault();
-          }
-        }}
-      >
-        <ScrollArea
-          className={cn(
-            'max-h-[min(34rem,calc(100vh-9rem))]',
-            hasResults && 'h-[min(34rem,calc(100vh-9rem))]',
-          )}
+      {hasQuery ? (
+        <PopoverContent
+          id="global-search-results"
+          align="end"
+          side="bottom"
+          sideOffset={8}
+          className="w-[min(42rem,calc(100vw-2rem))] overflow-hidden p-0"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          onInteractOutside={(event) => {
+            const target = event.target;
+            if (target instanceof Node && anchorRef.current?.contains(target)) {
+              event.preventDefault();
+            }
+          }}
         >
-          <div
-            id="global-search-results-list"
-            role="listbox"
-            aria-label="Kết quả tìm kiếm"
-            className="p-2"
-          >
-            {!hasQuery ? (
-              <EmptySearchState
-                icon={<Search className="size-5" aria-hidden="true" />}
-                title="Tìm nhanh trong dữ liệu quản trị"
-                description="Tìm theo mã, tên, số điện thoại hoặc khách hàng liên quan."
-              />
-            ) : search.isFetching ? (
-              <LoadingSearchState />
-            ) : search.isError ? (
-              <EmptySearchState
-                icon={<Search className="size-5" aria-hidden="true" />}
-                title="Không tải được kết quả"
-                description="Vui lòng thử lại sau."
-              />
-            ) : !hasResults ? (
-              <EmptySearchState
-                icon={<Search className="size-5" aria-hidden="true" />}
-                title="Không tìm thấy dữ liệu phù hợp"
-                description="Thử tìm bằng mã hoặc tên chính xác hơn."
-              />
-            ) : (
-              sections.map((section) => (
-                <div key={section.source} className="not-first:mt-2">
-                  <div className="flex items-center gap-2 px-3 pb-1 pt-2 text-sm font-semibold text-foreground">
-                    <span>{section.label}</span>
-                    <span className="font-normal">
-                      ({section.items.length})
-                    </span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {section.items.map((item) => {
-                      const index = flattenedItems.findIndex(
-                        (candidate) =>
-                          candidate.source === section.source &&
-                          candidate.item.id === item.id,
-                      );
-                      const itemKey = `${section.source}:${item.id}`;
-
-                      return (
-                        <SearchResultItem
-                          key={itemKey}
-                          source={section.source}
-                          item={item}
-                          query={query}
-                          active={index === activeIndex}
-                          onSelect={handleSelect}
-                          optionId={`global-search-option-${section.source}-${item.id}`}
-                          itemRef={(element) => {
-                            if (element) itemRefs.current.set(itemKey, element);
-                            else itemRefs.current.delete(itemKey);
-                          }}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))
+          <ScrollArea
+            className={cn(
+              'max-h-[min(34rem,calc(100vh-9rem))]',
+              hasResults && 'h-[min(34rem,calc(100vh-9rem))]',
             )}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
+          >
+            <div
+              id="global-search-results-list"
+              role="listbox"
+              aria-label="Kết quả tìm kiếm"
+              className="p-2"
+            >
+              {search.isFetching ? (
+                <LoadingSearchState />
+              ) : search.isError ? (
+                <EmptySearchState
+                  icon={<Search className="size-5" aria-hidden="true" />}
+                  title="Không tải được kết quả"
+                  description="Vui lòng thử lại sau."
+                />
+              ) : !hasResults ? (
+                <EmptySearchState
+                  icon={<Search className="size-5" aria-hidden="true" />}
+                  title="Không tìm thấy dữ liệu phù hợp"
+                  description="Thử tìm bằng mã hoặc tên chính xác hơn."
+                />
+              ) : (
+                sections.map((section) => (
+                  <div key={section.source} className="not-first:mt-2">
+                    <div className="flex items-center gap-2 px-3 pb-1 pt-2 text-sm font-semibold text-foreground">
+                      <span>{section.label}</span>
+                      <span className="font-normal">
+                        ({section.items.length})
+                      </span>
+                    </div>
+                    <div className="space-y-0.5">
+                      {section.items.map((item) => {
+                        const index = flattenedItems.findIndex(
+                          (candidate) =>
+                            candidate.source === section.source &&
+                            candidate.item.id === item.id,
+                        );
+                        const itemKey = `${section.source}:${item.id}`;
+
+                        return (
+                          <SearchResultItem
+                            key={itemKey}
+                            source={section.source}
+                            item={item}
+                            query={query}
+                            active={index === activeIndex}
+                            onSelect={handleSelect}
+                            optionId={`global-search-option-${section.source}-${item.id}`}
+                            itemRef={(element) => {
+                              if (element)
+                                itemRefs.current.set(itemKey, element);
+                              else itemRefs.current.delete(itemKey);
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      ) : null}
     </Popover>
   );
 }

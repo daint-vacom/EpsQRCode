@@ -57,6 +57,9 @@ function emitProps(spec: ResolvedDetailDialogSpec): string {
         : `  ${contentProp(tab)}: (context: EntityDetailDialogTabContext<TData>) => ReactNode;`,
     ),
     ...spec.tabs
+      .filter((tab) => tab.countProp)
+      .map((tab) => `  ${tab.countProp}?: number | null;`),
+    ...spec.tabs
       .filter((tab) => tab.searchTextProp)
       .map((tab) => `  ${tab.searchTextProp}?: (data: TData) => string;`),
     ...spec.tabs
@@ -74,6 +77,7 @@ function emitTabDefinitions(spec: ResolvedDetailDialogSpec): string {
   const entries = spec.tabs
     .map((tab) => {
       const icon = tab.icon ? `, icon: ${tab.icon}` : '';
+      const count = tab.countProp ? `, count: ${tab.countProp}` : '';
       const searchText = tab.searchTextProp
         ? `, searchText: ${tab.searchTextProp}`
         : '';
@@ -86,7 +90,7 @@ function emitTabDefinitions(spec: ResolvedDetailDialogSpec): string {
         tab.contentMode === 'table'
           ? `content: (context) => (\n        <EntityDetailDialogTable\n          fields={${fieldProp(tab)}(context)}\n          matches={context.matches}\n        />\n      )`
           : `content: ${contentProp(tab)}`;
-      return `    { value: ${quote(tab.value)}, label: ${quote(tab.label)}${icon}${searchText}${searchMatchCount}, ${content} },`;
+      return `    { value: ${quote(tab.value)}, label: ${quote(tab.label)}${icon}${count}${searchText}${searchMatchCount}, ${content} },`;
     })
     .join('\n');
 
@@ -106,6 +110,9 @@ function emitComponent(spec: ResolvedDetailDialogSpec): string {
     'isLoading',
     'searchPlaceholder',
     ...spec.tabs.map((tab) => slotProp(tab)),
+    ...spec.tabs
+      .filter((tab) => tab.countProp)
+      .map((tab) => tab.countProp as string),
     ...spec.tabs
       .filter((tab) => tab.searchTextProp)
       .map((tab) => tab.searchTextProp as string),

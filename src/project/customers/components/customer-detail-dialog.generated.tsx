@@ -30,6 +30,8 @@ export interface CustomerDetailDialogShellProps<TData> {
   softwareAccountsContent: (
     context: EntityDetailDialogTabContext<TData>,
   ) => ReactNode;
+  responsibilityCount?: number | null;
+  softwareAccountsCount?: number | null;
   generalSearchText?: (data: TData) => string;
   customSearchText?: (data: TData) => string;
   responsibilitySearchText?: (data: TData) => string;
@@ -59,6 +61,8 @@ export function CustomerDetailDialogShell<TData>({
   customContent,
   responsibilityContent,
   softwareAccountsContent,
+  responsibilityCount,
+  softwareAccountsCount,
   generalSearchText,
   customSearchText,
   responsibilitySearchText,
@@ -95,6 +99,7 @@ export function CustomerDetailDialogShell<TData>({
       value: 'responsibility',
       label: 'Nhân viên phụ trách',
       icon: Users,
+      count: responsibilityCount,
       searchText: responsibilitySearchText,
       getMatchCount: responsibilitySearchMatchCount,
       content: responsibilityContent,
@@ -103,6 +108,7 @@ export function CustomerDetailDialogShell<TData>({
       value: 'softwareAccounts',
       label: 'Tài khoản phần mềm',
       icon: KeyRound,
+      count: softwareAccountsCount,
       searchText: softwareAccountsSearchText,
       getMatchCount: softwareAccountsSearchMatchCount,
       content: softwareAccountsContent,

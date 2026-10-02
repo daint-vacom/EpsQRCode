@@ -58,9 +58,14 @@ custom content remains responsible for its own row-level filtering.
 
 When a tab should show the number of matching items while searching, declare
 `searchMatchCountProp`. The callback receives the same context and should return
-the number of matching rows/items. The shared dialog renders a solid count badge
-next to the tab label while a search is active when the count is greater than
-zero.
+the number of matching rows/items. The shared dialog renders the count using the
+tab trigger's shared styling while a search is active when the count is greater
+than zero.
+
+Declare `countProp` when a tab should show its total item count before searching.
+The generated wrapper accepts a nullable numeric prop for that count. While
+searching, `searchMatchCountProp` takes precedence and only positive match counts
+are shown.
 
 Generate with:
 

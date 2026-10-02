@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { fuzzyMatch } from '@/lib/fuzzy-search';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -91,6 +90,7 @@ export interface EntityDetailDialogTab<TData> {
   value: string;
   label: string;
   icon?: LucideIcon;
+  count?: number | null;
   badge?: ReactNode;
   searchText?: (data: TData) => string;
   getMatchCount?: (context: EntityDetailDialogTabContext<TData>) => number;
@@ -172,10 +172,9 @@ export function EntityDetailDialog<TData>({
           'h-[min(800px,calc(100vh-2rem))] w-[calc(100%-2rem)] max-w-5xl gap-0 overflow-hidden p-0',
           className,
         )}
-        aria-labelledby="entity-detail-dialog-title"
       >
         <DialogHeader className="shrink-0 border-b px-6 py-5 pe-14 text-start">
-          <DialogTitle id="entity-detail-dialog-title">{title}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="sr-only">
             Xem và tìm kiếm thông tin chi tiết.
           </DialogDescription>
@@ -224,24 +223,18 @@ export function EntityDetailDialog<TData>({
               {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const matchCount = tabMatchCounts.get(tab.value);
+                const count = searchQuery.trim()
+                  ? matchCount !== undefined && matchCount > 0
+                    ? matchCount
+                    : null
+                  : tab.count;
 
                 return (
-                  <TabsTrigger key={tab.value} value={tab.value}>
+                  <TabsTrigger key={tab.value} value={tab.value} count={count}>
                     {Icon ? <Icon /> : null}
                     {tab.label}
                     {tab.badge ? (
                       <span className="ms-1.5">{tab.badge}</span>
-                    ) : null}
-                    {matchCount !== undefined && matchCount > 0 ? (
-                      <Badge
-                        variant="primary"
-                        size="sm"
-                        shape="circle"
-                        className="ms-1.5 min-w-5 px-1"
-                        aria-label={`${matchCount} kết quả khớp`}
-                      >
-                        {matchCount}
-                      </Badge>
                     ) : null}
                   </TabsTrigger>
                 );

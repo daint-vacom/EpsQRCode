@@ -137,6 +137,7 @@ export type CustomerFormValues = z.infer<typeof customerFormSchema>;
 export interface Customer {
   id: string;
   tenantId: string;
+  createdAt?: string | null;
   customerCode: string;
   name: string;
   businessType: BusinessType;
@@ -334,6 +335,7 @@ export function mapCustomerRow(row: CustomerRow): Customer {
   return {
     id: row.id,
     tenantId: row.tenant_id,
+    createdAt: row.created_at ?? null,
     customerCode: row.customer_code,
     name: row.name,
     businessType: row.business_type,

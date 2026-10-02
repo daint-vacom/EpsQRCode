@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import type { EmployeeRole } from '@/project/employees/model/employee';
 import { useUiStore } from '@/stores/ui.store';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -15,7 +16,7 @@ export interface LayoutShellConfig {
   homePath: string;
   brandName: string;
   headerTitle: string;
-  accountRoles: string[];
+  accountRoles: EmployeeRole[];
   breadcrumbRootLabel: string;
   breadcrumbRootPath: string;
   breadcrumbCurrent: string;
@@ -70,7 +71,7 @@ export function LayoutProvider({
     homePath: '/',
     brandName: 'Admin Template',
     headerTitle: 'Quản trị Tổ chức',
-    accountRoles: ['Tổ chức'],
+    accountRoles: [{ name: 'Tổ chức', color: 'blue' }],
     breadcrumbRootLabel: 'Tổ chức',
     breadcrumbRootPath: '/',
     breadcrumbCurrent: 'Nhân viên',

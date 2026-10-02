@@ -1,4 +1,9 @@
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
+import { TagList } from '@/project/tags/components/tag-list';
+import {
+  CUSTOMER_TAG_GROUP_CODE,
+  type TagSelectOption,
+} from '@/project/tags/model/tag';
 import { COUNTRY_OPTIONS } from '@/lib/countries';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,6 +21,7 @@ import {
   VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
   type CustomerSoftwareAccount,
+  type CustomerStatus,
 } from '../model/customer';
 import type {
   CustomerResponsibilityEmployee,
@@ -32,8 +38,17 @@ function displayValue(value: string | null | undefined) {
 function formatCustomerDate(value: string | null) {
   if (!value) return '';
 
-  return new Intl.DateTimeFormat('vi-VN').format(new Date(`${value}T00:00:00`));
+  const date = new Date(`${value.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('vi-VN').format(date);
 }
+
+const CUSTOMER_STATUS_TEXT_CLASSES: Record<CustomerStatus, string> = {
+  active: 'text-admin-success-text',
+  inactive: 'text-admin-red-dark',
+  uncontacted: 'text-muted-foreground',
+};
 
 function joinSearchText(...values: unknown[]) {
   return values
@@ -44,10 +59,14 @@ function joinSearchText(...values: unknown[]) {
 
 function getCustomerGeneralFields(
   customer: Customer,
+  customerTags: TagSelectOption[],
 ): EntityDetailDialogField[] {
   const fullAddress = getCustomerFullAddress(customer);
   const country = COUNTRY_OPTIONS.find(
     (option) => option.value === customer.countryCode,
+  );
+  const groupTags = customerTags.filter(
+    (tag) => tag.moduleCode === CUSTOMER_TAG_GROUP_CODE,
   );
 
   return [
@@ -72,14 +91,63 @@ function getCustomerGeneralFields(
       searchText: customer.name,
     },
     {
+      label: 'Mã số thuế',
+      value: displayValue(customer.businessRegistrationCode),
+      searchText: customer.businessRegistrationCode,
+    },
+    {
+      label: 'Nhóm khách hàng',
+      value: <TagList tags={groupTags} maxVisible={groupTags.length} />,
+      searchText: groupTags.map((tag) => tag.name),
+    },
+    {
+      label: 'Trạng thái',
+      value: (
+        <span className={CUSTOMER_STATUS_TEXT_CLASSES[customer.status]}>
+          {CUSTOMER_STATUS_LABELS[customer.status]}
+        </span>
+      ),
+      searchText: CUSTOMER_STATUS_LABELS[customer.status],
+    },
+    {
+      label: 'Ngày tạo KH',
+      value: formatCustomerDate(customer.createdAt ?? null),
+      searchText: customer.createdAt,
+    },
+    {
       label: 'Loại hình đơn vị',
       value: BUSINESS_TYPE_LABELS[customer.businessType],
       searchText: BUSINESS_TYPE_LABELS[customer.businessType],
     },
     {
-      label: 'Mã số thuế',
-      value: displayValue(customer.businessRegistrationCode),
-      searchText: customer.businessRegistrationCode,
+      label: 'Ngày thành lập',
+      value: formatCustomerDate(customer.establishedDate),
+      searchText: customer.establishedDate,
+    },
+    {
+      label: 'Kỳ kê khai thuế GTGT',
+      value: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
+      searchText: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
+    },
+    {
+      label: 'Người liên hệ',
+      value: displayValue(customer.contactName),
+      searchText: customer.contactName,
+    },
+    {
+      label: 'Chức danh',
+      value: displayValue(customer.contactTitle),
+      searchText: customer.contactTitle,
+    },
+    {
+      label: 'Số điện thoại',
+      value: displayValue(customer.phone),
+      searchText: customer.phone,
+    },
+    {
+      label: 'Email',
+      value: displayValue(customer.email),
+      searchText: customer.email,
     },
     {
       label: 'Quốc gia',
@@ -110,41 +178,6 @@ function getCustomerGeneralFields(
       label: 'Địa chỉ đầy đủ',
       value: displayValue(fullAddress),
       searchText: fullAddress,
-    },
-    {
-      label: 'Người liên hệ',
-      value: displayValue(customer.contactName),
-      searchText: customer.contactName,
-    },
-    {
-      label: 'Chức danh',
-      value: displayValue(customer.contactTitle),
-      searchText: customer.contactTitle,
-    },
-    {
-      label: 'Ngày thành lập',
-      value: formatCustomerDate(customer.establishedDate),
-      searchText: customer.establishedDate,
-    },
-    {
-      label: 'Kỳ kê khai thuế GTGT',
-      value: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
-      searchText: VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod],
-    },
-    {
-      label: 'Số điện thoại',
-      value: displayValue(customer.phone),
-      searchText: customer.phone,
-    },
-    {
-      label: 'Email',
-      value: displayValue(customer.email),
-      searchText: customer.email,
-    },
-    {
-      label: 'Trạng thái',
-      value: CUSTOMER_STATUS_LABELS[customer.status],
-      searchText: CUSTOMER_STATUS_LABELS[customer.status],
     },
   ];
 }
@@ -177,12 +210,19 @@ function getCustomerCustomFields(
     }));
 }
 
-function buildGeneralSearchText(customer: Customer) {
+function buildGeneralSearchText(
+  customer: Customer,
+  customerTags: TagSelectOption[],
+) {
   const fullAddress = getCustomerFullAddress(customer);
   return joinSearchText(
     'thông tin chung',
     customer.name,
     customer.customerCode,
+    customer.createdAt,
+    customerTags
+      .filter((tag) => tag.moduleCode === CUSTOMER_TAG_GROUP_CODE)
+      .map((tag) => tag.name),
     BUSINESS_TYPE_LABELS[customer.businessType],
     customer.businessRegistrationCode,
     customer.countryCode,
@@ -218,12 +258,12 @@ function buildCustomSearchText(
   );
 }
 
-function countMatchingGeneralFields({
-  data,
-  matches,
-}: EntityDetailDialogTabContext<Customer>) {
+function countMatchingGeneralFields(
+  { data, matches }: EntityDetailDialogTabContext<Customer>,
+  customerTags: TagSelectOption[],
+) {
   return countMatchingEntityDetailDialogFields(
-    getCustomerGeneralFields(data),
+    getCustomerGeneralFields(data, customerTags),
     matches,
   );
 }
@@ -502,6 +542,7 @@ export function CustomerDetailDialog({
   responsibilityWorkspace,
   softwareAccounts = [],
   isLoading = false,
+  customerTags = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -511,6 +552,7 @@ export function CustomerDetailDialog({
   responsibilityWorkspace?: CustomerResponsibilityWorkspace;
   softwareAccounts?: CustomerSoftwareAccount[];
   isLoading?: boolean;
+  customerTags?: TagSelectOption[];
 }) {
   return (
     <CustomerDetailDialogShell<Customer>
@@ -529,7 +571,7 @@ export function CustomerDetailDialog({
       data={customer}
       isLoading={isLoading}
       searchPlaceholder="Tìm kiếm dữ liệu"
-      generalFields={({ data }) => getCustomerGeneralFields(data)}
+      generalFields={({ data }) => getCustomerGeneralFields(data, customerTags)}
       customContent={({ matches }) => (
         <CustomerCustomFieldsContent
           customFields={customFields}
@@ -537,11 +579,13 @@ export function CustomerDetailDialog({
           matches={matches}
         />
       )}
-      generalSearchText={buildGeneralSearchText}
+      generalSearchText={(data) => buildGeneralSearchText(data, customerTags)}
       customSearchText={(data) =>
         buildCustomSearchText(data, customFields, customFieldValues)
       }
-      generalSearchMatchCount={countMatchingGeneralFields}
+      generalSearchMatchCount={(context) =>
+        countMatchingGeneralFields(context, customerTags)
+      }
       customSearchMatchCount={({ data, matches }) =>
         countMatchingCustomFields({
           data,
@@ -556,12 +600,18 @@ export function CustomerDetailDialog({
           matches={matches}
         />
       )}
+      responsibilityCount={
+        isLoading
+          ? null
+          : getCustomerResponsibilityRows(responsibilityWorkspace).length
+      }
       softwareAccountsContent={({ matches }) => (
         <CustomerSoftwareAccountsContent
           accounts={softwareAccounts}
           matches={matches}
         />
       )}
+      softwareAccountsCount={isLoading ? null : softwareAccounts.length}
       responsibilitySearchText={(data) =>
         buildResponsibilitySearchText(data, responsibilityWorkspace)
       }

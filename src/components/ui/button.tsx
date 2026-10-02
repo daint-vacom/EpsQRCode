@@ -26,6 +26,8 @@ const buttonVariants = cva(
           'bg-secondary text-secondary-foreground hover:bg-secondary/90 data-[state=open]:bg-secondary/90',
         outline:
           'bg-background text-accent-foreground border border-input hover:bg-accent data-[state=open]:bg-accent',
+        'outline-primary':
+          'border border-input bg-transparent text-primary hover:bg-accent hover:text-primary data-[state=open]:bg-accent',
         dashed:
           'text-accent-foreground border border-input border-dashed bg-background hover:bg-accent hover:text-accent-foreground data-[state=open]:text-accent-foreground',
         ghost:

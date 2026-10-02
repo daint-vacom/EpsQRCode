@@ -1,3 +1,4 @@
+import type { EmployeeRole } from '@/project/employees/model/employee';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 
 interface TenantMembershipRow {
@@ -16,12 +17,13 @@ interface RoleAssignmentRow {
 interface RoleRow {
   id: string;
   name: string;
+  color: EmployeeRole['color'];
 }
 
 export interface ProjectContext {
   tenantId: string;
   tenantName: string;
-  roleNames: string[];
+  accountRoles: EmployeeRole[];
 }
 
 function queryParams(params: Record<string, string>) {
@@ -81,7 +83,7 @@ export async function loadProjectContext(
       supabaseApi.get(
         '/roles',
         queryParams({
-          select: 'id,name',
+          select: 'id,name,color',
           or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
           is_active: 'eq.true',
           order: 'is_system.desc,sort_order.asc,name.asc',
@@ -98,13 +100,13 @@ export async function loadProjectContext(
   const assignedRoleIds = new Set(
     assignments.map((assignment) => assignment.role_id),
   );
-  const roleNames = roles
+  const accountRoles = roles
     .filter((role) => assignedRoleIds.has(role.id))
-    .map((role) => role.name);
+    .map(({ name, color }) => ({ name, color }));
 
   return {
     tenantId,
     tenantName: tenant.name,
-    roleNames,
+    accountRoles,
   };
 }

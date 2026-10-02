@@ -1025,12 +1025,18 @@ export function CustomersPage() {
           if (!open) setLookupCustomer(null);
         }}
         customer={lookupCustomer}
+        customerTags={
+          lookupCustomer
+            ? (customerTagsByCustomerId[lookupCustomer.id] ?? [])
+            : []
+        }
         customFields={customerCustomFieldsQuery.data ?? []}
         customFieldValues={lookupCustomerCustomDataQuery.data ?? {}}
         responsibilityWorkspace={lookupCustomerResponsibilityQuery.data}
         softwareAccounts={lookupCustomerSoftwareAccountsQuery.data ?? []}
         isLoading={
           customerCustomFieldsQuery.isPending ||
+          customerTagOptionsQuery.isPending ||
           lookupCustomerCustomDataQuery.isPending ||
           lookupCustomerResponsibilityQuery.isPending ||
           lookupCustomerSoftwareAccountsQuery.isPending

@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter';
+import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil, Search, Trash2, UserRoundSearch } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -39,7 +41,20 @@ import { CustomerOverviewContent } from '../components/customer-overview-content
 import { CustomerResponsibilityPanel } from '../components/customer-responsibility-panel';
 import { CustomerSoftwareAccountsPanel } from '../components/customer-software-accounts-panel';
 import { CustomerStatusBadge } from '../components/customer-status-badge';
-import { BUSINESS_TYPE_LABELS, type Customer } from '../model/customer';
+import {
+  BUSINESS_TYPE_LABELS,
+  getCustomerFullAddress,
+  VAT_DECLARATION_PERIOD_LABELS,
+  type Customer,
+} from '../model/customer';
+
+function formatCustomerDate(value: string | null | undefined) {
+  if (!value) return '';
+
+  return new Intl.DateTimeFormat('vi-VN').format(
+    new Date(`${value.slice(0, 10)}T00:00:00`),
+  );
+}
 
 function CustomerProfileCard({ customer }: { customer: Customer }) {
   return (
@@ -74,20 +89,18 @@ function CustomerInformationItem({
 }
 
 function CustomerInformationCard({ customer }: { customer: Customer }) {
+  const fullAddress = getCustomerFullAddress(customer);
+
   return (
     <EntityDetailInformationCard>
-      <EntityDetailInformationGrid className="grid-flow-row grid-cols-1 sm:grid-flow-col sm:grid-cols-2 sm:grid-rows-5 xl:grid-cols-2">
+      <EntityDetailInformationGrid className="grid-flow-row grid-cols-1 sm:grid-flow-col sm:grid-cols-2 sm:grid-rows-[repeat(5,auto)] xl:grid-cols-2">
         <CustomerInformationItem
           label="Trạng thái"
           value={<CustomerStatusBadge status={customer.status} />}
         />
         <CustomerInformationItem
-          label="Số điện thoại"
-          value={customer.phone || 'Chưa có số điện thoại'}
-        />
-        <CustomerInformationItem
-          label="Email"
-          value={customer.email || 'Chưa có email'}
+          label="Ngày tạo KH"
+          value={formatCustomerDate(customer.createdAt)}
         />
         <CustomerInformationItem
           label="Loại hình doanh nghiệp"
@@ -98,22 +111,26 @@ function CustomerInformationCard({ customer }: { customer: Customer }) {
           value={customer.businessRegistrationCode}
         />
         <CustomerInformationItem
-          label="Tỉnh/Thành phố"
-          value={customer.regionName}
-        />
-        <CustomerInformationItem
-          label="Quận/Huyện"
-          value={customer.districtName}
-        />
-        <CustomerInformationItem label="Phường/Xã" value={customer.wardName} />
-        <CustomerInformationItem
-          label="Số nhà, tên đường"
-          value={customer.streetAddress}
+          label="Kỳ kê khai thuế GTGT"
+          value={VAT_DECLARATION_PERIOD_LABELS[customer.vatDeclarationPeriod]}
         />
         <CustomerInformationItem
           label="Người liên hệ"
           value={customer.contactName}
         />
+        <CustomerInformationItem
+          label="Chức danh"
+          value={customer.contactTitle}
+        />
+        <CustomerInformationItem
+          label="Số điện thoại"
+          value={customer.phone || 'Chưa có số điện thoại'}
+        />
+        <CustomerInformationItem
+          label="Email"
+          value={customer.email || 'Chưa có email'}
+        />
+        <CustomerInformationItem label="Địa chỉ đầy đủ" value={fullAddress} />
       </EntityDetailInformationGrid>
     </EntityDetailInformationCard>
   );
@@ -222,6 +239,11 @@ export function CustomerDetailPage() {
       ),
     enabled: Boolean(detailDialogOpen && customerQuery.data),
   });
+  const customerTagFilterQuery = useSubjectTagFilter('customer', {
+    moduleCodes: [CUSTOMER_TAG_GROUP_CODE],
+    allowCustomGroups: true,
+    enabled: Boolean(detailDialogOpen && customerQuery.data),
+  });
   const customerResponsibilityQuery = useQuery({
     queryKey: [
       'project',
@@ -261,7 +283,7 @@ export function CustomerDetailPage() {
           <>
             <Button
               type="button"
-              variant="outline"
+              variant="outline-primary"
               onClick={() => setDetailDialogOpen(true)}
             >
               <Search />
@@ -270,7 +292,7 @@ export function CustomerDetailPage() {
             <ShortcutTooltip label="Sửa thông tin" shortcut="Alt + E">
               <Button
                 type="button"
-                variant="outline"
+                variant="outline-primary"
                 onClick={() => setEditDialogOpen(true)}
                 data-shortcut-action="edit"
               >
@@ -280,10 +302,10 @@ export function CustomerDetailPage() {
             </ShortcutTooltip>
             <Button
               type="button"
-              variant="destructive"
-              appearance="outline"
+              variant="outline"
               mode="icon"
               size="icon"
+              className="border-destructive/40 bg-transparent text-destructive hover:bg-destructive/5 hover:text-destructive"
               aria-label={`Xóa khách hàng ${customerQuery.data.name}`}
               title={`Xóa khách hàng ${customerQuery.data.name}`}
               onClick={() => setDeleteDialogOpen(true)}
@@ -369,6 +391,9 @@ export function CustomerDetailPage() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         customer={customer}
+        customerTags={
+          customerTagFilterQuery.data?.tagsBySubjectId[customer.id] ?? []
+        }
         customFields={customerCustomFieldsQuery.data ?? []}
         customFieldValues={customerCustomDataQuery.data ?? {}}
         responsibilityWorkspace={customerResponsibilityQuery.data}
@@ -376,6 +401,7 @@ export function CustomerDetailPage() {
         isLoading={
           customerCustomFieldsQuery.isPending ||
           customerCustomDataQuery.isPending ||
+          customerTagFilterQuery.isPending ||
           customerResponsibilityQuery.isPending ||
           customerSoftwareAccountsQuery.isPending
         }

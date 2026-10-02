@@ -1,14 +1,15 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
+import { EmployeeRoleBadge } from '@/project/employees/components/employee-badges';
 import { useCurrentEmployeeProfile } from '@/project/employees/hooks/use-current-employee-profile';
+import type { EmployeeRole } from '@/project/employees/model/employee';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   Bell,
   Building2,
   CircleHelp,
-  Home,
   Languages,
   LogOut,
   Menu,
@@ -16,7 +17,6 @@ import {
   Palette,
   PanelLeft,
   PanelLeftClose,
-  Plus,
   Settings,
   ShieldAlert,
   ShoppingCart,
@@ -48,7 +48,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetBody,
@@ -156,33 +155,46 @@ function AccountMenuHeader({
   name,
   email,
   avatarUrl,
+  roles,
 }: {
   name: string;
   email: string;
   avatarUrl?: string | null;
+  roles: readonly EmployeeRole[];
 }) {
   const initial = name.trim().charAt(0).toUpperCase() || 'T';
 
   return (
     <>
       <DropdownMenuLabel className="px-2 py-1.5">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
-            {avatarUrl ? (
-              <AvatarImage src={avatarUrl} alt="Ảnh đại diện" />
-            ) : null}
-            <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
-              {initial}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">
-              {name}
-            </p>
-            <p className="truncate text-xs font-normal text-muted-foreground">
-              {email}
-            </p>
+        <div>
+          <div className="flex items-center gap-3">
+            <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
+              {avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt="Ảnh đại diện" />
+              ) : null}
+              <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {name}
+              </p>
+              <p className="truncate text-xs font-normal text-muted-foreground">
+                {email}
+              </p>
+            </div>
           </div>
+          {roles.length > 0 ? (
+            <div className="mt-2 ps-11">
+              <div className="flex flex-wrap gap-1">
+                {roles.map((role) => (
+                  <EmployeeRoleBadge key={role.name} role={role} />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
@@ -224,7 +236,6 @@ export function Header() {
     { label: shell.breadcrumbRootLabel, path: shell.breadcrumbRootPath },
     { label: shell.breadcrumbCurrent },
   ];
-  const quickCreateItems = shell.quickCreateItems ?? [];
 
   const handleLogout = async () => {
     try {
@@ -303,9 +314,21 @@ export function Header() {
         )}
 
         <div className="min-w-0 flex-1">
+          {isProjectShell ? (
+            <div
+              className={cn(
+                'truncate text-[13px] font-semibold leading-tight',
+                isDark ? 'text-white' : 'text-foreground',
+              )}
+              title={shell.headerTitle}
+            >
+              {shell.headerTitle}
+            </div>
+          ) : null}
           <nav
             className={cn(
               'flex items-center gap-2 text-sm font-medium',
+              isProjectShell && 'mt-0.5 gap-1.5 text-xs',
               isDark ? 'text-white/55' : 'text-muted-foreground',
             )}
           >
@@ -323,20 +346,29 @@ export function Header() {
                 {item.path ? (
                   <Link
                     to={item.path}
-                    aria-label={index === 0 ? shell.headerTitle : undefined}
-                    title={index === 0 ? shell.headerTitle : undefined}
+                    aria-label={
+                      index === 0
+                        ? isProjectShell
+                          ? item.label
+                          : shell.headerTitle
+                        : undefined
+                    }
+                    title={
+                      index === 0
+                        ? isProjectShell
+                          ? item.label
+                          : shell.headerTitle
+                        : undefined
+                    }
                     className={cn(
                       'inline-flex items-center',
                       isDark ? 'hover:text-white' : 'hover:text-foreground',
                     )}
                   >
                     {index === 0 ? (
-                      <>
-                        <Home className="me-1.5 size-4" aria-hidden="true" />
-                        <span className="max-w-40 truncate sm:max-w-56">
-                          {shell.headerTitle}
-                        </span>
-                      </>
+                      <span className="max-w-40 truncate sm:max-w-56">
+                        {isProjectShell ? item.label : shell.headerTitle}
+                      </span>
                     ) : (
                       item.label
                     )}
@@ -352,42 +384,6 @@ export function Header() {
 
       <div className="flex shrink-0 items-center gap-3">
         <GlobalSearch />
-        <Separator
-          orientation="vertical"
-          className={cn('h-6', isDark && 'bg-white/15')}
-        />
-        {quickCreateItems.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="light" size="md" aria-label="Thêm">
-                <Plus />
-                Thêm
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuGroup>
-                {quickCreateItems.map((item) => {
-                  const Icon = item.icon;
-
-                  return (
-                    <DropdownMenuItem
-                      key={item.id}
-                      onSelect={() => item.onSelect()}
-                    >
-                      <Icon />
-                      {item.label}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <Button variant="light" size="md" aria-label="Thêm">
-            <Plus />
-            Thêm
-          </Button>
-        )}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -481,11 +477,6 @@ export function Header() {
           </PopoverContent>
         </Popover>
 
-        <Separator
-          orientation="vertical"
-          className={cn('h-6', isDark && 'bg-white/15')}
-        />
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -513,24 +504,6 @@ export function Header() {
                 >
                   {accountName}
                 </span>
-                <span className="mt-0.5 flex max-w-48 items-center gap-1 overflow-hidden">
-                  {shell.accountRoles.map((role) => (
-                    <Badge
-                      key={role}
-                      variant="secondary"
-                      appearance="light"
-                      size="xs"
-                      className={cn(
-                        'max-w-24 truncate border font-semibold',
-                        isDark
-                          ? 'border-white/15 bg-white/10 text-white/70'
-                          : 'border-admin-blue-light',
-                      )}
-                    >
-                      {role}
-                    </Badge>
-                  ))}
-                </span>
               </span>
             </button>
           </DropdownMenuTrigger>
@@ -544,6 +517,7 @@ export function Header() {
               name={accountName}
               email={accountEmail}
               avatarUrl={accountAvatar}
+              roles={shell.accountRoles}
             />
 
             <DropdownMenuGroup>

@@ -6,7 +6,10 @@ import {
   type ReactNode,
 } from 'react';
 import { getEffectivePermissionCodes } from '@/project/api/permission-access.api';
-import { loadProjectContext } from '@/project/api/project-context.api';
+import {
+  loadProjectContext,
+  type ProjectContext,
+} from '@/project/api/project-context.api';
 import { useAuthStore } from '@/stores/auth.store';
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from './user-provider';
@@ -14,7 +17,7 @@ import { useUser } from './user-provider';
 export interface TenantContextValue {
   tenantId: string | null;
   tenantName: string | null;
-  roleNames: string[];
+  accountRoles: ProjectContext['accountRoles'];
   isPending: boolean;
   isPermissionsPending: boolean;
   isError: boolean;
@@ -61,7 +64,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     () => ({
       tenantId,
       tenantName: tenantQuery.data?.tenantName ?? null,
-      roleNames: tenantQuery.data?.roleNames ?? [],
+      accountRoles: tenantQuery.data?.accountRoles ?? [],
       isPending: tenantQuery.isPending,
       isPermissionsPending: Boolean(tenantId) && permissionQuery.isPending,
       isError: tenantQuery.isError,

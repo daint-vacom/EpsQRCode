@@ -36,7 +36,7 @@ export function ProjectMainLayout() {
   const [customerCreateOpen, setCustomerCreateOpen] = useState(false);
   const [employeeCreateOpen, setEmployeeCreateOpen] = useState(false);
   const { userId } = useUser();
-  const { tenantId, tenantName, roleNames } = useTenant();
+  const { tenantId, tenantName, accountRoles } = useTenant();
   const { appearance } = useAppSettings();
   const isContractCreate = pathname === ROUTES.PROJECT.CONTRACT_CREATE;
   const contractEditId = isContractCreate
@@ -158,7 +158,6 @@ export function ProjectMainLayout() {
   });
 
   const headerTenantName = tenantName ?? 'Đang tải tenant...';
-  const accountRoles = roleNames;
   const breadcrumbCurrent = isCustomerDetail
     ? (customerDetailQuery.data?.name ?? 'Chi tiết khách hàng')
     : isContractDetail
