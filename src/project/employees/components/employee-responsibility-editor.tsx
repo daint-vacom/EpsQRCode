@@ -472,12 +472,6 @@ export function EmployeeCustomerRoleStep({
           </Button>
         </div>
       </div>
-      {customerRoleOptions.length === 0 ? (
-        <AccessNotice>
-          Nhân viên chưa được cấp vai trò có thể phụ trách khách hàng. Quay lại
-          bước 1 để bổ sung vai trò.
-        </AccessNotice>
-      ) : null}
       <div className="min-h-0 overflow-hidden rounded-lg border border-border">
         <div className="max-h-[min(52dvh,430px)] overflow-auto">
           <Table>

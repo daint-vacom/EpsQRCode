@@ -735,7 +735,18 @@ export function EmployeesPage() {
         }}
         isReloadingCustomFields={employeeCustomFieldsQuery.isFetching}
         isSaving={saveMutation.isPending}
-        title="Sửa nhân viên"
+        title={
+          editingEmployee ? (
+            <>
+              Sửa nhân viên:{' '}
+              <span className="font-semibold text-primary">
+                {editingEmployee.displayName}
+              </span>
+            </>
+          ) : (
+            'Sửa nhân viên'
+          )
+        }
         roleOptions={employeeAccess.roleOptions}
         customerOptions={employeeAccess.customers}
         customerTable={employeeAccess.customerTable}

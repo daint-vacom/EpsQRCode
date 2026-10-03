@@ -38,20 +38,18 @@ export function EmployeeAccountFields({
           control={form.control}
           name="createAccount"
           render={({ field }) => (
-            <FormItem className="mb-3">
-              <div className="flex items-center gap-2">
-                <FormControl>
-                  <Checkbox
-                    aria-label="Tạo tài khoản đăng nhập cho nhân viên"
-                    checked={field.value}
-                    disabled={!canManageAccount}
-                    onCheckedChange={(checked) =>
-                      field.onChange(checked === true)
-                    }
-                  />
-                </FormControl>
-                <FormLabel>Tạo tài khoản đăng nhập</FormLabel>
-              </div>
+            <FormItem layout="horizontal" labelWidth="md" className="mb-3">
+              <FormLabel>Tạo tài khoản đăng nhập</FormLabel>
+              <FormControl>
+                <Checkbox
+                  aria-label="Tạo tài khoản đăng nhập cho nhân viên"
+                  checked={field.value}
+                  disabled={!canManageAccount}
+                  onCheckedChange={(checked) =>
+                    field.onChange(checked === true)
+                  }
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -59,19 +57,18 @@ export function EmployeeAccountFields({
       ) : null}
 
       {accountRequested ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4">
           <FormField
             control={form.control}
             name="accountUsername"
             render={({ field: usernameField }) => (
-              <FormItem>
+              <FormItem layout="horizontal" labelWidth="md">
                 <FormLabel>Tên đăng nhập</FormLabel>
                 <FormControl>
                   <Input
                     {...usernameField}
                     autoComplete="username"
                     disabled={!canManageAccount}
-                    placeholder="vd: nguyenvana"
                   />
                 </FormControl>
                 <FormMessage />
@@ -84,14 +81,13 @@ export function EmployeeAccountFields({
               control={form.control}
               name="initialPassword"
               render={({ field: passwordField }) => (
-                <FormItem>
+                <FormItem layout="horizontal" labelWidth="md">
                   <FormLabel>Mật khẩu ban đầu</FormLabel>
                   <FormControl>
                     <PasswordInput
                       {...passwordField}
                       autoComplete="new-password"
                       disabled={!canManageAccount}
-                      placeholder="Nhập mật khẩu ban đầu"
                     />
                   </FormControl>
                   <FormMessage />

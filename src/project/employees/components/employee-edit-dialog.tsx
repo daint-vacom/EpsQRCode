@@ -217,7 +217,14 @@ export function EmployeeEditDialog({
       onReloadCustomFields={() => void employeeCustomFieldsQuery.refetch()}
       isReloadingCustomFields={employeeCustomFieldsQuery.isFetching}
       isSaving={saveMutation.isPending}
-      title="Sửa nhân viên"
+      title={
+        <>
+          Sửa nhân viên:{' '}
+          <span className="font-semibold text-primary">
+            {employee.displayName}
+          </span>
+        </>
+      }
       roleOptions={employeeAccess.roleOptions}
       customerOptions={employeeAccess.customers}
       customerTable={employeeAccess.customerTable}

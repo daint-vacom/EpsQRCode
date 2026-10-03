@@ -7,7 +7,7 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { CustomerTableController } from '@/project/customers/components/customer-table';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -188,10 +188,10 @@ export function EmployeeForm({
     <Form {...form}>
       <form
         id={id}
-        className="min-h-0 lg:h-full"
+        className="min-h-0 lg:flex lg:flex-1 lg:flex-col"
         onSubmit={form.handleSubmit(onSubmit)}
       >
-        <div className="grid min-h-0 grid-cols-1 gap-6 lg:h-full lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)]">
+        <div className="grid min-h-0 grid-cols-1 gap-6 lg:flex-1 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:grid-rows-1">
           <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:ps-1 lg:pe-1">
             <div className="space-y-5">
               <FormField
@@ -236,12 +236,15 @@ export function EmployeeForm({
             </div>
           </div>
 
-          <div className="min-w-0 lg:min-h-0">
+          <div className="min-w-0 lg:min-h-0 lg:overflow-hidden">
             <Tabs
               defaultValue="general"
               className="flex min-h-0 flex-col lg:h-full"
             >
-              <TabsList variant="line" className="w-full justify-start">
+              <TabsList
+                variant="line"
+                className="w-full shrink-0 justify-start"
+              >
                 <TabsTrigger value="general">Thông tin chung</TabsTrigger>
                 <TabsTrigger value="custom">Thông tin bổ sung</TabsTrigger>
               </TabsList>
@@ -250,7 +253,7 @@ export function EmployeeForm({
                 value="general"
                 className="mt-5 min-h-0 lg:flex-1 lg:overflow-y-auto lg:pe-1"
               >
-                <div className="grid grid-cols-1 gap-x-4 gap-y-5 px-1 pb-1 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-x-4 gap-y-5 px-1 pb-1 pt-1 md:grid-cols-2">
                   <EmployeeAccountFields
                     form={form}
                     mode={mode}
@@ -262,7 +265,7 @@ export function EmployeeForm({
                     control={form.control}
                     name="status"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem layout="horizontal" labelWidth="md">
                         <FormLabel>Trạng thái</FormLabel>
                         <Select
                           value={field.value}
@@ -293,7 +296,7 @@ export function EmployeeForm({
                     control={form.control}
                     name="joinedAt"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem layout="horizontal" labelWidth="md">
                         <FormLabel>Ngày vào làm</FormLabel>
                         <FormControl>
                           <DatePickerInput
@@ -314,7 +317,11 @@ export function EmployeeForm({
                     control={form.control}
                     name="note"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem
+                        layout="horizontal"
+                        labelWidth="md"
+                        className="md:col-span-2"
+                      >
                         <FormLabel>Ghi chú</FormLabel>
                         <FormControl>
                           <Textarea rows={3} {...field} />
@@ -328,7 +335,11 @@ export function EmployeeForm({
                     control={form.control}
                     name="roleIds"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem
+                        layout="horizontal"
+                        labelWidth="md"
+                        className="md:col-span-2"
+                      >
                         <FormLabel>Vai trò</FormLabel>
                         {!canUseEmployeeAccount ? (
                           <p className="text-xs text-muted-foreground">
@@ -504,7 +515,7 @@ function EmployeeTextField({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem>
+        <FormItem layout="horizontal" labelWidth="md">
           <FormLabel>
             {label}
             {required ? <span className="text-destructive"> *</span> : null}
@@ -536,7 +547,7 @@ function EmployeeCustomFieldInput({
       control={form.control}
       name={fieldName as never}
       render={({ field }) => (
-        <FormItem>
+        <FormItem layout="horizontal" labelWidth="md">
           <FormLabel>
             {customField.label}
             {customField.isRequired ? (
@@ -588,7 +599,7 @@ interface EmployeeFormDialogProps {
   form: UseFormReturn<EmployeeFormValues>;
   onSubmit: (values: EmployeeFormValues) => void;
   isSaving?: boolean;
-  title?: string;
+  title?: ReactNode;
   onImageUrlFileChange?: (file: File | null) => void;
   customFields?: CustomField[];
   onAddCustomField?: () => void;
@@ -742,105 +753,113 @@ export function EmployeeFormDialog({
             <DialogTitle>{title ?? 'Thêm nhân viên'}</DialogTitle>
           </DialogHeader>
 
-          <Stepper
-            value={step}
-            onValueChange={(nextStep) => {
-              if (nextStep <= maxStep) setStep(nextStep);
-            }}
-            variant="success"
-            className="flex min-h-0 flex-1 flex-col gap-0"
-          >
-            <StepperNav className="shrink-0 gap-2 border-b border-border px-6 py-4">
-              {[
-                { value: 1, label: 'Thông tin nhân viên, vai trò' },
-                { value: 2, label: 'Chọn khách hàng phụ trách' },
-                { value: 3, label: 'Phân công vai trò phụ trách' },
-              ].map((item, index, items) => (
-                <div
-                  key={item.value}
-                  className="flex min-w-0 flex-1 items-center last:flex-none"
-                >
-                  <StepperItem
-                    step={item.value}
-                    completed={item.value < step}
-                    disabled={item.value > maxStep}
-                    fill={false}
-                    className="min-w-0 justify-start"
+          <div className="min-h-0 flex-1 overflow-y-auto lg:flex lg:flex-col lg:overflow-hidden">
+            <Stepper
+              value={step}
+              onValueChange={(nextStep) => {
+                if (nextStep <= maxStep) setStep(nextStep);
+              }}
+              variant="success"
+              className="flex min-h-0 flex-1 flex-col gap-0"
+            >
+              <StepperNav className="shrink-0 gap-2 border-b border-border px-6 py-4">
+                {[
+                  { value: 1, label: 'Thông tin nhân viên, vai trò' },
+                  { value: 2, label: 'Chọn khách hàng phụ trách' },
+                  { value: 3, label: 'Phân công vai trò phụ trách' },
+                ].map((item, index, items) => (
+                  <div
+                    key={item.value}
+                    className="flex min-w-0 flex-1 items-center last:flex-none"
                   >
-                    <StepperTrigger className="min-w-0 px-1 text-left">
-                      <StepperIndicator>
-                        {item.value < step ? (
-                          <Check className="size-3.5" />
-                        ) : (
-                          item.value
-                        )}
-                      </StepperIndicator>
-                      <StepperTitle className="hidden truncate sm:block">
-                        {item.label}
-                      </StepperTitle>
-                    </StepperTrigger>
-                  </StepperItem>
-                  {index < items.length - 1 ? (
-                    <StepperConnector
+                    <StepperItem
+                      step={item.value}
                       completed={item.value < step}
-                      className="mx-2 h-0.5 min-w-4"
-                    />
-                  ) : null}
-                </div>
-              ))}
-            </StepperNav>
+                      disabled={item.value > maxStep}
+                      fill={false}
+                      className="min-w-0 justify-start"
+                    >
+                      <StepperTrigger className="min-w-0 px-1 text-left">
+                        <StepperIndicator>
+                          {item.value < step ? (
+                            <Check className="size-3.5" />
+                          ) : (
+                            item.value
+                          )}
+                        </StepperIndicator>
+                        <StepperTitle className="hidden truncate sm:block">
+                          {item.label}
+                        </StepperTitle>
+                      </StepperTrigger>
+                    </StepperItem>
+                    {index < items.length - 1 ? (
+                      <StepperConnector
+                        completed={item.value < step}
+                        className="mx-2 h-0.5 min-w-4"
+                      />
+                    ) : null}
+                  </div>
+                ))}
+              </StepperNav>
 
-            <StepperPanel className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-              <StepperContent value={1} className="min-h-full">
-                <EmployeeForm
-                  form={form}
-                  onSubmit={onSubmit}
-                  id="employee-form"
-                  mode={mode}
-                  onImageUrlFileChange={onImageUrlFileChange}
-                  customFields={customFields}
-                  onAddCustomField={onAddCustomField}
-                  onReloadCustomFields={onReloadCustomFields}
-                  isReloadingCustomFields={isReloadingCustomFields}
-                  roleOptions={roleOptions}
-                  canManageRoles={canManageRoles}
-                  canManageAccount={canManageAccount}
-                  employeeHasLinkedAccount={employeeHasLinkedAccount}
-                />
-              </StepperContent>
-              <StepperContent
-                value={2}
-                className="flex h-full min-h-0 flex-col overflow-hidden"
-              >
-                <EmployeeCustomerSelectionStep
-                  roleOptions={roleOptions}
-                  employeeRoleIds={employeeRoleIds ?? []}
-                  customers={customerOptions}
-                  customerTable={customerTable}
-                  assignments={customerAssignments}
-                  onAssignmentsChange={onCustomerAssignmentsChange}
-                  canManage={canManageCustomerAssignments}
-                  employeeHasLinkedAccount={canUseEmployeeAccount}
-                  isLoading={accessIsLoading}
-                  error={accessError}
-                />
-              </StepperContent>
-              <StepperContent value={3} className="flex min-h-full flex-col">
-                <EmployeeCustomerRoleStep
-                  roleOptions={roleOptions}
-                  employeeRoleIds={employeeRoleIds ?? []}
-                  customers={customerOptions}
-                  customerTable={customerTable}
-                  assignments={customerAssignments}
-                  onAssignmentsChange={onCustomerAssignmentsChange}
-                  canManage={canManageCustomerAssignments}
-                  employeeHasLinkedAccount={canUseEmployeeAccount}
-                  isLoading={accessIsLoading}
-                  error={accessError}
-                />
-              </StepperContent>
-            </StepperPanel>
-          </Stepper>
+              <StepperPanel className="min-h-0 flex-1 px-6 py-5 lg:flex lg:flex-col lg:overflow-hidden">
+                <StepperContent
+                  value={1}
+                  className="min-h-full lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+                >
+                  <EmployeeForm
+                    form={form}
+                    onSubmit={onSubmit}
+                    id="employee-form"
+                    mode={mode}
+                    onImageUrlFileChange={onImageUrlFileChange}
+                    customFields={customFields}
+                    onAddCustomField={onAddCustomField}
+                    onReloadCustomFields={onReloadCustomFields}
+                    isReloadingCustomFields={isReloadingCustomFields}
+                    roleOptions={roleOptions}
+                    canManageRoles={canManageRoles}
+                    canManageAccount={canManageAccount}
+                    employeeHasLinkedAccount={employeeHasLinkedAccount}
+                  />
+                </StepperContent>
+                <StepperContent
+                  value={2}
+                  className="flex h-full min-h-0 flex-col overflow-hidden"
+                >
+                  <EmployeeCustomerSelectionStep
+                    roleOptions={roleOptions}
+                    employeeRoleIds={employeeRoleIds ?? []}
+                    customers={customerOptions}
+                    customerTable={customerTable}
+                    assignments={customerAssignments}
+                    onAssignmentsChange={onCustomerAssignmentsChange}
+                    canManage={canManageCustomerAssignments}
+                    employeeHasLinkedAccount={canUseEmployeeAccount}
+                    isLoading={accessIsLoading}
+                    error={accessError}
+                  />
+                </StepperContent>
+                <StepperContent
+                  value={3}
+                  className="flex h-full min-h-0 flex-col"
+                >
+                  <EmployeeCustomerRoleStep
+                    roleOptions={roleOptions}
+                    employeeRoleIds={employeeRoleIds ?? []}
+                    customers={customerOptions}
+                    customerTable={customerTable}
+                    assignments={customerAssignments}
+                    onAssignmentsChange={onCustomerAssignmentsChange}
+                    canManage={canManageCustomerAssignments}
+                    employeeHasLinkedAccount={canUseEmployeeAccount}
+                    isLoading={accessIsLoading}
+                    error={accessError}
+                  />
+                </StepperContent>
+              </StepperPanel>
+            </Stepper>
+          </div>
 
           <DialogFooter className="shrink-0 px-6 py-4">
             <ShortcutTooltip label="Hủy" shortcut="Esc">

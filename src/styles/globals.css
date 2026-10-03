@@ -304,6 +304,11 @@
   *:focus-visible {
     @apply outline-ring rounded-xs shadow-none outline-2 outline-offset-3 transition-none!;
   }
+
+  [data-hide-native-password-reveal]::-ms-reveal,
+  [data-hide-native-password-reveal]::-ms-clear {
+    display: none;
+  }
 }
 
 /** Custom Scrollbar **/
