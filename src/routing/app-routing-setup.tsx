@@ -50,6 +50,7 @@ import { ContractTemplatesPage } from '@/project/contracts/templates/contract-te
 import { CustomerDetailPage } from '@/project/customers/pages/customer-detail-page';
 import { CustomersPage } from '@/project/customers/pages/customers-page';
 import { DashboardPage } from '@/project/dashboard/pages/dashboard-page';
+import { EmployeeDetailPage } from '@/project/employees/pages/employee-detail-page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { FinanceAccountDetailPage } from '@/project/finance/pages/finance-account-detail-page';
@@ -235,6 +236,10 @@ export function AppRoutingSetup() {
         <Route element={<ProjectMainLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
+          <Route
+            path={ROUTES.PROJECT.EMPLOYEE_DETAIL}
+            element={<EmployeeDetailPage />}
+          />
           <Route path={ROUTES.PROJECT.WORK} element={<WorkPage />} />
           <Route
             path={ROUTES.PROJECT.MY_WORK}

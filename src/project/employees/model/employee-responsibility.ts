@@ -1,3 +1,4 @@
+import type { CustomerStatus } from '@/project/customers/model/customer';
 import type { EmployeeRoleOption } from './employee';
 
 export interface EmployeeCustomerOption {
@@ -5,7 +6,13 @@ export interface EmployeeCustomerOption {
   customerCode: string;
   name: string;
   imageUrl: string | null;
-  status: 'active' | 'inactive';
+  status: CustomerStatus;
+}
+
+export interface EmployeeDistributionChartPoint {
+  name: string;
+  value: number;
+  fill: string;
 }
 
 export interface EmployeeCustomerAssignmentInput {

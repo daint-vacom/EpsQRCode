@@ -9,10 +9,11 @@ import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { KeyRound, Pencil, Trash2 } from 'lucide-react';
+import { Eye, KeyRound, Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
+  getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
 import {
   EMPLOYEE_ACCOUNT_BADGE_CONFIG,
@@ -38,11 +39,12 @@ import {
 } from './employee-column-filters.generated';
 
 export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
-  left: ['select'],
+  left: ['select', 'name'],
   right: ['actions'],
 };
 
 export interface UseEmployeeColumnsParams {
+  onView: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
   onResetPassword: (employee: Employee) => void;
@@ -130,8 +132,8 @@ export function useEmployeeColumns(
             }
           />
         ),
-        headerClassName: 'min-w-[170px]',
-        size: 170,
+        headerClassName: 'min-w-[150px]',
+        size: 150,
         enableSorting: false,
       }),
       col.badge({
@@ -147,18 +149,40 @@ export function useEmployeeColumns(
             renderOption={(option) => option.label}
           />
         ),
-        headerClassName: 'min-w-[170px]',
-        size: 170,
+        headerClassName: 'min-w-[140px]',
+        size: 140,
         enableSorting: false,
       }),
       col.actions({
         id: 'actions',
         header: '',
-        headerClassName: 'w-[150px]',
         cellClassName: 'text-right',
+        size: getDataGridActionsColumnSize(4),
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
+            <DataGridActionButton
+              action="view"
+              tooltip="Xem chi tiết"
+              type="button"
+              mode="icon"
+              size="sm"
+              aria-label={`Xem chi tiết nhân viên ${row.displayName}`}
+              onClick={() => params.onView(row)}
+            >
+              <Eye className="size-4" />
+            </DataGridActionButton>
+            <DataGridActionButton
+              action="edit"
+              tooltip="Sửa"
+              type="button"
+              mode="icon"
+              size="sm"
+              aria-label={`Sửa nhân viên ${row.displayName}`}
+              onClick={() => params.onEdit(row)}
+            >
+              <Pencil className="size-4" />
+            </DataGridActionButton>
             {params.canResetPassword && row.userId ? (
               <DataGridActionButton
                 action="other"
@@ -172,17 +196,6 @@ export function useEmployeeColumns(
                 <KeyRound className="size-4" />
               </DataGridActionButton>
             ) : null}
-            <DataGridActionButton
-              action="edit"
-              tooltip="Sửa"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Sửa nhân viên ${row.displayName}`}
-              onClick={() => params.onEdit(row)}
-            >
-              <Pencil className="size-4" />
-            </DataGridActionButton>
             <DataGridActionButton
               action="delete"
               tooltip="Xóa"

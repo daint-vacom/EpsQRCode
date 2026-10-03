@@ -1,3 +1,4 @@
+import type { CustomerStatus } from '@/project/customers/model/customer';
 import { loadCustomFields } from '@/project/data-configuration/api/custom-fields.api';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import {
@@ -207,6 +208,80 @@ export async function loadEmployeeList(
     ),
     total: numberValue(response.total),
   };
+}
+
+export async function loadEmployeeDetail(
+  tenantId: string,
+  employeeId: string,
+): Promise<Employee | null> {
+  assertSupabaseConfigured();
+  const rows = await request<EmployeeRow[]>(
+    supabaseApi.get(
+      '/employees',
+      queryParams({
+        select: '*',
+        tenant_id: `eq.${tenantId}`,
+        id: `eq.${employeeId}`,
+        limit: '1',
+      }),
+    ),
+  );
+  const row = rows[0];
+  if (!row) return null;
+
+  const [profiles, assignments, roles] = await Promise.all([
+    row.user_id
+      ? request<EmployeeAvatarRow[]>(
+          supabaseApi.get(
+            '/user_profiles',
+            queryParams({
+              select: 'id,avatar_url,username',
+              id: `eq.${row.user_id}`,
+              limit: '1',
+            }),
+          ),
+        )
+      : Promise.resolve([] as EmployeeAvatarRow[]),
+    row.user_id
+      ? request<EmployeeRoleAssignmentRow[]>(
+          supabaseApi.get(
+            '/tenant_member_roles',
+            queryParams({
+              select: 'user_id,role_id',
+              tenant_id: `eq.${tenantId}`,
+              user_id: `eq.${row.user_id}`,
+            }),
+          ),
+        )
+      : Promise.resolve([] as EmployeeRoleAssignmentRow[]),
+    request<EmployeeRoleRow[]>(
+      supabaseApi.get(
+        '/roles',
+        queryParams({
+          select: 'id,name,color,is_active,customer_assignable',
+          or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+          is_active: 'eq.true',
+        }),
+      ),
+    ),
+  ]);
+  const profile = profiles[0];
+  const rolesById = new Map(roles.map((role) => [role.id, role]));
+  const employeeRoles = assignments.flatMap((assignment) => {
+    const role = rolesById.get(assignment.role_id);
+    return role ? [{ name: role.name, color: role.color }] : [];
+  });
+  const roleIds = assignments
+    .filter((assignment) => rolesById.has(assignment.role_id))
+    .map((assignment) => assignment.role_id);
+
+  return mapEmployeeRow(
+    row,
+    row.avatar_url ?? profile?.avatar_url ?? null,
+    employeeRoles,
+    roleIds,
+    profile?.username ?? null,
+  );
 }
 
 export async function loadEmployeeStatusStats(
@@ -564,7 +639,7 @@ interface EmployeeResponsibilityWorkspaceRow {
     customerCode: string;
     name: string;
     imageUrl: string | null;
-    status: 'active' | 'inactive';
+    status: CustomerStatus;
   }>;
   assignments: EmployeeCustomerAssignmentInput[];
 }

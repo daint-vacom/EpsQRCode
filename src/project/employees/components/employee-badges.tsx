@@ -9,13 +9,15 @@ import type { EmployeeRole, EmployeeStatus } from '../model/employee';
 export const EMPLOYEE_STATUS_BADGE_CONFIG: StatusBadgeConfig<EmployeeStatus> = {
   active: {
     label: 'Còn làm việc',
-    variant: 'success',
-    className: 'rounded-md px-2.5 py-1 text-xs',
+    className:
+      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
+    dotClassName: 'bg-admin-success-dot opacity-100',
   },
   inactive: {
     label: 'Ngừng làm việc',
-    variant: 'destructive',
-    className: 'rounded-md px-2.5 py-1 text-xs',
+    className:
+      'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
+    dotClassName: 'bg-admin-red-primary opacity-100',
   },
 };
 

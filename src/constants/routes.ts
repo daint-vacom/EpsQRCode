@@ -31,6 +31,7 @@ export const ROUTES = {
     MY_WORK: '/my-work',
     WORK_TEMPLATES: '/work-templates',
     EMPLOYEES: '/employees',
+    EMPLOYEE_DETAIL: '/employees/:id',
     CUSTOMERS: '/customers',
     CUSTOMER_DETAIL: '/customers/:id',
     CONTRACTS: '/contracts',

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ROUTES } from '@/constants/routes';
-import { SavedViewFilterControls } from '@/project/saved-views/components/saved-view-filter-controls';
+import { buildPath, ROUTES } from '@/constants/routes';
+import { SavedViewFilterMenu } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
+import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -14,13 +15,15 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import {
-  ChevronDown,
+  Funnel,
+  MoreVertical,
   Plus,
   RefreshCw,
   Trash2,
   TriangleAlert,
   Users,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -35,18 +38,15 @@ import {
 } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridActionBar } from '@/components/ui/data-grid-action-bar';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   createEmployeeAccount,
@@ -87,19 +87,24 @@ import {
   type EmployeeSavedView,
   type EmployeeSavedViewConfig,
 } from '../model/employee-saved-view';
+import { toEmployeeRoleFilterOption } from '../table/employee-column-filters';
 import {
   EMPLOYEE_COLUMN_PINNING,
   useEmployeeColumns,
 } from '../table/employee.columns.generated';
 import { EmployeeFilterBar } from '../table/employee.filters.generated';
 
+const employeeDefaultColumnVisibility = { account: false };
+
 export function EmployeesPage() {
+  const navigate = useNavigate();
   const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [customerAssignments, setCustomerAssignments] = useState<
     EmployeeCustomerAssignmentInput[]
@@ -370,6 +375,8 @@ export function EmployeesPage() {
   }
 
   const columns = useEmployeeColumns({
+    onView: (employee) =>
+      navigate(buildPath(ROUTES.PROJECT.EMPLOYEE_DETAIL, { id: employee.id })),
     onEdit: openEdit,
     onDelete: setDeletingEmployee,
     onResetPassword: setResettingPasswordFor,
@@ -405,6 +412,7 @@ export function EmployeesPage() {
     visibilityStorageKey: 'project.employees.columnVisibility',
     orderStorageKey: 'project.employees.columnOrder',
     inlineFiltersStorageKey: 'project.employees.showInlineFilters',
+    defaultColumnVisibility: employeeDefaultColumnVisibility,
   });
   const currentViewConfig = useMemo<EmployeeSavedViewConfig>(
     () => ({ version: 1, keyword, filters, columnVisibility, columnOrder }),
@@ -514,6 +522,7 @@ export function EmployeesPage() {
       columnPinning: EMPLOYEE_COLUMN_PINNING,
       rowSelection,
     },
+    initialState: { columnVisibility: employeeDefaultColumnVisibility },
     onPaginationChange,
     onColumnVisibilityChange,
     onColumnOrderChange,
@@ -573,91 +582,73 @@ export function EmployeesPage() {
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
-            title={
-              <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
-                <span>
-                  Đã chọn{' '}
-                  <span className="font-semibold text-foreground">
-                    {selectedEmployees.length}
-                  </span>{' '}
-                  nhân viên
-                </span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      disabled={selectedEmployees.length === 0}
-                      aria-label="Thao tác hàng loạt"
-                    >
-                      Thao tác hàng loạt
-                      <ChevronDown />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onSelect={() => setDeletingEmployees(selectedEmployees)}
-                    >
-                      <Trash2 />
-                      Xóa nhân viên
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </span>
-            }
-            toolbar={
-              <>
+            variant="stats"
+            className="pe-3"
+            stats={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <EmployeeFilterBar
+                  className="w-64 shrink-0"
                   keyword={keyword}
                   onKeywordChange={setKeyword}
                 />
-                <SavedViewFilterControls
-                  views={savedViewState.savedViews}
-                  activeViewId={savedViewState.activeViewId}
-                  canManage={canManageSavedViews}
-                  isLoading={savedViewState.savedViewsQuery.isPending}
-                  isDirty={isActiveViewDirty}
-                  isSaving={savedViewState.saveMutation.isPending}
-                  showInlineFilters={showInlineFilters}
-                  onShowInlineFiltersChange={onShowInlineFiltersChange}
-                  renderFilterDrawer={({ open, onOpenChange, trigger }) => (
-                    <EmployeeFilterDrawer
-                      keyword={keyword}
-                      filters={filters}
-                      roleOptions={employeeRoleOptions}
-                      roleOptionsLoading={employeeRoleOptionsQuery.isLoading}
-                      open={open}
-                      onOpenChange={onOpenChange}
-                      onApply={({
-                        keyword: nextKeyword,
-                        filters: nextFilters,
-                      }) => {
-                        setKeyword(nextKeyword);
-                        setFilters(nextFilters);
-                      }}
-                      onReset={resetAll}
-                      onSaveToView={
-                        canManageSavedViews
-                          ? (draft: EmployeeFilterDraft) =>
-                              saveView({
-                                ...currentViewConfig,
-                                keyword: draft.keyword,
-                                filters: draft.filters,
-                              })
-                          : undefined
-                      }
-                      canSaveToView={Boolean(activeView && canManageSavedViews)}
-                      saveDisabled={!isActiveViewDirty}
-                      isSaving={savedViewState.saveMutation.isPending}
-                      trigger={trigger}
-                    />
-                  )}
-                  onSelect={selectSavedView}
-                  onCreate={openCreateSavedView}
-                  onEdit={openEditSavedView}
-                  onSaveCurrent={() => saveView()}
+                <Separator orientation="vertical" className="mx-1 h-6" />
+                <MultiSelect
+                  value={filters.roleIds}
+                  onChange={(value) => setFilter('roleIds', value)}
+                  options={employeeRoleOptions.map(toEmployeeRoleFilterOption)}
+                  placeholder="Vai trò"
+                  searchPlaceholder="Tìm vai trò..."
+                  loading={employeeRoleOptionsQuery.isLoading}
+                  maxChips={0}
+                  size="md"
+                  ariaLabel="Lọc theo vai trò"
+                  className="w-[200px] shrink-0"
                 />
+                <TagColumnFilter
+                  value={filters.tagIds}
+                  onChange={(value) => setFilter('tagIds', value)}
+                  moduleCodes={['organization']}
+                  placeholder="Nhóm/danh mục"
+                  ariaLabel="Lọc theo nhóm hoặc danh mục"
+                  size="md"
+                  className="w-[200px] shrink-0"
+                />
+                <EmployeeFilterDrawer
+                  keyword={keyword}
+                  filters={filters}
+                  roleOptions={employeeRoleOptions}
+                  roleOptionsLoading={employeeRoleOptionsQuery.isLoading}
+                  open={filterDrawerOpen}
+                  onOpenChange={setFilterDrawerOpen}
+                  onApply={({ keyword: nextKeyword, filters: nextFilters }) => {
+                    setKeyword(nextKeyword);
+                    setFilters(nextFilters);
+                  }}
+                  onReset={resetAll}
+                  onSaveToView={
+                    canManageSavedViews
+                      ? (draft: EmployeeFilterDraft) =>
+                          saveView({
+                            ...currentViewConfig,
+                            keyword: draft.keyword,
+                            filters: draft.filters,
+                          })
+                      : undefined
+                  }
+                  canSaveToView={Boolean(activeView && canManageSavedViews)}
+                  saveDisabled={!isActiveViewDirty}
+                  isSaving={savedViewState.saveMutation.isPending}
+                  trigger={
+                    <Button type="button" variant="outline">
+                      <Funnel />
+                      Lọc Chi Tiết
+                    </Button>
+                  }
+                />
+              </div>
+            }
+            toolbar={
+              <div className="ms-auto flex shrink-0 items-center gap-2.5">
                 <Button
                   variant="outline"
                   mode="icon"
@@ -679,7 +670,33 @@ export function EmployeesPage() {
                   saveDisabled={!isActiveViewDirty}
                   isSaving={savedViewState.saveMutation.isPending}
                 />
-              </>
+                <SavedViewFilterMenu
+                  views={savedViewState.savedViews}
+                  activeViewId={savedViewState.activeViewId}
+                  canManage={canManageSavedViews}
+                  isDirty={isActiveViewDirty}
+                  isSaving={savedViewState.saveMutation.isPending}
+                  showInlineFilters={showInlineFilters}
+                  onShowInlineFiltersChange={onShowInlineFiltersChange}
+                  onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
+                  onSelect={selectSavedView}
+                  onCreate={openCreateSavedView}
+                  onEdit={openEditSavedView}
+                  onSaveCurrent={() => saveView()}
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      disabled={savedViewState.savedViewsQuery.isPending}
+                      aria-label="Tùy chọn chế độ xem và bộ lọc"
+                      title="Tùy chọn chế độ xem và bộ lọc"
+                    >
+                      <MoreVertical />
+                    </Button>
+                  }
+                />
+              </div>
             }
           />
           <CardTable className="min-h-0 flex-1">
@@ -692,6 +709,16 @@ export function EmployeesPage() {
             <DataGridPagination />
           </CardFooter>
         </Card>
+        <DataGridActionBar>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setDeletingEmployees(selectedEmployees)}
+          >
+            <Trash2 />
+            Xóa nhân viên
+          </Button>
+        </DataGridActionBar>
       </DataGrid>
 
       <EmployeeFormDialog

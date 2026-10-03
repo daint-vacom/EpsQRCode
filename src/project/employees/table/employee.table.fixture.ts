@@ -13,6 +13,7 @@ const spec: TableSpec = {
       id: 'name',
       header: 'Nhân viên',
       headerClassName: 'min-w-[220px]',
+      pin: 'left',
     },
     {
       kind: 'custom',
@@ -32,16 +33,20 @@ const spec: TableSpec = {
       id: 'status',
       header: 'Trạng thái',
       field: 'status',
+      headerClassName: 'min-w-[150px]',
+      size: 150,
       config: {
         active: {
           label: 'Còn làm việc',
-          variant: 'success',
-          className: 'rounded-md px-2.5 py-1 text-xs',
+          className:
+            'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
+          dotClassName: 'bg-admin-success-dot opacity-100',
         },
         inactive: {
           label: 'Ngừng làm việc',
-          variant: 'destructive',
-          className: 'rounded-md px-2.5 py-1 text-xs',
+          className:
+            'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
+          dotClassName: 'bg-admin-red-primary opacity-100',
         },
       },
     },
@@ -50,6 +55,8 @@ const spec: TableSpec = {
       id: 'account',
       header: 'Tài khoản',
       field: 'accountLinked',
+      headerClassName: 'min-w-[140px]',
+      size: 140,
       config: {
         true: {
           label: 'Đã liên kết',
@@ -70,7 +77,7 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      headerClassName: 'w-[150px]',
+      actionCount: 4,
       cellClassName: 'text-right',
     },
   ],

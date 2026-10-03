@@ -50,57 +50,45 @@ export interface SavedViewFilterControlsProps<TFilters extends object> {
   onSaveCurrent: () => void;
 }
 
-/** Shared list-page preset for detailed filters, saved views, and inline filters. */
-export function SavedViewFilterControls<TFilters extends object>({
+export interface SavedViewFilterMenuProps<TFilters extends object> {
+  views: readonly TenantSavedView<TFilters>[];
+  activeViewId: string | null;
+  canManage: boolean;
+  isDirty?: boolean;
+  isSaving?: boolean;
+  showInlineFilters: boolean;
+  onShowInlineFiltersChange: (show: boolean) => void;
+  onOpenFilterDrawer: () => void;
+  onSelect: (viewId: string | null) => void;
+  onCreate: () => void;
+  onEdit: (view: TenantSavedView<TFilters>) => void;
+  onSaveCurrent: () => void;
+  trigger: ReactNode;
+}
+
+/** Menu half of the saved-view filter split control, usable in a separate toolbar group. */
+export function SavedViewFilterMenu<TFilters extends object>({
   views,
   activeViewId,
   canManage,
-  isLoading = false,
   isDirty = false,
   isSaving = false,
   showInlineFilters,
   onShowInlineFiltersChange,
-  renderFilterDrawer,
+  onOpenFilterDrawer,
   onSelect,
   onCreate,
   onEdit,
   onSaveCurrent,
-}: SavedViewFilterControlsProps<TFilters>) {
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  trigger,
+}: SavedViewFilterMenuProps<TFilters>) {
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const activeView = views.find((view) => view.id === activeViewId) ?? null;
 
   return (
     <div className="inline-flex min-w-0 items-stretch">
-      {renderFilterDrawer({
-        open: filterDrawerOpen,
-        onOpenChange: setFilterDrawerOpen,
-        trigger: (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading}
-            className="rounded-e-none border-e-0"
-          >
-            <SlidersHorizontal />
-            Lọc dữ liệu
-          </Button>
-        ),
-      })}
       <DropdownMenu open={viewMenuOpen} onOpenChange={setViewMenuOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            mode="icon"
-            disabled={isLoading}
-            aria-label="Chọn chế độ xem hoặc thao tác bộ lọc"
-            title={activeView?.name ?? 'Tất cả'}
-            className="-ms-px rounded-s-none px-2"
-          >
-            <ChevronDown />
-          </Button>
-        </DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
           <DropdownMenuLabel>Chế độ xem</DropdownMenuLabel>
           <DropdownMenuItem onSelect={() => onSelect(null)}>
@@ -167,7 +155,7 @@ export function SavedViewFilterControls<TFilters extends object>({
           ))}
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setFilterDrawerOpen(true)}>
+          <DropdownMenuItem onSelect={onOpenFilterDrawer}>
             <SlidersHorizontal />
             Mở bộ lọc nâng cao
           </DropdownMenuItem>
@@ -242,6 +230,73 @@ export function SavedViewFilterControls<TFilters extends object>({
           <X className="size-2.5" />
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Shared list-page preset for detailed filters, saved views, and inline filters. */
+export function SavedViewFilterControls<TFilters extends object>({
+  views,
+  activeViewId,
+  canManage,
+  isLoading = false,
+  isDirty = false,
+  isSaving = false,
+  showInlineFilters,
+  onShowInlineFiltersChange,
+  renderFilterDrawer,
+  onSelect,
+  onCreate,
+  onEdit,
+  onSaveCurrent,
+}: SavedViewFilterControlsProps<TFilters>) {
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const activeView = views.find((view) => view.id === activeViewId) ?? null;
+
+  return (
+    <div className="inline-flex min-w-0 items-stretch">
+      {renderFilterDrawer({
+        open: filterDrawerOpen,
+        onOpenChange: setFilterDrawerOpen,
+        trigger: (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isLoading}
+            className="rounded-e-none border-e-0"
+          >
+            <SlidersHorizontal />
+            Lọc dữ liệu
+          </Button>
+        ),
+      })}
+      <SavedViewFilterMenu
+        views={views}
+        activeViewId={activeViewId}
+        canManage={canManage}
+        isDirty={isDirty}
+        isSaving={isSaving}
+        showInlineFilters={showInlineFilters}
+        onShowInlineFiltersChange={onShowInlineFiltersChange}
+        onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
+        onSelect={onSelect}
+        onCreate={onCreate}
+        onEdit={onEdit}
+        onSaveCurrent={onSaveCurrent}
+        trigger={
+          <Button
+            type="button"
+            variant="outline"
+            mode="icon"
+            disabled={isLoading}
+            aria-label="Chọn chế độ xem hoặc thao tác bộ lọc"
+            title={activeView?.name ?? 'Tất cả'}
+            className="-ms-px rounded-s-none px-2"
+          >
+            <ChevronDown />
+          </Button>
+        }
+      />
     </div>
   );
 }
