@@ -71,6 +71,13 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - When the Supabase CLI cannot connect to the IPv6 direct endpoint, use a temporary Node `pg` client over the verified session pooler: install with `npm install --no-save --package-lock=false pg`, run an inline script, and uninstall it afterward. The script must open a client, `begin`, execute the migration SQL, insert the migration version into `supabase_migrations.schema_migrations`, `commit`, and `rollback` on any error. Do not create a committed helper or change `.env` for this workaround.
 - Verify the result through the same PostgreSQL connection: migration history, expected tables/views/columns, functions/RPCs, relevant storage settings, and seeded records. Report unrelated pending migrations separately instead of silently applying them.
 
+## Default Ordering for List Data
+
+- Apply these defaults to every existing and new Supabase query/RPC that returns a list when the caller has not explicitly requested a sort. An explicit caller sort takes precedence.
+- Entity and master-data lists (for example, employees and customers) sort by an explicit status priority first: active, then intermediate or pending states (such as not contacted), then inactive or stopped. Map enum values with an explicit `CASE`; do not depend on enum or text order. Within each status group, sort the displayed name ascending with the Vietnamese alphabet, case-insensitively. Use the database Vietnamese ICU collation (for example, `lower(display_name) COLLATE "vi-x-icu"`) so all `D` names precede `Đ`, and `Đ` precedes `E`. Add a stable ID tie-breaker.
+- Document and ticket lists (for example, work items, vouchers, and contracts) sort by `created_at DESC` so the newest records appear first, followed by a stable ID tie-breaker.
+- Preserve an intentional domain order such as `sort_order`, hierarchy, or a user-selected sort when that order is part of the list's behavior; these are not unspecified defaults. For paginated RPCs, use the same ordering for page selection and the returned JSON array, before applying offset/limit.
+
 ## Verification
 
 Before claiming work is complete, run the narrowest useful checks:
