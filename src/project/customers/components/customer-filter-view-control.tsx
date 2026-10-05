@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import {
   Check,
-  ChevronDown,
+  MoreVertical,
   Pencil,
   Plus,
   Save,
@@ -27,12 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type {
-  CustomerFilterFormValues,
-  CustomerListFilters,
-} from '../model/customer';
 import type { CustomerSavedView } from '../model/customer-saved-view';
-import { CustomerFilterDrawer } from './customer-filter-drawer';
 
 interface CustomerFilterViewControlProps {
   views: readonly CustomerSavedView[];
@@ -45,17 +39,11 @@ interface CustomerFilterViewControlProps {
   onShowInlineFiltersChange: (show: boolean) => void;
   showResponsibilityFilters: boolean;
   onShowResponsibilityFiltersChange: (show: boolean) => void;
-  filters: CustomerListFilters;
-  customFields?: CustomField[];
+  onOpenFilterDrawer: () => void;
   onSelect: (viewId: string | null) => void;
   onCreate: () => void;
   onEdit: (view: CustomerSavedView) => void;
   onSaveCurrent: () => void;
-  onApply: (values: CustomerFilterFormValues) => void;
-  onReset: () => void;
-  onSaveToView?: (values: CustomerFilterFormValues) => void;
-  canSaveToView?: boolean;
-  saveDisabled?: boolean;
 }
 
 export function CustomerFilterViewControl({
@@ -69,59 +57,28 @@ export function CustomerFilterViewControl({
   onShowInlineFiltersChange,
   showResponsibilityFilters,
   onShowResponsibilityFiltersChange,
-  filters,
-  customFields = [],
+  onOpenFilterDrawer,
   onSelect,
   onCreate,
   onEdit,
   onSaveCurrent,
-  onApply,
-  onReset,
-  onSaveToView,
-  canSaveToView = true,
-  saveDisabled = false,
 }: CustomerFilterViewControlProps) {
-  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const activeView = views.find((view) => view.id === activeViewId) ?? null;
 
   return (
-    <div className="inline-flex items-stretch">
-      <CustomerFilterDrawer
-        filters={filters}
-        open={filterDrawerOpen}
-        onOpenChange={setFilterDrawerOpen}
-        customFields={customFields}
-        onApply={onApply}
-        onReset={onReset}
-        onSaveToView={onSaveToView}
-        canSaveToView={canSaveToView}
-        saveDisabled={saveDisabled}
-        isSaving={isSaving}
-        trigger={
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isLoading}
-            className="rounded-e-none border-e-0"
-          >
-            <SlidersHorizontal />
-            Lọc dữ liệu
-          </Button>
-        }
-      />
+    <div className="inline-flex items-center gap-1">
       <DropdownMenu open={viewMenuOpen} onOpenChange={setViewMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             mode="icon"
             disabled={isLoading}
             aria-label="Chọn chế độ xem hoặc thao tác bộ lọc"
-            title={activeView?.name ?? 'Tất cả khách hàng'}
-            className="-ms-px rounded-s-none px-2"
+            title={activeView?.name ?? 'Tùy chọn chế độ xem và bộ lọc'}
           >
-            <ChevronDown />
+            <MoreVertical />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-72">
@@ -190,7 +147,7 @@ export function CustomerFilterViewControl({
           ))}
 
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setFilterDrawerOpen(true)}>
+          <DropdownMenuItem onSelect={onOpenFilterDrawer}>
             <SlidersHorizontal />
             Mở bộ lọc nâng cao
           </DropdownMenuItem>
@@ -253,7 +210,7 @@ export function CustomerFilterViewControl({
       <div
         aria-hidden={!activeView}
         className={cn(
-          '-ms-px flex h-8.5 min-w-0 items-center overflow-hidden rounded-e-md bg-muted/80 text-xs text-secondary-foreground transition-all duration-200 ease-out',
+          'ms-1 flex h-8.5 min-w-0 items-center overflow-hidden rounded-md bg-muted/80 text-xs text-secondary-foreground transition-all duration-200 ease-out',
           activeView
             ? 'max-w-48 translate-x-0 px-2.5 opacity-100'
             : 'pointer-events-none max-w-0 -translate-x-2 px-0 opacity-0',

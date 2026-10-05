@@ -21,7 +21,6 @@ import {
   VAT_DECLARATION_PERIOD_LABELS,
   type Customer,
   type CustomerSoftwareAccount,
-  type CustomerStatus,
 } from '../model/customer';
 import type {
   CustomerResponsibilityEmployee,
@@ -30,6 +29,7 @@ import type {
 } from '../model/customer-responsibility';
 import { CustomerAvatar } from './customer-avatar';
 import { CustomerDetailDialogShell } from './customer-detail-dialog.generated';
+import { CustomerStatusBadge } from './customer-status-badge';
 
 function displayValue(value: string | null | undefined) {
   return value?.trim() ?? '';
@@ -43,12 +43,6 @@ function formatCustomerDate(value: string | null) {
 
   return new Intl.DateTimeFormat('vi-VN').format(date);
 }
-
-const CUSTOMER_STATUS_TEXT_CLASSES: Record<CustomerStatus, string> = {
-  active: 'text-admin-success-text',
-  inactive: 'text-admin-red-dark',
-  uncontacted: 'text-muted-foreground',
-};
 
 function joinSearchText(...values: unknown[]) {
   return values
@@ -102,11 +96,7 @@ function getCustomerGeneralFields(
     },
     {
       label: 'Trạng thái',
-      value: (
-        <span className={CUSTOMER_STATUS_TEXT_CLASSES[customer.status]}>
-          {CUSTOMER_STATUS_LABELS[customer.status]}
-        </span>
-      ),
+      value: <CustomerStatusBadge status={customer.status} />,
       searchText: CUSTOMER_STATUS_LABELS[customer.status],
     },
     {

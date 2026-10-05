@@ -12,6 +12,7 @@ import {
   type BusinessType,
   type CustomerStatus,
 } from '../model/customer';
+import { CustomerStatusBadge } from './customer-status-badge';
 
 type CustomerSelectSize = OptionSelectProps['size'];
 
@@ -40,26 +41,6 @@ const BUSINESS_TYPE_OPTIONS = BUSINESS_TYPES.map((value) => ({
   label: BUSINESS_TYPE_LABELS[value],
   searchableText: BUSINESS_TYPE_LABELS[value],
 }));
-
-function CustomerStatusBadge({ value }: { value: CustomerStatus }) {
-  const isActive = value === 'active';
-  const isInactive = value === 'inactive';
-
-  return (
-    <Badge
-      appearance={isActive || isInactive ? 'light' : undefined}
-      variant={isActive ? 'success' : isInactive ? 'destructive' : 'outline'}
-      className={cn(
-        'rounded-md px-2.5 py-1 text-xs',
-        !isActive &&
-          !isInactive &&
-          'border-transparent bg-muted text-muted-foreground',
-      )}
-    >
-      {CUSTOMER_STATUS_LABELS[value]}
-    </Badge>
-  );
-}
 
 const CUSTOMER_STATUS_OPTIONS = CUSTOMER_STATUSES.map((value) => ({
   value,
@@ -134,11 +115,11 @@ export function CustomerStatusSelect({
       size={size}
       aria-invalid={ariaInvalid}
       renderOption={(option) => (
-        <CustomerStatusBadge value={option.value as CustomerStatus} />
+        <CustomerStatusBadge status={option.value as CustomerStatus} />
       )}
       triggerContent={(option) =>
         option ? (
-          <CustomerStatusBadge value={option.value as CustomerStatus} />
+          <CustomerStatusBadge status={option.value as CustomerStatus} />
         ) : undefined
       }
       disabled={disabled}

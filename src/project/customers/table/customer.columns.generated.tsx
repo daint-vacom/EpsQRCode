@@ -10,7 +10,7 @@ import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { ExternalLink, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Search, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
@@ -44,19 +44,19 @@ const statusBadgeConfig: StatusBadgeConfig<string> = {
   active: {
     label: 'Đang hoạt động',
     className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
+      'h-auto min-h-0 min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none',
     dotClassName: 'bg-admin-success-dot opacity-100',
   },
   inactive: {
     label: 'Ngừng hoạt động',
     className:
-      'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
+      'h-auto min-h-0 min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none',
     dotClassName: 'bg-admin-red-primary opacity-100',
   },
   uncontacted: {
     label: 'Chưa liên hệ',
     className:
-      'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
+      'h-auto min-h-0 min-w-0 rounded-none border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none',
     dotClassName: 'bg-admin-neutral-400 opacity-100',
   },
 };
@@ -159,7 +159,7 @@ export function useCustomerColumns(
             cell: (row) => (
               <div className="flex justify-end gap-1">
                 <DataGridActionButton
-                  action="other"
+                  action="view"
                   tooltip="Mở trang chi tiết"
                   type="button"
                   mode="icon"
@@ -167,7 +167,7 @@ export function useCustomerColumns(
                   aria-label={`Mở trang chi tiết khách hàng ${row.name}`}
                   onClick={() => params.onOpenDetail?.(row)}
                 >
-                  <ExternalLink className="size-4" />
+                  <Eye className="size-4 text-blue-600" />
                 </DataGridActionButton>
                 <DataGridActionButton
                   action="view"

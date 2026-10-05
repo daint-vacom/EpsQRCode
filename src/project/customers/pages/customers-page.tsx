@@ -9,6 +9,7 @@ import {
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
 import { loadSoftwareAccountCatalogs } from '@/project/tags/api/software-account-catalog.api';
 import { replaceSubjectTags } from '@/project/tags/api/tags.api';
+import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { CUSTOMER_TAG_GROUP_CODE } from '@/project/tags/model/tag';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -18,6 +19,7 @@ import {
 } from '@tanstack/react-table';
 import {
   ChevronDown,
+  Funnel,
   PencilLine,
   Plus,
   RefreshCw,
@@ -39,14 +41,10 @@ import {
 } from '@/components/ui/collapsible';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { MultiSelect } from '@/components/ui/multi-select';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { PageHeader } from '@/components/ui/page-header';
+import { Separator } from '@/components/ui/separator';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   deleteCustomer,
@@ -65,9 +63,11 @@ import {
 import { CustomerBulkStatusDialog } from '../components/customer-bulk-status-dialog';
 import { CustomerCreateDialog } from '../components/customer-create-dialog';
 import { CustomerDetailDialog } from '../components/customer-detail-dialog';
+import { CustomerFilterDrawer } from '../components/customer-filter-drawer';
 import { CustomerFilterViewControl } from '../components/customer-filter-view-control';
 import { CustomerResponsibilityFilterRow } from '../components/customer-responsibility-filter-row';
 import { CustomerStatsCards } from '../components/customer-stats-cards';
+import { CustomerStatusBadge } from '../components/customer-status-badge';
 import { CustomerTable } from '../components/customer-table';
 import {
   CustomerFormDialog,
@@ -79,6 +79,8 @@ import {
 } from '../forms/customer-saved-view-form.generated';
 import { useCustomerList } from '../hooks/use-customer-list';
 import {
+  CUSTOMER_STATUS_LABELS,
+  CUSTOMER_STATUSES,
   mapCustomerToFormValues,
   type Customer,
   type CustomerFilterFormValues,
@@ -114,6 +116,14 @@ const customerDefaultColumnVisibility = {
   note: false,
 };
 
+const customerStatusFilterOptions: MultiSelectOption[] = CUSTOMER_STATUSES.map(
+  (status) => ({
+    value: status,
+    label: <CustomerStatusBadge status={status} />,
+    searchableText: CUSTOMER_STATUS_LABELS[status],
+  }),
+);
+
 export function CustomersPage() {
   const navigate = useNavigate();
   const { tenantId } = useTenant();
@@ -144,6 +154,7 @@ export function CustomersPage() {
     null,
   );
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(true);
@@ -862,66 +873,42 @@ export function CustomersPage() {
         total={total}
         isLoading={isListLoading}
         isFetching={workspaceQuery.isFetching}
-        title={
-          <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
-            <span>
-              Đã chọn{' '}
-              <span className="font-semibold text-foreground">
-                {selectedCustomersCount}
-              </span>{' '}
-              khách hàng
-            </span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="md"
-                  disabled={selectedCustomersCount === 0}
-                  aria-label="Thao tác hàng loạt"
-                >
-                  Thao tác hàng loạt
-                  <ChevronDown />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem
-                  onSelect={() => setBulkStatusDialogOpen(true)}
-                >
-                  <PencilLine />
-                  Chỉnh sửa trạng thái
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => setBulkDeleteDialogOpen(true)}
-                >
-                  <Trash2 />
-                  Xóa khách hàng
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </span>
-        }
-        toolbar={
-          <>
-            <CustomerFilterBar keyword={keyword} onKeywordChange={setKeyword} />
-            <CustomerFilterViewControl
-              views={savedViews}
-              activeViewId={activeViewId}
-              canManage={canManageSavedViews}
-              isLoading={savedViewsQuery.isPending}
-              isDirty={isActiveViewDirty}
-              isSaving={savedViewMutation.isPending}
-              showInlineFilters={showInlineFilters}
-              onShowInlineFiltersChange={onShowInlineFiltersChange}
-              showResponsibilityFilters={showResponsibilityFilters}
-              onShowResponsibilityFiltersChange={setShowResponsibilityFilters}
+        headerVariant="stats"
+        stats={
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <CustomerFilterBar
+              className="w-64 shrink-0"
+              keyword={keyword}
+              onKeywordChange={setKeyword}
+            />
+            <Separator orientation="vertical" className="mx-1 h-6" />
+            <TagColumnFilter
+              value={filters.tagIds}
+              onChange={(value) => setFilter('tagIds', value)}
+              moduleCodes={[CUSTOMER_TAG_GROUP_CODE]}
+              placeholder="Nhóm/danh mục"
+              ariaLabel="Lọc theo nhóm hoặc danh mục"
+              size="md"
+              className="w-[200px] shrink-0"
+            />
+            <MultiSelect
+              value={filters.statuses}
+              onChange={(value) =>
+                setFilter('statuses', value as CustomerListFilters['statuses'])
+              }
+              options={customerStatusFilterOptions}
+              placeholder="Trạng thái"
+              searchPlaceholder="Tìm trạng thái..."
+              maxChips={0}
+              size="md"
+              ariaLabel="Lọc theo trạng thái"
+              className="w-[200px] shrink-0"
+            />
+            <CustomerFilterDrawer
               filters={filters}
+              open={filterDrawerOpen}
+              onOpenChange={setFilterDrawerOpen}
               customFields={customerCustomFieldsQuery.data ?? []}
-              onSelect={selectSavedView}
-              onCreate={openCreateSavedView}
-              onEdit={openEditSavedView}
-              onSaveCurrent={() => saveCurrentView()}
               onApply={(values: CustomerFilterFormValues) =>
                 setFilters({
                   ...values,
@@ -944,7 +931,18 @@ export function CustomersPage() {
               }
               canSaveToView={Boolean(activeView && canManageSavedViews)}
               saveDisabled={!isActiveViewDirty}
+              isSaving={savedViewMutation.isPending}
+              trigger={
+                <Button type="button" variant="outline">
+                  <Funnel />
+                  Lọc Chi Tiết
+                </Button>
+              }
             />
+          </div>
+        }
+        toolbar={
+          <div className="ms-auto flex shrink-0 items-center gap-2.5">
             <Button
               variant="outline"
               mode="icon"
@@ -969,6 +967,43 @@ export function CustomersPage() {
               saveDisabled={!isActiveViewDirty}
               isSaving={savedViewMutation.isPending}
             />
+            <CustomerFilterViewControl
+              views={savedViews}
+              activeViewId={activeViewId}
+              canManage={canManageSavedViews}
+              isLoading={savedViewsQuery.isPending}
+              isDirty={isActiveViewDirty}
+              isSaving={savedViewMutation.isPending}
+              showInlineFilters={showInlineFilters}
+              onShowInlineFiltersChange={onShowInlineFiltersChange}
+              showResponsibilityFilters={showResponsibilityFilters}
+              onShowResponsibilityFiltersChange={setShowResponsibilityFilters}
+              onOpenFilterDrawer={() => setFilterDrawerOpen(true)}
+              onSelect={selectSavedView}
+              onCreate={openCreateSavedView}
+              onEdit={openEditSavedView}
+              onSaveCurrent={() => saveCurrentView()}
+            />
+          </div>
+        }
+        bulkActions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkStatusDialogOpen(true)}
+            >
+              <PencilLine />
+              Chỉnh sửa trạng thái
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 />
+              Xóa khách hàng
+            </Button>
           </>
         }
         tableLayout={{ showInlineFilters }}
