@@ -24,7 +24,8 @@ const spec = {
       id: 'accountType',
       field: 'accountType',
       header: 'Loại',
-      sizePreset: 'short',
+      size: 112,
+      badgeSize: 'sm',
       config: { cash: { label: 'Tiền mặt' }, bank: { label: 'Ngân hàng' } },
     },
     {
@@ -47,7 +48,7 @@ const spec = {
       kind: 'custom',
       id: 'isActive',
       header: 'Trạng thái',
-      sizePreset: 'badge',
+      size: 150,
     },
     {
       kind: 'actions',

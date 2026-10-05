@@ -83,6 +83,7 @@ interface BadgeColumnOptions<
   TStatus extends string,
 > extends AccessorColumnOptions<TRow, TStatus | string | null | undefined> {
   config: StatusBadgeConfig<TStatus>;
+  badgeSize?: 'sm' | 'md' | 'lg';
 }
 
 interface EditableSelectColumnOptions<
@@ -263,7 +264,11 @@ export function createColumnHelpers<TRow extends object>(
       return createAccessorColumn({
         ...options,
         cell: (value) => (
-          <StatusBadge status={value} config={options.config} size="md" />
+          <StatusBadge
+            status={value}
+            config={options.config}
+            size={options.badgeSize ?? 'md'}
+          />
         ),
       });
     },

@@ -72,7 +72,8 @@ export function useFinanceVoucherColumns(
         header: 'Thu/Chi',
         get: (row) => row.voucherType,
         config: voucherTypeBadgeConfig,
-        size: 180,
+        badgeSize: 'sm',
+        size: 110,
         enableSorting: false,
       }),
       col.text({
@@ -108,7 +109,8 @@ export function useFinanceVoucherColumns(
         header: 'Trạng thái',
         get: (row) => row.status,
         config: statusBadgeConfig,
-        size: 170,
+        badgeSize: 'sm',
+        size: 125,
         enableSorting: false,
       }),
       col.actions({

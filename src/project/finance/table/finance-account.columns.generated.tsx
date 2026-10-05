@@ -63,7 +63,8 @@ export function useFinanceAccountColumns(
         header: 'Loại',
         get: (row) => row.accountType,
         config: accountTypeBadgeConfig,
-        size: 180,
+        badgeSize: 'sm',
+        size: 112,
         enableSorting: false,
       }),
       col.text({
@@ -83,7 +84,7 @@ export function useFinanceAccountColumns(
       col.custom({
         id: 'isActive',
         header: 'Trạng thái',
-        size: 170,
+        size: 150,
         enableSorting: false,
         cell: (row) => <FinanceAccountStatusBadge isActive={row.isActive} />,
       }),

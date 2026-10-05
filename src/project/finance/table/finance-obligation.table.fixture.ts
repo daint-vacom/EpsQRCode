@@ -31,7 +31,7 @@ const spec = {
       id: 'sourceType',
       field: 'sourceType',
       header: 'Nguồn',
-      sizePreset: 'short',
+      size: 120,
     },
     {
       kind: 'text',

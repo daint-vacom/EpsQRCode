@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { Landmark, Plus, RefreshCw, Search } from 'lucide-react';
+import {
+  Landmark,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -10,6 +18,8 @@ import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardTable } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
+import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
@@ -19,7 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -51,6 +70,11 @@ export function FinanceAccountsPage() {
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'active' | 'inactive'
   >('all');
+  const [minimumBalance, setMinimumBalance] = useState('');
+  const [maximumBalance, setMaximumBalance] = useState('');
+  const [draftMinimumBalance, setDraftMinimumBalance] = useState('');
+  const [draftMaximumBalance, setDraftMaximumBalance] = useState('');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const canManage = hasPermission('finance:account:manage');
   const query = useQuery({
     queryKey: ['project', 'finance', 'accounts', tenantId],
@@ -92,9 +116,26 @@ export function FinanceAccountsPage() {
       const matchesStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' ? row.isActive : !row.isActive);
-      return matchesKeyword && matchesType && matchesStatus;
+      const matchesMinimumBalance =
+        !minimumBalance || row.balance >= Number(minimumBalance);
+      const matchesMaximumBalance =
+        !maximumBalance || row.balance <= Number(maximumBalance);
+      return (
+        matchesKeyword &&
+        matchesType &&
+        matchesStatus &&
+        matchesMinimumBalance &&
+        matchesMaximumBalance
+      );
     });
-  }, [accountTypeFilter, keyword, rows, statusFilter]);
+  }, [
+    accountTypeFilter,
+    keyword,
+    maximumBalance,
+    minimumBalance,
+    rows,
+    statusFilter,
+  ]);
   const columns = useFinanceAccountColumns({
     onView: (row) => navigate(`/finance/accounts/${row.id}`),
   });
@@ -112,7 +153,23 @@ export function FinanceAccountsPage() {
   const hasFilters =
     Boolean(keyword.trim()) ||
     accountTypeFilter !== 'all' ||
-    statusFilter !== 'all';
+    statusFilter !== 'all' ||
+    Boolean(minimumBalance) ||
+    Boolean(maximumBalance);
+  const resetFilters = () => {
+    setKeyword('');
+    setAccountTypeFilter('all');
+    setStatusFilter('all');
+    setMinimumBalance('');
+    setMaximumBalance('');
+    setDraftMinimumBalance('');
+    setDraftMaximumBalance('');
+  };
+  const openFilterDrawer = () => {
+    setDraftMinimumBalance(minimumBalance);
+    setDraftMaximumBalance(maximumBalance);
+    setFilterDrawerOpen(true);
+  };
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
       <PageHeader
@@ -159,80 +216,140 @@ export function FinanceAccountsPage() {
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
           <DataGridHeader
-            title={
-              <span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-normal text-muted-foreground">
-                <span className="font-semibold text-foreground">
-                  Danh sách tài khoản
-                </span>
-                <span>
-                  Tổng số dư VND:{' '}
-                  <span className="font-semibold text-foreground">
-                    {totals.toLocaleString('vi-VN')} đ
-                  </span>
-                </span>
-              </span>
-            }
-            toolbar={
-              <>
+            variant="stats"
+            stats={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <div className="relative w-full sm:w-64">
-                  <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
                     placeholder="Tìm theo mã hoặc tên tài khoản"
                     aria-label="Tìm theo mã hoặc tên tài khoản"
-                    className="ps-8"
+                    className="ps-9"
                   />
                 </div>
                 <OptionSelect
-                  value={accountTypeFilter}
+                  value={accountTypeFilter === 'all' ? '' : accountTypeFilter}
                   onChange={(value) =>
                     setAccountTypeFilter(
                       (value || 'all') as typeof accountTypeFilter,
                     )
                   }
                   options={[
-                    { value: 'all', label: 'Tất cả loại' },
                     { value: 'cash', label: 'Tiền mặt' },
                     { value: 'bank', label: 'Ngân hàng' },
                   ]}
                   searchable={false}
+                  placeholder="Loại tài khoản"
                   ariaLabel="Lọc theo loại tài khoản"
-                  className="w-36"
+                  className="w-40 shrink-0"
                 />
                 <OptionSelect
-                  value={statusFilter}
+                  value={statusFilter === 'all' ? '' : statusFilter}
                   onChange={(value) =>
                     setStatusFilter((value || 'all') as typeof statusFilter)
                   }
                   options={[
-                    { value: 'all', label: 'Mọi trạng thái' },
                     { value: 'active', label: 'Đang hoạt động' },
                     { value: 'inactive', label: 'Ngừng hoạt động' },
                   ]}
                   searchable={false}
+                  placeholder="Trạng thái"
                   ariaLabel="Lọc theo trạng thái tài khoản"
-                  renderOption={(option) =>
-                    option.value === 'all' ? (
-                      option.label
-                    ) : (
-                      <FinanceAccountStatusBadge
-                        isActive={option.value === 'active'}
-                      />
-                    )
-                  }
+                  renderOption={(option) => (
+                    <FinanceAccountStatusBadge
+                      isActive={option.value === 'active'}
+                    />
+                  )}
                   triggerContent={(option) =>
-                    option?.value === 'active' ||
-                    option?.value === 'inactive' ? (
+                    option ? (
                       <FinanceAccountStatusBadge
                         isActive={option.value === 'active'}
                       />
                     ) : (
-                      (option?.label ?? 'Mọi trạng thái')
+                      <span className="text-muted-foreground">Trạng thái</span>
                     )
                   }
-                  className="w-40"
+                  className="w-44 shrink-0"
                 />
+                <DataGridFilterDrawer
+                  open={filterDrawerOpen}
+                  onOpenChange={setFilterDrawerOpen}
+                  title="Lọc quỹ và tài khoản"
+                  trigger={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={openFilterDrawer}
+                    >
+                      <SlidersHorizontal /> Lọc chi tiết
+                    </Button>
+                  }
+                  footer={
+                    <div className="flex items-center justify-between gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={resetFilters}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={() => {
+                          setMinimumBalance(draftMinimumBalance);
+                          setMaximumBalance(draftMaximumBalance);
+                          setFilterDrawerOpen(false);
+                        }}
+                      >
+                        Áp dụng
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label variant="secondary">Số dư từ</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={draftMinimumBalance}
+                        onChange={(event) =>
+                          setDraftMinimumBalance(event.target.value)
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label variant="secondary">Số dư đến</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={draftMaximumBalance}
+                        onChange={(event) =>
+                          setDraftMaximumBalance(event.target.value)
+                        }
+                        placeholder="Không giới hạn"
+                      />
+                    </div>
+                  </div>
+                </DataGridFilterDrawer>
+              </div>
+            }
+            secondaryRow={
+              <div className="text-sm text-muted-foreground">
+                Tổng số dư VND:{' '}
+                <span className="font-semibold text-foreground">
+                  {totals.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+            }
+            toolbar={
+              <div className="ms-auto flex shrink-0 items-center gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
@@ -241,9 +358,36 @@ export function FinanceAccountsPage() {
                   title="Làm mới"
                   onClick={() => void query.refetch()}
                 >
-                  <RefreshCw className="size-4" />
+                  <RefreshCw />
                 </Button>
-              </>
+                <DataGridColumnVisibility table={table} mode="drawer" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      aria-label="Tùy chọn bộ lọc"
+                      title="Tùy chọn bộ lọc"
+                    >
+                      <MoreVertical />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Bộ lọc</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={openFilterDrawer}>
+                      <SlidersHorizontal /> Mở bộ lọc chi tiết
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!hasFilters}
+                      onSelect={resetFilters}
+                    >
+                      <X /> Xóa tất cả bộ lọc
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             }
           />
           <CardTable className="min-h-0 flex-1">

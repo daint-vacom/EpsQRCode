@@ -27,6 +27,7 @@ export function useFinanceObligationColumns(
   params: UseFinanceObligationColumnsParams,
 ): ColumnDef<FinanceObligation>[] {
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
+  const { onView } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<FinanceObligation>({
@@ -61,7 +62,7 @@ export function useFinanceObligationColumns(
         id: 'sourceType',
         header: 'Nguồn',
         get: (row) => row.sourceType,
-        size: 180,
+        size: 120,
         enableSorting: false,
       }),
       col.text({
@@ -113,7 +114,7 @@ export function useFinanceObligationColumns(
               type="button"
               mode="icon"
               size="sm"
-              onClick={() => params.onView(row)}
+              onClick={() => onView(row)}
             >
               <Eye className="size-4" />
             </DataGridActionButton>
@@ -121,5 +122,5 @@ export function useFinanceObligationColumns(
         ),
       }),
     ];
-  }, [formatNumber, formatCurrency, formatPercent, params.onView]);
+  }, [formatNumber, formatCurrency, formatPercent, onView]);
 }

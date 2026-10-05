@@ -24,7 +24,8 @@ const spec = {
       id: 'voucherType',
       field: 'voucherType',
       header: 'Thu/Chi',
-      sizePreset: 'short',
+      size: 110,
+      badgeSize: 'sm',
       config: {
         receipt: { label: 'Phiếu thu', variant: 'success' },
         payment: { label: 'Phiếu chi', variant: 'destructive' },
@@ -63,7 +64,8 @@ const spec = {
       id: 'status',
       field: 'status',
       header: 'Trạng thái',
-      sizePreset: 'badge',
+      size: 125,
+      badgeSize: 'sm',
       config: {
         draft: { label: 'Nháp', variant: 'outline' },
         posted: { label: 'Đã ghi nhận', variant: 'success' },

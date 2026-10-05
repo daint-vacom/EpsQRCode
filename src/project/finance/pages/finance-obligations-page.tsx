@@ -1,21 +1,26 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { CircleDollarSign, Plus } from 'lucide-react';
+import {
+  CircleDollarSign,
+  MoreVertical,
+  Plus,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTable,
-  CardTitle,
-  CardToolbar,
-} from '@/components/ui/card';
+import { Card, CardTable } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
+import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
+import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
   Dialog,
@@ -24,7 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -33,6 +47,7 @@ import {
   createFinanceObligation,
   loadFinanceObligations,
 } from '../api/finance.api';
+import type { FinanceObligation } from '../model/finance';
 import {
   FINANCE_OBLIGATION_COLUMN_PINNING,
   useFinanceObligationColumns,
@@ -46,6 +61,17 @@ export function FinanceObligationsPage() {
   const [direction, setDirection] = useState<'receivable' | 'payable'>(
     'receivable',
   );
+  const [keyword, setKeyword] = useState('');
+  const [partyType, setPartyType] = useState<'all' | 'customer' | 'employee'>(
+    'all',
+  );
+  const [dueOnOrBefore, setDueOnOrBefore] = useState('');
+  const [minimumOutstanding, setMinimumOutstanding] = useState('');
+  const [maximumOutstanding, setMaximumOutstanding] = useState('');
+  const [draftDueOnOrBefore, setDraftDueOnOrBefore] = useState('');
+  const [draftMinimumOutstanding, setDraftMinimumOutstanding] = useState('');
+  const [draftMaximumOutstanding, setDraftMaximumOutstanding] = useState('');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
@@ -89,12 +115,81 @@ export function FinanceObligationsPage() {
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
-  const rows = query.data ?? [];
+  const rows = useMemo(() => query.data ?? [], [query.data]);
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi-VN');
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((row) => {
+        const matchesKeyword = normalizedKeyword
+          ? [row.code, row.description, row.partyNameSnapshot, row.contractName]
+              .join(' ')
+              .toLocaleLowerCase('vi-VN')
+              .includes(normalizedKeyword)
+          : true;
+        const matchesPartyType =
+          partyType === 'all' || row.partyType === partyType;
+        const matchesDueDate =
+          !dueOnOrBefore ||
+          (row.dueDate !== null && row.dueDate <= dueOnOrBefore);
+        const matchesMinimumOutstanding =
+          !minimumOutstanding ||
+          row.outstandingAmount >= Number(minimumOutstanding);
+        const matchesMaximumOutstanding =
+          !maximumOutstanding ||
+          row.outstandingAmount <= Number(maximumOutstanding);
+        return (
+          matchesKeyword &&
+          matchesPartyType &&
+          matchesDueDate &&
+          matchesMinimumOutstanding &&
+          matchesMaximumOutstanding
+        );
+      }),
+    [
+      dueOnOrBefore,
+      maximumOutstanding,
+      minimumOutstanding,
+      normalizedKeyword,
+      partyType,
+      rows,
+    ],
+  );
+  const hasFilters =
+    direction !== 'receivable' ||
+    Boolean(normalizedKeyword) ||
+    partyType !== 'all' ||
+    Boolean(dueOnOrBefore) ||
+    Boolean(minimumOutstanding) ||
+    Boolean(maximumOutstanding);
+  const resetFilters = () => {
+    setDirection('receivable');
+    setKeyword('');
+    setPartyType('all');
+    setDueOnOrBefore('');
+    setMinimumOutstanding('');
+    setMaximumOutstanding('');
+    setDraftDueOnOrBefore('');
+    setDraftMinimumOutstanding('');
+    setDraftMaximumOutstanding('');
+  };
+  const handleFilterDrawerOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setDraftDueOnOrBefore(dueOnOrBefore);
+      setDraftMinimumOutstanding(minimumOutstanding);
+      setDraftMaximumOutstanding(maximumOutstanding);
+    }
+    setFilterDrawerOpen(nextOpen);
+  };
+  const openFilterDrawer = () => handleFilterDrawerOpenChange(true);
+  const handleView = useCallback(
+    (row: FinanceObligation) => navigate(`/finance/obligations/${row.id}`),
+    [navigate],
+  );
   const columns = useFinanceObligationColumns({
-    onView: (row) => navigate(`/finance/obligations/${row.id}`),
+    onView: handleView,
   });
   const table = useReactTable({
-    data: rows,
+    data: filteredRows,
     columns,
     state: { columnPinning: FINANCE_OBLIGATION_COLUMN_PINNING },
     getRowId: (row) => row.id,
@@ -106,53 +201,196 @@ export function FinanceObligationsPage() {
         title="Công nợ"
         icon={CircleDollarSign}
         className="shrink-0"
+        actions={
+          hasPermission('finance:obligation:create') ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setCode('');
+                setDescription('');
+                setCustomerId('');
+                setDocumentDate(new Date().toISOString().slice(0, 10));
+                setDueDate('');
+                setOriginalAmount('');
+                setOpen(true);
+              }}
+            >
+              <Plus /> Thêm công nợ
+            </Button>
+          ) : null
+        }
       />
       <DataGrid
         table={table}
-        recordCount={rows.length}
+        recordCount={filteredRows.length}
         isLoading={query.isLoading}
         isFetching={query.isFetching}
         tableLayout={{ dense: true }}
         emptyMessage={
           query.isError
             ? getApiErrorMessage(query.error)
-            : 'Chưa có công nợ đã ghi nhận'
+            : hasFilters
+              ? 'Không tìm thấy công nợ phù hợp'
+              : 'Chưa có công nợ đã ghi nhận'
         }
       >
         <Card className="min-h-0 flex-1 overflow-hidden">
-          <CardHeader>
-            <CardTitle>Công nợ theo đối tượng</CardTitle>
-            <CardToolbar>
-              <OptionSelect
-                value={direction}
-                onChange={(value) =>
-                  setDirection((value || 'receivable') as typeof direction)
-                }
-                options={[
-                  { value: 'receivable', label: 'Phải thu' },
-                  { value: 'payable', label: 'Phải trả' },
-                ]}
-                searchable={false}
-                className="w-36"
-              />
-              {hasPermission('finance:obligation:create') ? (
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setCode('');
-                    setDescription('');
-                    setCustomerId('');
-                    setDocumentDate(new Date().toISOString().slice(0, 10));
-                    setDueDate('');
-                    setOriginalAmount('');
-                    setOpen(true);
-                  }}
+          <DataGridHeader
+            variant="stats"
+            stats={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <div className="relative w-full sm:w-72">
+                  <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
+                    placeholder="Tìm mã, nội dung hoặc đối tượng..."
+                    aria-label="Tìm công nợ"
+                    className="ps-9"
+                  />
+                </div>
+                <OptionSelect
+                  value={direction}
+                  onChange={(value) =>
+                    setDirection((value || 'receivable') as typeof direction)
+                  }
+                  options={[
+                    { value: 'receivable', label: 'Phải thu' },
+                    { value: 'payable', label: 'Phải trả' },
+                  ]}
+                  searchable={false}
+                  ariaLabel="Lọc theo chiều công nợ"
+                  className="w-36 shrink-0"
+                />
+                <OptionSelect
+                  value={partyType === 'all' ? '' : partyType}
+                  onChange={(value) =>
+                    setPartyType((value || 'all') as typeof partyType)
+                  }
+                  options={[
+                    { value: 'customer', label: 'Khách hàng' },
+                    { value: 'employee', label: 'Nhân viên' },
+                  ]}
+                  searchable={false}
+                  placeholder="Đối tượng"
+                  ariaLabel="Lọc theo loại đối tượng"
+                  className="w-40 shrink-0"
+                />
+                <DataGridFilterDrawer
+                  open={filterDrawerOpen}
+                  onOpenChange={handleFilterDrawerOpenChange}
+                  title="Lọc công nợ theo đối tượng"
+                  trigger={
+                    <Button type="button" variant="outline">
+                      <SlidersHorizontal /> Lọc chi tiết
+                    </Button>
+                  }
+                  footer={
+                    <div className="flex items-center justify-between gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={resetFilters}
+                      >
+                        Xóa bộ lọc
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        onClick={() => {
+                          setDueOnOrBefore(draftDueOnOrBefore);
+                          setMinimumOutstanding(draftMinimumOutstanding);
+                          setMaximumOutstanding(draftMaximumOutstanding);
+                          setFilterDrawerOpen(false);
+                        }}
+                      >
+                        Áp dụng
+                      </Button>
+                    </div>
+                  }
                 >
-                  <Plus className="size-4" /> Thêm công nợ
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label variant="secondary">Hạn thanh toán đến</Label>
+                      <Input
+                        type="date"
+                        value={draftDueOnOrBefore}
+                        onChange={(event) =>
+                          setDraftDueOnOrBefore(event.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label variant="secondary">Còn nợ từ</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={draftMinimumOutstanding}
+                        onChange={(event) =>
+                          setDraftMinimumOutstanding(event.target.value)
+                        }
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label variant="secondary">Còn nợ đến</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={draftMaximumOutstanding}
+                        onChange={(event) =>
+                          setDraftMaximumOutstanding(event.target.value)
+                        }
+                        placeholder="Không giới hạn"
+                      />
+                    </div>
+                  </div>
+                </DataGridFilterDrawer>
+              </div>
+            }
+            toolbar={
+              <div className="ms-auto flex shrink-0 items-center gap-2.5">
+                <Button
+                  variant="outline"
+                  mode="icon"
+                  aria-label="Làm mới"
+                  title="Làm mới"
+                  onClick={() => void query.refetch()}
+                >
+                  <RefreshCw />
                 </Button>
-              ) : null}
-            </CardToolbar>
-          </CardHeader>
+                <DataGridColumnVisibility table={table} mode="drawer" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      aria-label="Tùy chọn bộ lọc"
+                      title="Tùy chọn bộ lọc"
+                    >
+                      <MoreVertical />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Bộ lọc</DropdownMenuLabel>
+                    <DropdownMenuItem onSelect={openFilterDrawer}>
+                      <SlidersHorizontal /> Mở bộ lọc chi tiết
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={!hasFilters}
+                      onSelect={resetFilters}
+                    >
+                      <X /> Xóa tất cả bộ lọc
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            }
+          />
           <CardTable className="min-h-0 flex-1">
             <ScrollArea className="h-full">
               <DataGridTable />

@@ -281,6 +281,7 @@ function emitColumnCall(col: ColumnSpec): string {
   }
   if (col.kind === 'badge') {
     lines.push(`config: ${col.id}BadgeConfig,`);
+    if (col.badgeSize) lines.push(`badgeSize: ${quote(col.badgeSize)},`);
   }
   if (col.kind === 'editableSelect') {
     const optionsName = `${col.id}Options`;

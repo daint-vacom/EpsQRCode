@@ -65,6 +65,9 @@ and `enableSorting`. Prefer `sizePreset` for standard layouts; use numeric `size
 has a deliberate one-off width. Set `pin: 'left'` or `pin: 'right'` for a data column that must stay
 visible while the table scrolls horizontally.
 
+Badge columns accept `badgeSize: 'sm' | 'md' | 'lg'`; use `sm` for compact status/type values when the
+default medium badge takes more room than the label needs.
+
 ### Column size presets
 
 `sizePreset` keeps fixture sizing semantic and reusable. The builder emits the corresponding numeric

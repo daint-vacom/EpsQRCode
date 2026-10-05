@@ -118,6 +118,7 @@ const badgeStatus = z.object({
 const badgeColumn = z.object({
   kind: z.literal('badge'),
   config: z.record(z.string(), badgeStatus),
+  badgeSize: z.enum(['sm', 'md', 'lg']).optional(),
   ...accessorBase,
 });
 
