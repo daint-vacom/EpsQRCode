@@ -1,12 +1,10 @@
-import {
-  StatusBadge,
-  type StatusBadgeConfig,
-} from '@/components/ui/data-grid-columns';
 import { Tag } from '@/components/ui/tag';
+import { StatusIndicator } from '@/components/common/status-indicator';
 import {
   CONTRACT_STATUS_LABELS,
   CONTRACT_STATUSES,
   CONTRACT_VERSION_STATUS_LABELS,
+  CONTRACT_VERSION_STATUSES,
   type ContractCashflowDirection,
   type ContractStatus,
   type ContractVersionStatus,
@@ -46,35 +44,45 @@ const STATUS_COLORS: Record<string, string> = {
   expired: '#dc2626',
 };
 
-export const CONTRACT_STATUS_BADGE_CONFIG: StatusBadgeConfig<ContractStatus> = {
+const CONTRACT_STATUS_INDICATOR_CONFIG: Record<
+  ContractStatus | ContractVersionStatus,
+  { label: string; dotClassName: string }
+> = {
   draft: {
     label: 'Bản nháp',
-    variant: 'outline',
-    className: 'rounded-md px-2.5 py-1 text-xs text-muted-foreground',
+    dotClassName: 'bg-admin-neutral-400',
   },
   active: {
     label: 'Đang hiệu lực',
-    className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot opacity-100',
+    dotClassName: 'bg-admin-success-dot',
   },
   suspended: {
     label: 'Tạm dừng',
-    className:
-      'rounded-md border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-    dotClassName: 'bg-admin-amber-primary opacity-100',
+    dotClassName: 'bg-admin-amber-primary',
   },
   expired: {
     label: 'Hết hạn',
-    className:
-      'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-    dotClassName: 'bg-admin-red-primary opacity-100',
+    dotClassName: 'bg-admin-red-primary',
   },
   terminated: {
     label: 'Đã chấm dứt',
-    className:
-      'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-muted-foreground opacity-100',
+    dotClassName: 'bg-admin-neutral-400',
+  },
+  scheduled: {
+    label: CONTRACT_VERSION_STATUS_LABELS.scheduled,
+    dotClassName: 'bg-admin-amber-primary',
+  },
+  effective: {
+    label: CONTRACT_VERSION_STATUS_LABELS.effective,
+    dotClassName: 'bg-admin-success-dot',
+  },
+  superseded: {
+    label: CONTRACT_VERSION_STATUS_LABELS.superseded,
+    dotClassName: 'bg-admin-neutral-400',
+  },
+  cancelled: {
+    label: CONTRACT_VERSION_STATUS_LABELS.cancelled,
+    dotClassName: 'bg-admin-red-primary',
   },
 };
 
@@ -116,6 +124,7 @@ export interface ContractStatusBadgeProps {
   size?: 'sm' | 'md' | 'lg';
   direction?: ContractCashflowDirection;
   showDot?: boolean;
+  className?: string;
 }
 
 export function ContractStatusBadge({
@@ -123,13 +132,25 @@ export function ContractStatusBadge({
   size = 'md',
   direction,
   showDot = false,
+  className,
 }: ContractStatusBadgeProps) {
-  if (CONTRACT_STATUSES.includes(status as ContractStatus)) {
+  if (
+    CONTRACT_STATUSES.includes(status as ContractStatus) ||
+    CONTRACT_VERSION_STATUSES.includes(status as ContractVersionStatus)
+  ) {
     return (
-      <StatusBadge
-        status={status}
-        config={CONTRACT_STATUS_BADGE_CONFIG}
-        size={size}
+      <StatusIndicator
+        label={
+          CONTRACT_STATUS_INDICATOR_CONFIG[
+            status as ContractStatus | ContractVersionStatus
+          ].label
+        }
+        dotClassName={
+          CONTRACT_STATUS_INDICATOR_CONFIG[
+            status as ContractStatus | ContractVersionStatus
+          ].dotClassName
+        }
+        className={className}
       />
     );
   }
@@ -144,6 +165,7 @@ export function ContractStatusBadge({
       size={size}
       shape="circle"
       color={STATUS_COLORS[colorStatus] ?? '#64748b'}
+      className={className}
     >
       {showDot && (
         <span

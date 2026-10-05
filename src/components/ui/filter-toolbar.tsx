@@ -69,7 +69,12 @@ export function FilterToolbar({ fields, className }: FilterToolbarProps) {
                   {field.label ? (
                     <span className="shrink-0">{field.label}:</span>
                   ) : null}
-                  <span className="min-w-0 truncate">
+                  <span
+                    className={cn(
+                      'min-w-0 truncate',
+                      option ? undefined : 'text-muted-foreground',
+                    )}
+                  >
                     {field.renderValue?.(
                       option
                         ? field.options.find(

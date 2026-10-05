@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { EmployeeIdentity } from '@/project/employees/components/employee-identity';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -9,9 +10,11 @@ import {
 import {
   ChevronDown,
   ClipboardList,
+  FileText,
   Plus,
   RefreshCw,
   TriangleAlert,
+  UserRoundSearch,
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -52,6 +55,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   createWorkItem,
@@ -132,6 +140,9 @@ const priorityOptions = Object.entries(WORK_PRIORITY_LABELS).map(
     };
   },
 );
+const prioritySelectOptions = Object.entries(WORK_PRIORITY_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
 const priorityFilterOptions = [
   { value: '', searchableText: 'Tất Cả', label: 'Tất Cả' },
   ...priorityOptions,
@@ -203,6 +214,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState<WorkPriority | ''>('');
+  const [assignee, setAssignee] = useState('');
   const [showAllKanbanStatuses, setShowAllKanbanStatuses] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -260,7 +272,7 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
       view === 'kanban' && status ? [] : status ? [status as WorkStatus] : [],
     priority,
     assigneeEmployeeId:
-      scope === 'mine' ? (currentEmployeeQuery.data ?? '') : '',
+      scope === 'mine' ? (currentEmployeeQuery.data ?? '') : assignee,
     scope,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
@@ -307,6 +319,14 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
     searchableText: `${item.label} ${item.employeeCode}`,
     data: item,
   }));
+  const employeesById = useMemo(
+    () =>
+      new Map(
+        (employeeQuery.data ?? []).map((employee) => [employee.id, employee]),
+      ),
+    [employeeQuery.data],
+  );
+  const assigneeFilterOptions = scope === 'all' ? employeeOptions : [];
   const assigneeAvatarUrls = useMemo(
     () =>
       new Map(
@@ -588,55 +608,108 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         </div>
       </div>
     ),
-    renderAssignee: (work) => (
-      <span className="text-sm">
-        {work.assigneeName || 'Chưa giao'}
-        {work.assigneeCode ? (
-          <span className="block text-xs text-muted-foreground">
-            {work.assigneeCode}
+    renderAssignee: (work) => {
+      const employee = work.assigneeEmployeeId
+        ? employeesById.get(work.assigneeEmployeeId)
+        : undefined;
+      if (employee) {
+        return (
+          <EmployeeIdentity
+            employee={{
+              displayName: employee.label,
+              employeeCode: employee.employeeCode,
+              avatarUrl: employee.avatarUrl,
+              userId: employee.userId,
+            }}
+          />
+        );
+      }
+
+      return work.assigneeName ? (
+        <span className="text-sm">
+          {work.assigneeName}
+          {work.assigneeCode ? (
+            <span className="block text-xs text-muted-foreground">
+              {work.assigneeCode}
+            </span>
+          ) : null}
+        </span>
+      ) : (
+        <span className="text-sm text-muted-foreground">Chưa giao</span>
+      );
+    },
+    renderPlannedSchedule: (work) => {
+      const overdue = isWorkOverdue(work);
+      const formatPlannedDateTime = (
+        date: string | null,
+        time: string | null,
+      ) => (date ? `${formatDate(date)}${time ? ` ${time}` : ''}` : '—');
+
+      return (
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
+          <span className="text-muted-foreground">Bắt đầu</span>
+          <span className={overdue ? 'text-admin-red-dark' : 'text-foreground'}>
+            {formatPlannedDateTime(
+              work.plannedStartDate,
+              work.plannedStartTime,
+            )}
           </span>
-        ) : null}
-      </span>
-    ),
-    renderPlannedStartDate: (work) => (
-      <span className={isWorkOverdue(work) ? 'text-admin-red-dark' : 'text-sm'}>
-        {work.plannedStartDate ? formatDate(work.plannedStartDate) : '—'}
-      </span>
-    ),
-    renderPlannedEndDate: (work) => (
-      <span className={isWorkOverdue(work) ? 'text-admin-red-dark' : 'text-sm'}>
-        {work.plannedEndDate ? formatDate(work.plannedEndDate) : '—'}
-      </span>
-    ),
-    renderActualStartedAt: (work) => (
-      <span className="text-sm">
-        {work.actualStartedAt ? formatDateTime(work.actualStartedAt) : '—'}
-      </span>
-    ),
-    renderActualCompletedAt: (work) => (
-      <span className="text-sm">
-        {work.actualCompletedAt ? formatDateTime(work.actualCompletedAt) : '—'}
-      </span>
+          <span className="text-muted-foreground">Hoàn thành</span>
+          <span className={overdue ? 'text-admin-red-dark' : 'text-foreground'}>
+            {formatPlannedDateTime(work.plannedEndDate, work.plannedEndTime)}
+          </span>
+        </div>
+      );
+    },
+    renderActualSchedule: (work) => (
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
+        <span className="text-muted-foreground">Bắt đầu</span>
+        <span className="text-foreground">
+          {work.actualStartedAt ? formatDateTime(work.actualStartedAt) : '—'}
+        </span>
+        <span className="text-muted-foreground">Hoàn thành</span>
+        <span className="text-foreground">
+          {work.actualCompletedAt
+            ? formatDateTime(work.actualCompletedAt)
+            : '—'}
+        </span>
+      </div>
     ),
     renderLinks: (work) => (
-      <div className="flex max-w-[190px] flex-wrap gap-1">
+      <div className="flex max-w-[220px] flex-wrap gap-1">
         {work.customers.slice(0, 2).map((item) => (
-          <Badge
-            key={`customer-${item.id}`}
-            variant="secondary"
-            className="max-w-full truncate text-[10px]"
-          >
-            KH: {item.label}
-          </Badge>
+          <Tooltip key={`customer-${item.id}`}>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="secondary"
+                size="sm"
+                className="max-w-full min-w-0 gap-1.5"
+                aria-label={`Khách hàng: ${item.label}`}
+                tabIndex={0}
+              >
+                <UserRoundSearch className="size-3.5" aria-hidden="true" />
+                <span className="truncate">{item.label}</span>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>Khách hàng: {item.label}</TooltipContent>
+          </Tooltip>
         ))}
         {work.contracts.slice(0, 2).map((item) => (
-          <Badge
-            key={`contract-${item.id}`}
-            variant="outline"
-            className="max-w-full truncate text-[10px]"
-          >
-            HĐ: {item.label}
-          </Badge>
+          <Tooltip key={`contract-${item.id}`}>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="secondary"
+                size="sm"
+                className="max-w-full min-w-0 gap-1.5"
+                aria-label={`Hợp đồng: ${item.label}`}
+                tabIndex={0}
+              >
+                <FileText className="size-3.5" aria-hidden="true" />
+                <span className="truncate">{item.label}</span>
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>Hợp đồng: {item.label}</TooltipContent>
+          </Tooltip>
         ))}
         {work.customers.length + work.contracts.length > 4 ? (
           <span className="text-xs text-muted-foreground">
@@ -755,7 +828,6 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
 
   const workFilterBar = (
     <WorkFilterBar
-      layout="split"
       search={search}
       onSearchChange={(value) => {
         setSearch(value);
@@ -780,7 +852,27 @@ function WorkPage({ scope = 'all' }: { scope?: 'all' | 'mine' }) {
         setPriority(value as WorkPriority | '');
         setPagination((current) => ({ ...current, pageIndex: 0 }));
       }}
-      priorityOptions={priorityFilterOptions}
+      priorityOptions={prioritySelectOptions}
+      priorityRenderOption={(option) => (
+        <span className="flex items-center gap-1.5">
+          <WorkPriorityIcon priority={option.value as WorkPriority} />
+          <span>{option.label}</span>
+        </span>
+      )}
+      priorityRenderValue={(option) =>
+        option ? (
+          <span className="flex items-center gap-1.5">
+            <WorkPriorityIcon priority={option.value as WorkPriority} />
+            <span>{option.label}</span>
+          </span>
+        ) : undefined
+      }
+      assignee={assignee}
+      onAssigneeChange={(value) => {
+        setAssignee(value);
+        setPagination((current) => ({ ...current, pageIndex: 0 }));
+      }}
+      assigneeOptions={assigneeFilterOptions}
     />
   );
 

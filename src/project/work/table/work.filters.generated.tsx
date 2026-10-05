@@ -3,11 +3,16 @@
  * You own this file now — keep domain state, renderers, and API mapping outside the builder.
  */
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 import {
   FilterToolbar,
-  type FilterToolbarField,
   type FilterToolbarOption,
 } from '@/components/ui/filter-toolbar';
+import {
+  SelectWithAvatar,
+  type SelectWithAvatarOption,
+} from '@/components/ui/select-with-avatar';
+import type { WorkEmployeeOption } from '../model/work';
 
 export type StatusFilterOption = FilterToolbarOption;
 export type PriorityFilterOption = FilterToolbarOption;
@@ -25,8 +30,10 @@ export interface WorkFilterBarProps {
   priorityOptions: readonly PriorityFilterOption[];
   priorityRenderOption?: (option: PriorityFilterOption) => ReactNode;
   priorityRenderValue?: (option: PriorityFilterOption | undefined) => ReactNode;
+  assignee: string;
+  onAssigneeChange: (value: string) => void;
+  assigneeOptions: readonly SelectWithAvatarOption<WorkEmployeeOption>[];
   disabled?: boolean;
-  layout?: 'default' | 'split';
   className?: string;
 }
 
@@ -43,64 +50,64 @@ export function WorkFilterBar({
   priorityOptions,
   priorityRenderOption,
   priorityRenderValue,
+  assignee,
+  onAssigneeChange,
+  assigneeOptions,
   disabled = false,
-  layout = 'default',
   className,
 }: WorkFilterBarProps) {
-  const searchField: FilterToolbarField = {
-    kind: 'search',
-    value: search,
-    onValueChange: onSearchChange,
-    placeholder: 'Tìm theo mã hoặc tên công việc',
-    className: 'w-72',
-    debounceMs: 300,
-    disabled,
-  };
-  const filterFields: FilterToolbarField[] = [
-    {
-      kind: 'select',
-      value: status,
-      onValueChange: onStatusChange,
-      options: statusOptions ?? [],
-      label: 'Trạng thái',
-      placeholder: 'Trạng thái',
-      ariaLabel: undefined,
-      className: 'w-40',
-      disabled,
-      renderOption: statusRenderOption,
-      renderValue: statusRenderValue,
-    },
-    {
-      kind: 'select',
-      value: priority,
-      onValueChange: onPriorityChange,
-      options: priorityOptions ?? [],
-      label: 'Ưu tiên',
-      placeholder: 'Ưu tiên',
-      ariaLabel: undefined,
-      className: 'w-40',
-      disabled,
-      renderOption: priorityRenderOption,
-      renderValue: priorityRenderValue,
-    },
-  ];
-
-  if (layout === 'split') {
-    return (
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
-        <FilterToolbar className="min-w-0 flex-1" fields={[searchField]} />
-        <FilterToolbar
-          className="flex shrink-0 flex-row flex-nowrap items-center justify-end gap-2"
-          fields={filterFields}
-        />
-      </div>
-    );
-  }
-
   return (
-    <FilterToolbar
-      className={className}
-      fields={[searchField, ...filterFields]}
-    />
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+      <FilterToolbar
+        fields={[
+          {
+            kind: 'search',
+            value: search,
+            onValueChange: onSearchChange,
+            placeholder: 'Tìm theo mã hoặc tên công việc',
+            className: 'w-72',
+            debounceMs: 300,
+            disabled,
+          },
+          {
+            kind: 'select',
+            value: status,
+            onValueChange: onStatusChange,
+            options: statusOptions ?? [],
+            placeholder: 'Trạng thái',
+            className: 'w-40',
+            disabled,
+            renderOption: statusRenderOption,
+            renderValue: statusRenderValue,
+          },
+          {
+            kind: 'select',
+            value: priority,
+            onValueChange: onPriorityChange,
+            options: priorityOptions ?? [],
+            placeholder: 'Ưu tiên',
+            className: 'w-40',
+            disabled,
+            renderOption: priorityRenderOption,
+            renderValue: priorityRenderValue,
+          },
+        ]}
+      />
+      {assigneeOptions.length > 0 ? (
+        <SelectWithAvatar
+          value={assignee}
+          onChange={onAssigneeChange}
+          options={assigneeOptions}
+          placeholder="NV phụ trách"
+          searchPlaceholder="Tìm theo tên hoặc mã nhân viên..."
+          emptyMessage="Không tìm thấy nhân viên phù hợp"
+          ariaLabel="Phụ trách"
+          size="md"
+          variant="normal"
+          className="w-44"
+          disabled={disabled}
+        />
+      ) : null}
+    </div>
   );
 }

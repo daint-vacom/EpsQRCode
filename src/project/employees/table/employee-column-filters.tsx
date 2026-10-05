@@ -1,9 +1,8 @@
-import { StatusBadge } from '@/components/ui/data-grid-columns';
 import type { MultiSelectOption } from '@/components/ui/multi-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ROLE_COLOR_LABELS } from '../../model/role-color';
 import {
-  EMPLOYEE_ACCOUNT_BADGE_CONFIG,
+  EmployeeAccountBadge,
   EmployeeRoleBadge,
   EmployeeStatusBadge,
 } from '../components/employee-badges';
@@ -17,7 +16,7 @@ import {
 export const EMPLOYEE_STATUS_FILTER_OPTIONS: MultiSelectOption[] =
   EMPLOYEE_STATUSES.map((status) => ({
     value: status,
-    label: <EmployeeStatusBadge status={status} size="sm" />,
+    label: <EmployeeStatusBadge status={status} />,
     searchableText: EMPLOYEE_STATUS_LABELS[status],
     data: status,
   }));
@@ -25,14 +24,12 @@ export const EMPLOYEE_STATUS_FILTER_OPTIONS: MultiSelectOption[] =
 export const EMPLOYEE_ACCOUNT_FILTER_OPTIONS: SelectOption[] = [
   {
     value: 'linked',
-    label: <StatusBadge status="true" config={EMPLOYEE_ACCOUNT_BADGE_CONFIG} />,
+    label: <EmployeeAccountBadge linked />,
     searchableText: 'Đã liên kết',
   },
   {
     value: 'unlinked',
-    label: (
-      <StatusBadge status="false" config={EMPLOYEE_ACCOUNT_BADGE_CONFIG} />
-    ),
+    label: <EmployeeAccountBadge linked={false} />,
     searchableText: 'Chưa liên kết',
   },
 ];

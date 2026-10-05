@@ -1,3 +1,4 @@
+import { StatusIndicator } from '@/components/common/status-indicator';
 import { CUSTOMER_STATUS_LABELS, type CustomerStatus } from '../model/customer';
 
 const CUSTOMER_STATUS_DOT_CLASSES: Record<CustomerStatus, string> = {
@@ -8,12 +9,9 @@ const CUSTOMER_STATUS_DOT_CLASSES: Record<CustomerStatus, string> = {
 
 export function CustomerStatusBadge({ status }: { status: CustomerStatus }) {
   return (
-    <span className="inline-flex items-center gap-2 text-sm font-normal text-foreground">
-      <span
-        aria-hidden="true"
-        className={`size-2 shrink-0 rounded-full ${CUSTOMER_STATUS_DOT_CLASSES[status]}`}
-      />
-      {CUSTOMER_STATUS_LABELS[status]}
-    </span>
+    <StatusIndicator
+      label={CUSTOMER_STATUS_LABELS[status]}
+      dotClassName={CUSTOMER_STATUS_DOT_CLASSES[status]}
+    />
   );
 }

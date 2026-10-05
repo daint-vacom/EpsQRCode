@@ -1,28 +1,10 @@
-import {
-  StatusBadge,
-  type StatusBadgeConfig,
-} from '@/components/ui/data-grid-columns';
+import { StatusIndicator } from '@/components/common/status-indicator';
 
-type FinanceAccountStatusKey = 'true' | 'false';
-
-export const FINANCE_ACCOUNT_STATUS_BADGE_CONFIG: StatusBadgeConfig<FinanceAccountStatusKey> =
-  {
-    true: { label: 'Đang hoạt động', variant: 'success' },
-    false: { label: 'Ngừng hoạt động', variant: 'destructive' },
-  };
-
-export function FinanceAccountStatusBadge({
-  isActive,
-  size = 'md',
-}: {
-  isActive: boolean;
-  size?: 'sm' | 'md' | 'lg';
-}) {
+export function FinanceAccountStatusBadge({ isActive }: { isActive: boolean }) {
   return (
-    <StatusBadge
-      status={String(isActive) as FinanceAccountStatusKey}
-      config={FINANCE_ACCOUNT_STATUS_BADGE_CONFIG}
-      size={size}
+    <StatusIndicator
+      label={isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'}
+      dotClassName={isActive ? 'bg-admin-success-dot' : 'bg-admin-red-primary'}
     />
   );
 }

@@ -12,11 +12,11 @@ import {
   createColumnHelpers,
   DataGridActionButton,
   getDataGridActionsColumnSize,
-  type StatusBadgeConfig,
 } from '@/components/ui/data-grid-columns';
 import type { CustomerSelectOption } from '../../customers/api/customers.api';
 import { ContractCustomerCell } from '../components/contract-cell';
 import { ContractDateCell } from '../components/contract-date-cell';
+import { ContractStatusBadge } from '../components/contract-status-badge';
 import type { Contract, ContractStatus } from '../model/contract';
 import {
   CONTRACT_STATUS_FILTER_OPTIONS,
@@ -31,39 +31,6 @@ import {
 export const CONTRACT_COLUMN_PINNING: ColumnPinningState = {
   left: ['select'],
   right: ['actions'],
-};
-
-const statusBadgeConfig: StatusBadgeConfig<string> = {
-  draft: {
-    label: 'Bản nháp',
-    className:
-      'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-muted-foreground opacity-100',
-  },
-  active: {
-    label: 'Đang hiệu lực',
-    className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot opacity-100',
-  },
-  suspended: {
-    label: 'Tạm dừng',
-    className:
-      'rounded-md border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-    dotClassName: 'bg-admin-amber-primary opacity-100',
-  },
-  expired: {
-    label: 'Hết hạn',
-    className:
-      'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-    dotClassName: 'bg-admin-red-primary opacity-100',
-  },
-  terminated: {
-    label: 'Đã chấm dứt',
-    className:
-      'rounded-md border-transparent bg-muted px-2.5 py-1 text-xs text-muted-foreground',
-    dotClassName: 'bg-muted-foreground opacity-100',
-  },
 };
 
 export interface UseContractColumnsParams {
@@ -119,11 +86,9 @@ export function useContractColumns(
         enableSorting: false,
         cell: (row) => <ContractCustomerCell contract={row} />,
       }),
-      col.badge({
+      col.custom({
         id: 'status',
         header: 'Trạng thái',
-        get: (row) => row.status,
-        config: statusBadgeConfig,
         headerFilter: (
           <ContractStatusColumnFilter
             value={params.statuses}
@@ -136,6 +101,7 @@ export function useContractColumns(
         headerClassName: 'w-[140px]',
         size: 140,
         enableSorting: false,
+        cell: (row) => <ContractStatusBadge status={row.status} />,
       }),
       col.custom({
         id: 'endDate',

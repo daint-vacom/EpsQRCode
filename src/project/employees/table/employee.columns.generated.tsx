@@ -16,8 +16,8 @@ import {
   getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
 import {
-  EMPLOYEE_ACCOUNT_BADGE_CONFIG,
-  EMPLOYEE_STATUS_BADGE_CONFIG,
+  EmployeeAccountBadge,
+  EmployeeStatusBadge,
 } from '../components/employee-badges';
 import { EmployeeCell } from '../components/employee-cell';
 import { EmployeeRolesCell } from '../components/employee-roles-cell';
@@ -118,11 +118,9 @@ export function useEmployeeColumns(
         enableSorting: false,
         cell: (row) => <TagList tags={params.tagsByEmployeeId[row.id] ?? []} />,
       }),
-      col.badge({
+      col.custom({
         id: 'status',
         header: 'Trạng thái',
-        get: (row) => row.status,
-        config: EMPLOYEE_STATUS_BADGE_CONFIG,
         headerFilter: (
           <EmployeeStatusColumnFilter
             value={params.statuses}
@@ -135,12 +133,11 @@ export function useEmployeeColumns(
         headerClassName: 'min-w-[150px]',
         size: 150,
         enableSorting: false,
+        cell: (row) => <EmployeeStatusBadge status={row.status} />,
       }),
-      col.badge({
+      col.custom({
         id: 'account',
         header: 'Tài khoản',
-        get: (row) => row.accountLinked,
-        config: EMPLOYEE_ACCOUNT_BADGE_CONFIG,
         headerFilter: (
           <EmployeeAccountColumnFilter
             value={params.accountLinked}
@@ -152,6 +149,7 @@ export function useEmployeeColumns(
         headerClassName: 'min-w-[140px]',
         size: 140,
         enableSorting: false,
+        cell: (row) => <EmployeeAccountBadge linked={row.accountLinked} />,
       }),
       col.actions({
         id: 'actions',

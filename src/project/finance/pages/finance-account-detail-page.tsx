@@ -367,14 +367,10 @@ export function FinanceAccountDetailPage() {
                     renderOption={(option) => (
                       <FinanceAccountStatusBadge
                         isActive={option.value === 'true'}
-                        size="sm"
                       />
                     )}
                     triggerContent={() => (
-                      <FinanceAccountStatusBadge
-                        isActive={isActive}
-                        size="sm"
-                      />
+                      <FinanceAccountStatusBadge isActive={isActive} />
                     )}
                   />
                 </div>

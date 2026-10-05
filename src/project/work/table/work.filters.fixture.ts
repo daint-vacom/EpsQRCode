@@ -12,16 +12,23 @@ const spec: FilterSpec = {
     {
       type: 'select',
       name: 'status',
-      label: 'Trạng thái',
       optionsSource: 'prop',
       placeholder: 'Trạng thái',
+      className: 'w-40',
     },
     {
       type: 'select',
       name: 'priority',
-      label: 'Ưu tiên',
       optionsSource: 'prop',
       placeholder: 'Ưu tiên',
+      className: 'w-40',
+    },
+    {
+      type: 'select',
+      name: 'assignee',
+      optionsSource: 'prop',
+      placeholder: 'NV phụ trách',
+      className: 'w-44',
     },
   ],
 };

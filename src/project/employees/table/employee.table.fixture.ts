@@ -29,49 +29,18 @@ const spec: TableSpec = {
       size: 240,
     },
     {
-      kind: 'badge',
+      kind: 'custom',
       id: 'status',
       header: 'Trạng thái',
-      field: 'status',
       headerClassName: 'min-w-[150px]',
       size: 150,
-      config: {
-        active: {
-          label: 'Còn làm việc',
-          className:
-            'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-          dotClassName: 'bg-admin-success-dot opacity-100',
-        },
-        inactive: {
-          label: 'Ngừng làm việc',
-          className:
-            'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-          dotClassName: 'bg-admin-red-primary opacity-100',
-        },
-      },
     },
     {
-      kind: 'badge',
+      kind: 'custom',
       id: 'account',
       header: 'Tài khoản',
-      field: 'accountLinked',
       headerClassName: 'min-w-[140px]',
       size: 140,
-      config: {
-        true: {
-          label: 'Đã liên kết',
-          className:
-            'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-          dotClassName: 'bg-admin-success-dot opacity-100',
-        },
-        false: {
-          label: 'Chưa liên kết',
-          variant: 'warning',
-          className:
-            'rounded-md border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-          dotClassName: 'bg-admin-amber-primary opacity-100',
-        },
-      },
     },
     {
       kind: 'actions',

@@ -1,57 +1,18 @@
 import { X } from 'lucide-react';
 import { Badge, BadgeButton } from '@/components/ui/badge';
-import {
-  StatusBadge,
-  type StatusBadgeConfig,
-} from '@/components/ui/data-grid-columns';
+import { StatusIndicator } from '@/components/common/status-indicator';
 import type { EmployeeRole, EmployeeStatus } from '../model/employee';
 
-export const EMPLOYEE_STATUS_BADGE_CONFIG: StatusBadgeConfig<EmployeeStatus> = {
-  active: {
-    label: 'Còn làm việc',
-    className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot opacity-100',
-  },
-  inactive: {
-    label: 'Ngừng làm việc',
-    className:
-      'rounded-md border-transparent bg-admin-red-bg px-2.5 py-1 text-xs text-admin-red-dark',
-    dotClassName: 'bg-admin-red-primary opacity-100',
-  },
-};
-
-export function EmployeeStatusBadge({
-  status,
-  size = 'md',
-}: {
-  status: EmployeeStatus;
-  size?: 'sm' | 'md' | 'lg';
-}) {
-  return (
-    <StatusBadge
-      status={status}
-      config={EMPLOYEE_STATUS_BADGE_CONFIG}
-      size={size}
+export function EmployeeStatusBadge({ status }: { status: EmployeeStatus }) {
+  return status === 'active' ? (
+    <StatusIndicator label="Còn làm việc" dotClassName="bg-admin-success-dot" />
+  ) : (
+    <StatusIndicator
+      label="Ngừng làm việc"
+      dotClassName="bg-admin-red-primary"
     />
   );
 }
-
-export const EMPLOYEE_ACCOUNT_BADGE_CONFIG: StatusBadgeConfig<string> = {
-  true: {
-    label: 'Đã liên kết',
-    className:
-      'rounded-md border-transparent bg-admin-success-bg px-2.5 py-1 text-xs text-admin-success-text',
-    dotClassName: 'bg-admin-success-dot opacity-100',
-  },
-  false: {
-    label: 'Chưa liên kết',
-    variant: 'warning',
-    className:
-      'rounded-md border-transparent bg-admin-amber-bg px-2.5 py-1 text-xs text-admin-amber-dark',
-    dotClassName: 'bg-admin-amber-primary opacity-100',
-  },
-};
 
 export function EmployeeRoleBadge({
   role,
@@ -89,9 +50,9 @@ export function EmployeeRoleBadge({
 
 export function EmployeeAccountBadge({ linked }: { linked: boolean }) {
   return (
-    <StatusBadge
-      status={String(linked)}
-      config={EMPLOYEE_ACCOUNT_BADGE_CONFIG}
+    <StatusIndicator
+      label={linked ? 'Đã liên kết' : 'Chưa liên kết'}
+      dotClassName={linked ? 'bg-admin-success-dot' : 'bg-admin-amber-primary'}
     />
   );
 }

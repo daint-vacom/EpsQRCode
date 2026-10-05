@@ -5,6 +5,7 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo, type ReactNode } from 'react';
+import { TagList } from '@/project/tags/components/tag-list';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Eye, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -27,10 +28,8 @@ export interface UseWorkColumnsParams {
   onDelete: (row: Work) => void;
   renderWork: (row: Work) => ReactNode;
   renderAssignee: (row: Work) => ReactNode;
-  renderPlannedStartDate: (row: Work) => ReactNode;
-  renderPlannedEndDate: (row: Work) => ReactNode;
-  renderActualStartedAt: (row: Work) => ReactNode;
-  renderActualCompletedAt: (row: Work) => ReactNode;
+  renderPlannedSchedule: (row: Work) => ReactNode;
+  renderActualSchedule: (row: Work) => ReactNode;
   renderLinks: (row: Work) => ReactNode;
 }
 
@@ -59,48 +58,40 @@ export function useWorkColumns(
       col.custom({
         id: 'assignee',
         header: 'Phụ trách',
-        headerClassName: 'w-[190px]',
-        size: 190,
+        headerClassName: 'min-w-[220px]',
+        size: 220,
         enableSorting: false,
         cell: (row) => params.renderAssignee(row),
       }),
       col.custom({
-        id: 'plannedStartDate',
-        header: 'Bắt đầu dự kiến',
-        headerClassName: 'w-[150px]',
-        size: 150,
+        id: 'labels',
+        header: 'Nhãn công việc',
+        headerClassName: 'min-w-[200px]',
+        size: 220,
         enableSorting: false,
-        cell: (row) => params.renderPlannedStartDate(row),
+        cell: (row) => <TagList tags={row.labels} />,
       }),
       col.custom({
-        id: 'plannedEndDate',
-        header: 'Hoàn thành dự kiến',
-        headerClassName: 'w-[150px]',
-        size: 150,
+        id: 'plannedSchedule',
+        header: 'Thời gian dự kiến',
+        headerClassName: 'w-[240px]',
+        size: 240,
         enableSorting: false,
-        cell: (row) => params.renderPlannedEndDate(row),
+        cell: (row) => params.renderPlannedSchedule(row),
       }),
       col.custom({
-        id: 'actualStartedAt',
-        header: 'Bắt đầu thực tế',
-        headerClassName: 'w-[170px]',
-        size: 170,
+        id: 'actualSchedule',
+        header: 'Thời gian thực tế',
+        headerClassName: 'w-[240px]',
+        size: 240,
         enableSorting: false,
-        cell: (row) => params.renderActualStartedAt(row),
-      }),
-      col.custom({
-        id: 'actualCompletedAt',
-        header: 'Hoàn thành thực tế',
-        headerClassName: 'w-[170px]',
-        size: 170,
-        enableSorting: false,
-        cell: (row) => params.renderActualCompletedAt(row),
+        cell: (row) => params.renderActualSchedule(row),
       }),
       col.custom({
         id: 'links',
         header: 'Liên kết',
-        headerClassName: 'w-[220px]',
-        size: 220,
+        headerClassName: 'w-[240px]',
+        size: 240,
         enableSorting: false,
         cell: (row) => params.renderLinks(row),
       }),

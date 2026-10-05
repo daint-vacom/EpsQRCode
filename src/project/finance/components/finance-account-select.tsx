@@ -47,7 +47,7 @@ function FinanceAccountIdentity({ account }: { account: FinanceAccount }) {
         </span>
       </span>
       <span className="ms-auto shrink-0">
-        <FinanceAccountStatusBadge isActive={account.isActive} size="sm" />
+        <FinanceAccountStatusBadge isActive={account.isActive} />
       </span>
     </span>
   );

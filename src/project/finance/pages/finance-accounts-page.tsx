@@ -218,7 +218,6 @@ export function FinanceAccountsPage() {
                     ) : (
                       <FinanceAccountStatusBadge
                         isActive={option.value === 'active'}
-                        size="sm"
                       />
                     )
                   }
@@ -227,7 +226,6 @@ export function FinanceAccountsPage() {
                     option?.value === 'inactive' ? (
                       <FinanceAccountStatusBadge
                         isActive={option.value === 'active'}
-                        size="sm"
                       />
                     ) : (
                       (option?.label ?? 'Mọi trạng thái')
@@ -311,11 +309,10 @@ export function FinanceAccountsPage() {
                 renderOption={(option) => (
                   <FinanceAccountStatusBadge
                     isActive={option.value === 'true'}
-                    size="sm"
                   />
                 )}
                 triggerContent={() => (
-                  <FinanceAccountStatusBadge isActive={isActive} size="sm" />
+                  <FinanceAccountStatusBadge isActive={isActive} />
                 )}
               />
             </div>

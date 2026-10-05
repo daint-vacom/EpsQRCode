@@ -129,7 +129,11 @@ export function SelectWithAvatar<T>({
             option={option as SelectWithAvatarOption<T>}
             size={size}
           />
-        ) : undefined
+        ) : (
+          <span className="text-muted-foreground">
+            {props.placeholder ?? 'Chọn...'}
+          </span>
+        )
       }
     />
   );
