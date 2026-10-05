@@ -24,7 +24,6 @@ function makeWork(id: string, plannedEndDate: string | null): WorkItem {
     plannedEndDate,
     plannedStartTime: null,
     plannedEndTime: null,
-    color: '#2563eb',
     actualStartedAt: null,
     actualCompletedAt: null,
     childCount: 0,

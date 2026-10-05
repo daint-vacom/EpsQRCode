@@ -12,17 +12,17 @@ export const WORK_STATUS_BADGE_CONFIG: StatusBadgeConfig<WorkStatus> = {
   },
   todo: {
     label: WORK_STATUS_LABELS.todo,
-    variant: 'blue',
-    className: 'rounded-md px-2.5 py-1 text-xs',
+    variant: 'slate',
+    className: 'rounded-md bg-admin-blue-muted px-2.5 py-1 text-xs',
   },
   in_progress: {
     label: WORK_STATUS_LABELS.in_progress,
-    variant: 'amber',
+    variant: 'blue',
     className: 'rounded-md px-2.5 py-1 text-xs',
   },
   paused: {
     label: WORK_STATUS_LABELS.paused,
-    variant: 'slate',
+    variant: 'amber',
     className: 'rounded-md px-2.5 py-1 text-xs',
   },
   completed: {

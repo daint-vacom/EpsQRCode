@@ -28,7 +28,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ColorInput } from '@/components/ui/color-input';
 import {
   Command,
   CommandEmpty,
@@ -1329,32 +1328,6 @@ export function WorkDetailDialog({
                       />
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <FormField
-                          control={form.control}
-                          name="color"
-                          render={({ field }) => (
-                            <FormItem className="shrink-0 space-y-1">
-                              <FormLabel className="sr-only">
-                                Màu công việc
-                              </FormLabel>
-                              <FormControl>
-                                <ColorInput
-                                  variant="md"
-                                  triggerVariant="ghost"
-                                  value={field.value}
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    markDirty();
-                                  }}
-                                  onBlur={field.onBlur}
-                                  className="size-7 rounded-md p-1"
-                                  disabled={isSaving}
-                                />
-                              </FormControl>
-                              <FormMessage className="sr-only" />
-                            </FormItem>
-                          )}
-                        />
                         <FormField
                           control={form.control}
                           name="status"

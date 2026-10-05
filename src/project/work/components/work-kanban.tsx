@@ -159,12 +159,21 @@ export function restoreWorkKanbanItemStatus({
 }
 
 const WORK_KANBAN_STATUS_INDICATOR_CLASSES: Record<WorkStatus, string> = {
-  draft: 'bg-muted-foreground',
-  todo: 'bg-admin-blue-primary',
-  in_progress: 'bg-admin-amber-primary',
-  paused: 'bg-muted-foreground',
+  draft: 'bg-admin-neutral-400',
+  todo: 'bg-admin-blue-muted',
+  in_progress: 'bg-admin-blue-primary',
+  paused: 'bg-admin-amber-primary',
   completed: 'bg-admin-success-text',
   cancelled: 'bg-admin-red-primary',
+};
+
+const WORK_KANBAN_STATUS_BORDER_CLASSES: Record<WorkStatus, string> = {
+  draft: 'border-s-admin-neutral-400',
+  todo: 'border-s-admin-blue-muted',
+  in_progress: 'border-s-admin-blue-primary',
+  paused: 'border-s-admin-amber-primary',
+  completed: 'border-s-admin-success-text',
+  cancelled: 'border-s-admin-red-primary',
 };
 
 export interface WorkKanbanCardProps {
@@ -224,8 +233,8 @@ export function WorkKanbanCard({
     <div
       className={cn(
         'rounded-md border border-border border-s-4 bg-card p-3 shadow-xs transition-shadow hover:shadow-sm',
+        WORK_KANBAN_STATUS_BORDER_CLASSES[work.status],
       )}
-      style={{ borderInlineStartColor: work.color }}
     >
       <div className="flex flex-col gap-2.5">
         {deadlineDisplay ? (
@@ -271,18 +280,6 @@ export function WorkKanbanCard({
 
         <div className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-1.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className="size-3.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: work.color }}
-                  role="img"
-                  aria-label="Màu công việc"
-                  tabIndex={0}
-                />
-              </TooltipTrigger>
-              <TooltipContent>Màu công việc</TooltipContent>
-            </Tooltip>
             <span className="min-w-0 truncate text-[11px] text-muted-foreground">
               {work.code}
             </span>

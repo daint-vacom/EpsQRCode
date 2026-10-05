@@ -38,8 +38,6 @@ const optionalTime = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Giờ không hợp lệ')
   .or(z.literal(''));
-const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Màu không hợp lệ.');
-
 export const workFormSchema = z
   .object({
     title: z.string().trim().min(1, 'Vui lòng nhập tên công việc.'),
@@ -53,7 +51,6 @@ export const workFormSchema = z
     plannedEndDate: optionalDate,
     plannedStartTime: optionalTime,
     plannedEndTime: optionalTime,
-    color: hexColor,
     customerIds: z.array(z.string().uuid()),
     contractIds: z.array(z.string().uuid()),
     labelIds: z.array(z.string().uuid()),
@@ -95,7 +92,6 @@ export const workTemplateFormSchema = z.object({
   description: z.string().trim().max(5000, 'Mô tả không quá 5.000 ký tự.'),
   priority: z.enum(WORK_PRIORITIES),
   assigneeEmployeeId: optionalUuid,
-  color: hexColor,
   labelIds: z.array(z.string().uuid()),
 });
 export type WorkTemplateFormValues = z.infer<typeof workTemplateFormSchema>;
@@ -147,7 +143,6 @@ export interface WorkItem {
   plannedEndDate: string | null;
   plannedStartTime: string | null;
   plannedEndTime: string | null;
-  color: string;
   actualStartedAt: string | null;
   actualCompletedAt: string | null;
   childCount: number;
@@ -169,7 +164,6 @@ export interface WorkTemplateSummary {
   description: string;
   priority: WorkPriority;
   assigneeEmployeeId: string | null;
-  color: string;
   labels: WorkLabel[];
   childCount: number;
   isActive: boolean;
@@ -209,7 +203,6 @@ export const workDefaultValues: WorkFormValues = {
   plannedEndDate: '',
   plannedStartTime: '00:00',
   plannedEndTime: '00:00',
-  color: '#2563eb',
   customerIds: [],
   contractIds: [],
   labelIds: [],
@@ -221,7 +214,6 @@ export const workTemplateDefaultValues: WorkTemplateFormValues = {
   description: '',
   priority: 'normal',
   assigneeEmployeeId: '',
-  color: '#2563eb',
   labelIds: [],
 };
 
@@ -234,7 +226,6 @@ export function toWorkTemplateFormValues(
     description: template.description,
     priority: template.priority,
     assigneeEmployeeId: template.assigneeEmployeeId ?? '',
-    color: template.color,
     labelIds: template.labels.map((label) => label.id),
   };
 }
@@ -251,7 +242,6 @@ export function toWorkFormValuesFromTemplate(
     templateId: template.id,
     plannedStartDate: '',
     plannedEndDate: '',
-    color: template.color,
     customerIds: [],
     contractIds: [],
     labelIds: template.labels.map((label) => label.id),
@@ -301,7 +291,6 @@ export function mapWorkRpcRow(row: Record<string, unknown>): WorkItem {
     plannedEndTime: row.plannedEndTime
       ? String(row.plannedEndTime).slice(0, 5)
       : '00:00',
-    color: String(row.color ?? '#2563eb'),
     actualStartedAt: row.actualStartedAt ? String(row.actualStartedAt) : null,
     actualCompletedAt: row.actualCompletedAt
       ? String(row.actualCompletedAt)
@@ -357,7 +346,6 @@ export function toWorkFormValues(work: WorkItem): WorkFormValues {
     plannedEndDate: work.plannedEndDate ?? '',
     plannedStartTime: work.plannedStartTime ?? '00:00',
     plannedEndTime: work.plannedEndTime ?? '00:00',
-    color: work.color || '#2563eb',
     customerIds: work.customers.map((item) => item.id),
     contractIds: work.contracts.map((item) => item.id),
     labelIds: work.labels.map((item) => item.id),

@@ -10,7 +10,6 @@ import {
 import type { UseFormReturn } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ColorInput } from '@/components/ui/color-input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DialogFooter } from '@/components/ui/dialog';
 import {
@@ -203,29 +202,6 @@ export function WorkTemplateDialog({
                       />
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <FormField
-                          control={form.control}
-                          name="color"
-                          render={({ field }) => (
-                            <FormItem className="shrink-0 space-y-1">
-                              <FormLabel className="sr-only">
-                                Màu công việc
-                              </FormLabel>
-                              <FormControl>
-                                <ColorInput
-                                  variant="md"
-                                  triggerVariant="ghost"
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                  onBlur={field.onBlur}
-                                  className="size-7 rounded-md p-1"
-                                  disabled={isSaving}
-                                />
-                              </FormControl>
-                              <FormMessage className="sr-only" />
-                            </FormItem>
-                          )}
-                        />
                         <FormField
                           control={form.control}
                           name="priority"

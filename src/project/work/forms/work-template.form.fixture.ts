@@ -47,12 +47,6 @@ const spec: FormSpec = {
       placeholder: 'Chọn nhân viên',
     },
     {
-      kind: 'text',
-      name: 'color',
-      label: 'Màu công việc',
-      width: 'normal',
-    },
-    {
       kind: 'multiselect',
       name: 'labelIds',
       label: 'Nhãn công việc',

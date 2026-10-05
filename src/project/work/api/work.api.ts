@@ -201,7 +201,6 @@ function toPayload(values: WorkFormValues) {
     plannedEndDate: values.plannedEndDate || null,
     plannedStartTime: values.plannedStartTime || '00:00',
     plannedEndTime: values.plannedEndTime || '00:00',
-    color: values.color,
     customerIds: values.customerIds,
     contractIds: values.contractIds,
   };
@@ -329,7 +328,6 @@ export async function updateWorkItem(
         planned_end_date: values.plannedEndDate || null,
         planned_start_time: values.plannedStartTime || '00:00',
         planned_end_time: values.plannedEndTime || '00:00',
-        color: values.color,
       },
       { params: { id: `eq.${workItemId}`, tenant_id: `eq.${tenantId}` } },
     ),
@@ -551,7 +549,7 @@ export async function loadWorkTemplates(
         supabaseApi.get('/work_templates', {
           params: {
             select:
-              'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+              'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,is_active,created_at,updated_at',
             tenant_id: `eq.${tenantId}`,
             parent_id: 'is.null',
             ...(options.activeOnly ? { is_active: 'eq.true' } : {}),
@@ -591,7 +589,6 @@ export async function loadWorkTemplates(
     assigneeEmployeeId: row.assignee_employee_id
       ? String(row.assignee_employee_id)
       : null,
-    color: String(row.color ?? '#2563eb'),
     parentId: row.parent_id ? String(row.parent_id) : null,
     sortOrder: Number(row.sort_order ?? 0),
     labels: assignments
@@ -618,7 +615,7 @@ export async function loadWorkTemplate(
     supabaseApi.get('/work_templates', {
       params: {
         select:
-          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,is_active,created_at,updated_at',
         tenant_id: `eq.${tenantId}`,
         id: `eq.${templateId}`,
         limit: '1',
@@ -632,7 +629,7 @@ export async function loadWorkTemplate(
     supabaseApi.get('/work_templates', {
       params: {
         select:
-          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,color,is_active,created_at,updated_at',
+          'id,tenant_id,parent_id,sort_order,code,name,description,priority,assignee_employee_id,is_active,created_at,updated_at',
         tenant_id: `eq.${tenantId}`,
         parent_id: `eq.${templateId}`,
         order: 'sort_order.asc,id.asc',
@@ -688,7 +685,6 @@ export async function loadWorkTemplate(
       assigneeEmployeeId: templateRow.assignee_employee_id
         ? String(templateRow.assignee_employee_id)
         : null,
-      color: String(templateRow.color ?? '#2563eb'),
       labels: labelsFor('work_template', id),
       childCount: templateChildren,
       isActive: Boolean(templateRow.is_active),
@@ -723,7 +719,6 @@ export async function saveWorkTemplate(
         description: values.description.trim(),
         priority: values.priority,
         assigneeEmployeeId: values.assigneeEmployeeId || null,
-        color: values.color,
       },
       p_label_ids: values.labelIds,
     }),

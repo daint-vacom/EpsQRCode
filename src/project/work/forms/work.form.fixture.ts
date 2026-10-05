@@ -106,12 +106,6 @@ const spec: FormSpec = {
       width: 'normal',
     },
     {
-      kind: 'text',
-      name: 'color',
-      label: 'Màu công việc',
-      width: 'full',
-    },
-    {
       kind: 'multiselect',
       name: 'customerIds',
       label: 'Khách hàng liên quan',

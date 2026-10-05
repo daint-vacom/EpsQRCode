@@ -189,7 +189,6 @@ function toCalendarEvent(work: WorkItem): CalendarEvent | null {
         ? end
         : new Date(start.getTime() + 60 * 60 * 1000),
     allDay: false,
-    color: work.color,
     location: work.assigneeName || undefined,
   };
 }

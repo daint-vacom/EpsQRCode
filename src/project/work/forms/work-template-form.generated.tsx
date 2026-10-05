@@ -12,7 +12,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { ColorInput } from '@/components/ui/color-input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -50,7 +49,6 @@ export const workTemplateDefaultValues: WorkTemplateFormValues = {
   description: '',
   priority: 'normal',
   assigneeEmployeeId: '',
-  color: '#2563eb',
   labelIds: [],
 };
 
@@ -170,26 +168,6 @@ export function WorkTemplateForm({
                     options={assigneeEmployeeIdOptions}
                     searchable={false}
                     placeholder="Chọn nhân viên"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="color"
-            render={({ field }) => (
-              <FormItem className="md:col-span-6">
-                <FormLabel>Màu công việc</FormLabel>
-                <FormControl>
-                  <ColorInput
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    onBlur={field.onBlur}
-                    variant="md"
-                    expanded
                   />
                 </FormControl>
                 <FormMessage />
