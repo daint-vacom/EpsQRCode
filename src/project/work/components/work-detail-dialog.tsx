@@ -46,6 +46,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  EntityMultiSelect,
+  type EntityMultiSelectOption,
+  type EntityMultiSelectSize,
+} from '@/components/ui/entity-multi-select';
+import {
   Form,
   FormControl,
   FormField,
@@ -74,7 +79,8 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { CustomerIdentity } from '../../customers/components/customer-identity';
+import { formatIdentityTooltip } from '@/components/common/avatar-identity';
+import { CustomerAvatar } from '../../customers/components/customer-avatar';
 import type { FileAttachment } from '../../files/model/file';
 import {
   toWorkFormValues,
@@ -779,144 +785,43 @@ function getWorkLinkOptionCode(option: MultiSelectOption) {
   return typeof code === 'string' ? code : '';
 }
 
-function WorkLinkIdentity({
-  option,
-  kind,
-}: {
-  option: MultiSelectOption;
-  kind: WorkLinkPickerKind;
-}) {
-  const name = getWorkLinkOptionLabel(option);
-  const code = getWorkLinkOptionCode(option);
+function getWorkLinkPickerOptions(
+  options: MultiSelectOption[],
+  kind: WorkLinkPickerKind,
+  size: EntityMultiSelectSize,
+): EntityMultiSelectOption[] {
+  return options.map((option) => {
+    const title = getWorkLinkOptionLabel(option);
+    const description = getWorkLinkOptionCode(option);
+    const avatarSize = size === 'lg' ? 'size-9' : 'size-6';
 
-  if (kind === 'customer') {
-    return (
-      <CustomerIdentity
-        customer={{ name, customerCode: code, imageUrl: null }}
-        className="min-w-0"
-      />
-    );
-  }
-
-  return (
-    <span className="flex min-w-0 items-center gap-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <FileText className="size-4" />
-      </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-foreground">
-          {name}
-        </span>
-        {code ? (
-          <span className="block truncate text-xs text-muted-foreground">
-            {code}
+    return {
+      value: option.value,
+      title,
+      description: description || null,
+      tooltip: formatIdentityTooltip(description, title),
+      avatar:
+        kind === 'customer' ? (
+          <CustomerAvatar
+            customer={{ name: title, imageUrl: null }}
+            className={avatarSize}
+          />
+        ) : (
+          <span
+            className={cn(
+              'flex shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary',
+              avatarSize,
+            )}
+          >
+            <FileText className={size === 'lg' ? 'size-4' : 'size-3.5'} />
           </span>
-        ) : null}
-      </span>
-    </span>
-  );
-}
-
-function WorkLinkPicker({
-  value,
-  options,
-  kind,
-  onChange,
-  disabled,
-}: {
-  value: string[];
-  options: MultiSelectOption[];
-  kind: WorkLinkPickerKind;
-  onChange: (value: string[]) => void;
-  disabled: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const selectedOptions = value
-    .map((item) => options.find((option) => option.value === item))
-    .filter((option): option is MultiSelectOption => Boolean(option));
-  const availableOptions = options.filter(
-    (option) => !value.includes(option.value),
-  );
-
-  return (
-    <div className="min-w-0 space-y-2">
-      {selectedOptions.map((option) => {
-        const optionLabel = getWorkLinkOptionLabel(option);
-
-        return (
-          <div
-            key={option.value}
-            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 shadow-xs shadow-black/5"
-          >
-            <div className="min-w-0 flex-1">
-              <WorkLinkIdentity option={option} kind={kind} />
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              mode="icon"
-              size="sm"
-              aria-label={`Bỏ ${optionLabel}`}
-              title={`Bỏ ${optionLabel}`}
-              onClick={() =>
-                onChange(value.filter((item) => item !== option.value))
-              }
-              disabled={disabled}
-            >
-              <X />
-            </Button>
-          </div>
-        );
-      })}
-
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="px-2 text-muted-foreground"
-            disabled={disabled || availableOptions.length === 0}
-          >
-            <Plus /> Thêm
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          className="w-(--radix-popover-trigger-width) min-w-64 p-0"
-        >
-          <Command>
-            <CommandInput
-              placeholder={
-                kind === 'customer' ? 'Tìm khách hàng...' : 'Tìm hợp đồng...'
-              }
-            />
-            <CommandList>
-              <CommandEmpty>
-                {kind === 'customer'
-                  ? 'Không có khách hàng phù hợp'
-                  : 'Không có hợp đồng phù hợp'}
-              </CommandEmpty>
-              {availableOptions.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={`${getWorkLinkOptionLabel(option)} ${getWorkLinkOptionCode(option)} ${option.searchableText ?? ''}`}
-                  disabled={option.disabled}
-                  onSelect={() => {
-                    onChange([...value, option.value]);
-                    setOpen(false);
-                  }}
-                  className="min-h-12"
-                >
-                  <WorkLinkIdentity option={option} kind={kind} />
-                </CommandItem>
-              ))}
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
+        ),
+      searchText: [title, description, option.searchableText]
+        .filter(Boolean)
+        .join(' '),
+      disabled: option.disabled,
+    };
+  });
 }
 
 function WorkProperties({
@@ -1149,14 +1054,20 @@ function WorkProperties({
               <Building2 className="size-3.5" /> Khách hàng
             </FormLabel>
             <FormControl>
-              <WorkLinkPicker
+              <EntityMultiSelect
                 value={field.value}
-                options={customerOptions}
-                kind="customer"
+                options={getWorkLinkPickerOptions(
+                  customerOptions,
+                  'customer',
+                  'md',
+                )}
                 onChange={(value) => {
                   field.onChange(value);
                   onDirty();
                 }}
+                size="md"
+                searchPlaceholder="Tìm khách hàng..."
+                emptyMessage="Không có khách hàng phù hợp"
                 disabled={isSaving}
               />
             </FormControl>
@@ -1179,14 +1090,20 @@ function WorkProperties({
               <FileText className="size-3.5" /> Hợp đồng
             </FormLabel>
             <FormControl>
-              <WorkLinkPicker
+              <EntityMultiSelect
                 value={field.value}
-                options={contractOptions}
-                kind="contract"
+                options={getWorkLinkPickerOptions(
+                  contractOptions,
+                  'contract',
+                  'md',
+                )}
                 onChange={(value) => {
                   field.onChange(value);
                   onDirty();
                 }}
+                size="md"
+                searchPlaceholder="Tìm hợp đồng..."
+                emptyMessage="Không có hợp đồng phù hợp"
                 disabled={isSaving}
               />
             </FormControl>

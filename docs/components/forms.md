@@ -155,6 +155,36 @@ Nhóm 1 cấp qua `group`; số đếm qua `count`. Với `nestedOptions`, group
 group có thể chọn/bỏ chọn toàn bộ leaf. Search fuzzy giữ lại group cha khi leaf con khớp. Popover
 **giữ mở** khi toggle (đúng UX multi-select).
 
+### EntityMultiSelect — chọn danh sách liên kết có nhận diện
+
+Dùng `EntityMultiSelect` khi cần hiển thị các bản ghi đã chọn thành từng hàng có avatar, tên và mô tả,
+ví dụ khách hàng hoặc hợp đồng trong một phiếu công việc. `title`, `description` và `avatar` nhận
+`ReactNode`; `tooltip` tùy chọn nhận `ReactNode` để giải thích đầy đủ danh tính khi di chuột qua hàng.
+`searchText` cung cấp nội dung tìm kiếm ổn định khi các node hiển thị phức tạp.
+
+```tsx
+import { EntityMultiSelect } from '@/components/ui/entity-multi-select';
+
+<EntityMultiSelect
+  value={linkedIds}
+  onChange={setLinkedIds}
+  size="lg"
+  options={[
+    {
+      value: customer.id,
+      title: customer.name,
+      description: customer.code,
+      avatar: <CustomerAvatar customer={customer} />,
+      tooltip: `${customer.code} - ${customer.name}`,
+      searchText: `${customer.name} ${customer.code}`,
+    },
+  ]}
+/>
+```
+
+`size="md"` giữ hàng ở chiều cao 34px như select nhân viên, chỉ hiển thị title. `size="lg"` dùng hàng
+cao hơn và hiển thị description. Nút bỏ chọn dùng ghost mờ, không tạo nền khi hover.
+
 ### TagSelect — chọn nhiều nhãn theo nhóm
 
 Dùng `TagSelect` từ `@/project/tags/components/tag-select` khi dữ liệu lấy từ danh mục nhãn dùng chung:

@@ -6,10 +6,30 @@ import {
 } from '@/project/customers/model/customer';
 import { TagList } from '@/project/tags/components/tag-list';
 import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter';
-import { loadWorkItems } from '@/project/work/api/work.api';
+import {
+  createWorkLabel,
+  deleteWorkItemAttachment,
+  loadWorkEmployeeOptions,
+  loadWorkItemAttachments,
+  loadWorkItems,
+  loadWorkLabels,
+  loadWorkLinkOptions,
+  loadWorkTree,
+  updateWorkItem,
+  uploadWorkItemAttachments,
+} from '@/project/work/api/work.api';
+import { WorkDetailDialog } from '@/project/work/components/work-detail-dialog';
 import { WorkPriorityIcon } from '@/project/work/components/work-priority-icon';
 import { WorkStatusBadge } from '@/project/work/components/work-status-badge';
-import { WORK_PRIORITY_LABELS } from '@/project/work/model/work';
+import { useWorkForm } from '@/project/work/forms/work-form.generated';
+import {
+  toWorkFormValues,
+  WORK_PRIORITY_LABELS,
+  WORK_STATUS_LABELS,
+  type WorkFormValues,
+  type WorkItem,
+  type WorkPriority,
+} from '@/project/work/model/work';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   BarChart3,
@@ -59,6 +79,26 @@ import type {
   EmployeeDistributionChartPoint,
   EmployeeResponsibilityWorkspace,
 } from '../model/employee-responsibility';
+
+const WORK_STATUS_OPTIONS = Object.entries(WORK_STATUS_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
+const WORK_PRIORITY_OPTIONS = Object.entries(WORK_PRIORITY_LABELS).map(
+  ([value, label]) => {
+    const priority = value as WorkPriority;
+
+    return {
+      value,
+      searchableText: label,
+      label: (
+        <span className="flex items-center gap-1.5">
+          <WorkPriorityIcon priority={priority} />
+          <span>{label}</span>
+        </span>
+      ),
+    };
+  },
+);
 
 const CUSTOMER_STATUS_COLORS: Record<CustomerStatus, string> = {
   active: 'var(--admin-success-dot)',
@@ -324,13 +364,15 @@ export function EmployeeDetailPage() {
   const queryClient = useQueryClient();
   const { id = '' } = useParams<{ id: string }>();
   const { tenantId } = useTenant();
-  const { hasPermission } = useUser();
+  const { hasPermission, userId } = useUser();
   const canEditEmployee = hasPermission('organization:employee:update');
   const canDeleteEmployee = hasPermission('organization:employee:delete');
   const canViewCustomerData = hasPermission('customers:view');
   const canManageCustomerAssignments = hasPermission('customers:update');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [viewingWork, setViewingWork] = useState<WorkItem | null>(null);
+  const workForm = useWorkForm();
   const deleteMutation = useMutation({
     mutationFn: deleteEmployee,
     onSuccess: async () => {
@@ -379,6 +421,95 @@ export function EmployeeDetailPage() {
     },
     enabled: Boolean(tenantId && id && detailQuery.data),
     staleTime: 60 * 1000,
+  });
+  const workDetailQuery = useQuery({
+    queryKey: ['project', 'work', 'detail', tenantId, viewingWork?.id],
+    queryFn: () => loadWorkTree(tenantId!, viewingWork!.id),
+    enabled: Boolean(tenantId && viewingWork),
+  });
+  const workAttachmentsQuery = useQuery({
+    queryKey: ['project', 'work', 'attachments', tenantId, viewingWork?.id],
+    queryFn: () => loadWorkItemAttachments(tenantId!, viewingWork!.id),
+    enabled: Boolean(tenantId && viewingWork),
+  });
+  const workEmployeesQuery = useQuery({
+    queryKey: ['project', 'work', 'employees', tenantId],
+    queryFn: () => loadWorkEmployeeOptions(tenantId!),
+    enabled: Boolean(tenantId && viewingWork),
+    staleTime: 60 * 1000,
+  });
+  const workLinksQuery = useQuery({
+    queryKey: ['project', 'work', 'links', tenantId],
+    queryFn: () => loadWorkLinkOptions(tenantId!),
+    enabled: Boolean(tenantId && viewingWork),
+    staleTime: 60 * 1000,
+  });
+  const workLabelsQuery = useQuery({
+    queryKey: ['project', 'work', 'labels', tenantId],
+    queryFn: () => loadWorkLabels(tenantId!),
+    enabled: Boolean(tenantId && viewingWork),
+    staleTime: 60 * 1000,
+  });
+  const editWorkMutation = useMutation({
+    mutationFn: (values: WorkFormValues) => {
+      if (!tenantId || !viewingWork) {
+        throw new Error('Không xác định được công việc hiện tại.');
+      }
+      return updateWorkItem(tenantId, viewingWork.id, values);
+    },
+    onSuccess: async (_data, values) => {
+      toast.success('Đã cập nhật công việc.');
+      workForm.reset(values);
+      await queryClient.invalidateQueries({ queryKey: ['project', 'work'] });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const createWorkLabelMutation = useMutation({
+    mutationFn: (name: string) => {
+      if (!tenantId) throw new Error('Không xác định được tenant hiện tại.');
+      return createWorkLabel(tenantId, name);
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'labels', tenantId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ['project', 'tags'] });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const uploadWorkAttachmentsMutation = useMutation({
+    mutationFn: (files: File[]) => {
+      if (!tenantId || !viewingWork || !userId) {
+        throw new Error(
+          'Không xác định được công việc hoặc tài khoản hiện tại.',
+        );
+      }
+      return uploadWorkItemAttachments(tenantId, viewingWork.id, userId, files);
+    },
+    onSuccess: () => toast.success('Đã thêm tệp đính kèm.'),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onSettled: async () => {
+      if (!tenantId || !viewingWork) return;
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'attachments', tenantId, viewingWork.id],
+      });
+    },
+  });
+  const deleteWorkAttachmentMutation = useMutation({
+    mutationFn: (attachmentId: string) => {
+      if (!tenantId || !viewingWork) {
+        throw new Error('Không xác định được công việc hiện tại.');
+      }
+      return deleteWorkItemAttachment(tenantId, viewingWork.id, attachmentId);
+    },
+    onSuccess: () => toast.success('Đã xóa tệp đính kèm.'),
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+    onSettled: async () => {
+      if (!tenantId || !viewingWork) return;
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'work', 'attachments', tenantId, viewingWork.id],
+      });
+    },
   });
 
   const pageHeader = (employee?: Employee) => (
@@ -454,6 +585,32 @@ export function EmployeeDetailPage() {
   const employee = detailQuery.data;
   const employeeTags = tagQuery.data?.tagsBySubjectId[employee.id] ?? [];
   const currentWork = workQuery.data?.items ?? [];
+  const workEmployeeOptions = (workEmployeesQuery.data ?? []).map((item) => ({
+    value: item.id,
+    label: item.label,
+    code: item.employeeCode,
+    avatarUrl: item.avatarUrl,
+    avatarTone: IDENTITY_AVATAR_TONES.employee,
+    searchableText: `${item.label} ${item.employeeCode}`,
+    data: item,
+  }));
+  const workCustomerOptions = (workLinksQuery.data?.customers ?? []).map(
+    (item) => ({
+      value: item.id,
+      label: item.label,
+      searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
+      data: { secondaryLabel: item.secondaryLabel },
+    }),
+  );
+  const workContractOptions = (workLinksQuery.data?.contracts ?? []).map(
+    (item) => ({
+      value: item.id,
+      label: item.label,
+      searchableText: `${item.label} ${item.secondaryLabel ?? ''}`,
+      data: { secondaryLabel: item.secondaryLabel },
+    }),
+  );
+  const workDetail = workDetailQuery.data?.root ?? viewingWork;
 
   return (
     <div className={pageClassName}>
@@ -600,12 +757,18 @@ export function EmployeeDetailPage() {
                       className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-5 py-4"
                     >
                       <div className="min-w-0 flex-1">
-                        <p
-                          className="truncate text-sm font-semibold text-foreground"
+                        <button
+                          type="button"
+                          className="block max-w-full cursor-pointer truncate text-left text-sm font-semibold text-foreground hover:text-primary"
                           title={work.title}
+                          aria-label={`Xem chi tiết công việc ${work.title}`}
+                          onClick={() => {
+                            setViewingWork(work);
+                            workForm.reset(toWorkFormValues(work));
+                          }}
                         >
                           {work.title}
-                        </p>
+                        </button>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                           <span>{work.code}</span>
                           {work.plannedEndDate ? (
@@ -638,6 +801,49 @@ export function EmployeeDetailPage() {
         employee={employee}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
+      />
+      <WorkDetailDialog
+        open={Boolean(viewingWork)}
+        onOpenChange={(open) => {
+          if (!open) setViewingWork(null);
+        }}
+        mode="edit"
+        work={workDetail ?? null}
+        children={workDetailQuery.data?.children ?? []}
+        isLoading={workDetailQuery.isPending}
+        errorMessage={
+          workDetailQuery.isError
+            ? getApiErrorMessage(workDetailQuery.error)
+            : undefined
+        }
+        form={workForm}
+        isSaving={
+          editWorkMutation.isPending ||
+          uploadWorkAttachmentsMutation.isPending ||
+          deleteWorkAttachmentMutation.isPending
+        }
+        statusOptions={WORK_STATUS_OPTIONS}
+        priorityOptions={WORK_PRIORITY_OPTIONS}
+        assigneeEmployeeOptions={workEmployeeOptions}
+        customerOptions={workCustomerOptions}
+        contractOptions={workContractOptions}
+        labelOptions={workLabelsQuery.data ?? []}
+        attachments={workAttachmentsQuery.data ?? []}
+        isAttachmentsLoading={workAttachmentsQuery.isPending}
+        isUploadingAttachments={uploadWorkAttachmentsMutation.isPending}
+        attachmentErrorMessage={
+          workAttachmentsQuery.isError
+            ? getApiErrorMessage(workAttachmentsQuery.error)
+            : undefined
+        }
+        onCreateLabel={(name) => createWorkLabelMutation.mutateAsync(name)}
+        onUploadAttachments={(files) =>
+          uploadWorkAttachmentsMutation.mutateAsync(files)
+        }
+        onDeleteAttachment={(attachmentId) =>
+          deleteWorkAttachmentMutation.mutateAsync(attachmentId)
+        }
+        onSave={(values) => editWorkMutation.mutateAsync(values)}
       />
       <ConfirmDialog
         open={deleteDialogOpen}

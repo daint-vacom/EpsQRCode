@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { DragStartEvent } from '@dnd-kit/core';
 import { GripVertical, LoaderCircle } from 'lucide-react';
+import { formatDate } from '@/lib/date';
 import { getRichTextPlainText } from '@/lib/rich-text';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ import {
   IDENTITY_AVATAR_TONES,
 } from '@/components/common/gradient-avatar';
 import {
+  isWorkOverdue,
   WORK_PRIORITY_LABELS,
   WORK_STATUS_LABELS,
   WORK_STATUSES,
@@ -174,6 +176,39 @@ export interface WorkKanbanCardProps {
   isSaving?: boolean;
 }
 
+function getWorkDeadlineDisplay(work: WorkItem, today = new Date()) {
+  if (!work.plannedEndDate) return null;
+
+  const [year, month, day] = work.plannedEndDate.split('-').map(Number);
+  const isDueToday =
+    year === today.getFullYear() &&
+    month === today.getMonth() + 1 &&
+    day === today.getDate();
+  const dateLabel = formatDate(`${work.plannedEndDate}T00:00:00`);
+  const dateTimeLabel = [dateLabel, work.plannedEndTime]
+    .filter(Boolean)
+    .join(' ');
+
+  if (isWorkOverdue(work, today)) {
+    return {
+      label: `Quá hạn ${dateTimeLabel}`,
+      className: 'text-destructive',
+    };
+  }
+
+  if (isDueToday) {
+    return {
+      label: ['Hôm nay', work.plannedEndTime].filter(Boolean).join(' '),
+      className: 'text-primary',
+    };
+  }
+
+  return {
+    label: `Hạn ${dateTimeLabel}`,
+    className: 'text-foreground',
+  };
+}
+
 export function WorkKanbanCard({
   work,
   onOpen,
@@ -183,6 +218,7 @@ export function WorkKanbanCard({
   isSaving = false,
 }: WorkKanbanCardProps) {
   const descriptionPreview = getRichTextPlainText(work.description);
+  const deadlineDisplay = getWorkDeadlineDisplay(work);
 
   const cardContent = (
     <div
@@ -192,6 +228,11 @@ export function WorkKanbanCard({
       style={{ borderInlineStartColor: work.color }}
     >
       <div className="flex flex-col gap-2.5">
+        {deadlineDisplay ? (
+          <p className={cn('text-xs font-normal', deadlineDisplay.className)}>
+            {deadlineDisplay.label}
+          </p>
+        ) : null}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <Button
