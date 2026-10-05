@@ -51,7 +51,7 @@ export function ContractTemplateFilterBar({
           value: status,
           onValueChange: onStatusChange,
           options: statusOptions ?? [],
-          label: 'Trạng thái',
+          label: undefined,
           placeholder: 'Trạng thái',
           ariaLabel: 'Trạng thái mẫu',
           className: 'w-44',

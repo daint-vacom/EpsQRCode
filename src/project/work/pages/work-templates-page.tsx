@@ -10,10 +10,12 @@ import {
 } from '@tanstack/react-table';
 import {
   Check,
-  ChevronDown,
   ClipboardList,
+  MoreVertical,
   Plus,
+  RefreshCw,
   Search,
+  SlidersHorizontal,
   Trash2,
   TriangleAlert,
   X,
@@ -32,7 +34,9 @@ import {
 } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridActionBar } from '@/components/ui/data-grid-action-bar';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
+import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -40,12 +44,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { SelectWithAvatar } from '@/components/ui/select-with-avatar';
+import { Separator } from '@/components/ui/separator';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   createWorkLabel,
@@ -137,6 +147,7 @@ export function WorkTemplatesPage() {
   const [confirmSaveBeforeChildOpen, setConfirmSaveBeforeChildOpen] =
     useState(false);
   const [preserveTabOnOpen, setPreserveTabOnOpen] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [childAttachments, setChildAttachments] = useState<
     Awaited<ReturnType<typeof loadWorkTemplateAttachments>>
   >([]);
@@ -149,6 +160,16 @@ export function WorkTemplatesPage() {
   >([]);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [priorityFilters, setPriorityFilters] = useState<string[]>([]);
+  const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [labelFilters, setLabelFilters] = useState<string[]>([]);
+  const [filterDraft, setFilterDraft] = useState({
+    status: '',
+    priorities: [] as string[],
+    assigneeEmployeeId: '',
+    labelIds: [] as string[],
+  });
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [deletingTemplates, setDeletingTemplates] = useState<
     WorkTemplateSummary[] | null
@@ -398,6 +419,15 @@ export function WorkTemplatesPage() {
   const priorityOptions = WORK_PRIORITIES.map((value) => ({
     value,
     label: WORK_PRIORITY_LABELS[value],
+  }));
+  const statusFilterOptions = [
+    { value: 'active', label: 'Đang sử dụng' },
+    { value: 'inactive', label: 'Đã tắt' },
+  ];
+  const labelFilterOptions = labelOptions.map((label) => ({
+    value: label.id,
+    label: label.name,
+    searchableText: label.name,
   }));
   const assigneeOptions = employeeOptions.map((employee) => ({
     value: employee.id,
@@ -655,13 +685,41 @@ export function WorkTemplatesPage() {
 
   const filteredTemplates = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('vi');
-    if (!normalizedSearch) return templates;
-    return templates.filter((template) =>
-      `${template.name} ${template.code} ${template.description}`
-        .toLocaleLowerCase('vi')
-        .includes(normalizedSearch),
-    );
-  }, [search, templates]);
+    return templates.filter((template) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        `${template.name} ${template.code} ${template.description}`
+          .toLocaleLowerCase('vi')
+          .includes(normalizedSearch);
+      const matchesStatus =
+        !statusFilter || template.isActive === (statusFilter === 'active');
+      const matchesPriority =
+        priorityFilters.length === 0 ||
+        priorityFilters.includes(template.priority);
+      const matchesAssignee =
+        !assigneeFilter || template.assigneeEmployeeId === assigneeFilter;
+      const matchesLabels =
+        labelFilters.length === 0 ||
+        labelFilters.every((labelId) =>
+          template.labels.some((label) => label.id === labelId),
+        );
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesAssignee &&
+        matchesLabels
+      );
+    });
+  }, [
+    assigneeFilter,
+    labelFilters,
+    priorityFilters,
+    search,
+    statusFilter,
+    templates,
+  ]);
   const employeeNamesById = Object.fromEntries(
     employeeOptions.map((employee) => [employee.id, employee.label]),
   );
@@ -734,7 +792,45 @@ export function WorkTemplatesPage() {
   const selectedTemplates = table
     .getSelectedRowModel()
     .rows.map((row) => row.original);
-  const selectedTemplatesCount = selectedTemplates.length;
+
+  const resetSelectionAndPage = () => {
+    setRowSelection({});
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
+
+  const openFilterDrawer = () => {
+    setFilterDraft({
+      status: statusFilter,
+      priorities: [...priorityFilters],
+      assigneeEmployeeId: assigneeFilter,
+      labelIds: [...labelFilters],
+    });
+    setFilterDrawerOpen(true);
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPriorityFilters([]);
+    setAssigneeFilter('');
+    setLabelFilters([]);
+    setFilterDraft({
+      status: '',
+      priorities: [],
+      assigneeEmployeeId: '',
+      labelIds: [],
+    });
+    resetSelectionAndPage();
+  };
+
+  const applyFilterDraft = () => {
+    setStatusFilter(filterDraft.status);
+    setPriorityFilters(filterDraft.priorities);
+    setAssigneeFilter(filterDraft.assigneeEmployeeId);
+    setLabelFilters(filterDraft.labelIds);
+    resetSelectionAndPage();
+    setFilterDrawerOpen(false);
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
@@ -784,91 +880,195 @@ export function WorkTemplatesPage() {
         >
           <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
             <DataGridHeader
-              title={
-                <span className="inline-flex items-center gap-3 text-sm font-normal text-muted-foreground">
-                  <span>
-                    Đã chọn{' '}
-                    <span className="font-semibold text-foreground">
-                      {selectedTemplatesCount}
-                    </span>{' '}
-                    mẫu công việc
-                  </span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        disabled={
-                          selectedTemplatesCount === 0 ||
-                          availabilityMutation.isPending ||
-                          deleteMutation.isPending
-                        }
-                        aria-label="Thao tác hàng loạt"
-                      >
-                        Thao tác hàng loạt
-                        <ChevronDown />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      <DropdownMenuItem
-                        onSelect={() =>
-                          availabilityMutation.mutate({
-                            templateIds: selectedTemplates.map(
-                              (template) => template.id,
-                            ),
-                            isActive: true,
-                            clearSelection: true,
-                          })
-                        }
-                      >
-                        <Check />
-                        Bật sử dụng mẫu
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onSelect={() =>
-                          availabilityMutation.mutate({
-                            templateIds: selectedTemplates.map(
-                              (template) => template.id,
-                            ),
-                            isActive: false,
-                            clearSelection: true,
-                          })
-                        }
-                      >
-                        <X />
-                        Tắt sử dụng mẫu
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onSelect={() => setDeletingTemplates(selectedTemplates)}
-                      >
-                        <Trash2 />
-                        Xóa mẫu
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </span>
-              }
-              toolbar={
-                <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
+              variant="stats"
+              stats={
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <div className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
                     <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={search}
                       onChange={(event) => {
                         setSearch(event.target.value);
-                        setRowSelection({});
-                        setPagination((current) => ({
-                          ...current,
-                          pageIndex: 0,
-                        }));
+                        resetSelectionAndPage();
                       }}
                       placeholder="Tìm tên, mã mẫu..."
                       aria-label="Tìm mẫu công việc"
                       className="ps-9"
                     />
                   </div>
+                  <Separator orientation="vertical" className="mx-1 h-6" />
+                  <OptionSelect
+                    value={statusFilter}
+                    onChange={(value) => {
+                      setStatusFilter(value);
+                      resetSelectionAndPage();
+                    }}
+                    options={statusFilterOptions}
+                    placeholder="Trạng thái"
+                    ariaLabel="Lọc theo trạng thái sử dụng"
+                    className="w-[180px]"
+                  />
+                  <MultiSelect
+                    value={priorityFilters}
+                    onChange={(value) => {
+                      setPriorityFilters(value);
+                      resetSelectionAndPage();
+                    }}
+                    options={priorityOptions}
+                    placeholder="Mức độ ưu tiên"
+                    searchPlaceholder="Tìm mức độ ưu tiên..."
+                    maxChips={0}
+                    ariaLabel="Lọc theo độ ưu tiên"
+                    className="w-[190px]"
+                  />
+                  <DataGridFilterDrawer
+                    open={filterDrawerOpen}
+                    onOpenChange={setFilterDrawerOpen}
+                    title="Lọc mẫu công việc"
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={openFilterDrawer}
+                      >
+                        <SlidersHorizontal />
+                        Lọc chi tiết
+                      </Button>
+                    }
+                    footer={
+                      <div className="flex items-center justify-between gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={resetFilters}
+                        >
+                          Xóa bộ lọc
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={applyFilterDraft}
+                        >
+                          Áp dụng
+                        </Button>
+                      </div>
+                    }
+                  >
+                    <div className="space-y-5">
+                      <div className="space-y-1.5">
+                        <Label variant="secondary">Trạng thái sử dụng</Label>
+                        <OptionSelect
+                          value={filterDraft.status}
+                          onChange={(value) =>
+                            setFilterDraft((current) => ({
+                              ...current,
+                              status: value,
+                            }))
+                          }
+                          options={statusFilterOptions}
+                          placeholder="Trạng thái"
+                          ariaLabel="Trạng thái sử dụng"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label variant="secondary">Độ ưu tiên</Label>
+                        <MultiSelect
+                          value={filterDraft.priorities}
+                          onChange={(priorities) =>
+                            setFilterDraft((current) => ({
+                              ...current,
+                              priorities,
+                            }))
+                          }
+                          options={priorityOptions}
+                          placeholder="Mức độ ưu tiên"
+                          searchPlaceholder="Tìm mức độ ưu tiên..."
+                          maxChips={0}
+                          ariaLabel="Độ ưu tiên"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label variant="secondary">Người phụ trách</Label>
+                        <SelectWithAvatar
+                          value={filterDraft.assigneeEmployeeId}
+                          onChange={(assigneeEmployeeId) =>
+                            setFilterDraft((current) => ({
+                              ...current,
+                              assigneeEmployeeId,
+                            }))
+                          }
+                          options={assigneeOptions}
+                          placeholder="Người phụ trách"
+                          searchPlaceholder="Tìm nhân viên..."
+                          ariaLabel="Người phụ trách"
+                          loading={employeeQuery.isPending}
+                          loadingMessage="Đang tải danh sách nhân viên..."
+                          disabled={
+                            employeeQuery.isPending &&
+                            employeeOptions.length === 0
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label variant="secondary">Nhãn</Label>
+                        <MultiSelect
+                          value={filterDraft.labelIds}
+                          onChange={(labelIds) =>
+                            setFilterDraft((current) => ({
+                              ...current,
+                              labelIds,
+                            }))
+                          }
+                          options={labelFilterOptions}
+                          placeholder="Nhãn"
+                          searchPlaceholder="Tìm nhãn..."
+                          maxChips={0}
+                          ariaLabel="Nhãn mẫu công việc"
+                          loading={labelsQuery.isPending}
+                          loadingMessage="Đang tải nhãn..."
+                        />
+                      </div>
+                    </div>
+                  </DataGridFilterDrawer>
+                </div>
+              }
+              toolbar={
+                <div className="ms-auto flex shrink-0 items-center gap-2.5">
+                  <Button
+                    variant="outline"
+                    mode="icon"
+                    aria-label="Làm mới"
+                    title="Làm mới"
+                    onClick={() => void query.refetch()}
+                  >
+                    <RefreshCw />
+                  </Button>
                   <DataGridColumnVisibility table={table} mode="drawer" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        mode="icon"
+                        aria-label="Tùy chọn bộ lọc"
+                        title="Tùy chọn bộ lọc"
+                      >
+                        <MoreVertical />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-64">
+                      <DropdownMenuLabel>Bộ lọc</DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={openFilterDrawer}>
+                        <SlidersHorizontal />
+                        Mở bộ lọc chi tiết
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={resetFilters}>
+                        <X />
+                        Xóa tất cả bộ lọc
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               }
             />
@@ -882,6 +1082,53 @@ export function WorkTemplatesPage() {
               <DataGridPagination />
             </CardFooter>
           </Card>
+          <DataGridActionBar>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={
+                availabilityMutation.isPending || deleteMutation.isPending
+              }
+              onClick={() =>
+                availabilityMutation.mutate({
+                  templateIds: selectedTemplates.map((template) => template.id),
+                  isActive: true,
+                  clearSelection: true,
+                })
+              }
+            >
+              <Check />
+              Bật sử dụng mẫu
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={
+                availabilityMutation.isPending || deleteMutation.isPending
+              }
+              onClick={() =>
+                availabilityMutation.mutate({
+                  templateIds: selectedTemplates.map((template) => template.id),
+                  isActive: false,
+                  clearSelection: true,
+                })
+              }
+            >
+              <X />
+              Tắt sử dụng mẫu
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={
+                availabilityMutation.isPending || deleteMutation.isPending
+              }
+              onClick={() => setDeletingTemplates(selectedTemplates)}
+            >
+              <Trash2 />
+              Xóa mẫu
+            </Button>
+          </DataGridActionBar>
         </DataGrid>
       )}
 

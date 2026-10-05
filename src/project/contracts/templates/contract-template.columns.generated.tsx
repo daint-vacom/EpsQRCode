@@ -25,7 +25,7 @@ import {
   ContractTemplateUpdatedAtColumnFilter,
   ContractTemplateVersionNoColumnFilter,
 } from './contract-template-column-filters.generated';
-import { ContractTemplateStatusBadge } from './contract-template-status-badge';
+import { ContractTemplateStatusIndicator } from './contract-template-status-indicator';
 
 export const CONTRACT_TEMPLATE_COLUMN_PINNING: ColumnPinningState = {
   left: ['select'],
@@ -103,7 +103,7 @@ export function useContractTemplateColumns(
         headerClassName: 'w-[150px]',
         size: 150,
         enableSorting: false,
-        cell: (row) => <ContractTemplateStatusBadge status={row.status} />,
+        cell: (row) => <ContractTemplateStatusIndicator status={row.status} />,
       }),
       col.custom({
         id: 'tags',

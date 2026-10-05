@@ -12,7 +12,6 @@ const spec: FilterSpec = {
     {
       type: 'select',
       name: 'status',
-      label: 'Trạng thái',
       placeholder: 'Trạng thái',
       ariaLabel: 'Trạng thái mẫu',
       className: 'w-44',

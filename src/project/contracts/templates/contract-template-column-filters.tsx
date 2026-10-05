@@ -3,12 +3,12 @@ import {
   CONTRACT_TEMPLATE_STATUS_LABELS,
   CONTRACT_TEMPLATE_STATUSES,
 } from '../model/contract-template';
-import { ContractTemplateStatusBadge } from './contract-template-status-badge';
+import { ContractTemplateStatusIndicator } from './contract-template-status-indicator';
 
 export const CONTRACT_TEMPLATE_STATUS_FILTER_OPTIONS: MultiSelectOption[] =
   CONTRACT_TEMPLATE_STATUSES.map((status) => ({
     value: status,
-    label: <ContractTemplateStatusBadge status={status} size="sm" />,
+    label: <ContractTemplateStatusIndicator status={status} />,
     searchableText: CONTRACT_TEMPLATE_STATUS_LABELS[status],
     data: status,
   }));

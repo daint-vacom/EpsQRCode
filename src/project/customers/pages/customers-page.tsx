@@ -935,7 +935,7 @@ export function CustomersPage() {
               trigger={
                 <Button type="button" variant="outline">
                   <Funnel />
-                  Lọc Chi Tiết
+                  Lọc chi tiết
                 </Button>
               }
             />

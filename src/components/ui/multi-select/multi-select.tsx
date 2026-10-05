@@ -315,7 +315,7 @@ export function MultiSelect<T = unknown>({
         ) : null}
         {searchMode !== 'inline' &&
         (!hasSelection || !showSelectedOptionsInTrigger) ? (
-          <span className="truncate text-[inherit] font-normal text-muted-foreground/80">
+          <span className="truncate font-normal text-muted-foreground">
             {placeholder}
           </span>
         ) : null}

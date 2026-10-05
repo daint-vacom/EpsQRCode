@@ -19,12 +19,12 @@ import {
   ContractTemplateUpdatedAtColumnFilter,
   ContractTemplateVersionNoColumnFilter,
 } from './contract-template-column-filters.generated';
-import { ContractTemplateStatusBadge } from './contract-template-status-badge';
+import { ContractTemplateStatusIndicator } from './contract-template-status-indicator';
 
 const statusOptions: MultiSelectOption[] = CONTRACT_TEMPLATE_STATUSES.map(
   (status) => ({
     value: status,
-    label: <ContractTemplateStatusBadge status={status} size="sm" />,
+    label: <ContractTemplateStatusIndicator status={status} />,
     searchableText: CONTRACT_TEMPLATE_STATUS_LABELS[status],
   }),
 );

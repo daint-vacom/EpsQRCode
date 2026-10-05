@@ -44,8 +44,7 @@ export interface SelectSearchProps<T = unknown> {
     isSelected: boolean,
   ) => ReactNode;
   triggerContent?:
-    | ReactNode
-    | ((option: SearchSelectOption<T> | undefined) => ReactNode);
+    ReactNode | ((option: SearchSelectOption<T> | undefined) => ReactNode);
   triggerMode?: 'full' | 'chevron';
   className?: string;
   optionContentClassName?: string;
@@ -182,7 +181,16 @@ export function SelectSearch<T = unknown>({
   });
 
   const triggerContentNode = (
-    <span className="min-w-0 truncate text-start">{content}</span>
+    <span
+      className={cn(
+        'min-w-0 truncate text-start',
+        !selectedOption && triggerContent === undefined
+          ? 'text-muted-foreground'
+          : undefined,
+      )}
+    >
+      {content}
+    </span>
   );
 
   return (
@@ -230,7 +238,7 @@ export function SelectSearch<T = unknown>({
             mode="input"
             placeholder={!selectedOption}
             className={cn(
-              'w-full justify-between border-input bg-background text-foreground shadow-xs shadow-black/5',
+              'w-full justify-between border-input bg-background shadow-xs shadow-black/5',
               className,
             )}
           >
