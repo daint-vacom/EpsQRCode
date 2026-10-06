@@ -48,19 +48,9 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.CONTRACTS,
       },
       {
-        label: 'Mẫu hợp đồng',
-        icon: Layers3,
-        path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
-      },
-      {
         label: 'Công việc',
         icon: ClipboardList,
         path: ROUTES.PROJECT.WORK,
-      },
-      {
-        label: 'Mẫu công việc',
-        icon: ListTree,
-        path: ROUTES.PROJECT.WORK_TEMPLATES,
       },
     ],
   },
@@ -121,6 +111,16 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Danh mục',
         icon: Tags,
         path: ROUTES.PROJECT.TAGS,
+      },
+      {
+        label: 'Mẫu hợp đồng',
+        icon: Layers3,
+        path: ROUTES.PROJECT.CONTRACT_TEMPLATES,
+      },
+      {
+        label: 'Mẫu công việc',
+        icon: ListTree,
+        path: ROUTES.PROJECT.WORK_TEMPLATES,
       },
     ],
   },

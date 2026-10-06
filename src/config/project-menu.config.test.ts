@@ -18,7 +18,7 @@ describe('PROJECT_MENU_GROUPS', () => {
       PROJECT_MENU_GROUPS.find(
         (group) => group.title === 'Kinh doanh',
       )?.items.map((item) => item.label),
-    ).toEqual(['Khách hàng', 'Hợp đồng', 'Mẫu hợp đồng']);
+    ).toEqual(['Khách hàng', 'Hợp đồng', 'Công việc']);
     expect(
       PROJECT_MENU_GROUPS.find(
         (group) => group.title === 'Tài chính',
@@ -39,6 +39,8 @@ describe('PROJECT_MENU_GROUPS', () => {
       'Phân quyền',
       'Cấu hình dữ liệu',
       'Danh mục',
+      'Mẫu hợp đồng',
+      'Mẫu công việc',
     ]);
     expect(PROJECT_ENTITY_ORDER).toEqual(['customer', 'contract', 'employee']);
   });

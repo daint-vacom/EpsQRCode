@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Link2 } from 'lucide-react';
+import { Link2, Pencil, RotateCcw } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -17,9 +17,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   allocateFinanceAdvance,
   createFinanceAdvanceRefund,
@@ -176,16 +186,34 @@ export function FinanceVoucherDetailPage() {
   });
   if (query.isLoading)
     return (
-      <div className="p-5 text-sm text-muted-foreground">Đang tải phiếu...</div>
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
+        <PageHeader
+          title="Chi tiết phiếu"
+          showBackButton
+          onBack={() => navigate(ROUTES.PROJECT.FINANCE_VOUCHERS)}
+          className="shrink-0"
+        />
+        <Card>
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Đang tải dữ liệu...
+          </CardContent>
+        </Card>
+      </div>
     );
   if (query.isError || !query.data)
     return (
-      <div className="p-5">
-        <Card>
-          <CardContent className="p-8 text-center text-sm text-destructive">
-            {getApiErrorMessage(query.error)}
-          </CardContent>
-        </Card>
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
+        <PageHeader
+          title="Chi tiết phiếu"
+          showBackButton
+          onBack={() => navigate(ROUTES.PROJECT.FINANCE_VOUCHERS)}
+          className="shrink-0"
+        />
+        <ErrorState
+          title="Không tải được chi tiết phiếu"
+          description={getApiErrorMessage(query.error)}
+          onRetry={() => void query.refetch()}
+        />
       </div>
     );
   const allocationSourceLine = voucher.lines.find(
@@ -196,72 +224,80 @@ export function FinanceVoucherDetailPage() {
     setAllocationObligationId('');
     setAllocationAmount(String(availableAmount));
   };
+  const availableTotal = voucher.lines.reduce(
+    (total, line) => total + line.availableAmount,
+    0,
+  );
+  const isReceipt = voucher.voucherType === 'receipt';
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:p-5">
       <PageHeader
         title={voucher.voucherNo ?? 'Chi tiết phiếu'}
-        icon={FileText}
+        titleAside={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant={
+                voucher.voucherType === 'receipt' ? 'success' : 'destructive'
+              }
+            >
+              {FINANCE_VOUCHER_TYPE_LABELS[voucher.voucherType]}
+            </Badge>
+            <Badge variant="outline">
+              {FINANCE_VOUCHER_STATUS_LABELS[voucher.status]}
+            </Badge>
+          </div>
+        }
+        showBackButton
+        onBack={() => navigate(ROUTES.PROJECT.FINANCE_VOUCHERS)}
+        actions={
+          <>
+            {voucher.status === 'draft' ? (
+              <Button asChild variant="outline">
+                <Link
+                  to={`${ROUTES.PROJECT.FINANCE_VOUCHERS}/${voucher.id}/edit`}
+                >
+                  <Pencil className="size-4" /> Sửa
+                </Link>
+              </Button>
+            ) : null}
+            {voucher.status === 'posted' &&
+            hasPermission('finance:voucher:reverse') ? (
+              <Button variant="outline" onClick={() => setReverseOpen(true)}>
+                <RotateCcw className="size-4" /> Đảo phiếu
+              </Button>
+            ) : null}
+          </>
+        }
+        className="shrink-0"
       />
       <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4">
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                {voucher.voucherNo ?? 'Phiếu nháp'}{' '}
-                <Badge
-                  variant={
-                    voucher.voucherType === 'receipt'
-                      ? 'success'
-                      : 'destructive'
-                  }
-                >
-                  {FINANCE_VOUCHER_TYPE_LABELS[voucher.voucherType]}
-                </Badge>
-                <Badge variant="outline">
-                  {FINANCE_VOUCHER_STATUS_LABELS[voucher.status]}
-                </Badge>
-              </CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {voucher.partyNameSnapshot} · {voucher.voucherDate} ·{' '}
-                {voucher.accountName}
+          <CardContent className="grid gap-x-4 gap-y-5 p-4 sm:grid-cols-2 xl:grid-cols-4">
+            <VoucherDetailField
+              label={isReceipt ? 'Tổng tiền thu' : 'Tổng tiền chi'}
+              value={formatFinanceAmount(voucher.totalAmount)}
+              prominent
+            />
+            <VoucherDetailField
+              label={isReceipt ? 'Tài khoản nhận' : 'Tài khoản chi'}
+              value={voucher.accountName}
+              className="xl:border-l xl:pl-6"
+            />
+            <VoucherDetailField
+              label="Đối tượng"
+              value={voucher.partyNameSnapshot}
+              className="xl:border-l xl:pl-6"
+            />
+            <VoucherDetailField
+              label="Ngày giao dịch"
+              value={formatTransactionDate(voucher.transactionAt)}
+              className="xl:border-l xl:pl-6"
+            />
+            <div className="border-t pt-4 sm:col-span-2 xl:col-span-4">
+              <p className="text-sm text-muted-foreground">Nội dung</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm font-semibold text-foreground">
+                {voucher.description || '—'}
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {voucher.status === 'draft' ? (
-                <Button asChild variant="outline">
-                  <Link
-                    to={`${ROUTES.PROJECT.FINANCE_VOUCHERS}/${voucher.id}/edit`}
-                  >
-                    Chỉnh sửa nháp
-                  </Link>
-                </Button>
-              ) : null}
-              {voucher.status === 'posted' &&
-              hasPermission('finance:voucher:reverse') ? (
-                <Button variant="outline" onClick={() => setReverseOpen(true)}>
-                  Đảo phiếu
-                </Button>
-              ) : null}
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Tổng tiền</p>
-              <p className="text-lg font-bold text-primary">
-                {formatFinanceAmount(voucher.totalAmount)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Nội dung</p>
-              <p className="text-sm">{voucher.description || '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Mã giao dịch</p>
-              <p className="text-sm">{voucher.externalReference || '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Đối tượng</p>
-              <p className="text-sm">{voucher.partyNameSnapshot}</p>
             </div>
           </CardContent>
         </Card>
@@ -321,38 +357,42 @@ export function FinanceVoucherDetailPage() {
           <CardHeader>
             <CardTitle>Chi tiết khoản mục</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="p-3">#</th>
-                    <th className="p-3">Khoản mục</th>
-                    <th className="p-3">Diễn giải</th>
-                    <th className="p-3">Cách xử lý</th>
-                    <th className="p-3 text-right">Số tiền</th>
-                    <th className="p-3 text-right">Còn khả dụng</th>
-                    <th className="p-3 text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {voucher.lines.map((line) => (
-                    <tr key={line.id} className="border-b">
-                      <td className="p-3">{line.lineNo}</td>
-                      <td className="p-3 font-medium">
+          <CardContent className="p-0">
+            <Table className="min-w-[980px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">#</TableHead>
+                  <TableHead className="w-48">Khoản mục</TableHead>
+                  <TableHead>Diễn giải</TableHead>
+                  <TableHead className="w-44">Cách xử lý</TableHead>
+                  <TableHead className="w-40 text-right">Số tiền</TableHead>
+                  <TableHead className="w-40 text-right">
+                    Còn khả dụng
+                  </TableHead>
+                  <TableHead className="w-48 text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {voucher.lines.length > 0 ? (
+                  voucher.lines.map((line) => (
+                    <TableRow key={line.id}>
+                      <TableCell className="w-16 tabular-nums text-muted-foreground">
+                        {line.lineNo}
+                      </TableCell>
+                      <TableCell className="w-48 font-medium">
                         {line.categoryNameSnapshot}
-                      </td>
-                      <td className="p-3">{line.description || '—'}</td>
-                      <td className="p-3">
+                      </TableCell>
+                      <TableCell>{line.description || '—'}</TableCell>
+                      <TableCell className="w-44">
                         {FINANCE_HANDLING_TYPE_LABELS[line.handlingType]}
-                      </td>
-                      <td className="p-3 text-right">
+                      </TableCell>
+                      <TableCell className="w-40 text-right tabular-nums">
                         {formatFinanceAmount(line.amount)}
-                      </td>
-                      <td className="p-3 text-right">
+                      </TableCell>
+                      <TableCell className="w-40 text-right tabular-nums">
                         {formatFinanceAmount(line.availableAmount)}
-                      </td>
-                      <td className="p-3 text-right">
+                      </TableCell>
+                      <TableCell className="w-48 text-right">
                         {voucher.status === 'posted' &&
                         line.handlingType === 'advance' &&
                         line.availableAmount > 0 ? (
@@ -384,12 +424,35 @@ export function FinanceVoucherDetailPage() {
                         ) : (
                           '—'
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="h-24 text-center text-muted-foreground"
+                    >
+                      Phiếu chưa có khoản mục hạch toán.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={4} className="text-right font-semibold">
+                    Tổng cộng
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-primary tabular-nums">
+                    {formatFinanceAmount(voucher.totalAmount)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-primary tabular-nums">
+                    {formatFinanceAmount(availableTotal)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
+            </Table>
           </CardContent>
         </Card>
         <Dialog
@@ -606,15 +669,39 @@ export function FinanceVoucherDetailPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <div>
-          <Button
-            variant="outline"
-            onClick={() => navigate(ROUTES.PROJECT.FINANCE_VOUCHERS)}
-          >
-            <ArrowLeft className="size-4" /> Quay lại sổ thu chi
-          </Button>
-        </div>
       </div>
     </div>
   );
+}
+
+function VoucherDetailField({
+  label,
+  value,
+  prominent = false,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  prominent?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 ${className ?? ''}`}>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p
+        className={
+          prominent
+            ? 'mt-1 text-xl font-bold text-primary'
+            : 'mt-1 truncate text-sm font-semibold text-foreground'
+        }
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatTransactionDate(value: string) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('vi-VN');
 }
