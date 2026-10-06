@@ -54,8 +54,8 @@ const spec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      actionPresets: ['view'],
-      actionCount: 1,
+      actionPresets: ['view', 'edit', 'delete'],
+      actionCount: 3,
     },
   ],
 } satisfies TableSpec;

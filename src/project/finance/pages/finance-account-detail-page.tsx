@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Landmark, LineChart, Pencil, Trash2 } from 'lucide-react';
@@ -17,24 +17,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import {
   deactivateFinanceAccount,
-  loadFinanceAccountLedgerReport,
   loadFinanceAccounts,
   updateFinanceAccount,
 } from '../api/finance.api';
 import { FinanceAccountStatusBadge } from '../components/finance-account-status-badge';
-import {
-  FINANCE_ACCOUNT_TYPE_LABELS,
-  formatFinanceAmount,
-  type FinanceAccountActivity,
-} from '../model/finance';
-import { withFinanceRunningBalances } from '../model/finance-analytics';
-
-const TODAY = new Date().toISOString().slice(0, 10);
+import { FINANCE_ACCOUNT_TYPE_LABELS } from '../model/finance';
 
 export function FinanceAccountDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,37 +50,6 @@ export function FinanceAccountDetailPage() {
     enabled: Boolean(tenantId),
   });
   const account = accountQuery.data?.find((item) => item.id === id);
-  const ledgerQuery = useQuery({
-    queryKey: [
-      'project',
-      'finance',
-      'account-ledger-preview',
-      tenantId,
-      id,
-      account?.openingDate,
-      TODAY,
-    ],
-    queryFn: () =>
-      loadFinanceAccountLedgerReport(
-        tenantId!,
-        id!,
-        account!.openingDate,
-        TODAY,
-      ),
-    enabled: Boolean(tenantId && id && account),
-  });
-  const recentActivities = useMemo(
-    () =>
-      account
-        ? withFinanceRunningBalances(
-            account.openingBalance,
-            ledgerQuery.data ?? [],
-          )
-            .slice(-5)
-            .reverse()
-        : [],
-    [account, ledgerQuery.data],
-  );
   const updateMutation = useMutation({
     mutationFn: () => {
       if (!tenantId || !id) throw new Error('Thiếu thông tin tài khoản.');
@@ -181,17 +143,18 @@ export function FinanceAccountDetailPage() {
           ) : null
         }
       />
-      {accountQuery.isError ? (
-        <div className="text-sm text-destructive">
-          {getApiErrorMessage(accountQuery.error)}
-        </div>
-      ) : null}
       {accountQuery.isLoading ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Đang tải thông tin quỹ/tài khoản...
           </CardContent>
         </Card>
+      ) : accountQuery.isError ? (
+        <ErrorState
+          title="Không tải được thông tin quỹ/tài khoản"
+          description={getApiErrorMessage(accountQuery.error)}
+          onRetry={() => void accountQuery.refetch()}
+        />
       ) : !account ? (
         <Card>
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
@@ -199,8 +162,8 @@ export function FinanceAccountDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="mx-auto grid w-full max-w-[1200px] gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(340px,0.95fr)]">
-          <Card className="h-full">
+        <div className="mx-auto grid w-full max-w-[1440px] gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
+          <Card>
             <CardHeader>
               <CardTitle>Thông tin quỹ / tài khoản</CardTitle>
             </CardHeader>
@@ -260,57 +223,23 @@ export function FinanceAccountDetailPage() {
               ) : null}
             </CardContent>
           </Card>
-          <div className="flex h-full flex-col gap-4">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle>Số dư hiện tại</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold tracking-tight text-primary">
-                  {formatAmount(account.balance)}
-                </div>
-                <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
-                  <InfoItem
-                    label="Số dư đầu kỳ"
-                    value={formatAmount(account.openingBalance)}
-                  />
-                  <InfoItem
-                    label="Đơn vị tiền tệ"
-                    value={account.currencyCode}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="min-w-0 flex-1 overflow-hidden">
-              <CardHeader className="flex-row items-center justify-between gap-3">
-                <CardTitle>Biến động gần đây</CardTitle>
-                <Button asChild variant="ghost" size="sm">
-                  <Link
-                    to={`${ROUTES.PROJECT.FINANCE_ACCOUNT_REPORT}?accountId=${id ?? ''}`}
-                  >
-                    Xem tất cả
-                  </Link>
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                {ledgerQuery.isLoading ? (
-                  <div className="p-5 text-sm text-muted-foreground">
-                    Đang tải giao dịch gần đây...
-                  </div>
-                ) : ledgerQuery.isError ? (
-                  <div className="p-5 text-sm text-destructive">
-                    {getApiErrorMessage(ledgerQuery.error)}
-                  </div>
-                ) : recentActivities.length > 0 ? (
-                  <RecentActivityTable rows={recentActivities} />
-                ) : (
-                  <div className="p-5 text-sm text-muted-foreground">
-                    Chưa có giao dịch nào được ghi nhận.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle>Số dư hiện tại</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-primary">
+                {formatAmount(account.balance)}
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
+                <InfoItem
+                  label="Số dư đầu kỳ"
+                  value={formatAmount(account.openingBalance)}
+                />
+                <InfoItem label="Đơn vị tiền tệ" value={account.currencyCode} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
       {account ? (
@@ -478,61 +407,6 @@ function InfoItem({
       >
         {value}
       </div>
-    </div>
-  );
-}
-
-function RecentActivityTable({ rows }: { rows: FinanceAccountActivity[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[500px] table-fixed text-sm">
-        <colgroup>
-          <col className="w-[82px]" />
-          <col />
-          <col className="w-[88px]" />
-          <col className="w-[88px]" />
-          <col className="w-[96px]" />
-        </colgroup>
-        <thead className="bg-muted/40 text-xs text-muted-foreground">
-          <tr>
-            <th className="px-5 py-3 text-left font-medium">Ngày</th>
-            <th className="px-3 py-3 text-left font-medium">Diễn giải</th>
-            <th className="px-3 py-3 text-right font-medium">Thu</th>
-            <th className="px-3 py-3 text-right font-medium">Chi</th>
-            <th className="px-5 py-3 text-right font-medium">Số dư</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.movementId} className="border-t border-border/70">
-              <td className="whitespace-nowrap px-5 py-3 text-xs text-muted-foreground">
-                {formatDate(row.effectiveDate)}
-              </td>
-              <td className="max-w-[220px] px-3 py-3">
-                <div className="truncate font-medium">
-                  {row.description || row.voucherNo || 'Biến động tài khoản'}
-                </div>
-                {row.partyName ? (
-                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {row.partyName}
-                  </div>
-                ) : null}
-              </td>
-              <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-admin-success-text">
-                {row.direction === 'in' ? formatFinanceAmount(row.amount) : '—'}
-              </td>
-              <td className="whitespace-nowrap px-3 py-3 text-right font-medium text-admin-red-dark">
-                {row.direction === 'out'
-                  ? formatFinanceAmount(row.amount)
-                  : '—'}
-              </td>
-              <td className="whitespace-nowrap px-5 py-3 text-right tabular-nums">
-                {formatFinanceAmount(row.runningBalance)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

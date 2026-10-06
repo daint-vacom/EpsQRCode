@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 import type { FinanceAccount } from '@/project/finance/model/finance';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Eye } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import {
   createColumnHelpers,
@@ -28,13 +28,16 @@ const accountTypeBadgeConfig: StatusBadgeConfig<string> = {
 
 export interface UseFinanceAccountColumnsParams {
   onView: (row: FinanceAccount) => void;
+  onEdit: (row: FinanceAccount) => void;
+  onDelete: (row: FinanceAccount) => void;
+  canManage: boolean;
 }
 
 export function useFinanceAccountColumns(
   params: UseFinanceAccountColumnsParams,
 ): ColumnDef<FinanceAccount>[] {
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
-  const { onView } = params;
+  const { onView, onEdit, onDelete, canManage } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<FinanceAccount>({
@@ -91,7 +94,7 @@ export function useFinanceAccountColumns(
       col.actions({
         id: 'actions',
         header: '',
-        size: getDataGridActionsColumnSize(1),
+        size: getDataGridActionsColumnSize(canManage ? 3 : 1),
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
@@ -106,9 +109,43 @@ export function useFinanceAccountColumns(
             >
               <Eye className="size-4" />
             </DataGridActionButton>
+            {canManage ? (
+              <>
+                <DataGridActionButton
+                  action="edit"
+                  tooltip="Sửa"
+                  aria-label={`Sửa tài khoản ${row.name}`}
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  onClick={() => onEdit(row)}
+                >
+                  <Pencil className="size-4" />
+                </DataGridActionButton>
+                <DataGridActionButton
+                  action="delete"
+                  tooltip="Xóa"
+                  aria-label={`Xóa tài khoản ${row.name}`}
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  onClick={() => onDelete(row)}
+                >
+                  <Trash2 className="size-4" />
+                </DataGridActionButton>
+              </>
+            ) : null}
           </div>
         ),
       }),
     ];
-  }, [formatNumber, formatCurrency, formatPercent, onView]);
+  }, [
+    canManage,
+    formatNumber,
+    formatCurrency,
+    formatPercent,
+    onDelete,
+    onEdit,
+    onView,
+  ]);
 }

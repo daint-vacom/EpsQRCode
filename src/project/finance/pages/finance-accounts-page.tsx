@@ -17,6 +17,7 @@ import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardTable } from '@/components/ui/card';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
 import { DataGridFilterDrawer } from '@/components/ui/data-grid-filter-drawer';
@@ -41,10 +42,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { createFinanceAccount, loadFinanceAccounts } from '../api/finance.api';
+import {
+  createFinanceAccount,
+  deactivateFinanceAccount,
+  loadFinanceAccounts,
+  updateFinanceAccount,
+} from '../api/finance.api';
 import { FinanceAccountStatusBadge } from '../components/finance-account-status-badge';
+import type { FinanceAccount } from '../model/finance';
 import {
   FINANCE_ACCOUNT_COLUMN_PINNING,
   useFinanceAccountColumns,
@@ -56,6 +64,12 @@ export function FinanceAccountsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<FinanceAccount | null>(
+    null,
+  );
+  const [deletingAccount, setDeletingAccount] = useState<FinanceAccount | null>(
+    null,
+  );
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [accountType, setAccountType] = useState<'cash' | 'bank'>('cash');
@@ -82,19 +96,54 @@ export function FinanceAccountsPage() {
     enabled: Boolean(tenantId && hasPermission('finance:account:view')),
   });
   const mutation = useMutation({
-    mutationFn: () =>
-      createFinanceAccount(tenantId!, {
-        code,
-        name,
-        accountType,
-        bankName,
-        bankAccountNumber,
-        bankAccountHolder,
-        isActive,
-      }),
-    onSuccess: async () => {
+    mutationFn: ({
+      account,
+      values,
+    }: {
+      account: FinanceAccount | null;
+      values: {
+        code: string;
+        name: string;
+        accountType: 'cash' | 'bank';
+        bankName: string;
+        bankAccountNumber: string;
+        bankAccountHolder: string;
+        isActive: boolean;
+      };
+    }) => {
+      if (!tenantId) throw new Error('Thiếu thông tin đơn vị.');
+      if (account) {
+        return updateFinanceAccount(tenantId, account.id, {
+          name: values.name,
+          accountType: values.accountType,
+          bankName: values.bankName,
+          bankAccountNumber: values.bankAccountNumber,
+          bankAccountHolder: values.bankAccountHolder,
+          isActive: values.isActive,
+        });
+      }
+      return createFinanceAccount(tenantId, values);
+    },
+    onSuccess: async (_result, variables) => {
       setOpen(false);
-      toast.success('Đã tạo tài khoản.');
+      toast.success(
+        variables.account ? 'Đã cập nhật tài khoản.' : 'Đã tạo tài khoản.',
+      );
+      setEditingAccount(null);
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'finance', 'accounts', tenantId],
+      });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: (account: FinanceAccount) => {
+      if (!tenantId) throw new Error('Thiếu thông tin đơn vị.');
+      return deactivateFinanceAccount(tenantId, account.id);
+    },
+    onSuccess: async () => {
+      setDeletingAccount(null);
+      toast.success('Đã ngừng hoạt động tài khoản.');
       await queryClient.invalidateQueries({
         queryKey: ['project', 'finance', 'accounts', tenantId],
       });
@@ -138,6 +187,19 @@ export function FinanceAccountsPage() {
   ]);
   const columns = useFinanceAccountColumns({
     onView: (row) => navigate(`/finance/accounts/${row.id}`),
+    onEdit: (row) => {
+      setEditingAccount(row);
+      setCode(row.code);
+      setName(row.name);
+      setAccountType(row.accountType);
+      setIsActive(row.isActive);
+      setBankName(row.bankName);
+      setBankAccountNumber(row.bankAccountNumber);
+      setBankAccountHolder(row.bankAccountHolder);
+      setOpen(true);
+    },
+    onDelete: setDeletingAccount,
+    canManage,
   });
   const table = useReactTable({
     data: filteredRows,
@@ -176,6 +238,14 @@ export function FinanceAccountsPage() {
         title="Quỹ & Tài khoản"
         icon={Landmark}
         className="shrink-0"
+        titleAside={
+          <span className="text-sm text-muted-foreground">
+            Tổng số dư VND:{' '}
+            <span className="font-semibold text-foreground">
+              {totals.toLocaleString('vi-VN')} đ
+            </span>
+          </span>
+        }
         actions={
           canManage ? (
             <ShortcutTooltip label="Thêm tài khoản" shortcut="Alt + N">
@@ -183,6 +253,7 @@ export function FinanceAccountsPage() {
                 variant="primary"
                 data-shortcut-action="create"
                 onClick={() => {
+                  setEditingAccount(null);
                   setCode('');
                   setName('');
                   setAccountType('cash');
@@ -340,14 +411,6 @@ export function FinanceAccountsPage() {
                 </DataGridFilterDrawer>
               </div>
             }
-            secondaryRow={
-              <div className="text-sm text-muted-foreground">
-                Tổng số dư VND:{' '}
-                <span className="font-semibold text-foreground">
-                  {totals.toLocaleString('vi-VN')} đ
-                </span>
-              </div>
-            }
             toolbar={
               <div className="ms-auto flex shrink-0 items-center gap-2.5">
                 <Button
@@ -400,32 +463,45 @@ export function FinanceAccountsPage() {
       </DataGrid>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Thêm quỹ / tài khoản</DialogTitle>
+          <DialogHeader className="pt-6">
+            <DialogTitle>
+              {editingAccount
+                ? 'Chỉnh sửa quỹ / tài khoản'
+                : 'Thêm quỹ / tài khoản'}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
+          <div className="grid gap-4 py-5">
+            <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+              <label
+                htmlFor="finance-account-code"
+                className="text-sm font-medium sm:pt-2"
+              >
                 Mã tài khoản
               </label>
               <Input
+                id="finance-account-code"
                 value={code}
+                disabled={Boolean(editingAccount)}
                 onChange={(event) => setCode(event.target.value)}
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
+            <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+              <label
+                htmlFor="finance-account-name"
+                className="text-sm font-medium sm:pt-2"
+              >
                 Tên tài khoản
               </label>
               <Input
+                id="finance-account-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
+            <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+              <span className="text-sm font-medium sm:pt-2">
                 Loại tài khoản
-              </label>
+              </span>
               <OptionSelect
                 value={accountType}
                 onChange={(value) =>
@@ -438,55 +514,71 @@ export function FinanceAccountsPage() {
                 searchable={false}
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">
-                Trạng thái
-              </label>
-              <OptionSelect
+            <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+              <span className="text-sm font-medium sm:pt-1.5">Trạng thái</span>
+              <RadioGroup
                 value={String(isActive)}
-                onChange={(value) => setIsActive(value !== 'false')}
-                options={[
-                  { value: 'true', label: 'Đang hoạt động' },
-                  { value: 'false', label: 'Ngừng hoạt động' },
-                ]}
-                searchable={false}
-                renderOption={(option) => (
-                  <FinanceAccountStatusBadge
-                    isActive={option.value === 'true'}
+                onValueChange={(value) => setIsActive(value === 'true')}
+                aria-label="Trạng thái tài khoản"
+                className="flex flex-wrap gap-x-6 gap-y-2 sm:pt-1.5"
+              >
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <RadioGroupItem
+                    value="true"
+                    className="data-[state=checked]:border-admin-success-dot data-[state=checked]:bg-admin-success-dot"
                   />
-                )}
-                triggerContent={() => (
-                  <FinanceAccountStatusBadge isActive={isActive} />
-                )}
-              />
+                  <span className="text-admin-success-text">
+                    Đang hoạt động
+                  </span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <RadioGroupItem
+                    value="false"
+                    className="data-[state=checked]:border-admin-red-primary data-[state=checked]:bg-admin-red-primary"
+                  />
+                  <span className="text-admin-red-dark">Ngừng hoạt động</span>
+                </label>
+              </RadioGroup>
             </div>
             {accountType === 'bank' ? (
               <>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
+                <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+                  <label
+                    htmlFor="finance-account-bank-name"
+                    className="text-sm font-medium sm:pt-2"
+                  >
                     Tên ngân hàng
                   </label>
                   <Input
+                    id="finance-account-bank-name"
                     value={bankName}
                     onChange={(event) => setBankName(event.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
+                <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+                  <label
+                    htmlFor="finance-account-bank-number"
+                    className="text-sm font-medium sm:pt-2"
+                  >
                     Số tài khoản
                   </label>
                   <Input
+                    id="finance-account-bank-number"
                     value={bankAccountNumber}
                     onChange={(event) =>
                       setBankAccountNumber(event.target.value)
                     }
                   />
                 </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium">
+                <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 sm:grid-cols-[8.75rem_minmax(0,1fr)] sm:gap-y-0">
+                  <label
+                    htmlFor="finance-account-bank-holder"
+                    className="text-sm font-medium sm:pt-2"
+                  >
                     Chủ tài khoản
                   </label>
                   <Input
+                    id="finance-account-bank-holder"
                     value={bankAccountHolder}
                     onChange={(event) =>
                       setBankAccountHolder(event.target.value)
@@ -496,7 +588,7 @@ export function FinanceAccountsPage() {
               </>
             ) : null}
           </div>
-          <DialogFooter>
+          <DialogFooter className="pb-6">
             <Button
               type="button"
               variant="outline"
@@ -509,18 +601,52 @@ export function FinanceAccountsPage() {
               variant="primary"
               loading={mutation.isPending}
               onClick={() => {
-                if (!code.trim() || !name.trim()) {
-                  toast.error('Vui lòng nhập mã và tên tài khoản.');
+                if ((!editingAccount && !code.trim()) || !name.trim()) {
+                  toast.error(
+                    editingAccount
+                      ? 'Vui lòng nhập tên tài khoản.'
+                      : 'Vui lòng nhập mã và tên tài khoản.',
+                  );
                   return;
                 }
-                mutation.mutate();
+                mutation.mutate({
+                  account: editingAccount,
+                  values: {
+                    code,
+                    name,
+                    accountType,
+                    bankName,
+                    bankAccountNumber,
+                    bankAccountHolder,
+                    isActive,
+                  },
+                });
               }}
             >
-              Lưu
+              {editingAccount ? 'Lưu thay đổi' : 'Lưu'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={Boolean(deletingAccount)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !deleteMutation.isPending) setDeletingAccount(null);
+        }}
+        title="Xóa tài khoản?"
+        description={
+          deletingAccount
+            ? `Bạn có chắc muốn xóa tài khoản "${deletingAccount.name}"? Tài khoản sẽ được ngừng hoạt động để bảo toàn lịch sử giao dịch.`
+            : ''
+        }
+        confirmLabel="Xóa tài khoản"
+        confirmVariant="destructive"
+        isConfirming={deleteMutation.isPending}
+        closeOnConfirm={false}
+        onConfirm={() => {
+          if (deletingAccount) deleteMutation.mutate(deletingAccount);
+        }}
+      />
     </div>
   );
 }
