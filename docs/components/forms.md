@@ -158,7 +158,7 @@ group có thể chọn/bỏ chọn toàn bộ leaf. Search fuzzy giữ lại gro
 ### EntityMultiSelect — chọn danh sách liên kết có nhận diện
 
 Dùng `EntityMultiSelect` khi cần hiển thị các bản ghi đã chọn thành từng hàng có avatar, tên và mô tả,
-ví dụ khách hàng hoặc hợp đồng trong một phiếu công việc. `title`, `description` và `avatar` nhận
+ví dụ các hồ sơ được liên kết trong một quy trình. `title`, `description` và `avatar` nhận
 `ReactNode`; `tooltip` tùy chọn nhận `ReactNode` để giải thích đầy đủ danh tính khi di chuột qua hàng.
 `searchText` cung cấp nội dung tìm kiếm ổn định khi các node hiển thị phức tạp.
 
@@ -171,12 +171,16 @@ import { EntityMultiSelect } from '@/components/ui/entity-multi-select';
   size="lg"
   options={[
     {
-      value: customer.id,
-      title: customer.name,
-      description: customer.code,
-      avatar: <CustomerAvatar customer={customer} />,
-      tooltip: `${customer.code} - ${customer.name}`,
-      searchText: `${customer.name} ${customer.code}`,
+      value: employee.id,
+      title: employee.displayName,
+      description: employee.employeeCode,
+      avatar: employee.avatarUrl ? (
+        <img src={employee.avatarUrl} alt="" />
+      ) : (
+        employee.displayName[0]
+      ),
+      tooltip: `${employee.employeeCode} - ${employee.displayName}`,
+      searchText: `${employee.displayName} ${employee.employeeCode}`,
     },
   ]}
 />
@@ -193,7 +197,7 @@ Dùng `TagSelect` từ `@/project/tags/components/tag-select` khi dữ liệu l�
 <TagSelect
   value={tagIds}
   onChange={setTagIds}
-  moduleCodes={['customers']}
+  moduleCodes={['organization']}
   variant="button"
 />
 ```

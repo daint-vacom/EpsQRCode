@@ -79,42 +79,13 @@ insert into public.permission_definitions (
   code, module_code, group_name, name, action, sensitive, sort_order
 )
 values
-  ('employees:account:view', 'employees', 'Tài khoản', 'Xem danh sách tài khoản', 'view', false, 10),
-  ('employees:account:edit', 'employees', 'Tài khoản', 'Tạo / chỉnh sửa tài khoản', 'update', false, 20),
-  ('employees:account:lock', 'employees', 'Tài khoản', 'Khóa / mở khóa tài khoản', 'update', true, 30),
-  ('employees:account:reset-password', 'employees', 'Tài khoản', 'Đặt lại mật khẩu', 'update', true, 40),
-  ('employees:account:delete', 'employees', 'Tài khoản', 'Xóa tài khoản', 'delete', true, 50),
-  ('employees:profile:view', 'employees', 'Hồ sơ nhân viên', 'Xem hồ sơ nhân viên', 'view', false, 60),
-  ('employees:compensation:view', 'employees', 'Hồ sơ nhân viên', 'Xem lương / phụ cấp', 'view', true, 70),
-  ('employees:profile:edit', 'employees', 'Hồ sơ nhân viên', 'Chỉnh sửa phòng ban / chức vụ', 'update', false, 80),
-  ('orders:view', 'orders', 'Vận hành đơn', 'Xem đơn hàng', 'view', false, 100),
-  ('orders:edit', 'orders', 'Vận hành đơn', 'Tạo / chỉnh sửa đơn hàng', 'update', false, 110),
-  ('orders:approve', 'orders', 'Vận hành đơn', 'Duyệt đơn hàng', 'approve', false, 120),
-  ('orders:cancel', 'orders', 'Vận hành đơn', 'Hủy đơn hàng', 'delete', true, 130),
-  ('orders:refund', 'orders', 'Vận hành đơn', 'Hoàn tiền', 'approve', true, 140),
-  ('orders:shipping-status', 'orders', 'Vận hành đơn', 'Đổi trạng thái giao hàng', 'update', false, 150),
-  ('orders:discount:override', 'orders', 'Giá & chiết khấu', 'Áp dụng chiết khấu vượt hạn mức', 'approve', false, 160),
-  ('orders:price:edit-after-confirm', 'orders', 'Giá & chiết khấu', 'Sửa giá sau khi xác nhận', 'update', true, 170),
-  ('warehouse:stock:view', 'warehouse', 'Phiếu kho', 'Xem tồn kho', 'view', false, 200),
-  ('warehouse:import:edit', 'warehouse', 'Phiếu kho', 'Tạo phiếu nhập kho', 'update', false, 210),
-  ('warehouse:export:edit', 'warehouse', 'Phiếu kho', 'Tạo phiếu xuất kho', 'update', false, 220),
-  ('warehouse:voucher:approve', 'warehouse', 'Phiếu kho', 'Duyệt phiếu kho', 'approve', false, 230),
-  ('warehouse:inventory:adjust', 'warehouse', 'Kiểm kê', 'Điều chỉnh tồn kho', 'update', true, 240),
-  ('warehouse:inventory:close', 'warehouse', 'Kiểm kê', 'Chốt kiểm kê', 'approve', true, 250),
-  ('reports:revenue:view', 'reports', 'Loại báo cáo', 'Xem / xuất báo cáo doanh thu', 'view', false, 300),
-  ('reports:inventory:view', 'reports', 'Loại báo cáo', 'Xem / xuất báo cáo tồn kho', 'view', false, 310),
-  ('reports:debt:view', 'reports', 'Loại báo cáo', 'Xem / xuất báo cáo công nợ', 'view', true, 320),
-  ('reports:gross-profit:view', 'reports', 'Dữ liệu nhạy cảm', 'Xem / xuất lợi nhuận gộp', 'view', true, 330),
-  ('reports:raw-data:view', 'reports', 'Dữ liệu nhạy cảm', 'Xem / xuất dữ liệu thô', 'view', true, 340),
-  ('system:roles:view', 'system', 'Vai trò & phân quyền', 'Xem vai trò', 'view', false, 400),
-  ('system:roles:edit', 'system', 'Vai trò & phân quyền', 'Tạo / chỉnh sửa vai trò', 'update', true, 410),
-  ('system:roles:permissions-edit', 'system', 'Vai trò & phân quyền', 'Chỉnh sửa quyền của vai trò', 'update', true, 420),
-  ('system:roles:delete', 'system', 'Vai trò & phân quyền', 'Xóa vai trò', 'delete', true, 430),
-  ('system:roles:copy', 'system', 'Vai trò & phân quyền', 'Sao chép vai trò', 'update', false, 440),
-  ('system:settings:view', 'system', 'Cài đặt hệ thống', 'Xem cài đặt hệ thống', 'view', false, 450),
-  ('system:settings:edit', 'system', 'Cài đặt hệ thống', 'Chỉnh sửa cài đặt hệ thống', 'update', true, 460),
-  ('system:security-config:edit', 'system', 'Cài đặt hệ thống', 'Quản lý cấu hình bảo mật', 'update', true, 470),
-  ('system:audit-log:view', 'system', 'Cài đặt hệ thống', 'Xem nhật ký hệ thống', 'view', false, 480)
+  ('organization:tenant:view', 'organization', 'Thông tin tổ chức', 'Xem thông tin tổ chức', 'view', false, 10),
+  ('organization:tenant:update', 'organization', 'Thông tin tổ chức', 'Chỉnh sửa thông tin tổ chức', 'update', false, 20),
+  ('organization:employee:view', 'organization', 'Nhân viên', 'Xem danh sách nhân viên', 'view', false, 30),
+  ('organization:employee:create', 'organization', 'Nhân viên', 'Thêm nhân viên', 'create', false, 40),
+  ('organization:employee:update', 'organization', 'Nhân viên', 'Chỉnh sửa nhân viên', 'update', false, 50),
+  ('organization:employee:delete', 'organization', 'Nhân viên', 'Xóa nhân viên', 'delete', true, 60),
+  ('organization:employee:assign-role', 'organization', 'Nhân viên', 'Gán vai trò cho nhân viên', 'assign', true, 70)
 on conflict (code) do update set
   module_code = excluded.module_code,
   group_name = excluded.group_name,
@@ -220,10 +191,10 @@ begin
 
   insert into public.roles (tenant_id, code, name, description, scope, is_system)
   values
-    (target_tenant_id, 'admin', 'Admin', 'Toàn quyền vận hành hệ thống', 'all', true),
-    (target_tenant_id, 'manager', 'Quản lý', 'Quản lý nghiệp vụ và duyệt thao tác quan trọng', 'all', false),
-    (target_tenant_id, 'employee', 'Nhân viên', 'Thao tác nghiệp vụ hằng ngày', 'self', false),
-    (target_tenant_id, 'accountant', 'Kế toán', 'Theo dõi đơn hàng, báo cáo và công nợ', 'department', false)
+    (target_tenant_id, 'admin', 'Quản trị viên', 'Quản lý cài đặt, quyền và nhân viên.', 'all', true),
+    (target_tenant_id, 'manager', 'Quản lý', 'Quản lý tổ chức và hồ sơ nhân viên.', 'all', false),
+    (target_tenant_id, 'employee', 'Nhân viên', 'Truy cập các chức năng được cấp.', 'self', false),
+    (target_tenant_id, 'viewer', 'Chỉ xem', 'Chỉ xem thông tin tổ chức và nhân viên.', 'self', false)
   on conflict (tenant_id, code) do nothing;
 
   insert into public.role_permissions (role_id, permission_code)
@@ -239,12 +210,10 @@ begin
   select role_record.id, permission_code
   from public.roles role_record
   cross join unnest(array[
-    'employees:account:view', 'employees:account:edit', 'employees:account:lock',
-    'employees:profile:view', 'employees:profile:edit', 'orders:view', 'orders:edit',
-    'orders:approve', 'orders:cancel', 'orders:shipping-status', 'warehouse:stock:view',
-    'warehouse:import:edit', 'warehouse:export:edit', 'reports:revenue:view',
-    'reports:inventory:view', 'system:roles:view', 'system:settings:view',
-    'system:audit-log:view'
+    'organization:tenant:view', 'organization:tenant:update',
+    'organization:employee:view', 'organization:employee:create',
+    'organization:employee:update', 'organization:employee:delete',
+    'organization:employee:assign-role'
   ]::text[]) as selected(permission_code)
   where role_record.tenant_id = target_tenant_id
     and role_record.code = 'manager'
@@ -254,8 +223,8 @@ begin
   select role_record.id, permission_code
   from public.roles role_record
   cross join unnest(array[
-    'employees:account:view', 'employees:profile:view', 'orders:view',
-    'warehouse:stock:view', 'reports:revenue:view', 'reports:inventory:view'
+    'organization:tenant:view', 'organization:employee:view',
+    'organization:employee:create', 'organization:employee:update'
   ]::text[]) as selected(permission_code)
   where role_record.tenant_id = target_tenant_id
     and role_record.code = 'employee'
@@ -265,11 +234,10 @@ begin
   select role_record.id, permission_code
   from public.roles role_record
   cross join unnest(array[
-    'orders:view', 'orders:approve', 'reports:revenue:view', 'reports:inventory:view',
-    'reports:debt:view', 'warehouse:stock:view', 'system:roles:view'
+    'organization:tenant:view', 'organization:employee:view'
   ]::text[]) as selected(permission_code)
   where role_record.tenant_id = target_tenant_id
-    and role_record.code = 'accountant'
+    and role_record.code = 'viewer'
   on conflict do nothing;
 
   insert into public.tenant_member_roles (tenant_id, user_id, role_id)

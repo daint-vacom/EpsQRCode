@@ -1,10 +1,6 @@
 import { z } from 'zod';
 
-export const CUSTOM_FIELD_ENTITY_TYPES = [
-  'customer',
-  'employee',
-  'contract',
-] as const;
+export const CUSTOM_FIELD_ENTITY_TYPES = ['employee'] as const;
 
 export type CustomFieldEntityType = (typeof CUSTOM_FIELD_ENTITY_TYPES)[number];
 
@@ -12,14 +8,8 @@ export const CUSTOM_FIELD_ENTITY_META: Record<
   CustomFieldEntityType,
   { label: string }
 > = {
-  customer: {
-    label: 'Khách hàng',
-  },
   employee: {
     label: 'Nhân viên',
-  },
-  contract: {
-    label: 'Hợp đồng',
   },
 };
 

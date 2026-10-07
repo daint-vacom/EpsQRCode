@@ -9,7 +9,7 @@ import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { TagList } from '@/project/tags/components/tag-list';
 import type { TagSelectOption } from '@/project/tags/model/tag';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Eye, KeyRound, Pencil, Trash2 } from 'lucide-react';
+import { KeyRound, Pencil, Trash2 } from 'lucide-react';
 import {
   createColumnHelpers,
   DataGridActionButton,
@@ -44,7 +44,6 @@ export const EMPLOYEE_COLUMN_PINNING: ColumnPinningState = {
 };
 
 export interface UseEmployeeColumnsParams {
-  onView: (employee: Employee) => void;
   onEdit: (employee: Employee) => void;
   onDelete: (employee: Employee) => void;
   onResetPassword: (employee: Employee) => void;
@@ -155,21 +154,10 @@ export function useEmployeeColumns(
         id: 'actions',
         header: '',
         cellClassName: 'text-right',
-        size: getDataGridActionsColumnSize(4),
+        size: getDataGridActionsColumnSize(3),
         enableSorting: false,
         cell: (row) => (
           <div className="flex justify-end gap-1">
-            <DataGridActionButton
-              action="view"
-              tooltip="Xem chi tiết"
-              type="button"
-              mode="icon"
-              size="sm"
-              aria-label={`Xem chi tiết nhân viên ${row.displayName}`}
-              onClick={() => params.onView(row)}
-            >
-              <Eye className="size-4" />
-            </DataGridActionButton>
             <DataGridActionButton
               action="edit"
               tooltip="Sửa"

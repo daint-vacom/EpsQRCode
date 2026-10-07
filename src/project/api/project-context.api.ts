@@ -84,7 +84,7 @@ export async function loadProjectContext(
         '/roles',
         queryParams({
           select: 'id,name,color',
-          or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+          tenant_id: `eq.${tenantId}`,
           is_active: 'eq.true',
           order: 'is_system.desc,sort_order.asc,name.asc',
         }),

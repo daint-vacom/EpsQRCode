@@ -29,17 +29,23 @@ insert into public.permission_definitions (
   name,
   action,
   sensitive,
-  sort_order
+  sort_order,
+  group_id,
+  tags
 )
-values (
+select
   'organization:employee:reset-password',
   'organization',
   'Nhân viên',
   'Đặt lại mật khẩu tài khoản nhân viên',
   'update',
   true,
-  55
-)
+  55,
+  permission_group.id,
+  array['Chỉnh sửa']::text[]
+from public.permission_groups permission_group
+where permission_group.module_code = 'organization'
+  and permission_group.code = 'employees'
 on conflict (code) do update
 set
   module_code = excluded.module_code,
@@ -48,13 +54,14 @@ set
   action = excluded.action,
   sensitive = excluded.sensitive,
   sort_order = excluded.sort_order,
+  group_id = excluded.group_id,
+  tags = excluded.tags,
   is_active = true;
 
 insert into public.role_permissions (role_id, permission_code)
 select role_record.id, 'organization:employee:reset-password'
 from public.roles role_record
-where role_record.tenant_id is null
-  and role_record.code = 'application_admin'
+where role_record.code = 'admin'
 on conflict do nothing;
 
 -- Employee account identity is managed by the trusted account endpoint. The

@@ -20,7 +20,6 @@ import {
 } from '../forms/employee-form.generated';
 import { useEmployeeAccessWorkspace } from '../hooks/use-employee-access-workspace';
 import { emptyEmployeeForm, type EmployeeFormValues } from '../model/employee';
-import type { EmployeeCustomerAssignmentInput } from '../model/employee-responsibility';
 
 interface EmployeeCreateDialogProps {
   open: boolean;
@@ -36,9 +35,6 @@ export function EmployeeCreateDialog({
   const queryClient = useQueryClient();
   const form = useEmployeeForm();
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
-  const [customerAssignments, setCustomerAssignments] = useState<
-    EmployeeCustomerAssignmentInput[]
-  >([]);
   const employeeAccess = useEmployeeAccessWorkspace({
     tenantId,
     enabled: open,
@@ -49,14 +45,11 @@ export function EmployeeCreateDialog({
   const canManageEmployeeAccount = hasPermission(
     'organization:employee:update',
   );
-  const canManageCustomerAssignments = hasPermission('customers:update');
-
   useEffect(() => {
     if (!open) return;
 
     form.reset({ ...emptyEmployeeForm, createAccount: true });
     setEmployeeImageFile(null);
-    setCustomerAssignments([]);
   }, [form, open]);
 
   const employeeCustomFieldsQuery = useQuery({
@@ -67,13 +60,7 @@ export function EmployeeCreateDialog({
   });
 
   const saveMutation = useMutation({
-    mutationFn: async ({
-      values,
-      assignments,
-    }: {
-      values: EmployeeFormValues;
-      assignments: EmployeeCustomerAssignmentInput[];
-    }) => {
+    mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
       if (!canManageEmployeeAccount) {
         throw new Error(
@@ -118,7 +105,6 @@ export function EmployeeCreateDialog({
           tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
-          canManageCustomerAssignments ? assignments : null,
         );
       }
 
@@ -128,7 +114,6 @@ export function EmployeeCreateDialog({
       toast.success('Đã tạo nhân viên.');
       form.reset(emptyEmployeeForm);
       setEmployeeImageFile(null);
-      setCustomerAssignments([]);
       onOpenChange(false);
       await queryClient.invalidateQueries({
         queryKey: ['project', 'employees'],
@@ -150,10 +135,7 @@ export function EmployeeCreateDialog({
       return;
     }
 
-    saveMutation.mutate({
-      values: { ...values, createAccount: true },
-      assignments: customerAssignments,
-    });
+    saveMutation.mutate({ values: { ...values, createAccount: true } });
   }
 
   function openEmployeeCustomFieldConfiguration() {
@@ -181,16 +163,9 @@ export function EmployeeCreateDialog({
       isSaving={saveMutation.isPending}
       title="Thêm nhân viên"
       roleOptions={employeeAccess.roleOptions}
-      customerOptions={employeeAccess.customers}
-      customerTable={employeeAccess.customerTable}
-      customerAssignments={customerAssignments}
-      onCustomerAssignmentsChange={setCustomerAssignments}
       canManageRoles={canManageEmployeeRoles}
       canManageAccount={canManageEmployeeAccount}
-      canManageCustomerAssignments={canManageCustomerAssignments}
       employeeHasLinkedAccount={false}
-      accessIsLoading={employeeAccess.isLoading}
-      accessError={employeeAccess.error}
     />
   );
 }

@@ -82,7 +82,7 @@ export async function loadRolePermissionsWorkspace(
           '/roles',
           queryParams({
             select: '*',
-            or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+            tenant_id: `eq.${tenantId}`,
             is_active: 'eq.true',
             order: 'is_system.desc,sort_order.asc,name.asc',
           }),
@@ -168,8 +168,6 @@ export async function loadRolePermissionsWorkspace(
     scope: role.scope,
     isSystem: role.is_system,
     isActive: role.is_active,
-    customerAssignable: role.customer_assignable,
-    grantAllPermissions: role.grant_all_permissions,
   }));
 
   const permissionModules: PermissionModule[] = modules.map((module) => ({

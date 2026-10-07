@@ -58,8 +58,8 @@ describe('EmployeeIdentity', () => {
           userId: 'user-1',
           alerts: [
             {
-              id: 'missing-department',
-              message: 'Chưa cấu hình phòng ban',
+              id: 'missing-profile-setting',
+              message: 'Chưa cấu hình thông tin hồ sơ',
             },
           ],
         }}

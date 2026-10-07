@@ -19,18 +19,6 @@ describe('global search model', () => {
     expect(GLOBAL_SEARCH_LIMIT_PER_SOURCE).toBe(5);
   });
 
-  it('builds detail routes for supported entity sources', () => {
-    expect(getGlobalSearchResultPath('customers', item)).toBe(
-      '/customers/record-1',
-    );
-    expect(getGlobalSearchResultPath('contracts', item)).toBe(
-      '/contracts/record-1',
-    );
-    expect(getGlobalSearchResultPath('contractTemplates', item)).toBe(
-      '/contract-templates/record-1',
-    );
-  });
-
   it('builds a searchable employee list route', () => {
     expect(getGlobalSearchResultPath('employees', item)).toBe(
       '/employees?search=KH%2001%2F2026',

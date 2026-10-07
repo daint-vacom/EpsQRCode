@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { buildPath, ROUTES } from '@/constants/routes';
+import { ROUTES } from '@/constants/routes';
 import { SavedViewFilterMenu } from '@/project/saved-views/components/saved-view-filter-controls';
 import {
   SavedViewFormDialog,
@@ -23,7 +23,6 @@ import {
   TriangleAlert,
   Users,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -78,7 +77,6 @@ import {
   type EmployeeFormValues,
   type EmployeeListFilters,
 } from '../model/employee';
-import type { EmployeeCustomerAssignmentInput } from '../model/employee-responsibility';
 import {
   EMPLOYEE_SAVED_VIEW_MANAGE_PERMISSION,
   EMPLOYEE_SAVED_VIEW_RESOURCE,
@@ -97,7 +95,6 @@ import { EmployeeFilterBar } from '../table/employee.filters.generated';
 const employeeDefaultColumnVisibility = { account: false };
 
 export function EmployeesPage() {
-  const navigate = useNavigate();
   const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
@@ -106,9 +103,6 @@ export function EmployeesPage() {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [customerAssignments, setCustomerAssignments] = useState<
-    EmployeeCustomerAssignmentInput[]
-  >([]);
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(
     null,
@@ -134,10 +128,8 @@ export function EmployeesPage() {
   const canResetEmployeePassword = hasPermission(
     'organization:employee:reset-password',
   );
-  const canManageCustomerAssignments = hasPermission('customers:update');
   const employeeAccess = useEmployeeAccessWorkspace({
     tenantId,
-    employeeId: editingEmployee?.id,
     enabled: dialogOpen,
   });
 
@@ -178,11 +170,6 @@ export function EmployeesPage() {
     form,
   ]);
 
-  useEffect(() => {
-    if (!dialogOpen || !employeeAccess.responsibilityQuery.data) return;
-    setCustomerAssignments(employeeAccess.responsibilityQuery.data.assignments);
-  }, [dialogOpen, employeeAccess.responsibilityQuery.data]);
-
   const {
     employees,
     total,
@@ -213,13 +200,7 @@ export function EmployeesPage() {
     });
 
   const saveMutation = useMutation({
-    mutationFn: async ({
-      values,
-      assignments,
-    }: {
-      values: EmployeeFormValues;
-      assignments: EmployeeCustomerAssignmentInput[];
-    }) => {
+    mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
       if (!editingEmployee) throw new Error('Chưa chọn nhân viên cần sửa.');
@@ -278,7 +259,6 @@ export function EmployeesPage() {
           tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
-          canManageCustomerAssignments ? assignments : null,
         );
       }
 
@@ -288,11 +268,7 @@ export function EmployeesPage() {
       toast.success('Đã cập nhật nhân viên.');
       setDialogOpen(false);
       setEmployeeImageFile(null);
-      setCustomerAssignments([]);
       await invalidateEmployees();
-      await queryClient.invalidateQueries({
-        queryKey: ['project', 'customers'],
-      });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -344,7 +320,6 @@ export function EmployeesPage() {
 
   function openEdit(employee: Employee) {
     setEditingEmployee(employee);
-    setCustomerAssignments([]);
     setEmployeeImageFile(null);
     form.reset(mapEmployeeToFormValues(employee));
     setDialogOpen(true);
@@ -363,7 +338,7 @@ export function EmployeesPage() {
       return;
     }
 
-    saveMutation.mutate({ values, assignments: customerAssignments });
+    saveMutation.mutate({ values });
   }
 
   function openEmployeeCustomFieldConfiguration() {
@@ -375,8 +350,6 @@ export function EmployeesPage() {
   }
 
   const columns = useEmployeeColumns({
-    onView: (employee) =>
-      navigate(buildPath(ROUTES.PROJECT.EMPLOYEE_DETAIL, { id: employee.id })),
     onEdit: openEdit,
     onDelete: setDeletingEmployee,
     onResetPassword: setResettingPasswordFor,
@@ -748,16 +721,9 @@ export function EmployeesPage() {
           )
         }
         roleOptions={employeeAccess.roleOptions}
-        customerOptions={employeeAccess.customers}
-        customerTable={employeeAccess.customerTable}
-        customerAssignments={customerAssignments}
-        onCustomerAssignmentsChange={setCustomerAssignments}
         canManageRoles={canManageEmployeeRoles}
         canManageAccount={canManageEmployeeAccount}
-        canManageCustomerAssignments={canManageCustomerAssignments}
         employeeHasLinkedAccount={Boolean(editingEmployee?.userId)}
-        accessIsLoading={employeeAccess.isLoading}
-        accessError={employeeAccess.error}
       />
       <EmployeeCreateDialog
         open={createDialogOpen}

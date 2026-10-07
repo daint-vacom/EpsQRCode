@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export type FileFolderType = 'system_root' | 'entity' | 'custom';
-export type FileSubjectType = 'customer' | 'contract' | 'contract_template';
+export type FileSubjectType = string;
 
 export interface FileFolder {
   id: string;

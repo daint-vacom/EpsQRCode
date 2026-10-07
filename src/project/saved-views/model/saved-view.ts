@@ -1,11 +1,6 @@
 import type { ColumnOrderState, VisibilityState } from '@tanstack/react-table';
 
-export const SAVED_VIEW_RESOURCES = [
-  'customers',
-  'employees',
-  'contracts',
-  'contract_templates',
-] as const;
+export const SAVED_VIEW_RESOURCES = ['employees'] as const;
 
 export type SavedViewResource = (typeof SAVED_VIEW_RESOURCES)[number];
 

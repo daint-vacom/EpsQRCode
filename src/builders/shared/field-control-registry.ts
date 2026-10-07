@@ -75,12 +75,6 @@ export const FORM_FIELD_CONTROL = {
     optionType: 'SelectOption',
     importName: 'ApiOptionSelect',
   },
-  customerSelect: {
-    binding: 'valueOnChange',
-    defaultLiteral: "''",
-    hasOptions: false,
-    importName: 'CustomerSelect',
-  },
   inputSelect: {
     binding: 'valueOnChange',
     defaultLiteral: "''",

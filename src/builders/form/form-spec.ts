@@ -3,7 +3,6 @@ import {
   apiSearchSelectFieldControlSchema,
   autocompleteFieldControlSchema,
   comboboxFieldControlSchema,
-  customerSelectFieldControlSchema,
   dateFieldControlSchema,
   imageFieldControlSchema,
   inputSelectFieldControlSchema,
@@ -83,8 +82,6 @@ const searchSelectField = searchSelectFieldControlSchema.extend(base);
 
 const apiSearchSelectField = apiSearchSelectFieldControlSchema.extend(base);
 
-const customerSelectField = customerSelectFieldControlSchema.extend(base);
-
 const inputSelectField = inputSelectFieldControlSchema.extend(base);
 
 const multiselectField = multiselectFieldControlSchema.extend(base);
@@ -104,7 +101,6 @@ export const formFieldSchema = z.discriminatedUnion('kind', [
   autocompleteField,
   searchSelectField,
   apiSearchSelectField,
-  customerSelectField,
   inputSelectField,
   multiselectField,
   tagSelectField,

@@ -7,8 +7,6 @@ create table public.employees (
   employee_code text not null,
   first_name text not null,
   last_name text not null default '',
-  job_title text not null default '',
-  department text not null default '',
   phone text not null default '',
   status public.employee_status not null default 'active',
   joined_at date,

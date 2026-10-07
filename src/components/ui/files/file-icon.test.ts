@@ -3,7 +3,7 @@ import { getFileIcon } from './file-icon';
 
 describe('file icon asset resolver', () => {
   it('resolves common MIME types to the shared file assets', () => {
-    expect(getFileIcon('application/pdf', 'contract.pdf')).toBe('pdf.svg');
+    expect(getFileIcon('application/pdf', 'document.pdf')).toBe('pdf.svg');
     expect(
       getFileIcon(
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

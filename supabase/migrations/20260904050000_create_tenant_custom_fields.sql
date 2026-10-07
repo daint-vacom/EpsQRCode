@@ -2,7 +2,7 @@
 -- Values are stored once per entity in entity_custom_data.data JSONB; the
 -- definition tables remain relational so the UI, validation and options stay queryable.
 
-create type public.custom_field_entity_type as enum ('customer', 'employee', 'contract');
+create type public.custom_field_entity_type as enum ('employee');
 create type public.custom_field_type as enum ('text', 'number', 'select');
 
 create table public.tenant_custom_field_definitions (

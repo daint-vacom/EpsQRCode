@@ -23,14 +23,10 @@ describe('sortTagGroups', () => {
     const groups = [
       group('custom-later', false, 1),
       group('employees', true, 5),
-      group('customers', true, 6),
       group('custom-first', false, 0),
-      group('contracts', true, 7),
     ];
 
     expect(sortTagGroups(groups).map((item) => item.code)).toEqual([
-      'customers',
-      'contracts',
       'employees',
       'custom-first',
       'custom-later',

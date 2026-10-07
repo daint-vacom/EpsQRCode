@@ -69,7 +69,6 @@ Static select-like options are emitted as module constants only when `optionsFro
 | `autocomplete`    | `AutocompleteInput`   | `value` and `onChange`; inline suggestion with keyboard selection |
 | `searchSelect`    | `OptionSelect`        | `value` and `onChange`; searchable                                |
 | `apiSearchSelect` | `ApiOptionSelect`     | `value` and `onChange`, plus a generated server-side loader       |
-| `customerSelect`  | `CustomerSelect`      | `value` and `onChange`; the component owns customer fetching      |
 | `inputSelect`     | `InputSelect`         | primary input field + secondary select field                      |
 | `multiselect`     | `MultiSelect`         | `value` and `onChange`                                            |
 | `switch`          | `Switch`              | `checked` and `onCheckedChange`                                   |
@@ -238,15 +237,15 @@ selected option so edit forms can display the current label even before a search
 ```ts
 {
   kind: 'apiSearchSelect',
-  name: 'customer',
-  label: 'Khách hàng',
-  searchPlaceholder: 'Tìm khách hàng...',
+  name: 'relatedRecord',
+  label: 'Đối tượng liên quan',
+  searchPlaceholder: 'Tìm đối tượng...',
   minSearchLength: 2,
   debounceMs: 300,
 }
 ```
 
-The parent implements `loadCustomerOptions({ search, signal })`; the component owns debounce,
+The parent implements `loadRelatedRecordOptions({ search, signal })`; the component owns debounce,
 request cancellation, loading, empty, and stale-response handling. The builder never embeds an API
 URL or query hook in generated output.
 

@@ -189,7 +189,7 @@ export interface TagSelectConfig {
   enabled?: boolean;
 }
 
-export type TaggableSubjectType = 'employee' | 'customer' | 'contract_template';
+export type TaggableSubjectType = 'employee';
 
 export interface SubjectTagFilterData {
   options: TagSelectOption[];

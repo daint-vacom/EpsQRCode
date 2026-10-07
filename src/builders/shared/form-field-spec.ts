@@ -76,10 +76,6 @@ export const apiSearchSelectFieldControlSchema = z.object({
   debounceMs: z.number().int().nonnegative().optional(),
 });
 
-export const customerSelectFieldControlSchema = z.object({
-  kind: z.literal('customerSelect'),
-});
-
 export const inputSelectFieldControlSchema = z.object({
   kind: z.literal('inputSelect'),
   /** Secondary field bound to the trailing select. */
@@ -122,7 +118,6 @@ export const formFieldControlSchemas = {
   autocomplete: autocompleteFieldControlSchema,
   searchSelect: searchSelectFieldControlSchema,
   apiSearchSelect: apiSearchSelectFieldControlSchema,
-  customerSelect: customerSelectFieldControlSchema,
   inputSelect: inputSelectFieldControlSchema,
   multiselect: multiselectFieldControlSchema,
   tagSelect: tagSelectFieldControlSchema,
@@ -140,7 +135,6 @@ export const formFieldControlSchema = z.discriminatedUnion('kind', [
   autocompleteFieldControlSchema,
   searchSelectFieldControlSchema,
   apiSearchSelectFieldControlSchema,
-  customerSelectFieldControlSchema,
   inputSelectFieldControlSchema,
   multiselectFieldControlSchema,
   tagSelectFieldControlSchema,
@@ -166,9 +160,6 @@ export type SharedSearchSelectFieldControl = z.infer<
 >;
 export type SharedApiSearchSelectFieldControl = z.infer<
   typeof apiSearchSelectFieldControlSchema
->;
-export type SharedCustomerSelectFieldControl = z.infer<
-  typeof customerSelectFieldControlSchema
 >;
 export type SharedInputSelectFieldControl = z.infer<
   typeof inputSelectFieldControlSchema

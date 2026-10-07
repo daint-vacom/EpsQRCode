@@ -14,7 +14,7 @@ const spec: FormSpec = {
       label: 'Mã vai trò',
       width: 'full',
       required: true,
-      placeholder: 'ví dụ: warehouse_manager',
+      placeholder: 'ví dụ: manager',
     },
     {
       kind: 'text',

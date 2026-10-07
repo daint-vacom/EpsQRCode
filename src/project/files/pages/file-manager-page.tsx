@@ -9,19 +9,16 @@ import {
   ChevronDown,
   ChevronUp,
   CircleAlert,
-  FileText,
   FileWarning,
   FolderOpen,
   FolderPlus,
   HardDrive,
-  Layers3,
   MoreVertical,
   Pencil,
   RefreshCw,
   Search,
   Trash2,
   Upload,
-  UsersRound,
   X,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
@@ -302,22 +299,8 @@ function FileManagerItemMenu({
   );
 }
 
-function getFolderIcon(item: FileManagerItem) {
-  const iconKey = item.systemKey ?? item.subjectType;
-
-  switch (iconKey) {
-    case 'customers':
-    case 'customer':
-      return UsersRound;
-    case 'contracts':
-    case 'contract':
-      return FileText;
-    case 'contract_templates':
-    case 'contract_template':
-      return Layers3;
-    default:
-      return FolderOpen;
-  }
+function getFolderIcon() {
+  return FolderOpen;
 }
 
 function FileManagerTile({
@@ -334,7 +317,7 @@ function FileManagerTile({
   isOpening: boolean;
 }) {
   const isFolder = item.kind === 'folder';
-  const FolderIcon = getFolderIcon(item);
+  const FolderIcon = getFolderIcon();
 
   return (
     <article

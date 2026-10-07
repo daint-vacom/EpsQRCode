@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Database,
-  FileText,
-  ListTree,
-  Save,
-  Trash2,
-  UserRoundSearch,
-  Users,
-} from 'lucide-react';
+import { Database, ListTree, Save, Trash2, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -50,9 +42,7 @@ import {
 import { CustomFieldsEditorTable } from '../data-configuration/table/custom-fields-editor.generated';
 
 const ENTITY_ICONS = {
-  customer: UserRoundSearch,
   employee: Users,
-  contract: FileText,
 } satisfies Record<CustomFieldEntityType, typeof Database>;
 
 function isCustomFieldEntityType(
@@ -124,7 +114,7 @@ export function DataConfigurationPage() {
   const [selectedEntity, setSelectedEntity] = useState<CustomFieldEntityType>(
     () => {
       const entity = searchParams.get('entity');
-      return isCustomFieldEntityType(entity) ? entity : 'customer';
+      return isCustomFieldEntityType(entity) ? entity : 'employee';
     },
   );
   const [optionsIndex, setOptionsIndex] = useState<number | null>(null);

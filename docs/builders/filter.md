@@ -21,7 +21,7 @@ filter; the builder does not add a separate clear button or an implicit “all�
 import type { FilterSpec } from '@/builders/filter';
 
 const spec: FilterSpec = {
-  componentName: 'ContractFilterBar',
+  componentName: 'RecordFilterBar',
   fields: [
     {
       type: 'search',
@@ -35,7 +35,7 @@ const spec: FilterSpec = {
       label: 'Trạng thái',
       options: [
         { value: 'all', label: 'Tất cả trạng thái' },
-        { value: 'active', label: 'Đang hiệu lực' },
+        { value: 'active', label: 'Đang hoạt động' },
       ],
       className: 'w-44',
     },

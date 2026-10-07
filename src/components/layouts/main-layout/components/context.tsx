@@ -15,6 +15,8 @@ export interface LayoutShellConfig {
   menuGroups: MenuGroupConfig[];
   homePath: string;
   brandName: string;
+  sidebarBrand?: { name: string; subtitle: string };
+  organizationLabel?: string;
   headerTitle: string;
   accountRoles: EmployeeRole[];
   breadcrumbRootLabel: string;

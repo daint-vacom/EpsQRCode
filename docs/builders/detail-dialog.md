@@ -9,7 +9,7 @@ the feature can render fields or switch a tab to a fully custom layout.
 
 ```ts
 const spec = {
-  componentName: 'ContractDetailDialogShell',
+  componentName: 'EmployeeDetailDialogShell',
   tabs: [
     {
       value: 'general',

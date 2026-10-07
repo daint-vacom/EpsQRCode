@@ -90,7 +90,7 @@ export function RoleForm({
                   </FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="ví dụ: warehouse_manager"
+                      placeholder="ví dụ: manager"
                       variant="md"
                       {...field}
                     />

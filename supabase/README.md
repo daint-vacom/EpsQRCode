@@ -1,137 +1,61 @@
-# Supabase tạm thời cho project thật
+# Supabase trong dự án
 
-Project dùng Supabase PostgREST qua Axios tại
-[`src/lib/supabase.ts`](../src/lib/supabase.ts), không dùng `service_role` ở
-frontend.
+Supabase được giữ làm backend tạm thời cho các luồng nguyên mẫu trước khi có
+backend riêng. Mỗi môi trường cần dùng một Supabase project riêng; không dùng
+project, dữ liệu hay khóa production của khách hàng trong môi trường phát triển.
+
+Frontend gọi Supabase Auth, PostgREST và Storage qua
+[`src/lib/supabase.ts`](../src/lib/supabase.ts). Browser chỉ dùng publishable/anon
+key; dữ liệu tenant được giới hạn bằng RLS và kiểm tra quyền ở database.
 
 ## Cấu hình local
 
-Sao chép `.env.example` thành `.env.local` và điền:
+Sao chép `.env.example` thành `.env.local`, rồi điền URL, publishable/anon key
+và domain đăng nhập username cho project thử nghiệm:
 
 ```env
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 VITE_SUPABASE_SCHEMA=public
+VITE_SUPABASE_LOGIN_DOMAIN=<development-login-domain>
 ```
 
-Publishable/anon key có thể xuất hiện trong bundle browser. Quyền truy cập dữ
-liệu phải được bảo vệ bằng Postgres Row Level Security; không dùng
-`service_role` key trong `VITE_*`.
+Nếu dùng luồng tạo tài khoản nhân viên, cấu hình `SUPABASE_LOGIN_DOMAIN` cùng
+giá trị trong secrets của Edge Function `employee-account`. Không đưa
+`SUPABASE_SERVICE_ROLE_KEY` vào `VITE_*` hoặc frontend.
 
-## Migration tenant
+## Khởi tạo cơ sở dữ liệu
 
-Chạy migration
-[`20260812000000_create_tenants.sql`](./migrations/20260812000000_create_tenants.sql)
-trong Supabase SQL Editor hoặc qua Supabase CLI. Migration tạo:
+Các migration trong `supabase/migrations` là nguồn cấu trúc cho project mới.
+Chúng bao gồm tenant và hồ sơ người dùng, role cùng quyền theo tenant, nhân viên,
+nhãn dùng chung, cấu hình trường bổ sung, chế độ xem đã lưu, tiền tệ và định dạng,
+tệp, quota lưu trữ, avatar nhân viên, cùng các RPC hỗ trợ danh sách và phân vai.
 
-- `tenants`: thông tin tenant, plan, trạng thái, settings và metadata.
-- `tenant_members`: liên kết user với tenant và role owner/admin/member.
-- `user_profiles`: hồ sơ ứng dụng dùng chung, liên kết 1:1 với `auth.users`.
-- helper functions cho membership/role checks.
-- RPC `create_tenant` để tạo tenant và owner membership trong cùng transaction.
-- RLS: user chỉ đọc tenant/member record mình thuộc về; owner/admin mới được
-  cập nhật tenant và quản lý membership.
+Chạy migration theo thứ tự timestamp bằng Supabase CLI trên project phát triển
+được cấu hình rõ ràng. Không chạy migration lên project production hoặc project
+khách hàng từ repository này.
 
-## Model user
+## Tenant, tài khoản và quyền
 
-Không tạo một user riêng cho từng tenant:
+- `auth.users` là identity đăng nhập toàn cục. `user_profiles` lưu hồ sơ dùng
+  chung, còn `tenant_members` liên kết người dùng với từng tenant.
+- `create_tenant` tạo tenant, membership owner, các role mặc định theo tenant và
+  gán role quản trị viên cho người tạo.
+- Role được lưu trong `roles` theo tenant; thành viên có thể nhận nhiều role
+  qua `tenant_member_roles`. Quyền hiệu lực kết hợp role và override user.
+- Các bảng tenant bật RLS. RPC có quyền cao dùng `SECURITY DEFINER`, cố định
+  `search_path`, kiểm tra membership/quyền và chỉ cấp execute cho role cần thiết.
 
-- `auth.users` là identity đăng nhập toàn cục của Supabase Auth. Email, phone
-  và các timestamp đăng nhập do Auth làm nguồn sự thật.
-- `user_profiles` lưu thông tin hồ sơ dùng chung như tên, avatar, locale và
-  tùy chọn hiển thị. Trigger tự tạo profile sau signup và migration backfill
-  các Auth user đã tồn tại.
-- `tenant_members` liên kết một Auth user với từng tenant, đồng thời lưu các
-  dữ liệu theo tenant như role và trạng thái membership.
+## Nhãn và dữ liệu mở rộng
 
-Như vậy một người chỉ có một tài khoản đăng nhập nhưng có thể thuộc nhiều
-tenant với role khác nhau. Model frontend biểu diễn user hiện tại bằng
-`CurrentUser.auth` + `CurrentUser.profile`.
+`tag_groups`, `tags` và `tag_assignments` là bộ nhãn dùng chung cho các loại đối
+tượng. Nhóm nhãn hệ thống bảo vệ cấu trúc nhóm; quyền `system:tag:*` kiểm soát
+việc xem và thay đổi catalog. Trường mở rộng theo tenant hiện chỉ được cấu hình
+cho nhân viên; khi bổ sung loại đối tượng cần thêm hỗ trợ một cách chủ động.
 
-Frontend dùng model camelCase trong
-[`src/features/tenants/model/tenant.ts`](../src/features/tenants/model/tenant.ts),
-còn `TenantRow`/`TenantMemberRow` giữ nguyên snake_case của PostgREST và mapper
-đổi về domain model.
+## Tệp và lưu trữ
 
-## Phân quyền tenant
-
-Migration `20260813000000_create_tenant_permissions.sql` tạo catalog quyền dùng
-chung, role catalog, liên kết role với thành viên và override riêng cho user.
-Migration `20260917010000_shared_system_roles.sql` chuyển các role mặc định sang
-catalog dùng chung toàn hệ thống:
-
-- `permission_definitions`: danh mục quyền ổn định theo mã `resource:action`.
-- `permission_modules` và `permission_groups`: cấu trúc hiển thị module/nhóm quyền,
-  không còn phụ thuộc vào mock ở frontend.
-- `roles`: system role dùng chung có `tenant_id IS NULL`; custom role mới thuộc
-  tenant và có `tenant_id` cụ thể.
-- `role_permissions`: quyền của system role được lưu một lần; quyền của custom
-  role vẫn thuộc role tenant.
-- `tenant_member_roles`: một user có thể có nhiều role trong một tenant; đây là
-  quan hệ phân công, không phải bản sao định nghĩa system role.
-- `user_permission_overrides`: chỉ lưu ngoại lệ `allow` hoặc `deny`, không sao chép
-  toàn bộ quyền của role.
-
-Tenant mới không seed bản ghi system role. Owner chỉ được gán tới role hệ thống
-global. Khi thêm permission mới, chỉ cần thêm vào catalog quyền; role
-`system_admin` được đồng bộ qua trigger global và không cần backfill từng tenant.
-
-Catalog `customer_responsibility_roles` cũ cũng được migrate vào `roles`. Chỉ các
-role có `customer_assignable = true` mới xuất hiện trong màn hình phân công khách
-hàng, và RPC kiểm tra role đó phải được cấp cho nhân viên trước khi phân công.
-
-Catalog hiện tại của project thật chỉ có module `Tổ chức`, gồm hai nhóm `Thông tin
-tổ chức` và `Nhân viên`. Khi thêm nghiệp vụ mới, tạo migration bổ sung module/nhóm
-thay vì đưa quyền mock vào frontend.
-
-Quyền hiệu lực được tính theo công thức:
-
-```text
-(quyền từ role OR override allow) AND NOT override deny
-```
-
-Vì vậy khi role được cập nhật, user vẫn nhận quyền mới của role; chỉ các quyền có
-override mới giữ khác biệt. Các RPC `get_effective_permissions` và
-`has_tenant_permission` là nguồn dùng chung cho kiểm tra quyền, còn RLS vẫn là
-lớp bảo vệ cuối cùng. `ensure_tenant_permission_defaults` chỉ gán role
-`system_admin` global cho owner/admin cần thiết; nó không tạo bản sao role trong
-tenant.
-
-## Hệ thống nhãn dùng chung
-
-> **Phạm vi demo:** Supabase trong repository này chỉ phục vụ demo/test nhanh. Không cần mở rộng
-> RLS, policy, trigger bảo mật hoặc permission enforcement cho các flow demo mới. Khi triển khai
-> production, phải thiết kế lại security boundary và thêm RLS ở một migration riêng; không suy luận
-> rằng schema demo hiện tại đã đủ an toàn.
-
-Migration `20260813100000_create_tagging_system.sql` tạo:
-
-- `tag_groups`: nhóm nhãn theo tenant.
-- `tags`: nhãn thuộc một nhóm, dùng chung cho nhiều loại đối tượng.
-- `tag_assignments`: liên kết polymorphic theo `subject_type` và `subject_id`,
-  nên một nhân viên, khách hàng hoặc đối tượng nghiệp vụ khác có thể có nhiều
-  nhãn mà không cần tạo bảng pivot riêng cho từng loại.
-- RPC `replace_tag_assignments`: thay toàn bộ nhãn của một đối tượng trong một
-  transaction và chỉ cho phép owner/admin của tenant thực hiện.
-
-Migration `20260814000000_add_system_tag_groups.sql` bổ sung `module_code` và
-`is_system` cho `tag_groups`, đồng thời seed nhóm hệ thống Nhân viên. Nhóm hệ
-thống chỉ được bảo vệ ở UI/domain contract trong demo; nhóm tùy chỉnh vẫn có
-thể tạo, sửa và xóa. Nhãn bên trong nhóm hệ thống vẫn được quản lý như các
-nhãn khác.
-
-Migration `20260814010000_create_customers.sql` bổ sung module Khách hàng, bảng
-khách hàng và nhóm hệ thống Nhóm khách hàng. Migration tạo các quyền xem, thêm,
-sửa, xóa và gán nhãn trong permission module `customers`.
-
-Migration `20260814011000_rename_customer_type_to_business_type.sql` chuẩn hóa
-field loại hình đơn vị thành `business_type`.
-
-Theo phạm vi demo hiện tại, migration này chỉ cấp quyền PostgREST và không bật
-RLS/policy mới cho bảng `customers`. Khi chuyển sang production, cần thiết kế
-lại security boundary và thêm RLS ở migration riêng.
-
-Frontend dùng `src/project/tags/api/tags.api.ts` làm lớp API duy nhất cho nhóm
-nhãn, nhãn và assignment. Khi thêm loại đối tượng mới, chỉ cần dùng lại
-`replaceSubjectTags(tenantId, subjectType, subjectId, tagIds)` và giữ nguyên
-model database.
+File Manager dùng `files`, `file_links`, `file_folders` và
+`tenant_storage_quotas`. Folder có thể là root dùng chung, root tùy chỉnh hoặc
+folder gắn với một đối tượng có hỗ trợ. Tệp được lưu trong bucket riêng tư và
+được truy cập theo tenant; không dùng khóa service role ở client.

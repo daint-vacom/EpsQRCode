@@ -23,7 +23,7 @@ create table if not exists public.file_links (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id) on delete cascade,
   file_id uuid not null,
-  subject_type text not null default 'contract',
+  subject_type text not null,
   subject_id uuid not null,
   relation_type text not null default 'attachment',
   sort_order integer not null default 0,
@@ -31,7 +31,7 @@ create table if not exists public.file_links (
   created_at timestamptz not null default timezone('utc', now()),
   unique (tenant_id, id),
   unique (tenant_id, file_id, subject_type, subject_id, relation_type),
-  constraint file_links_subject_type_check check (subject_type = 'contract'),
+  constraint file_links_subject_type_check check (subject_type ~ '^[a-z][a-z0-9_]*$'),
   constraint file_links_relation_type_not_blank check (length(btrim(relation_type)) > 0),
   constraint file_links_file_same_tenant_fk
     foreign key (tenant_id, file_id)
@@ -50,33 +50,6 @@ create index if not exists file_links_subject_idx
 
 create index if not exists file_links_file_idx
   on public.file_links(tenant_id, file_id);
-
-create or replace function public.validate_file_link_subject()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if new.subject_type = 'contract'
-     and not exists (
-       select 1
-       from public.contracts contract
-       where contract.tenant_id = new.tenant_id
-         and contract.id = new.subject_id
-     ) then
-    raise exception 'File link subject contract does not exist for tenant';
-  end if;
-
-  return new;
-end;
-$$;
-
-drop trigger if exists file_links_validate_subject on public.file_links;
-create constraint trigger file_links_validate_subject
-after insert or update of tenant_id, subject_type, subject_id on public.file_links
-deferrable initially immediate
-for each row execute function public.validate_file_link_subject();
 
 alter table public.files enable row level security;
 alter table public.file_links enable row level security;
@@ -114,49 +87,3 @@ with check (public.is_tenant_member(tenant_id));
 grant select, insert, update, delete
   on public.files, public.file_links
   to authenticated;
-
-insert into public.files (
-  id,
-  tenant_id,
-  storage_bucket,
-  storage_path,
-  file_name,
-  mime_type,
-  size_bytes,
-  uploaded_by,
-  created_at
-)
-select
-  attachment.id,
-  attachment.tenant_id,
-  'tenant-assets',
-  attachment.storage_path,
-  attachment.file_name,
-  attachment.mime_type,
-  attachment.size_bytes,
-  attachment.uploaded_by,
-  attachment.created_at
-from public.contract_attachments attachment
-on conflict (tenant_id, id) do nothing;
-
-insert into public.file_links (
-  id,
-  tenant_id,
-  file_id,
-  subject_type,
-  subject_id,
-  relation_type,
-  created_by,
-  created_at
-)
-select
-  attachment.id,
-  attachment.tenant_id,
-  attachment.id,
-  'contract',
-  attachment.contract_id,
-  'attachment',
-  attachment.uploaded_by,
-  attachment.created_at
-from public.contract_attachments attachment
-on conflict (tenant_id, id) do nothing;

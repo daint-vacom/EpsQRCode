@@ -4,7 +4,10 @@ import {
 } from './field-control-registry';
 
 export type FormFieldBinding =
-  'spread' | 'select' | 'valueOnChange' | 'checked';
+  | 'spread'
+  | 'select'
+  | 'valueOnChange'
+  | 'checked';
 
 export interface FormFieldControlOptions {
   kind: FormFieldControlKind;
@@ -249,8 +252,6 @@ export function buildFormFieldControl(
 
       return `${controlOpen(options)}<ApiOptionSelect value={${value}} onChange={${change}}${loadOptions}${selectedOption}${placeholder}${searchPlaceholder}${emptyMessage}${minSearchLength}${debounceMs} />${controlClose(options)}`;
     }
-    case 'customerSelect':
-      return `${controlOpen(options)}<CustomerSelect value={${value}} onChange={${change}}${placeholder} />${controlClose(options)}`;
     case 'inputSelect': {
       const selectField = options.selectFieldExpression ?? 'selectField';
       const selectValue =

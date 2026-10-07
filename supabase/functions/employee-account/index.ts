@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9._-]{2,31}$/;
 const MIN_PASSWORD_LENGTH = 8;
-const LOGIN_DOMAIN = Deno.env.get('SUPABASE_LOGIN_DOMAIN') ?? 'vacom.vn';
+const LOGIN_DOMAIN = Deno.env.get('SUPABASE_LOGIN_DOMAIN')?.trim() ?? '';
 
 type AccountAction = 'create' | 'update-username' | 'reset-password';
 
@@ -259,6 +259,12 @@ Deno.serve(async (request) => {
     return json({ message: 'Unauthorized.' }, 401);
 
   try {
+    if (!LOGIN_DOMAIN) {
+      return json(
+        { message: 'Chưa cấu hình SUPABASE_LOGIN_DOMAIN cho Edge Function.' },
+        500,
+      );
+    }
     const userClient = createUserClient(authHeader);
     const token = authHeader.slice('Bearer '.length);
     const { data: authData, error: authError } =

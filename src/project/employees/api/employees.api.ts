@@ -1,4 +1,3 @@
-import type { CustomerStatus } from '@/project/customers/model/customer';
 import { loadCustomFields } from '@/project/data-configuration/api/custom-fields.api';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import {
@@ -24,10 +23,6 @@ import type {
   EmployeeStatus,
 } from '../model/employee';
 import { mapEmployeeRow } from '../model/employee';
-import type {
-  EmployeeCustomerAssignmentInput,
-  EmployeeResponsibilityWorkspace,
-} from '../model/employee-responsibility';
 
 interface TenantMembershipRow {
   tenant_id: string;
@@ -43,7 +38,6 @@ interface EmployeeRoleRow {
   name: string;
   color: EmployeeRole['color'];
   is_active: boolean;
-  customer_assignable: boolean;
 }
 
 interface EmployeeListRpcResponse {
@@ -258,8 +252,8 @@ export async function loadEmployeeDetail(
       supabaseApi.get(
         '/roles',
         queryParams({
-          select: 'id,name,color,is_active,customer_assignable',
-          or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+          select: 'id,name,color,is_active',
+          tenant_id: `eq.${tenantId}`,
           is_active: 'eq.true',
         }),
       ),
@@ -317,8 +311,8 @@ export async function loadEmployeeRoleOptions(
     supabaseApi.get(
       '/roles',
       queryParams({
-        select: 'id,name,color,is_active,customer_assignable',
-        or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+        select: 'id,name,color,is_active',
+        tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         order: 'is_system.desc,sort_order.asc,name.asc',
       }),
@@ -329,7 +323,6 @@ export async function loadEmployeeRoleOptions(
       name: row.name,
       color: row.color,
       isActive: row.is_active,
-      customerAssignable: row.customer_assignable,
     })),
   );
 }
@@ -391,8 +384,8 @@ export async function loadEmployeeWorkspace(
       supabaseApi.get(
         '/roles',
         queryParams({
-          select: 'id,name,color,is_active,customer_assignable',
-          or: `(tenant_id.is.null,tenant_id.eq.${tenantId})`,
+          select: 'id,name,color,is_active',
+          tenant_id: `eq.${tenantId}`,
           is_active: 'eq.true',
           order: 'is_system.desc,sort_order.asc,name.asc',
         }),
@@ -624,70 +617,15 @@ export async function updateEmployeeStatus(
   );
 }
 
-interface EmployeeRoleOptionRow {
-  id: string;
-  name: string;
-  color: EmployeeRole['color'];
-  is_active: boolean;
-  customer_assignable: boolean;
-}
-
-interface EmployeeResponsibilityWorkspaceRow {
-  roles: EmployeeRoleOptionRow[];
-  customers: Array<{
-    id: string;
-    customerCode: string;
-    name: string;
-    imageUrl: string | null;
-    status: CustomerStatus;
-  }>;
-  assignments: EmployeeCustomerAssignmentInput[];
-}
-
-export async function loadEmployeeResponsibilityWorkspace(
-  tenantId: string,
-  employeeId: string,
-): Promise<EmployeeResponsibilityWorkspace> {
-  assertSupabaseConfigured();
-  const response = await request<EmployeeResponsibilityWorkspaceRow>(
-    supabaseApi.post('/rpc/get_employee_responsibility_workspace', {
-      p_tenant_id: tenantId,
-      p_employee_id: employeeId,
-    }),
-  );
-
-  return {
-    roles: response.roles.map((role) => ({
-      id: role.id,
-      name: role.name,
-      color: role.color,
-      isActive: role.is_active,
-      customerAssignable: role.customer_assignable,
-    })),
-    customers: response.customers,
-    assignments: response.assignments.map((assignment) => ({
-      ...assignment,
-      allRoles: assignment.allRoles === true,
-    })),
-  };
-}
-
 export async function saveEmployeeAccess(
   tenantId: string,
   employeeId: string,
   roleIds: string[] | null,
-  customerAssignments: EmployeeCustomerAssignmentInput[] | null,
 ): Promise<void> {
   assertSupabaseConfigured();
-  await supabaseApi.post('/rpc/replace_employee_access', {
+  await supabaseApi.post('/rpc/save_employee_role_assignments', {
     p_tenant_id: tenantId,
     p_employee_id: employeeId,
     p_role_ids: roleIds,
-    p_customer_assignments:
-      customerAssignments?.map((assignment) => ({
-        customer_id: assignment.customerId,
-        all_roles: assignment.allRoles,
-        responsibility_role_ids: assignment.responsibilityRoleIds,
-      })) ?? null,
   });
 }

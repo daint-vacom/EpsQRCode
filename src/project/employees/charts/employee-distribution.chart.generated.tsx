@@ -12,7 +12,7 @@ import {
   ChartTooltipStyleProvider,
   type ChartConfig,
 } from '@/components/ui/chart';
-import type { EmployeeDistributionChartPoint } from '../model/employee-responsibility';
+import type { EmployeeDistributionChartPoint } from '../model/employee';
 
 const chartConfig = {
   value: { label: 'Số lượng', color: 'var(--admin-blue-primary)' },

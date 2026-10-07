@@ -19,13 +19,11 @@ option mapping, badges, entity identity renderers, query state, and backend para
 import type { ColumnFilterSpec } from '@/builders/column-filter';
 
 const spec: ColumnFilterSpec = {
-  componentName: 'Contract',
+  componentName: 'Employee',
   fields: [
-    { type: 'search', name: 'text', placeholder: '', ariaLabel: 'Tìm hợp đồng' },
-    { type: 'selectSearch', name: 'customer', searchPlaceholder: 'Tìm khách hàng...' },
+    { type: 'search', name: 'text', placeholder: '', ariaLabel: 'Tìm nhân viên' },
+    { type: 'selectSearch', name: 'role', searchPlaceholder: 'Tìm vai trò...' },
     { type: 'multiSelect', name: 'status', maxChips: 0 },
-    { type: 'numberRange', name: 'outstanding', label: 'Còn phải thu', placeholder: '' },
-    { type: 'dateRange', name: 'nextDue', label: 'Hạn gần nhất', placeholder: '' },
   ],
 };
 ```
@@ -36,7 +34,7 @@ Run:
 npm run gen:column-filter -- <spec.ts> <out.tsx>
 ```
 
-Entity-specific option conversion and renderer slots stay outside the generated file. For example,
-the contract feature can convert a customer record to `SelectOption` and pass a customer identity
-renderer into the generated `OptionSelect`. `selectSearch` is retained as the builder field name for
+Entity-specific option conversion and renderer slots stay outside the generated file. A feature can
+convert its records to `SelectOption` and pass an identity renderer into the generated `OptionSelect`.
+`selectSearch` is retained as the builder field name for
 backward compatibility; it emits `OptionSelect` with `searchable` enabled.

@@ -23,9 +23,8 @@ Then read one focused guide:
 Use `resource:action` or `module:resource:action` with lowercase snake-case segments, for example:
 
 ```text
-products:view
-products:create
-warehouse:import_voucher:approve
+organization:employee:view
+organization:employee:assign-role
 system:role:update
 ```
 

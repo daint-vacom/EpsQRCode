@@ -1,6 +1,6 @@
 const spec = {
   entity: 'EmployeeDistributionChartPoint',
-  modelImport: '../model/employee-responsibility',
+  modelImport: '../model/employee',
   componentName: 'EmployeeDistributionChart',
   chartKind: 'donut',
   nameField: 'name',

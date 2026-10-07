@@ -36,9 +36,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { loadFinanceCategories } from '../finance/api/finance.api';
-import { FinanceCategoryPanel } from '../finance/components/finance-category-panel';
-import { loadSoftwareAccountCatalogs } from '../tags/api/software-account-catalog.api';
 import {
   createTag,
   createTagGroup,
@@ -48,7 +45,6 @@ import {
   updateTag,
   updateTagGroup,
 } from '../tags/api/tags.api';
-import { SoftwareAccountCatalogPanel } from '../tags/components/software-account-catalog-panel';
 import { TagGroupIcon } from '../tags/components/tag-group-icon';
 import { TagFormDialog, useTagForm } from '../tags/forms/tag-form.generated';
 import {
@@ -57,7 +53,6 @@ import {
 } from '../tags/forms/tag-group-form.generated';
 import {
   emptyTagGroupForm,
-  WORK_TAG_GROUP_CODE,
   type Tag,
   type TagFormValues,
   type TagGroup,
@@ -89,16 +84,6 @@ export function TagsPage() {
     },
     enabled: Boolean(userId && tenantId),
   });
-  const softwareAccountCatalogQuery = useQuery({
-    queryKey: ['project', 'tags', 'software-account-catalog', tenantId, 'all'],
-    queryFn: () => loadSoftwareAccountCatalogs(tenantId!),
-    enabled: Boolean(tenantId),
-  });
-  const financeCategoryQuery = useQuery({
-    queryKey: ['project', 'finance', 'categories', tenantId],
-    queryFn: () => loadFinanceCategories(tenantId!),
-    enabled: Boolean(tenantId && hasPermission('finance:category:view')),
-  });
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [tagCreateDialogOpen, setTagCreateDialogOpen] = useState(false);
   const [tagEditDialogOpen, setTagEditDialogOpen] = useState(false);
@@ -126,25 +111,16 @@ export function TagsPage() {
   const selectedGroup = orderedGroups.find(
     (group) => group.id === activeGroupId,
   );
-  const isSoftwareAccountCatalogGroup =
-    selectedGroup?.kind === 'software_account_catalog';
-  const isFinanceCategoryGroup = selectedGroup?.kind === 'finance_category';
-  const canCreateTag =
-    selectedGroup?.code === WORK_TAG_GROUP_CODE ||
-    hasPermission('system:tag:create');
+  const canCreateTag = hasPermission('system:tag:create');
   const tagGroups = orderedGroups.filter((group) => group.kind === 'tag');
-  const tagGroupOptions =
-    selectedGroup?.code === WORK_TAG_GROUP_CODE ? [selectedGroup] : tagGroups;
+  const tagGroupOptions = tagGroups;
   const tableRows = useMemo(
     () => tags.filter((tag) => tag.groupId === activeGroupId),
     [activeGroupId, tags],
   );
 
   const invalidateWorkspace = () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['project', 'tags', userId] }),
-      queryClient.invalidateQueries({ queryKey: ['project', 'work'] }),
-    ]);
+    queryClient.invalidateQueries({ queryKey: ['project', 'tags', userId] });
 
   const groupForm = useTagGroupForm();
   const tagCreateForm = useTagForm();
@@ -363,11 +339,7 @@ export function TagsPage() {
                       appearance={isSelected ? 'default' : 'light'}
                       className="ms-auto shrink-0"
                     >
-                      {group.kind === 'software_account_catalog'
-                        ? (softwareAccountCatalogQuery.data?.length ?? 0)
-                        : group.kind === 'finance_category'
-                          ? (financeCategoryQuery.data?.length ?? 0)
-                          : group.tagCount}
+                      {group.tagCount}
                     </Badge>
                   </button>
                 );
@@ -376,98 +348,81 @@ export function TagsPage() {
           </CardContent>
         </Card>
 
-        {isSoftwareAccountCatalogGroup && tenantId ? (
-          <SoftwareAccountCatalogPanel
-            tenantId={tenantId}
-            catalogs={softwareAccountCatalogQuery.data}
-            isLoading={softwareAccountCatalogQuery.isLoading}
-            error={softwareAccountCatalogQuery.error}
-            onRefresh={() => {
-              void softwareAccountCatalogQuery.refetch();
-            }}
-          />
-        ) : isFinanceCategoryGroup ? (
-          <FinanceCategoryPanel
-            categories={financeCategoryQuery.data ?? []}
-            isLoading={financeCategoryQuery.isLoading}
-          />
-        ) : (
-          <DataGrid
-            table={table}
-            recordCount={tableRows.length}
-            isLoading={workspaceQuery.isLoading}
-            isFetching={workspaceQuery.isFetching}
-            emptyMessage={
-              selectedGroup
-                ? `Nhóm "${selectedGroup.name}" chưa có danh mục`
-                : 'Chưa có nhóm danh mục'
-            }
-          >
-            <Card className="min-h-0 w-full min-w-0 flex-1 overflow-hidden">
-              <CardHeader className="justify-between">
-                <CardTitle>
-                  Danh sách danh mục
-                  {selectedGroup ? (
-                    <span className="font-semibold text-primary">
-                      : {selectedGroup.name}
-                    </span>
-                  ) : null}
-                </CardTitle>
-                <CardToolbar>
-                  <ShortcutTooltip label="Thêm danh mục" shortcut="Alt + N">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      disabled={!activeGroupId || !canCreateTag}
-                      onClick={() => openCreateTag()}
-                      data-shortcut-action="create"
-                    >
-                      <Plus className="size-4" />
-                      Thêm danh mục
-                    </Button>
-                  </ShortcutTooltip>
-                  {selectedGroup && !selectedGroup.isSystem ? (
-                    <>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => openEditGroup(selectedGroup)}
-                          >
-                            <Pencil className="size-4" />
-                            Chỉnh sửa
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Chỉnh sửa nhóm danh mục</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            mode="icon"
-                            aria-label="Xóa nhóm danh mục"
-                            onClick={() => requestDeleteGroup(selectedGroup)}
-                          >
-                            <Trash2 className="size-4 text-destructive" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Xóa nhóm danh mục</TooltipContent>
-                      </Tooltip>
-                    </>
-                  ) : null}
-                </CardToolbar>
-              </CardHeader>
-              <CardTable className="min-h-0 flex-1">
-                <ScrollArea className="h-full">
-                  <DataGridTable />
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </CardTable>
-            </Card>
-          </DataGrid>
-        )}
+        <DataGrid
+          table={table}
+          recordCount={tableRows.length}
+          isLoading={workspaceQuery.isLoading}
+          isFetching={workspaceQuery.isFetching}
+          emptyMessage={
+            selectedGroup
+              ? `Nhóm "${selectedGroup.name}" chưa có danh mục`
+              : 'Chưa có nhóm danh mục'
+          }
+        >
+          <Card className="min-h-0 w-full min-w-0 flex-1 overflow-hidden">
+            <CardHeader className="justify-between">
+              <CardTitle>
+                Danh sách danh mục
+                {selectedGroup ? (
+                  <span className="font-semibold text-primary">
+                    : {selectedGroup.name}
+                  </span>
+                ) : null}
+              </CardTitle>
+              <CardToolbar>
+                <ShortcutTooltip label="Thêm danh mục" shortcut="Alt + N">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    disabled={!activeGroupId || !canCreateTag}
+                    onClick={() => openCreateTag()}
+                    data-shortcut-action="create"
+                  >
+                    <Plus className="size-4" />
+                    Thêm danh mục
+                  </Button>
+                </ShortcutTooltip>
+                {selectedGroup && !selectedGroup.isSystem ? (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openEditGroup(selectedGroup)}
+                        >
+                          <Pencil className="size-4" />
+                          Chỉnh sửa
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Chỉnh sửa nhóm danh mục</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          mode="icon"
+                          aria-label="Xóa nhóm danh mục"
+                          onClick={() => requestDeleteGroup(selectedGroup)}
+                        >
+                          <Trash2 className="size-4 text-destructive" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Xóa nhóm danh mục</TooltipContent>
+                    </Tooltip>
+                  </>
+                ) : null}
+              </CardToolbar>
+            </CardHeader>
+            <CardTable className="min-h-0 flex-1">
+              <ScrollArea className="h-full">
+                <DataGridTable />
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </CardTable>
+          </Card>
+        </DataGrid>
       </div>
 
       <TagGroupFormDialog

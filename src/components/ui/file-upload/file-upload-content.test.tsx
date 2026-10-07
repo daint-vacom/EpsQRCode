@@ -23,7 +23,7 @@ function createDataTransfer(files: File[]) {
 describe('FileUploadContent', () => {
   it('accepts files dropped anywhere in the supplied management content', async () => {
     const onUpload = vi.fn().mockResolvedValue(undefined);
-    const file = new File(['contract'], 'contract.pdf', {
+    const file = new File(['document'], 'document.pdf', {
       type: 'application/pdf',
     });
 
@@ -46,7 +46,7 @@ describe('FileUploadContent', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('contract.pdf')).toBeInTheDocument();
+      expect(screen.getByText('document.pdf')).toBeInTheDocument();
       expect(
         screen.getByText('1 tệp đang chờ xác nhận tải lên'),
       ).toBeInTheDocument();

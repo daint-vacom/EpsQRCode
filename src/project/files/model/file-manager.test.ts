@@ -2,18 +2,18 @@ import { describe, expect, it } from 'vitest';
 import { buildFileFolderTree, formatFileSize } from './file-manager';
 
 describe('file manager model helpers', () => {
-  it('builds the folder tree from entity display names', () => {
+  it('builds the folder tree from stored display names', () => {
     const tree = buildFileFolderTree([
       {
-        id: 'contract-1',
+        id: 'folder-1',
         tenantId: 'tenant-1',
-        parentId: 'contracts',
-        folderType: 'entity',
+        parentId: 'shared-files',
+        folderType: 'custom',
         systemKey: null,
-        subjectType: 'contract',
-        subjectId: 'contract-1',
-        name: 'HĐ-001 · ABC',
-        displayName: 'HĐ-001 · ABC',
+        subjectType: null,
+        subjectId: null,
+        name: 'Tài liệu dùng chung',
+        displayName: 'Tài liệu dùng chung',
         sortOrder: 0,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
@@ -22,15 +22,15 @@ describe('file manager model helpers', () => {
         depth: 0,
       },
       {
-        id: 'contracts',
+        id: 'shared-files',
         tenantId: 'tenant-1',
         parentId: null,
         folderType: 'system_root',
-        systemKey: 'contracts',
+        systemKey: null,
         subjectType: null,
         subjectId: null,
-        name: 'Hợp đồng',
-        displayName: 'Hợp đồng',
+        name: 'Tệp dùng chung',
+        displayName: 'Tệp dùng chung',
         sortOrder: 20,
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:00:00Z',
@@ -40,8 +40,8 @@ describe('file manager model helpers', () => {
       },
     ]);
 
-    expect(tree[0].name).toBe('Hợp đồng');
-    expect(tree[0].children[0].name).toBe('HĐ-001 · ABC');
+    expect(tree[0].name).toBe('Tệp dùng chung');
+    expect(tree[0].children[0].name).toBe('Tài liệu dùng chung');
     expect(tree[0].children[0].depth).toBe(1);
   });
 

@@ -61,9 +61,6 @@ describe('form-field builder', () => {
     expect(
       buildFormFieldControl({ kind: 'switch', surface: 'form' }),
     ).toContain('<Switch');
-    expect(
-      buildFormFieldControl({ kind: 'customerSelect', surface: 'form' }),
-    ).toContain('<CustomerSelect');
   });
 
   it('uses ISO strings for form dates by default', () => {

@@ -7,18 +7,10 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { CustomerTableController } from '@/project/customers/components/customer-table';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Plus,
-  RefreshCw,
-  UsersRound,
-} from 'lucide-react';
+import { Check, Plus, RefreshCw } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import type {
   ControllerRenderProps,
@@ -56,7 +48,6 @@ import {
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import {
   Stepper,
-  StepperConnector,
   StepperContent,
   StepperIndicator,
   StepperItem,
@@ -67,19 +58,10 @@ import {
 } from '@/components/ui/stepper';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { getAvatarInitials } from '@/components/common/avatar-identity';
 import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import { EmployeeAccountFields } from '../components/employee-account-fields';
 import { EmployeeStatusBadge } from '../components/employee-badges';
-import {
-  EmployeeCustomerRoleStep,
-  EmployeeCustomerSelectionStep,
-} from '../components/employee-responsibility-editor';
 import {
   EMPLOYEE_MIN_PASSWORD_LENGTH,
   employeeFormSchema,
@@ -88,10 +70,6 @@ import {
   type EmployeeRoleOption,
   type EmployeeStatus,
 } from '../model/employee';
-import type {
-  EmployeeCustomerAssignmentInput,
-  EmployeeCustomerOption,
-} from '../model/employee-responsibility';
 
 const statusOptions = [
   { value: 'active', label: 'Còn làm việc' },
@@ -368,22 +346,6 @@ export function EmployeeForm({
                                   <span className="min-w-0 truncate font-medium text-foreground">
                                     {role.name}
                                   </span>
-                                  {role.customerAssignable ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span
-                                          aria-label="Phân theo khách hàng"
-                                          className="inline-flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                                          tabIndex={0}
-                                        >
-                                          <UsersRound className="size-3.5" />
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent variant="light">
-                                        Phân theo khách hàng
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : null}
                                 </span>
                               </label>
                             ))}
@@ -606,18 +568,9 @@ interface EmployeeFormDialogProps {
   onReloadCustomFields?: () => void;
   isReloadingCustomFields?: boolean;
   roleOptions?: EmployeeRoleOption[];
-  customerOptions?: EmployeeCustomerOption[];
-  customerTable?: CustomerTableController;
-  customerAssignments?: EmployeeCustomerAssignmentInput[];
-  onCustomerAssignmentsChange?: (
-    assignments: EmployeeCustomerAssignmentInput[],
-  ) => void;
   canManageRoles?: boolean;
   canManageAccount?: boolean;
-  canManageCustomerAssignments?: boolean;
   employeeHasLinkedAccount?: boolean;
-  accessIsLoading?: boolean;
-  accessError?: unknown;
 }
 
 export function EmployeeFormDialog({
@@ -634,47 +587,11 @@ export function EmployeeFormDialog({
   onReloadCustomFields,
   isReloadingCustomFields = false,
   roleOptions = [],
-  customerOptions = [],
-  customerTable,
-  customerAssignments = [],
-  onCustomerAssignmentsChange = () => undefined,
   canManageRoles = false,
   canManageAccount = false,
-  canManageCustomerAssignments = false,
   employeeHasLinkedAccount = false,
-  accessIsLoading = false,
-  accessError,
 }: EmployeeFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
-  const [step, setStep] = useState(1);
-  const [maxStep, setMaxStep] = useState(1);
-  const employeeRoleIds = useWatch({
-    control: form.control,
-    name: 'roleIds',
-  });
-  const accountRequested = useWatch({
-    control: form.control,
-    name: 'createAccount',
-  });
-  const canUseEmployeeAccount = employeeHasLinkedAccount || accountRequested;
-
-  useEffect(() => {
-    if (open) {
-      setStep(1);
-      setMaxStep(1);
-    }
-  }, [open]);
-
-  async function handleNext() {
-    if (step === 1) {
-      const isValid = await form.trigger();
-      const accountIsValid = await validateAccountFields();
-      if (!isValid || !accountIsValid) return;
-    }
-    const nextStep = Math.min(step + 1, 3);
-    setStep(nextStep);
-    setMaxStep((currentMaxStep) => Math.max(currentMaxStep, nextStep));
-  }
 
   async function validateAccountFields() {
     const values = form.getValues();
@@ -709,11 +626,6 @@ export function EmployeeFormDialog({
   }
 
   async function handlePrimaryAction() {
-    if (step < 3) {
-      void handleNext();
-      return;
-    }
-
     if (!(await validateAccountFields())) return;
     void form.handleSubmit(onSubmit)();
   }
@@ -755,49 +667,28 @@ export function EmployeeFormDialog({
 
           <div className="min-h-0 flex-1 overflow-y-auto lg:flex lg:flex-col lg:overflow-hidden">
             <Stepper
-              value={step}
-              onValueChange={(nextStep) => {
-                if (nextStep <= maxStep) setStep(nextStep);
-              }}
+              value={1}
               variant="success"
               className="flex min-h-0 flex-1 flex-col gap-0"
             >
               <StepperNav className="shrink-0 gap-2 border-b border-border px-6 py-4">
-                {[
-                  { value: 1, label: 'Thông tin nhân viên, vai trò' },
-                  { value: 2, label: 'Chọn khách hàng phụ trách' },
-                  { value: 3, label: 'Phân công vai trò phụ trách' },
-                ].map((item, index, items) => (
+                {[{ value: 1, label: 'Thông tin nhân viên' }].map((item) => (
                   <div
                     key={item.value}
-                    className="flex min-w-0 flex-1 items-center last:flex-none"
+                    className="flex min-w-0 flex-1 items-center"
                   >
                     <StepperItem
                       step={item.value}
-                      completed={item.value < step}
-                      disabled={item.value > maxStep}
                       fill={false}
                       className="min-w-0 justify-start"
                     >
                       <StepperTrigger className="min-w-0 px-1 text-left">
-                        <StepperIndicator>
-                          {item.value < step ? (
-                            <Check className="size-3.5" />
-                          ) : (
-                            item.value
-                          )}
-                        </StepperIndicator>
+                        <StepperIndicator>{item.value}</StepperIndicator>
                         <StepperTitle className="hidden truncate sm:block">
                           {item.label}
                         </StepperTitle>
                       </StepperTrigger>
                     </StepperItem>
-                    {index < items.length - 1 ? (
-                      <StepperConnector
-                        completed={item.value < step}
-                        className="mx-2 h-0.5 min-w-4"
-                      />
-                    ) : null}
                   </div>
                 ))}
               </StepperNav>
@@ -823,40 +714,6 @@ export function EmployeeFormDialog({
                     employeeHasLinkedAccount={employeeHasLinkedAccount}
                   />
                 </StepperContent>
-                <StepperContent
-                  value={2}
-                  className="flex h-full min-h-0 flex-col overflow-hidden"
-                >
-                  <EmployeeCustomerSelectionStep
-                    roleOptions={roleOptions}
-                    employeeRoleIds={employeeRoleIds ?? []}
-                    customers={customerOptions}
-                    customerTable={customerTable}
-                    assignments={customerAssignments}
-                    onAssignmentsChange={onCustomerAssignmentsChange}
-                    canManage={canManageCustomerAssignments}
-                    employeeHasLinkedAccount={canUseEmployeeAccount}
-                    isLoading={accessIsLoading}
-                    error={accessError}
-                  />
-                </StepperContent>
-                <StepperContent
-                  value={3}
-                  className="flex h-full min-h-0 flex-col"
-                >
-                  <EmployeeCustomerRoleStep
-                    roleOptions={roleOptions}
-                    employeeRoleIds={employeeRoleIds ?? []}
-                    customers={customerOptions}
-                    customerTable={customerTable}
-                    assignments={customerAssignments}
-                    onAssignmentsChange={onCustomerAssignmentsChange}
-                    canManage={canManageCustomerAssignments}
-                    employeeHasLinkedAccount={canUseEmployeeAccount}
-                    isLoading={accessIsLoading}
-                    error={accessError}
-                  />
-                </StepperContent>
               </StepperPanel>
             </Stepper>
           </div>
@@ -866,38 +723,23 @@ export function EmployeeFormDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  if (step > 1) setStep((currentStep) => currentStep - 1);
-                  else requestClose(false);
-                }}
+                onClick={() => requestClose(false)}
                 disabled={isSaving}
               >
-                {step > 1 ? <ArrowLeft /> : null}
-                {step > 1 ? 'Quay lại' : 'Hủy'}
+                Hủy
               </Button>
             </ShortcutTooltip>
-            <ShortcutTooltip
-              label={step === 3 ? 'Lưu' : 'Tiếp tục'}
-              shortcut="Ctrl/Cmd + S"
-            >
+            <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
               <Button
                 type="button"
                 variant="primary"
                 onClick={handlePrimaryAction}
                 loading={isSaving}
                 loadingText="Đang lưu..."
-                disabled={
-                  isSaving ||
-                  (step === 3 &&
-                    customerAssignments.some(
-                      (assignment) =>
-                        !assignment.allRoles &&
-                        assignment.responsibilityRoleIds.length === 0,
-                    ))
-                }
+                disabled={isSaving}
               >
-                {step === 3 ? <Check /> : <ArrowRight />}
-                {step === 3 ? 'Lưu' : 'Tiếp tục'}
+                <Check />
+                Lưu
               </Button>
             </ShortcutTooltip>
           </DialogFooter>

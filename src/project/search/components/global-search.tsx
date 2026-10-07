@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import {
-  FileText,
-  Layers3,
-  LoaderCircle,
-  Search,
-  UserRoundSearch,
-  Users,
-} from 'lucide-react';
+import { LoaderCircle, Search, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,30 +33,19 @@ interface FlattenedSearchItem {
 }
 
 const SOURCE_ICONS: Record<GlobalSearchSource, typeof Users> = {
-  customers: UserRoundSearch,
-  contracts: FileText,
-  contractTemplates: Layers3,
   employees: Users,
 };
 
 const STATUS_LABELS: Record<string, string> = {
   active: 'Đang hoạt động',
   inactive: 'Ngừng hoạt động',
-  uncontacted: 'Chưa liên hệ',
-  draft: 'Bản nháp',
-  published: 'Đang phát hành',
-  archived: 'Đã lưu trữ',
-  suspended: 'Tạm dừng',
-  expired: 'Hết hạn',
-  terminated: 'Đã chấm dứt',
 };
 
 function getStatusVariant(
   status: string | null,
 ): 'success' | 'warning' | 'destructive' | 'secondary' {
-  if (status === 'active' || status === 'published') return 'success';
-  if (status === 'suspended' || status === 'uncontacted') return 'warning';
-  if (status === 'expired' || status === 'terminated') return 'destructive';
+  if (status === 'active') return 'success';
+  if (status === 'inactive') return 'secondary';
   return 'secondary';
 }
 
@@ -217,21 +199,6 @@ export function GlobalSearch() {
     () =>
       [
         {
-          source: 'customers',
-          label: 'Khách hàng',
-          items: search.data.customers,
-        },
-        {
-          source: 'contracts',
-          label: 'Hợp đồng',
-          items: search.data.contracts,
-        },
-        {
-          source: 'contractTemplates',
-          label: 'Mẫu hợp đồng',
-          items: search.data.contractTemplates,
-        },
-        {
           source: 'employees',
           label: 'Nhân viên',
           items: search.data.employees,
@@ -323,7 +290,7 @@ export function GlobalSearch() {
             onFocus={() => setOpen(hasQuery)}
             onKeyDown={handleKeyDown}
             placeholder="Tìm kiếm..."
-            aria-label="Tìm kiếm khách hàng, hợp đồng, mẫu hợp đồng hoặc nhân viên"
+            aria-label="Tìm kiếm nhân viên"
             role="combobox"
             aria-expanded={open && hasQuery}
             aria-controls={hasQuery ? 'global-search-results' : undefined}

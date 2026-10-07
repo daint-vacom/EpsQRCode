@@ -41,33 +41,14 @@ import { Layout37Page } from '@/pages/layout-37/page';
 import { Layout38Page } from '@/pages/layout-38/page';
 import { Layout39Page } from '@/pages/layout-39/page';
 import { NotFoundPage } from '@/pages/not-found/page';
-import { ContractCreatePage } from '@/project/contracts/pages/contract-create-page';
-import { ContractDetailPage } from '@/project/contracts/pages/contract-detail-page';
-import { ContractsPage } from '@/project/contracts/pages/contracts-page';
-import { ContractTemplateDetailPage } from '@/project/contracts/templates/contract-template-detail-page';
-import { ContractTemplateEditPage } from '@/project/contracts/templates/contract-template-edit-page';
-import { ContractTemplatesPage } from '@/project/contracts/templates/contract-templates-page';
-import { CustomerDetailPage } from '@/project/customers/pages/customer-detail-page';
-import { CustomersPage } from '@/project/customers/pages/customers-page';
-import { DashboardPage } from '@/project/dashboard/pages/dashboard-page';
-import { EmployeeDetailPage } from '@/project/employees/pages/employee-detail-page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
-import { FinanceAccountDetailPage } from '@/project/finance/pages/finance-account-detail-page';
-import { FinanceAccountsPage } from '@/project/finance/pages/finance-accounts-page';
-import { FinanceObligationDetailPage } from '@/project/finance/pages/finance-obligation-detail-page';
-import { FinanceObligationsPage } from '@/project/finance/pages/finance-obligations-page';
-import { FinanceVoucherDetailPage } from '@/project/finance/pages/finance-voucher-detail-page';
-import { FinanceVoucherFormPage } from '@/project/finance/pages/finance-voucher-form-page';
-import { FinanceVouchersPage } from '@/project/finance/pages/finance-vouchers-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
+import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
-import { ReportsPage } from '@/project/reports/pages/reports-page';
-import { WorkPage } from '@/project/work/pages/work-page';
-import { WorkTemplatesPage } from '@/project/work/pages/work-templates-page';
 import { Route, Routes } from 'react-router';
 import { Layout1 } from '@/components/layouts/layout-1';
 import { Layout2 } from '@/components/layouts/layout-2';
@@ -234,56 +215,9 @@ export function AppRoutingSetup() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route element={<ProjectMainLayout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
-          <Route
-            path={ROUTES.PROJECT.EMPLOYEE_DETAIL}
-            element={<EmployeeDetailPage />}
-          />
-          <Route path={ROUTES.PROJECT.WORK} element={<WorkPage />} />
-          <Route
-            path={ROUTES.PROJECT.MY_WORK}
-            element={<WorkPage scope="mine" />}
-          />
-          <Route
-            path={ROUTES.PROJECT.WORK_TEMPLATES}
-            element={<WorkTemplatesPage />}
-          />
-          <Route path={ROUTES.PROJECT.CUSTOMERS} element={<CustomersPage />} />
-          <Route path={ROUTES.PROJECT.CONTRACTS} element={<ContractsPage />} />
           <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_TEMPLATES}
-            element={<ContractTemplatesPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_TEMPLATE_CREATE}
-            element={<ContractTemplateEditPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_TEMPLATE_DETAIL}
-            element={<ContractTemplateDetailPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_TEMPLATE_EDIT}
-            element={<ContractTemplateEditPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_CREATE}
-            element={<ContractCreatePage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CUSTOMER_DETAIL}
-            element={<CustomerDetailPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.CONTRACT_DETAIL}
-            element={<ContractDetailPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.SETTINGS}
-            element={<ProjectSettingsPage />}
-          />
           <Route
             path={ROUTES.PROJECT.ROLE_PERMISSIONS}
             element={<RolePermissionsPage />}
@@ -294,45 +228,11 @@ export function AppRoutingSetup() {
           />
           <Route path={ROUTES.PROJECT.TAGS} element={<TagsPage />} />
           <Route
-            path={ROUTES.PROJECT.FINANCE_VOUCHERS}
-            element={<FinanceVouchersPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_VOUCHER_CREATE}
-            element={<FinanceVoucherFormPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_VOUCHER_DETAIL}
-            element={<FinanceVoucherDetailPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_VOUCHER_EDIT}
-            element={<FinanceVoucherFormPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_OBLIGATIONS}
-            element={<FinanceObligationsPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_OBLIGATION_DETAIL}
-            element={<FinanceObligationDetailPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_ACCOUNTS}
-            element={<FinanceAccountsPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.FINANCE_ACCOUNT_DETAIL}
-            element={<FinanceAccountDetailPage />}
-          />
-          <Route path={ROUTES.PROJECT.REPORTS} element={<ReportsPage />} />
-          <Route
-            path={ROUTES.PROJECT.REPORT_DETAIL}
-            element={<ReportsPage />}
+            path={ROUTES.PROJECT.SETTINGS}
+            element={<ProjectSettingsPage />}
           />
         </Route>
       </Route>
-      {/* Xóa dòng này + thư mục src/examples để gỡ toàn bộ trang example. */}
       {exampleRoutes}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

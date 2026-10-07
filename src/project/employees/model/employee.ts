@@ -80,7 +80,12 @@ export interface EmployeeRoleOption {
   name: string;
   color: RoleColor;
   isActive: boolean;
-  customerAssignable: boolean;
+}
+
+export interface EmployeeDistributionChartPoint {
+  name: string;
+  value: number;
+  fill: string;
 }
 
 export interface Employee {

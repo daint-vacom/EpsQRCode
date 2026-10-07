@@ -10,10 +10,10 @@ node slots for the entity profile, information card, and each tab's content.
 import type { DetailSpec } from '@/builders/detail';
 
 const spec = {
-  componentName: 'CustomerDetailLayout',
+  componentName: 'EmployeeDetailLayout',
   tabs: [
-    { value: 'contracts', label: 'Hợp đồng', icon: 'FileText' },
-    { value: 'employees', label: 'Nhân viên', icon: 'Users' },
+    { value: 'profile', label: 'Hồ sơ', icon: 'UserRound' },
+    { value: 'activity', label: 'Hoạt động', icon: 'History' },
   ],
 } satisfies DetailSpec;
 ```
@@ -25,7 +25,7 @@ tab is active by default; `defaultTab` can select another declared tab.
 Generate with:
 
 ```sh
-npm run gen:detail -- src/project/customers/detail/customer-detail-layout.fixture.ts src/project/customers/components/customer-detail-layout.generated.tsx
+npm run gen:detail -- <spec.ts> <out.tsx>
 ```
 
 The generated wrapper receives `profile`, `information`, and tab content slots.

@@ -13,8 +13,6 @@ create or replace function public.update_my_employee_profile(
   p_employee_code text,
   p_first_name text,
   p_last_name text,
-  p_job_title text,
-  p_department text,
   p_phone text,
   p_status public.employee_status,
   p_joined_at date,
@@ -28,7 +26,6 @@ set search_path = public
 as $$
 declare
   v_can_manage boolean;
-  v_can_edit_profile boolean;
 begin
   if not public.is_tenant_member(p_tenant_id) then
     raise exception 'Tài khoản không thuộc tổ chức hiện tại.' using errcode = '42501';
@@ -48,11 +45,6 @@ begin
     p_tenant_id,
     'organization:employee:update'
   );
-  v_can_edit_profile := v_can_manage or public.has_tenant_permission(
-    p_tenant_id,
-    'employees:profile:edit'
-  );
-
   if nullif(btrim(p_first_name), '') is null then
     raise exception 'Tên nhân viên không được để trống.' using errcode = '23514';
   end if;
@@ -66,14 +58,6 @@ begin
     end,
     first_name = btrim(p_first_name),
     last_name = btrim(coalesce(p_last_name, '')),
-    job_title = case
-      when v_can_edit_profile then btrim(coalesce(p_job_title, ''))
-      else employee.job_title
-    end,
-    department = case
-      when v_can_edit_profile then btrim(coalesce(p_department, ''))
-      else employee.department
-    end,
     phone = btrim(coalesce(p_phone, '')),
     status = case
       when v_can_manage then coalesce(p_status, employee.status)
@@ -103,8 +87,6 @@ revoke all on function public.update_my_employee_profile(
   text,
   text,
   text,
-  text,
-  text,
   public.employee_status,
   date,
   text,
@@ -113,8 +95,6 @@ revoke all on function public.update_my_employee_profile(
 grant execute on function public.update_my_employee_profile(
   uuid,
   uuid,
-  text,
-  text,
   text,
   text,
   text,

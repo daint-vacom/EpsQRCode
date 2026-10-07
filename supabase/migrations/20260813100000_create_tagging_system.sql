@@ -172,51 +172,6 @@ from public, anon;
 grant execute on function public.replace_tag_assignments(uuid, text, uuid, uuid[])
 to authenticated;
 
-insert into public.tag_groups (tenant_id, code, name, description, color, sort_order)
-select
-  tenant.id,
-  seed.code,
-  seed.name,
-  seed.description,
-  seed.color,
-  seed.sort_order
-from public.tenants tenant
-cross join (
-  values
-    ('expertise', 'Chuyên môn', 'Nhãn mô tả chuyên môn hoặc lĩnh vực liên quan.', '#2563eb', 10),
-    ('classification', 'Phân loại', 'Nhãn phục vụ phân loại và chăm sóc đối tượng.', '#7c3aed', 20)
-) as seed(code, name, description, color, sort_order)
-on conflict (tenant_id, code) do update set
-  name = excluded.name,
-  description = excluded.description,
-  color = excluded.color,
-  sort_order = excluded.sort_order,
-  is_active = true;
-
-insert into public.tags (tenant_id, group_id, code, name, color, sort_order)
-select
-  tag_group.tenant_id,
-  tag_group.id,
-  seed.code,
-  seed.name,
-  seed.color,
-  seed.sort_order
-from public.tag_groups tag_group
-join (
-  values
-    ('expertise', 'luat', 'Luật', '#2563eb', 10),
-    ('expertise', 'ke-toan', 'Kế toán', '#2563eb', 20),
-    ('expertise', 'nhan-su', 'Nhân sự', '#2563eb', 30),
-    ('classification', 'vip', 'VIP', '#7c3aed', 10),
-    ('classification', 'tiem-nang', 'Tiềm năng', '#7c3aed', 20)
-) as seed(group_code, code, name, color, sort_order)
-  on seed.group_code = tag_group.code
-on conflict (tenant_id, code) do update set
-  group_id = excluded.group_id,
-  name = excluded.name,
-  color = excluded.color,
-  sort_order = excluded.sort_order,
-  is_active = true;
 
 grant select on public.tag_groups, public.tags, public.tag_assignments to authenticated;
 grant insert, update, delete on public.tag_groups, public.tags, public.tag_assignments to authenticated;

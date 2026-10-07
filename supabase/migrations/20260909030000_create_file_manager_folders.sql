@@ -72,13 +72,6 @@ create index if not exists files_folder_idx
   on public.files(tenant_id, folder_id, created_at desc)
   where status = 'active';
 
-alter table public.file_links
-  drop constraint if exists file_links_subject_type_check;
-
-alter table public.file_links
-  add constraint file_links_subject_type_check
-  check (subject_type in ('customer', 'contract', 'contract_template'));
-
 create table if not exists public.tenant_storage_quotas (
   tenant_id uuid primary key references public.tenants(id) on delete cascade,
   limit_bytes bigint not null,
@@ -214,29 +207,8 @@ select
   folder.created_at,
   folder.updated_at,
   folder.deleted_at,
-  case
-    when folder.folder_type = 'system_root' then folder.name
-    when folder.subject_type = 'customer'
-      then concat(customer.customer_code, ' · ', customer.name)
-    when folder.subject_type = 'contract'
-      then concat(contract.contract_code, ' · ', contract.name)
-    when folder.subject_type = 'contract_template'
-      then concat(template.code, ' · ', template.name)
-    else coalesce(folder.name, 'Đối tượng đã xóa')
-  end as display_name
+  coalesce(folder.name, 'Thư mục đối tượng') as display_name
 from public.file_folders folder
-left join public.customers customer
-  on folder.subject_type = 'customer'
- and customer.tenant_id = folder.tenant_id
- and customer.id = folder.subject_id
-left join public.contracts contract
-  on folder.subject_type = 'contract'
- and contract.tenant_id = folder.tenant_id
- and contract.id = folder.subject_id
-left join public.contract_templates template
-  on folder.subject_type = 'contract_template'
- and template.tenant_id = folder.tenant_id
- and template.id = folder.subject_id;
 
 alter table public.file_folders enable row level security;
 alter table public.tenant_storage_quotas enable row level security;
@@ -299,51 +271,31 @@ update storage.buckets
 set public = false
 where id = 'tenant-assets';
 
--- Seed stable functional roots. Entity folders are created lazily by the
--- upload flow after the source record exists.
+-- Seed the shared and custom roots. Entity folders are created lazily when
+-- another supported feature links a file to a record.
+create or replace function public.seed_file_manager_root_for_tenant()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  insert into public.file_folders (tenant_id, name, folder_type, system_key, sort_order)
+  values (new.id, 'Tệp dùng chung', 'system_root', 'shared', 10)
+  on conflict do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists tenants_seed_file_manager_root on public.tenants;
+create trigger tenants_seed_file_manager_root
+after insert on public.tenants
+for each row execute function public.seed_file_manager_root_for_tenant();
+
 insert into public.file_folders (tenant_id, name, folder_type, system_key, sort_order)
 select tenant.id, root.name, 'system_root', root.system_key, root.sort_order
 from public.tenants tenant
 cross join (values
-  ('Khách hàng', 'customers', 10),
-  ('Hợp đồng', 'contracts', 20),
-  ('Mẫu hợp đồng', 'contract_templates', 30),
-  ('Tệp tùy chỉnh', 'custom', 40)
+  ('Tệp dùng chung', 'shared', 10),
+  ('Tệp tùy chỉnh', 'custom', 20)
 ) as root(name, system_key, sort_order)
 on conflict do nothing;
-
--- Place existing contract attachments under their entity folders so the first
--- File Manager release does not hide data created by the legacy attachment UI.
-insert into public.file_folders (
-  tenant_id,
-  parent_id,
-  folder_type,
-  subject_type,
-  subject_id,
-  sort_order
-)
-select distinct
-  link.tenant_id,
-  root.id,
-  'entity',
-  'contract',
-  link.subject_id,
-  0
-from public.file_links link
-join public.file_folders root
-  on root.tenant_id = link.tenant_id
- and root.system_key = 'contracts'
-where link.subject_type = 'contract'
-on conflict do nothing;
-
-update public.files file
-set folder_id = folder.id
-from public.file_links link
-join public.file_folders folder
-  on folder.tenant_id = link.tenant_id
- and folder.folder_type = 'entity'
- and folder.subject_type = link.subject_type
- and folder.subject_id = link.subject_id
-where file.tenant_id = link.tenant_id
-  and file.id = link.file_id
-  and file.folder_id is null;

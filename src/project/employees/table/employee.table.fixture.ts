@@ -46,7 +46,7 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      actionCount: 4,
+      actionCount: 3,
       cellClassName: 'text-right',
     },
   ],

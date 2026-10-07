@@ -1,1 +1,0 @@
-grant select on public.finance_voucher_line_allocation_drafts to authenticated;

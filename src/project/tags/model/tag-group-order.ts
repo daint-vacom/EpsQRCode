@@ -2,19 +2,10 @@ import {
   PROJECT_TAG_GROUP_ENTITY_ORDER,
   type ProjectEntity,
 } from '@/config/project-menu.config';
-import {
-  CONTRACT_TAG_GROUP_CODE,
-  CUSTOMER_TAG_GROUP_CODE,
-  EMPLOYEE_TAG_GROUP_CODE,
-  WORK_TAG_GROUP_CODE,
-  type TagGroup,
-} from './tag';
+import { EMPLOYEE_TAG_GROUP_CODE, type TagGroup } from './tag';
 
 const SYSTEM_TAG_GROUP_ENTITY_BY_CODE: Readonly<Record<string, ProjectEntity>> =
   {
-    [CUSTOMER_TAG_GROUP_CODE]: 'customer',
-    [CONTRACT_TAG_GROUP_CODE]: 'contract',
-    [WORK_TAG_GROUP_CODE]: 'work',
     [EMPLOYEE_TAG_GROUP_CODE]: 'employee',
   };
 

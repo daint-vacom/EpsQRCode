@@ -46,9 +46,6 @@ export const FORM_KIND_REGISTRY: Record<FormFieldKind, FormKindMeta> = {
   apiSearchSelect: {
     ...FORM_FIELD_CONTROL.apiSearchSelect,
   },
-  customerSelect: {
-    ...FORM_FIELD_CONTROL.customerSelect,
-  },
   inputSelect: {
     ...FORM_FIELD_CONTROL.inputSelect,
   },

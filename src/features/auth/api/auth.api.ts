@@ -22,7 +22,13 @@ export interface SupabaseAuthSession {
 
 function normalizeLoginEmail(identifier: string): string {
   const value = identifier.trim();
-  return value.includes('@') ? value : `${value}@${env.supabaseLoginDomain}`;
+  if (value.includes('@')) return value;
+  if (!env.supabaseLoginDomain) {
+    throw new Error(
+      'Vui lòng cấu hình VITE_SUPABASE_LOGIN_DOMAIN để dùng username đăng nhập.',
+    );
+  }
+  return `${value}@${env.supabaseLoginDomain}`;
 }
 
 export async function signInWithPassword(

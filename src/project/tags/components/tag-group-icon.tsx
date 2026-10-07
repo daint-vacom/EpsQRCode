@@ -1,34 +1,20 @@
 import {
-  BarChart3,
   Blocks,
   Building2,
-  ClipboardList,
-  FileText,
   Folder,
-  KeyRound,
   Settings2,
-  ShoppingCart,
   Users,
-  UsersRound,
-  Warehouse,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SYSTEM_MODULE_ICONS: Record<string, LucideIcon> = {
-  customers: UsersRound,
-  contracts: FileText,
   organization: Building2,
-  orders: ShoppingCart,
-  reports: BarChart3,
   system: Settings2,
-  warehouse: Warehouse,
 };
 
 const SYSTEM_GROUP_ICONS: Record<string, LucideIcon> = {
   employees: Users,
-  'software-accounts': KeyRound,
-  'work-labels': ClipboardList,
 };
 
 export interface TagGroupIconProps {

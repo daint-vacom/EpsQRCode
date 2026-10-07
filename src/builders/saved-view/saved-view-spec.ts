@@ -27,12 +27,7 @@ export const savedViewSpecSchema = z
     modelImport: importGroupSchema,
     filtersType: identifierSchema,
     initialFiltersName: identifierSchema,
-    resource: z.enum([
-      'customers',
-      'employees',
-      'contracts',
-      'contract_templates',
-    ]),
+    resource: identifierSchema,
     managePermission: z.string().optional(),
     fields: z.array(fieldSchema).min(1),
   })

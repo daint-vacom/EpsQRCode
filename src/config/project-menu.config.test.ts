@@ -5,43 +5,21 @@ import {
 } from './project-menu.config';
 
 describe('PROJECT_MENU_GROUPS', () => {
-  it('keeps business domains separated in the sidebar', () => {
+  it('keeps only shared administration surfaces in the product menu', () => {
     expect(PROJECT_MENU_GROUPS.map((group) => group.title)).toEqual([
-      'Không gian làm việc',
-      'Kinh doanh',
-      'Tài chính',
-      'Báo cáo & phân tích',
       'Quản trị tổ chức',
       'Hệ thống',
     ]);
-    expect(
-      PROJECT_MENU_GROUPS.find(
-        (group) => group.title === 'Kinh doanh',
-      )?.items.map((item) => item.label),
-    ).toEqual(['Khách hàng', 'Hợp đồng', 'Công việc']);
-    expect(
-      PROJECT_MENU_GROUPS.find(
-        (group) => group.title === 'Tài chính',
-      )?.items.map((item) => item.label),
-    ).toEqual(['Sổ thu chi', 'Công nợ', 'Quỹ & Tài khoản']);
-    expect(
-      PROJECT_MENU_GROUPS.find(
-        (group) => group.title === 'Báo cáo & phân tích',
-      )?.items.map((item) => item.label),
-    ).toEqual(['Báo cáo']);
-    expect(
-      PROJECT_MENU_GROUPS.find(
-        (group) => group.title === 'Quản trị tổ chức',
-      )?.items.map((item) => item.label),
-    ).toEqual([
+    expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
       'Nhân viên',
       'Tệp lưu trữ',
       'Phân quyền',
       'Cấu hình dữ liệu',
       'Danh mục',
-      'Mẫu hợp đồng',
-      'Mẫu công việc',
     ]);
-    expect(PROJECT_ENTITY_ORDER).toEqual(['customer', 'contract', 'employee']);
+    expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
+      'Cài đặt',
+    ]);
+    expect(PROJECT_ENTITY_ORDER).toEqual(['employee']);
   });
 });

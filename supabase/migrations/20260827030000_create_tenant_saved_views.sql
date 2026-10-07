@@ -12,7 +12,7 @@ create table public.tenant_saved_views (
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now()),
   constraint tenant_saved_views_resource_check check (
-    resource in ('customers', 'employees', 'contracts', 'contract_templates')
+    resource = 'employees'
   ),
   constraint tenant_saved_views_name_not_blank check (length(btrim(name)) > 0),
   constraint tenant_saved_views_version_positive check (version > 0)

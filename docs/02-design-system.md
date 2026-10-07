@@ -28,9 +28,8 @@ Use the live tokens as source of truth. This document does not duplicate a color
   component nghiệp vụ dùng chung trước khi triển khai từng surface.
 - Component đó là nguồn duy nhất cho label, trạng thái, màu sắc, icon và cách trình bày của khái niệm;
   không khai báo lại config tương đương ở từng bảng hoặc từng select.
-- Ví dụ `FinanceAccountStatusBadge` là nguồn duy nhất cho trạng thái quỹ/tài khoản. Bảng tài khoản,
-  account select và các màn hình tài chính khác phải dùng component này để giữ cùng label và kiểu badge
-  solid/outline.
+- Ví dụ badge trạng thái của nhân viên là nguồn duy nhất cho label và màu trạng thái ở danh sách,
+  bộ lọc và màn hình hồ sơ.
 - Khi cần biến thể kích thước hoặc ngữ cảnh, mở rộng prop của component dùng chung; không tạo thêm
   component/config cục bộ chỉ để thay đổi một surface.
 

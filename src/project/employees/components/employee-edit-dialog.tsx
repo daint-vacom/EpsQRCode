@@ -25,7 +25,6 @@ import {
   type Employee,
   type EmployeeFormValues,
 } from '../model/employee';
-import type { EmployeeCustomerAssignmentInput } from '../model/employee-responsibility';
 
 interface EmployeeEditDialogProps {
   employee: Employee;
@@ -43,19 +42,14 @@ export function EmployeeEditDialog({
   const queryClient = useQueryClient();
   const form = useEmployeeForm();
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
-  const [customerAssignments, setCustomerAssignments] = useState<
-    EmployeeCustomerAssignmentInput[]
-  >([]);
   const canManageEmployeeRoles = hasPermission(
     'organization:employee:assign-role',
   );
   const canManageEmployeeAccount = hasPermission(
     'organization:employee:update',
   );
-  const canManageCustomerAssignments = hasPermission('customers:update');
   const employeeAccess = useEmployeeAccessWorkspace({
     tenantId,
-    employeeId: employee.id,
     enabled: open,
   });
 
@@ -89,22 +83,10 @@ export function EmployeeEditDialog({
   useEffect(() => {
     if (!open) return;
     setEmployeeImageFile(null);
-    setCustomerAssignments([]);
   }, [employee.id, open]);
 
-  useEffect(() => {
-    if (!open || !employeeAccess.responsibilityQuery.data) return;
-    setCustomerAssignments(employeeAccess.responsibilityQuery.data.assignments);
-  }, [employeeAccess.responsibilityQuery.data, open]);
-
   const saveMutation = useMutation({
-    mutationFn: async ({
-      values,
-      assignments,
-    }: {
-      values: EmployeeFormValues;
-      assignments: EmployeeCustomerAssignmentInput[];
-    }) => {
+    mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
       if (!tenantId) throw new Error('Chưa xác định tenant.');
 
       let savedEmployee = await updateEmployee(employee.id, values);
@@ -161,7 +143,6 @@ export function EmployeeEditDialog({
           tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
-          canManageCustomerAssignments ? assignments : null,
         );
       }
 
@@ -170,12 +151,10 @@ export function EmployeeEditDialog({
     onSuccess: async () => {
       toast.success('Đã cập nhật nhân viên.');
       setEmployeeImageFile(null);
-      setCustomerAssignments([]);
       onOpenChange(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['project', 'employees'] }),
-        queryClient.invalidateQueries({ queryKey: ['project', 'customers'] }),
-      ]);
+      await queryClient.invalidateQueries({
+        queryKey: ['project', 'employees'],
+      });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
@@ -193,7 +172,7 @@ export function EmployeeEditDialog({
       return;
     }
 
-    saveMutation.mutate({ values, assignments: customerAssignments });
+    saveMutation.mutate({ values });
   }
 
   function openEmployeeCustomFieldConfiguration() {
@@ -226,16 +205,9 @@ export function EmployeeEditDialog({
         </>
       }
       roleOptions={employeeAccess.roleOptions}
-      customerOptions={employeeAccess.customers}
-      customerTable={employeeAccess.customerTable}
-      customerAssignments={customerAssignments}
-      onCustomerAssignmentsChange={setCustomerAssignments}
       canManageRoles={canManageEmployeeRoles}
       canManageAccount={canManageEmployeeAccount}
-      canManageCustomerAssignments={canManageCustomerAssignments}
       employeeHasLinkedAccount={Boolean(employee.userId)}
-      accessIsLoading={employeeAccess.isLoading}
-      accessError={employeeAccess.error}
     />
   );
 }

@@ -566,7 +566,7 @@ export function Header() {
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span>Tổ chức</span>
                   <span className="truncate text-xs font-normal text-muted-foreground">
-                    Công ty TNHH Vacom
+                    {shell.organizationLabel ?? 'Công ty TNHH Vacom'}
                   </span>
                 </span>
               </DropdownMenuItem>

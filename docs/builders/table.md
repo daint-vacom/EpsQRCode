@@ -105,13 +105,13 @@ constant into the page's `useReactTable` state:
 
 ```tsx
 import {
-  CUSTOMER_COLUMN_PINNING,
-  useCustomerColumns,
-} from '../table/customer.columns.generated';
+  EMPLOYEE_COLUMN_PINNING,
+  useEmployeeColumns,
+} from '../table/employee.columns.generated';
 
 const table = useReactTable({
   columns,
-  state: { columnPinning: CUSTOMER_COLUMN_PINNING },
+  state: { columnPinning: EMPLOYEE_COLUMN_PINNING },
   // ...other table state and handlers
 });
 ```

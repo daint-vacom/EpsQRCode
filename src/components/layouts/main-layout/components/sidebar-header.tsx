@@ -5,6 +5,10 @@ import { useLayout } from './context';
 export function SidebarHeader() {
   const { shell } = useLayout();
   const isDark = shell.secondarySidebarVariant === 'dark';
+  const brand = shell.sidebarBrand ?? {
+    name: 'VACOM',
+    subtitle: 'KẾ TOÁN DỊCH VỤ',
+  };
 
   return (
     <Link
@@ -18,7 +22,7 @@ export function SidebarHeader() {
     >
       <span className="min-w-0 leading-[0.9]">
         <span className="block bg-gradient-to-r from-red-600 via-rose-500 to-red-800 bg-clip-text font-admin-display text-[1.65rem] font-black uppercase tracking-[0.06em] text-transparent">
-          VACOM
+          {brand.name}
         </span>
         <span
           className={cn(
@@ -26,7 +30,7 @@ export function SidebarHeader() {
             isDark ? 'text-white/70' : 'text-foreground',
           )}
         >
-          KẾ TOÁN DỊCH VỤ
+          {brand.subtitle}
         </span>
       </span>
     </Link>
