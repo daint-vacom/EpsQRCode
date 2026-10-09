@@ -6,6 +6,7 @@ export interface UserContextValue {
   userId: string | null;
   token: string | null;
   refreshToken: string | null;
+  cookieSession: boolean;
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
   logout: () => void;
@@ -17,6 +18,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   const refreshToken = useAuthStore((state) => state.refreshToken);
+  const cookieSession = useAuthStore((state) => state.cookieSession);
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const logout = useAuthStore((state) => state.logout);
 
@@ -26,11 +28,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       userId: user?.id ?? null,
       token,
       refreshToken,
-      isAuthenticated: Boolean(user && token),
+      cookieSession,
+      isAuthenticated: Boolean(user && (token || cookieSession)),
       hasPermission,
       logout,
     }),
-    [hasPermission, logout, refreshToken, token, user],
+    [cookieSession, hasPermission, logout, refreshToken, token, user],
   );
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

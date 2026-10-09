@@ -17,8 +17,6 @@ interface ImportMetaEnv {
   readonly VITE_USE_MOCK: string;
   /** Tên app, dùng cho <title>, header. */
   readonly VITE_APP_NAME: string;
-  /** Ngôn ngữ mặc định: 'vi' | 'en'. */
-  readonly VITE_DEFAULT_LOCALE: string;
 }
 
 interface ImportMeta {

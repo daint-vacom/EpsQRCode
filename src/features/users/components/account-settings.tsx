@@ -384,7 +384,7 @@ export function AccountSettings() {
                       !employeeForm.formState.isDirty && !employeeImageFile
                     }
                     loading={employeeMutation.isPending}
-                    loadingText="Đang lưu..."
+                    loadingText="Đang lưu"
                   >
                     <Save />
                     Lưu thông tin nhân viên
@@ -457,7 +457,7 @@ export function AccountSettings() {
                     variant="primary"
                     className="shrink-0"
                     loading={passwordMutation.isPending}
-                    loadingText="Đang đổi..."
+                    loadingText="Đang đổi"
                   >
                     Đổi mật khẩu
                   </Button>

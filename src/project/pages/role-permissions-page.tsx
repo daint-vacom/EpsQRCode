@@ -21,6 +21,7 @@ import {
   User,
   type LucideIcon,
 } from 'lucide-react';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { queryClient } from '@/lib/query-client';
 import { cn } from '@/lib/utils';
@@ -83,34 +84,34 @@ const tagMeta: Record<
   PermissionTag,
   {
     icon: LucideIcon;
-    label: string;
+    messageId: string;
     className: string;
     mutedClassName: string;
   }
 > = {
   Xem: {
     icon: Eye,
-    label: 'Xem',
+    messageId: 'permissions.tags.view',
     className:
       'border-admin-blue-border bg-secondary text-secondary-foreground',
     mutedClassName: 'text-secondary-foreground/50',
   },
   'Chỉnh sửa': {
     icon: Pencil,
-    label: 'Chỉnh sửa',
+    messageId: 'permissions.tags.edit',
     className:
       'border-admin-success-bg bg-admin-success-bg text-admin-success-text',
     mutedClassName: 'text-admin-success-text/50',
   },
   Xóa: {
     icon: Trash2,
-    label: 'Xóa',
+    messageId: 'permissions.tags.delete',
     className: 'border-admin-red-bg bg-admin-red-bg text-admin-red-primary',
     mutedClassName: 'text-admin-red-primary/50',
   },
   Duyệt: {
     icon: CheckCircle2,
-    label: 'Duyệt',
+    messageId: 'permissions.tags.approve',
     className:
       'border-admin-amber-border bg-admin-amber-bg text-admin-amber-dark',
     mutedClassName: 'text-admin-amber-dark/50',
@@ -152,13 +153,18 @@ function countAllPermissions(modules: PermissionModule[]) {
 }
 
 export function RolePermissionsPage() {
+  const intl = useIntl();
   const { userId } = useUser();
   const { tenantId } = useTenant();
   const workspaceQuery = useQuery({
     queryKey: ['project', 'role-permissions', userId, tenantId],
     queryFn: () => {
       if (!userId || !tenantId) {
-        throw new Error('Chưa xác định tổ chức hiện tại.');
+        throw new Error(
+          intl.formatMessage({
+            id: 'common.errors.dataNotReady',
+          }),
+        );
       }
       return loadRolePermissionsWorkspace(userId, tenantId);
     },
@@ -260,7 +266,13 @@ export function RolePermissionsPage() {
         return;
       }
 
-      if (!confirmLeave('Bạn có thay đổi chưa lưu. Bạn vẫn muốn rời trang?')) {
+      if (
+        !confirmLeave(
+          intl.formatMessage({
+            id: 'permissions.roles.leaveWithUnsavedChanges',
+          }),
+        )
+      ) {
         event.preventDefault();
         event.stopPropagation();
       }
@@ -273,7 +285,7 @@ export function RolePermissionsPage() {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('click', handleInternalNavigation, true);
     };
-  }, [confirmLeave, hasUnsavedChanges]);
+  }, [confirmLeave, hasUnsavedChanges, intl]);
 
   const totalPermissions = useMemo(
     () => countAllPermissions(modules),
@@ -321,7 +333,9 @@ export function RolePermissionsPage() {
   const savePermissionsMutation = useMutation({
     mutationFn: () => {
       if (selectedRoleIsSystem) {
-        throw new Error('Vai trò hệ thống được quản lý bởi hệ thống.');
+        throw new Error(
+          intl.formatMessage({ id: 'permissions.roles.errors.systemManaged' }),
+        );
       }
 
       return replaceRolePermissions(
@@ -336,14 +350,20 @@ export function RolePermissionsPage() {
       );
     },
     onSuccess: async () => {
-      toast.success('Đã lưu quyền cho vai trò.');
+      toast.success(
+        intl.formatMessage({ id: 'permissions.roles.toasts.permissionsSaved' }),
+      );
       await queryClient.invalidateQueries({
         queryKey: ['project', 'role-permissions', userId],
       });
     },
     onError: (error) =>
       toast.error(
-        error instanceof Error ? error.message : 'Không thể lưu quyền.',
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({
+              id: 'permissions.roles.toasts.permissionsSaveError',
+            }),
       ),
   });
 
@@ -355,8 +375,11 @@ export function RolePermissionsPage() {
       role: RoleSummary;
       values: RoleFormValues;
     }) => {
-      if (!workspaceQuery.data)
-        throw new Error('Dữ liệu tenant chưa sẵn sàng.');
+      if (!workspaceQuery.data) {
+        throw new Error(
+          intl.formatMessage({ id: 'permissions.roles.errors.dataNotReady' }),
+        );
+      }
 
       if (role.id) {
         return updateRole(role.id, {
@@ -367,7 +390,11 @@ export function RolePermissionsPage() {
       }
 
       const code = values.code.trim().toLowerCase();
-      if (!code) throw new Error('Vui lòng nhập mã vai trò.');
+      if (!code) {
+        throw new Error(
+          intl.formatMessage({ id: 'permissions.roles.errors.codeRequired' }),
+        );
+      }
 
       return createRole({
         tenant_id: workspaceQuery.data.tenantId,
@@ -379,7 +406,9 @@ export function RolePermissionsPage() {
       });
     },
     onSuccess: async (role) => {
-      toast.success('Đã lưu thông tin vai trò.');
+      toast.success(
+        intl.formatMessage({ id: 'permissions.roles.toasts.saved' }),
+      );
       setDialogOpen(false);
       if (role.id) setSelectedRoleId(role.id);
       await queryClient.invalidateQueries({
@@ -388,14 +417,18 @@ export function RolePermissionsPage() {
     },
     onError: (error) =>
       toast.error(
-        error instanceof Error ? error.message : 'Không thể lưu vai trò.',
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: 'permissions.roles.toasts.saveError' }),
       ),
   });
 
   const deleteRoleMutation = useMutation({
     mutationFn: (role: RoleSummary) => deleteRole(role.id),
     onSuccess: async () => {
-      toast.success('Đã xóa vai trò.');
+      toast.success(
+        intl.formatMessage({ id: 'permissions.roles.toasts.deleted' }),
+      );
       setDeletingRole(null);
       setSelectedRoleId('');
       await queryClient.invalidateQueries({
@@ -404,7 +437,9 @@ export function RolePermissionsPage() {
     },
     onError: (error) =>
       toast.error(
-        error instanceof Error ? error.message : 'Không thể xóa vai trò.',
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: 'permissions.roles.toasts.deleteError' }),
       ),
   });
 
@@ -415,7 +450,7 @@ export function RolePermissionsPage() {
 
   const pageHeader = (
     <PageHeader
-      title="Quản lý phân quyền"
+      title={intl.formatMessage({ id: 'permissions.page.title' })}
       icon={ShieldCheck}
       className="shrink-0"
     />
@@ -423,7 +458,10 @@ export function RolePermissionsPage() {
 
   if (workspaceQuery.isPending) {
     return (
-      <PageLoading label="Đang tải cấu hình phân quyền..." className="h-full" />
+      <PageLoading
+        label={intl.formatMessage({ id: 'permissions.page.loading' })}
+        className="h-full"
+      />
     );
   }
 
@@ -434,7 +472,7 @@ export function RolePermissionsPage() {
         <div className="flex flex-1 items-center justify-center">
           {workspaceQuery.error instanceof Error
             ? workspaceQuery.error.message
-            : 'Không thể tải cấu hình phân quyền.'}
+            : intl.formatMessage({ id: 'permissions.page.loadError' })}
         </div>
       </div>
     );
@@ -445,7 +483,7 @@ export function RolePermissionsPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 text-sm text-muted-foreground lg:p-5">
         {pageHeader}
         <div className="flex flex-1 items-center justify-center">
-          Chưa có vai trò nào trong tenant.
+          {intl.formatMessage({ id: 'permissions.page.empty' })}
         </div>
       </div>
     );
@@ -458,7 +496,9 @@ export function RolePermissionsPage() {
         <Card className="max-h-[220px] w-full max-w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
             <div className="flex w-full items-center justify-between gap-2">
-              <CardTitle className="text-[15px]">Vai trò</CardTitle>
+              <CardTitle className="text-[15px]">
+                {intl.formatMessage({ id: 'permissions.roles.listTitle' })}
+              </CardTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -466,13 +506,17 @@ export function RolePermissionsPage() {
                     variant="outline"
                     mode="icon"
                     size="sm"
-                    aria-label="Thêm vai trò"
+                    aria-label={intl.formatMessage({
+                      id: 'permissions.roles.add',
+                    })}
                     onClick={openCreateRole}
                   >
                     <Plus className="size-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent variant="light">Thêm vai trò</TooltipContent>
+                <TooltipContent variant="light">
+                  {intl.formatMessage({ id: 'permissions.roles.add' })}
+                </TooltipContent>
               </Tooltip>
             </div>
           </CardHeader>
@@ -491,7 +535,9 @@ export function RolePermissionsPage() {
                   if (
                     role.id === activeRoleId ||
                     confirmLeave(
-                      'Bạn có thay đổi quyền chưa lưu. Bạn vẫn muốn chuyển vai trò?',
+                      intl.formatMessage({
+                        id: 'permissions.roles.switchWithUnsavedChanges',
+                      }),
                     )
                   ) {
                     setSelectedRoleId(role.id);
@@ -531,10 +577,16 @@ export function RolePermissionsPage() {
             <CardHeading>
               <div className="flex flex-wrap items-center gap-2">
                 <CardTitle className="text-[18px]">
-                  Phân quyền: {selectedRole.name}
+                  {intl.formatMessage(
+                    { id: 'permissions.roles.permissionHeading' },
+                    { role: selectedRole.name },
+                  )}
                 </CardTitle>
                 <Badge variant="primary" appearance="light" size="sm">
-                  {selectedPermissions}/{totalPermissions} quyền
+                  {intl.formatMessage(
+                    { id: 'permissions.roles.permissionCount' },
+                    { selected: selectedPermissions, total: totalPermissions },
+                  )}
                 </Badge>
               </div>
             </CardHeading>
@@ -545,13 +597,15 @@ export function RolePermissionsPage() {
                   disabled={selectedRoleIsSystem}
                   title={
                     selectedRoleIsSystem
-                      ? 'Vai trò hệ thống chỉ được cập nhật bằng phiên bản hệ thống'
-                      : 'Chỉnh sửa vai trò'
+                      ? intl.formatMessage({
+                          id: 'permissions.roles.systemEditDisabled',
+                        })
+                      : intl.formatMessage({ id: 'permissions.roles.edit' })
                   }
                   onClick={() => openRoleDialog(selectedRole)}
                 >
                   <Pencil />
-                  Chỉnh sửa vai trò
+                  {intl.formatMessage({ id: 'permissions.roles.edit' })}
                 </Button>
                 <Button
                   variant="outline"
@@ -563,15 +617,19 @@ export function RolePermissionsPage() {
                   }
                   title={
                     selectedRole.isSystem
-                      ? 'Không thể xóa vai trò hệ thống'
+                      ? intl.formatMessage({
+                          id: 'permissions.roles.systemDeleteDisabled',
+                        })
                       : selectedRole.userCount > 0
-                        ? 'Không thể xóa vai trò đang được gán cho người dùng'
-                        : 'Xóa vai trò'
+                        ? intl.formatMessage({
+                            id: 'permissions.roles.assignedDeleteDisabled',
+                          })
+                        : intl.formatMessage({ id: 'permissions.roles.delete' })
                   }
                   onClick={() => setDeletingRole(selectedRole)}
                 >
                   <Trash2 />
-                  Xóa vai trò
+                  {intl.formatMessage({ id: 'permissions.roles.delete' })}
                 </Button>
               </div>
             </CardToolbar>
@@ -579,8 +637,7 @@ export function RolePermissionsPage() {
 
           {selectedRoleIsSystem ? (
             <div className="mx-5 mb-4 rounded-md border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-              Đây là vai trò hệ thống dùng chung. Tên và quyền được quản lý bởi
-              phiên bản hệ thống, không chỉnh sửa riêng theo tenant.
+              {intl.formatMessage({ id: 'permissions.roles.systemNotice' })}
             </div>
           ) : null}
 
@@ -588,7 +645,9 @@ export function RolePermissionsPage() {
             <ScrollArea className="h-full w-full max-w-full min-w-0">
               <div className="min-w-[752px]">
                 <div className="sticky top-0 z-10 grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] border-b bg-muted text-[12px] font-semibold text-secondary-foreground">
-                  <div className="border-r px-5 py-3">Module</div>
+                  <div className="border-r px-5 py-3">
+                    {intl.formatMessage({ id: 'permissions.table.module' })}
+                  </div>
                   {PERMISSION_TAGS.map((tag) => (
                     <div key={tag} className="border-r px-3 py-3 text-center">
                       <TagHeader tag={tag} />
@@ -616,12 +675,21 @@ export function RolePermissionsPage() {
               {changeCount > 0 ? (
                 <>
                   <AlertTriangle className="size-4 text-admin-amber-dark" />
-                  <span>{changeCount} thay đổi chưa lưu</span>
+                  <span>
+                    {intl.formatMessage(
+                      { id: 'permissions.roles.changes.unsaved' },
+                      { count: changeCount },
+                    )}
+                  </span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="size-4 text-admin-success-text" />
-                  <span>Không có thay đổi</span>
+                  <span>
+                    {intl.formatMessage({
+                      id: 'permissions.roles.changes.none',
+                    })}
+                  </span>
                 </>
               )}
             </div>
@@ -632,17 +700,19 @@ export function RolePermissionsPage() {
                 onClick={handleReset}
               >
                 <RotateCcw />
-                Khôi phục
+                {intl.formatMessage({ id: 'permissions.roles.reset' })}
               </Button>
               <Button
                 variant="primary"
                 disabled={changeCount === 0 || selectedRoleIsSystem}
                 loading={savePermissionsMutation.isPending}
-                loadingText="Đang lưu..."
+                loadingText={intl.formatMessage({
+                  id: 'permissions.roles.saveLoading',
+                })}
                 onClick={() => savePermissionsMutation.mutate()}
               >
                 <Save />
-                Lưu thay đổi
+                {intl.formatMessage({ id: 'permissions.roles.saveChanges' })}
               </Button>
             </div>
           </CardFooter>
@@ -654,7 +724,11 @@ export function RolePermissionsPage() {
         onOpenChange={setDialogOpen}
         form={roleForm}
         onSubmit={handleSaveRole}
-        title={dialogRole?.id ? 'Chỉnh sửa vai trò' : 'Thêm vai trò'}
+        title={intl.formatMessage({
+          id: dialogRole?.id
+            ? 'permissions.roles.dialog.editTitle'
+            : 'permissions.roles.dialog.createTitle',
+        })}
         isCreating={!dialogRole?.id}
         isSaving={saveRoleMutation.isPending}
       />
@@ -686,6 +760,8 @@ function ModulePermissionSection({
   onToggle,
   onTogglePermission,
 }: ModulePermissionSectionProps) {
+  const intl = useIntl();
+
   return (
     <div className="border-b">
       <div className="grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] bg-background hover:bg-field">
@@ -693,7 +769,11 @@ function ModulePermissionSection({
           <button
             type="button"
             className="flex size-7 shrink-0 items-center justify-center rounded-md border bg-background hover:bg-field"
-            aria-label={expanded ? 'Thu gọn module' : 'Mở module'}
+            aria-label={
+              expanded
+                ? intl.formatMessage({ id: 'permissions.modules.collapse' })
+                : intl.formatMessage({ id: 'permissions.modules.expand' })
+            }
             onClick={onToggle}
           >
             {expanded ? (
@@ -741,6 +821,7 @@ function ModulePermissionSection({
 }
 
 function TagHeader({ tag }: { tag: PermissionTag }) {
+  const intl = useIntl();
   const meta = tagMeta[tag];
   const Icon = meta.icon;
 
@@ -754,7 +835,7 @@ function TagHeader({ tag }: { tag: PermissionTag }) {
       >
         <Icon className="size-3.5" />
       </span>
-      <span>{meta.label}</span>
+      <span>{intl.formatMessage({ id: meta.messageId })}</span>
     </div>
   );
 }
@@ -775,11 +856,12 @@ function IconWithTooltip({
 }
 
 function PermissionTagIcon({ tag }: { tag: PermissionTag }) {
+  const intl = useIntl();
   const meta = tagMeta[tag];
   const Icon = meta.icon;
 
   return (
-    <IconWithTooltip label={meta.label}>
+    <IconWithTooltip label={intl.formatMessage({ id: meta.messageId })}>
       <span
         className={cn(
           'inline-flex size-6 items-center justify-center rounded-md border',
@@ -793,8 +875,12 @@ function PermissionTagIcon({ tag }: { tag: PermissionTag }) {
 }
 
 function SensitiveIcon() {
+  const intl = useIntl();
+
   return (
-    <IconWithTooltip label="Nhạy cảm">
+    <IconWithTooltip
+      label={intl.formatMessage({ id: 'permissions.tags.sensitive' })}
+    >
       <span className="inline-flex size-6 items-center justify-center rounded-md border border-admin-amber-border bg-admin-amber-bg text-admin-amber-dark">
         <AlertTriangle className="size-3.5" />
       </span>
@@ -809,12 +895,13 @@ function SummaryStatus({
   state: SummaryState;
   tag: PermissionTag;
 }) {
+  const intl = useIntl();
   const meta = tagMeta[tag];
 
   if (state === 'na') {
     return (
       <Badge variant="secondary" appearance="light" size="sm">
-        N/A
+        {intl.formatMessage({ id: 'permissions.tags.notApplicable' })}
       </Badge>
     );
   }
@@ -844,6 +931,7 @@ function PermissionGroupCard({
   disabled,
   onTogglePermission,
 }: PermissionGroupCardProps) {
+  const intl = useIntl();
   const selectedCount = group.permissions.filter(
     (permission) => permission.selected,
   ).length;
@@ -857,7 +945,10 @@ function PermissionGroupCard({
         <div>
           <div className="font-semibold">{group.name}</div>
           <div className="text-xs text-muted-foreground">
-            {selectedCount}/{group.permissions.length} quyền đang bật
+            {intl.formatMessage(
+              { id: 'permissions.groups.enabledCount' },
+              { selected: selectedCount, total: group.permissions.length },
+            )}
           </div>
         </div>
         {hasSensitive && <SensitiveIcon />}
@@ -927,25 +1018,37 @@ function RoleDeleteDialog({
   onClose,
   onConfirm,
 }: RoleDeleteDialogProps) {
+  const intl = useIntl();
+
   return (
     <AlertDialog open={!!role} onOpenChange={(open) => !open && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Xóa vai trò?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {intl.formatMessage({ id: 'permissions.roles.deleteDialog.title' })}
+          </AlertDialogTitle>
           <AlertDialogDescription>
-            Vai trò <strong>{role?.name}</strong> và các quyền được gán cho vai
-            trò này sẽ bị xóa. Hành động không thể hoàn tác.
+            <FormattedMessage
+              id="permissions.roles.deleteDialog.description"
+              values={{ role: <strong>{role?.name}</strong> }}
+            />
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Hủy</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting}>
+            {intl.formatMessage({ id: 'common.actions.cancel' })}
+          </AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             loading={isDeleting}
-            loadingText="Đang xóa..."
+            loadingText={intl.formatMessage({
+              id: 'permissions.roles.deleteDialog.loading',
+            })}
             onClick={onConfirm}
           >
-            Xóa vai trò
+            {intl.formatMessage({
+              id: 'permissions.roles.deleteDialog.confirm',
+            })}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

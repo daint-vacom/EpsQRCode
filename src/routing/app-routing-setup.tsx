@@ -1,6 +1,7 @@
 import { ROUTES } from '@/constants/routes';
 import { exampleRoutes } from '@/examples/example-routes';
 import { LoginPage } from '@/features/auth/pages/login-page';
+import { EpsAuthCallbackPage } from '@/features/eps/pages/eps-auth-callback-page';
 import { Layout1Page } from '@/pages/layout-1/page';
 import { Layout2Page } from '@/pages/layout-2/page';
 import { Layout3Page } from '@/pages/layout-3/page';
@@ -44,6 +45,7 @@ import { NotFoundPage } from '@/pages/not-found/page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
+import { MaterialGroupsPage } from '@/project/material-groups/pages/material-groups-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
@@ -95,6 +97,7 @@ export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<EpsAuthCallbackPage />} />
       <Route element={<Layout1 />}>
         <Route path="/layout-1" element={<Layout1Page />} />
         <Route path="/layout-1/dark-sidebar" element={<Layout1Page />} />
@@ -217,6 +220,10 @@ export function AppRoutingSetup() {
         <Route element={<ProjectMainLayout />}>
           <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_GROUPS}
+            element={<MaterialGroupsPage />}
+          />
           <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />
           <Route
             path={ROUTES.PROJECT.ROLE_PERMISSIONS}

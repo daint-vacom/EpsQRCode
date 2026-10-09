@@ -422,7 +422,7 @@ export function TenantSettingsFormDialog({
                 variant="primary"
                 form="tenantSettings-form"
                 loading={isSaving}
-                loadingText="Đang lưu..."
+                loadingText="Đang lưu"
               >
                 Lưu
               </Button>

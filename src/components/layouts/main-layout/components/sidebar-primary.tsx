@@ -48,9 +48,9 @@ export function SidebarPrimary() {
         aria-label="Trang chủ"
       >
         <img
-          src={toAbsoluteUrl('/media/app/android-chrome-512x512.png')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           alt=""
-          className="size-6 object-contain"
+          className="size-7 object-contain transition-transform duration-300 ease-out"
         />
       </Link>
 

@@ -208,7 +208,7 @@ export function RoleFormDialog({
             variant="primary"
             form="role-form"
             loading={isSaving}
-            loadingText="Đang lưu..."
+            loadingText="Đang lưu"
           >
             Lưu thông tin
           </Button>

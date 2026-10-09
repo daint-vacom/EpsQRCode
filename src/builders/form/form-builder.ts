@@ -211,7 +211,16 @@ function labelJsx(field: FormFieldSpec): string {
   const mark = field.required
     ? '<span className="text-destructive"> *</span>'
     : '';
-  return `${field.label}${mark}`;
+  const label = field.labelMessageId
+    ? `{intl.formatMessage({ id: ${str(field.labelMessageId)} })}`
+    : field.label;
+  return `${label}${mark}`;
+}
+
+function labelTextJsx(field: FormFieldSpec): string {
+  return field.labelMessageId
+    ? `{intl.formatMessage({ id: ${str(field.labelMessageId)} })}`
+    : field.label;
 }
 
 /** The control element(s) for a field (everything between label and message). */
@@ -311,7 +320,7 @@ function emitField(field: FormFieldSpec): string {
             field.kind === 'switch'
               ? `<FormItem ${itemProps(field, 'flex-row items-center gap-2.5')}>
   ${controlJsx(field)}
-  <FormLabel className="font-normal text-foreground">${field.label}</FormLabel>
+  <FormLabel className="font-normal text-foreground">${labelTextJsx(field)}</FormLabel>
 </FormItem>`
               : field.kind === 'image'
                 ? `<FormItem ${itemProps(field)}>
@@ -359,13 +368,15 @@ function emitImports(spec: FormSpec): string {
   formParts.sort();
 
   const dialogParts = ['Dialog', 'DialogContent'];
-  if (spec.description) dialogParts.push('DialogDescription');
+  if (spec.description || spec.descriptionMessageId)
+    dialogParts.push('DialogDescription');
   dialogParts.push('DialogFooter', 'DialogHeader', 'DialogTitle');
 
   const lines = [
     "import { useState, type KeyboardEvent } from 'react';",
     "import { zodResolver } from '@hookform/resolvers/zod';",
     "import { useForm } from 'react-hook-form';",
+    "import { useIntl } from 'react-intl';",
     "import type { UseFormProps, UseFormReturn } from 'react-hook-form';",
     "import { Button } from '@/components/ui/button';",
     "import { ConfirmDialog } from '@/components/ui/confirm-dialog';",
@@ -574,12 +585,23 @@ export function buildFormModule(input: FormSpec): string {
   const hasFieldModes = spec.fields.some(
     (field) => field.modes && field.modes.length < 2,
   );
+  const hasLocalizedFieldLabels = spec.fields.some(
+    (field) => field.labelMessageId,
+  );
 
   const fields = spec.fields.map(emitField).join('\n\n');
   const options = emitOptionConsts(spec.fields);
-  const description = spec.description
-    ? `\n            <DialogDescription>${spec.description}</DialogDescription>`
-    : '';
+  const description =
+    spec.description || spec.descriptionMessageId
+      ? `\n            <DialogDescription>${
+          spec.descriptionMessageId
+            ? `{intl.formatMessage({ id: ${str(spec.descriptionMessageId)} })}`
+            : spec.description
+        }</DialogDescription>`
+      : '';
+  const title = spec.titleMessageId
+    ? `intl.formatMessage({ id: ${str(spec.titleMessageId)} })`
+    : str(spec.title);
   const propOptionRows = emitPropOptionRows(propFields);
   const inputSelectPropOptionRows = emitInputSelectPropOptionRows(
     inputSelectPropFields,
@@ -661,7 +683,7 @@ export function ${formComponent}({
   onSubmit,
   id = '${lowerFirst(spec.entity)}-form',${formParamsExtra}
 }: ${formComponent}Props) {
-  return (
+${hasLocalizedFieldLabels ? '  const intl = useIntl();\n' : ''}  return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
@@ -694,6 +716,7 @@ export function ${dialogComponent}({
   isSaving = false,
   title,${dialogParamsExtra}
 }: ${dialogComponent}Props) {
+  const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
@@ -731,7 +754,7 @@ export function ${dialogComponent}({
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-          <DialogTitle>{title ?? ${str(spec.title)}}</DialogTitle>${description}
+          <DialogTitle>{title ?? ${title}}</DialogTitle>${description}
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -743,25 +766,25 @@ export function ${dialogComponent}({
         </div>
 
         <DialogFooter className="shrink-0 px-6 py-4">
-          <ShortcutTooltip label="Hủy" shortcut="Esc">
+          <ShortcutTooltip label={intl.formatMessage({ id: 'common.actions.cancel' })} shortcut="Esc">
             <Button
               type="button"
               variant="outline"
               onClick={() => requestClose(false)}
               disabled={isSaving}
             >
-              Hủy
+              {intl.formatMessage({ id: 'common.actions.cancel' })}
             </Button>
           </ShortcutTooltip>
-          <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+          <ShortcutTooltip label={intl.formatMessage({ id: 'common.actions.save' })} shortcut="Ctrl/Cmd + S">
             <Button
               type="submit"
               variant="primary"
               form="${lowerFirst(spec.entity)}-form"
               loading={isSaving}
-              loadingText="Đang lưu..."
+              loadingText={intl.formatMessage({ id: 'common.state.saving' })}
             >
-              Lưu
+              {intl.formatMessage({ id: 'common.actions.save' })}
             </Button>
           </ShortcutTooltip>
         </DialogFooter>
@@ -770,9 +793,9 @@ export function ${dialogComponent}({
       <ConfirmDialog
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
-        title="Đóng chỉnh sửa?"
-        description="Bạn có thay đổi chưa lưu. Nếu đóng, các thay đổi hiện tại sẽ bị mất."
-        confirmLabel="Đóng"
+        title={intl.formatMessage({ id: 'common.dialogs.closeWithUnsavedTitle' })}
+        description={intl.formatMessage({ id: 'common.dialogs.closeWithUnsavedDescription' })}
+        confirmLabel={intl.formatMessage({ id: 'common.actions.close' })}
         confirmVariant="destructive"
         onConfirm={confirmClose}
       />

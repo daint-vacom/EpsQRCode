@@ -23,6 +23,7 @@ import {
   TriangleAlert,
   Users,
 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useTenant } from '@/providers/tenant-provider';
@@ -95,6 +96,7 @@ import { EmployeeFilterBar } from '../table/employee.filters.generated';
 const employeeDefaultColumnVisibility = { account: false };
 
 export function EmployeesPage() {
+  const intl = useIntl();
   const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
@@ -569,20 +571,28 @@ export function EmployeesPage() {
                   value={filters.roleIds}
                   onChange={(value) => setFilter('roleIds', value)}
                   options={employeeRoleOptions.map(toEmployeeRoleFilterOption)}
-                  placeholder="Vai trò"
-                  searchPlaceholder="Tìm vai trò..."
+                  placeholder={intl.formatMessage({
+                    id: 'employees.fields.roles',
+                  })}
+                  searchPlaceholder={intl.formatMessage({
+                    id: 'employees.filters.searchRoles',
+                  })}
                   loading={employeeRoleOptionsQuery.isLoading}
                   maxChips={0}
                   size="md"
-                  ariaLabel="Lọc theo vai trò"
+                  ariaLabel={intl.formatMessage({
+                    id: 'employees.filters.rolesAriaLabel',
+                  })}
                   className="w-[200px] shrink-0"
                 />
                 <TagColumnFilter
                   value={filters.tagIds}
                   onChange={(value) => setFilter('tagIds', value)}
                   moduleCodes={['organization']}
-                  placeholder="Nhóm/danh mục"
-                  ariaLabel="Lọc theo nhóm hoặc danh mục"
+                  placeholder={intl.formatMessage({ id: 'common.fields.tags' })}
+                  ariaLabel={intl.formatMessage({
+                    id: 'employees.filters.tagsAriaLabel',
+                  })}
                   size="md"
                   className="w-[200px] shrink-0"
                 />

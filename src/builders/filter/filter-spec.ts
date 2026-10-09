@@ -14,14 +14,18 @@ const baseFieldSchema = z.object({
 const searchFieldSchema = baseFieldSchema.extend({
   type: z.literal('search'),
   placeholder: z.string().optional(),
+  placeholderMessageId: z.string().min(1).optional(),
   debounceMs: z.number().int().min(0).optional(),
 });
 
 const selectFieldSchema = baseFieldSchema.extend({
   type: z.literal('select'),
   label: z.string().optional(),
+  labelMessageId: z.string().min(1).optional(),
   placeholder: z.string().optional(),
+  placeholderMessageId: z.string().min(1).optional(),
   ariaLabel: z.string().optional(),
+  ariaLabelMessageId: z.string().min(1).optional(),
   optionsSource: optionsSourceSchema.default('static'),
   options: z.array(optionSchema).min(1).optional(),
 });

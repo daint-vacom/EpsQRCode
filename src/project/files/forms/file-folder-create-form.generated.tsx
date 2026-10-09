@@ -11,6 +11,7 @@ import { useState, type KeyboardEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
@@ -71,6 +72,7 @@ export function FileFolderCreateForm({
   onSubmit,
   id = 'fileFolderCreate-form',
 }: FileFolderCreateFormProps) {
+  const intl = useIntl();
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
@@ -81,14 +83,11 @@ export function FileFolderCreateForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Tên thư mục<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'files.fields.name' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Nhập tên thư mục"
-                    variant="md"
-                    {...field}
-                  />
+                  <Input variant="md" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -119,6 +118,7 @@ export function FileFolderCreateFormDialog({
   isSaving = false,
   title,
 }: FileFolderCreateFormDialogProps) {
+  const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
@@ -156,7 +156,10 @@ export function FileFolderCreateFormDialog({
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-            <DialogTitle>{title ?? 'Tạo thư mục'}</DialogTitle>
+            <DialogTitle>
+              {title ??
+                intl.formatMessage({ id: 'files.actions.createFolder' })}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -168,25 +171,31 @@ export function FileFolderCreateFormDialog({
           </div>
 
           <DialogFooter className="shrink-0 px-6 py-4">
-            <ShortcutTooltip label="Hủy" shortcut="Esc">
+            <ShortcutTooltip
+              label={intl.formatMessage({ id: 'common.actions.cancel' })}
+              shortcut="Esc"
+            >
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => requestClose(false)}
                 disabled={isSaving}
               >
-                Hủy
+                {intl.formatMessage({ id: 'common.actions.cancel' })}
               </Button>
             </ShortcutTooltip>
-            <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+            <ShortcutTooltip
+              label={intl.formatMessage({ id: 'common.actions.save' })}
+              shortcut="Ctrl/Cmd + S"
+            >
               <Button
                 type="submit"
                 variant="primary"
                 form="fileFolderCreate-form"
                 loading={isSaving}
-                loadingText="Đang lưu..."
+                loadingText={intl.formatMessage({ id: 'common.state.saving' })}
               >
-                Lưu
+                {intl.formatMessage({ id: 'common.actions.save' })}
               </Button>
             </ShortcutTooltip>
           </DialogFooter>
@@ -195,9 +204,13 @@ export function FileFolderCreateFormDialog({
       <ConfirmDialog
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
-        title="Đóng chỉnh sửa?"
-        description="Bạn có thay đổi chưa lưu. Nếu đóng, các thay đổi hiện tại sẽ bị mất."
-        confirmLabel="Đóng"
+        title={intl.formatMessage({
+          id: 'common.dialogs.closeWithUnsavedTitle',
+        })}
+        description={intl.formatMessage({
+          id: 'common.dialogs.closeWithUnsavedDescription',
+        })}
+        confirmLabel={intl.formatMessage({ id: 'common.actions.close' })}
         confirmVariant="destructive"
         onConfirm={confirmClose}
       />

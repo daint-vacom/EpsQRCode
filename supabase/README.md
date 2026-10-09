@@ -35,6 +35,15 @@ Chạy migration theo thứ tự timestamp bằng Supabase CLI trên project ph�
 được cấu hình rõ ràng. Không chạy migration lên project production hoặc project
 khách hàng từ repository này.
 
+## Danh mục nhóm vật tư
+
+`material_groups` là danh mục dùng chung toàn hệ thống EPS, không có `tenant_id`.
+Mã nhóm duy nhất, không phân biệt chữ hoa/thường; ID UUID do database tự sinh.
+RLS cấp CRUD cho cả `anon` và `authenticated` để phục vụ giai đoạn phát triển
+frontend bằng dữ liệu thử nghiệm. Mọi người biết URL và publishable/anon key đều
+có thể đọc/ghi danh mục này; không dùng policy này với dữ liệu thật hoặc project
+production. Khi có backend, cần chuyển quyền ghi sang danh tính đã xác thực.
+
 ## Tenant, tài khoản và quyền
 
 - `auth.users` là identity đăng nhập toàn cục. `user_profiles` lưu hồ sơ dùng

@@ -50,6 +50,8 @@ const itemLabelGap = z.enum(FORM_ITEM_LABEL_GAPS).optional();
 const base = {
   name: fieldName,
   label: z.string().min(1),
+  /** Optional react-intl message ID used instead of the literal label. */
+  labelMessageId: z.string().min(1).optional(),
   width,
   layout: itemLayout,
   labelWidth: itemLabelWidth,
@@ -119,7 +121,11 @@ export const formSpecSchema = z
     valuesType: identifierSchema,
     /** Dialog title + optional description (Vietnamese). */
     title: z.string().min(1),
+    /** Optional react-intl message ID used instead of the literal title. */
+    titleMessageId: z.string().min(1).optional(),
     description: z.string().optional(),
+    /** Optional react-intl message ID used instead of the literal description. */
+    descriptionMessageId: z.string().min(1).optional(),
     /** Component name; defaults to `<Entity>FormDialog`. */
     componentName: identifierSchema.optional(),
     /** Spec path recorded in the provenance banner. */

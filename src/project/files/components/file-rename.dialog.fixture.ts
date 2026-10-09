@@ -17,7 +17,7 @@ const spec = {
       variant: 'primary',
       icon: 'Check',
       loadingProp: 'isSaving',
-      loadingText: 'Đang lưu...',
+      loadingText: 'Đang lưu',
       disabledProp: 'canConfirm',
       disabledWhen: 'falsy',
     },

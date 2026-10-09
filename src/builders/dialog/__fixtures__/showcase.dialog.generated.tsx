@@ -53,7 +53,7 @@ export function ShowcaseDialog({
             variant="primary"
             onClick={onSubmit}
             loading={isSaving}
-            loadingText="Đang lưu..."
+            loadingText="Đang lưu"
           >
             <Check />
             Lưu

@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Database, ListTree, Save, Trash2, Users } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useIntl, type IntlShape } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PROJECT_ENTITY_ORDER } from '@/config/project-menu.config';
@@ -14,13 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PageLoading } from '@/components/ui/loading';
 import { PageHeader } from '@/components/ui/page-header';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   loadCustomFields,
   saveCustomFields,
@@ -34,7 +28,6 @@ import {
   type CustomFieldsFormValues,
 } from '../data-configuration/forms/custom-fields-editor';
 import {
-  CUSTOM_FIELD_ENTITY_META,
   CUSTOM_FIELD_ENTITY_TYPES,
   type CustomFieldEntityType,
   type CustomFieldOptionInput,
@@ -68,25 +61,36 @@ function normalizeFieldRows(fields: CustomFieldEditorRow[]) {
   }));
 }
 
-function validateFieldRows(fields: CustomFieldEditorRow[]) {
+function validateFieldRows(fields: CustomFieldEditorRow[], intl: IntlShape) {
   const normalized = normalizeFieldRows(fields);
   const keys = new Set<string>();
 
   for (const field of normalized) {
     if (keys.has(field.key)) {
-      throw new Error(`Mã trường "${field.key}" đang bị trùng.`);
+      throw new Error(
+        intl.formatMessage(
+          { id: 'customFields.errors.duplicateKey' },
+          { key: field.key },
+        ),
+      );
     }
     keys.add(field.key);
 
     if (field.fieldType !== 'select') continue;
     if (field.options.length === 0) {
       throw new Error(
-        `Trường "${field.label}" cần ít nhất một giá trị lựa chọn.`,
+        intl.formatMessage(
+          { id: 'customFields.errors.selectNeedsOption' },
+          { field: field.label },
+        ),
       );
     }
     if (field.options.some((option) => !option.value || !option.label)) {
       throw new Error(
-        `Vui lòng nhập đầy đủ danh sách giá trị của "${field.label}".`,
+        intl.formatMessage(
+          { id: 'customFields.errors.optionIncomplete' },
+          { field: field.label },
+        ),
       );
     }
     if (
@@ -94,7 +98,10 @@ function validateFieldRows(fields: CustomFieldEditorRow[]) {
       field.options.length
     ) {
       throw new Error(
-        `Giá trị lựa chọn của "${field.label}" không được trùng nhau.`,
+        intl.formatMessage(
+          { id: 'customFields.errors.duplicateOptionValue' },
+          { field: field.label },
+        ),
       );
     }
   }
@@ -103,6 +110,7 @@ function validateFieldRows(fields: CustomFieldEditorRow[]) {
 }
 
 export function DataConfigurationPage() {
+  const intl = useIntl();
   const { tenantId } = useTenant();
   const { hasPermission } = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -130,7 +138,10 @@ export function DataConfigurationPage() {
   const fieldsQuery = useQuery({
     queryKey: ['project', 'custom-fields', tenantId, selectedEntity],
     queryFn: () => {
-      if (!tenantId) throw new Error('Chưa xác định tổ chức hiện tại.');
+      if (!tenantId)
+        throw new Error(
+          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
+        );
       return loadCustomFields(tenantId, selectedEntity);
     },
     enabled: Boolean(tenantId && canView),
@@ -150,20 +161,24 @@ export function DataConfigurationPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!tenantId) throw new Error('Chưa xác định tổ chức hiện tại.');
+      if (!tenantId)
+        throw new Error(
+          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
+        );
       const values = editorForm.getValues();
       const parsed = customFieldsEditorFormSchema.safeParse(values);
       if (!parsed.success) {
         throw new Error(
-          parsed.error.issues[0]?.message ?? 'Dữ liệu chưa hợp lệ.',
+          parsed.error.issues[0]?.message ??
+            intl.formatMessage({ id: 'dataConfiguration.page.invalidData' }),
         );
       }
-      const fields = validateFieldRows(parsed.data.fields);
+      const fields = validateFieldRows(parsed.data.fields, intl);
       return saveCustomFields(tenantId, selectedEntity, fields);
     },
     onSuccess: async () => {
       editorForm.reset(editorForm.getValues());
-      toast.success('Đã lưu cấu hình dữ liệu.');
+      toast.success(intl.formatMessage({ id: 'dataConfiguration.page.saved' }));
       await invalidateFields();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -211,7 +226,12 @@ export function DataConfigurationPage() {
 
   if (!tenantId) {
     return (
-      <PageLoading label="Đang tải tổ chức hiện tại..." className="h-full" />
+      <PageLoading
+        label={intl.formatMessage({
+          id: 'dataConfiguration.page.loadingTenant',
+        })}
+        className="h-full"
+      />
     );
   }
 
@@ -220,7 +240,9 @@ export function DataConfigurationPage() {
       <div className="flex h-full items-center justify-center p-4 lg:p-5">
         <Card className="flex max-w-lg flex-col items-center gap-3 p-10 text-center">
           <Database className="size-8 text-muted-foreground" />
-          <CardTitle>Bạn không có quyền xem cấu hình dữ liệu</CardTitle>
+          <CardTitle>
+            {intl.formatMessage({ id: 'dataConfiguration.page.accessDenied' })}
+          </CardTitle>
         </Card>
       </div>
     );
@@ -231,9 +253,11 @@ export function DataConfigurationPage() {
       <div className="flex h-full items-center justify-center p-4 lg:p-5">
         <Card className="flex max-w-lg flex-col items-center gap-3 p-10 text-center">
           <Database className="size-8 text-destructive" />
-          <CardTitle>Không tải được cấu hình dữ liệu</CardTitle>
+          <CardTitle>
+            {intl.formatMessage({ id: 'dataConfiguration.page.loadError' })}
+          </CardTitle>
           <Button variant="outline" onClick={() => fieldsQuery.refetch()}>
-            Thử lại
+            {intl.formatMessage({ id: 'dataConfiguration.page.retry' })}
           </Button>
         </Card>
       </div>
@@ -246,19 +270,20 @@ export function DataConfigurationPage() {
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
       <PageHeader
-        title="Cấu hình dữ liệu"
+        title={intl.formatMessage({ id: 'dataConfiguration.page.title' })}
         icon={ListTree}
         className="shrink-0"
       />
       <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
         <Card className="max-h-[220px] w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
-            <CardTitle className="text-[15px]">Đối tượng</CardTitle>
+            <CardTitle className="text-[15px]">
+              {intl.formatMessage({ id: 'dataConfiguration.page.subjectType' })}
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-3 sm:grid-cols-3 xl:flex xl:flex-col">
             {PROJECT_ENTITY_ORDER.map((entityType) => {
               const Icon = ENTITY_ICONS[entityType];
-              const meta = CUSTOM_FIELD_ENTITY_META[entityType];
               const isSelected = entityType === selectedEntity;
 
               return (
@@ -273,7 +298,9 @@ export function DataConfigurationPage() {
                   onClick={() => {
                     if (hasUnsavedChanges) {
                       toast.warning(
-                        'Vui lòng lưu thay đổi trước khi chuyển đối tượng.',
+                        intl.formatMessage({
+                          id: 'dataConfiguration.page.unsavedBeforeSubjectChange',
+                        }),
                       );
                       return;
                     }
@@ -290,7 +317,9 @@ export function DataConfigurationPage() {
                 >
                   <Icon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 truncate text-[13px] font-semibold">
-                    {meta.label}
+                    {intl.formatMessage({
+                      id: `customFields.subjects.${entityType}`,
+                    })}
                   </span>
                 </button>
               );
@@ -305,9 +334,14 @@ export function DataConfigurationPage() {
               createRow={createEmptyCustomFieldEditorRow}
               toolbarTitle={
                 <>
-                  Trường bổ sung:{' '}
+                  {intl.formatMessage({
+                    id: 'customFields.fields.sectionTitle',
+                  })}
+                  :{' '}
                   <span className="font-semibold text-primary">
-                    {CUSTOM_FIELD_ENTITY_META[selectedEntity].label}
+                    {intl.formatMessage({
+                      id: `customFields.subjects.${selectedEntity}`,
+                    })}
                   </span>
                 </>
               }
@@ -318,11 +352,13 @@ export function DataConfigurationPage() {
                     variant="primary"
                     disabled={!hasUnsavedChanges}
                     loading={saveMutation.isPending}
-                    loadingText="Đang lưu..."
+                    loadingText={intl.formatMessage({
+                      id: 'common.state.saving',
+                    })}
                     onClick={() => saveMutation.mutate()}
                   >
                     <Save className="size-4" />
-                    Lưu thay đổi
+                    {intl.formatMessage({ id: 'settings.actions.saveChanges' })}
                   </Button>
                 ) : null
               }
@@ -344,10 +380,14 @@ export function DataConfigurationPage() {
         }}
         dialogTitle={
           <>
-            Trường dữ liệu:{' '}
-            <span className="font-semibold text-primary">
-              {activeOptionsField?.label || 'Trường mới'}
-            </span>
+            {intl.formatMessage(
+              { id: 'customFields.options.fieldTitle' },
+              {
+                field:
+                  activeOptionsField?.label ||
+                  intl.formatMessage({ id: 'customFields.fields.newField' }),
+              },
+            )}
           </>
         }
         onCancel={closeOptionsDialog}
@@ -357,8 +397,12 @@ export function DataConfigurationPage() {
       >
         <div className="space-y-4">
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.25rem] items-center gap-2 text-sm font-medium text-foreground">
-            <span>Mã trường</span>
-            <span>Tên trường</span>
+            <span>
+              {intl.formatMessage({ id: 'customFields.options.value' })}
+            </span>
+            <span>
+              {intl.formatMessage({ id: 'customFields.options.label' })}
+            </span>
             <span aria-hidden="true" />
           </div>
           {optionDrafts.map((option, index) => (
@@ -368,7 +412,6 @@ export function DataConfigurationPage() {
             >
               <Input
                 value={option.value}
-                placeholder="Giá trị lưu"
                 disabled={!canEditActiveOptions}
                 onChange={(event) =>
                   setOptionDrafts((current) =>
@@ -382,7 +425,6 @@ export function DataConfigurationPage() {
               />
               <Input
                 value={option.label}
-                placeholder="Nhãn hiển thị"
                 disabled={!canEditActiveOptions}
                 onChange={(event) =>
                   setOptionDrafts((current) =>
@@ -400,7 +442,10 @@ export function DataConfigurationPage() {
                 appearance="ghost"
                 mode="icon"
                 size="sm"
-                aria-label={`Xóa lựa chọn ${index + 1}`}
+                aria-label={intl.formatMessage(
+                  { id: 'customFields.options.deleteAria' },
+                  { row: index + 1 },
+                )}
                 disabled={optionDrafts.length <= 1 || !canEditActiveOptions}
                 onClick={() =>
                   setOptionDrafts((current) =>
@@ -424,7 +469,7 @@ export function DataConfigurationPage() {
               ])
             }
           >
-            Thêm lựa chọn
+            {intl.formatMessage({ id: 'customFields.options.add' })}
           </Button>
         </div>
       </CustomFieldOptionsDialogShell>

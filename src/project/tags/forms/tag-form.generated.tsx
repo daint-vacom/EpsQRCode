@@ -12,6 +12,7 @@ import type { KeyboardEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { ColorInput } from '@/components/ui/color-input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -84,6 +85,7 @@ export function TagForm({
   groupIdOptions,
   autoFocusName = false,
 }: TagFormProps) {
+  const intl = useIntl();
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
@@ -94,12 +96,13 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Nhóm danh mục<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.items.fields.group' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Chọn nhóm danh mục" />
+                      <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -121,7 +124,8 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Tên danh mục<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.items.fields.name' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" autoFocus={autoFocusName} {...field} />
@@ -136,7 +140,9 @@ export function TagForm({
             name="description"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Mô tả</FormLabel>
+                <FormLabel>
+                  {intl.formatMessage({ id: 'common.fields.description' })}
+                </FormLabel>
                 <FormControl>
                   <Textarea rows={3} {...field} />
                 </FormControl>
@@ -151,7 +157,8 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-6">
                 <FormLabel>
-                  Mã danh mục<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.items.fields.code' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />
@@ -167,7 +174,8 @@ export function TagForm({
             render={({ field }) => (
               <FormItem className="md:col-span-6">
                 <FormLabel>
-                  Màu<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.items.fields.color' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <ColorInput
@@ -210,6 +218,7 @@ export function TagFormDialog({
   title,
   groupIdOptions,
 }: TagFormDialogProps) {
+  const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
@@ -247,7 +256,10 @@ export function TagFormDialog({
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-            <DialogTitle>{title ?? 'Danh mục'}</DialogTitle>
+            <DialogTitle>
+              {title ??
+                intl.formatMessage({ id: 'tags.dialogs.itemCreateTitle' })}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -261,25 +273,31 @@ export function TagFormDialog({
           </div>
 
           <DialogFooter className="shrink-0 px-6 py-4">
-            <ShortcutTooltip label="Hủy" shortcut="Esc">
+            <ShortcutTooltip
+              label={intl.formatMessage({ id: 'common.actions.cancel' })}
+              shortcut="Esc"
+            >
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => requestClose(false)}
                 disabled={isSaving}
               >
-                Hủy
+                {intl.formatMessage({ id: 'common.actions.cancel' })}
               </Button>
             </ShortcutTooltip>
-            <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+            <ShortcutTooltip
+              label={intl.formatMessage({ id: 'common.actions.save' })}
+              shortcut="Ctrl/Cmd + S"
+            >
               <Button
                 type="submit"
                 variant="primary"
                 form="tag-form"
                 loading={isSaving}
-                loadingText="Đang lưu..."
+                loadingText={intl.formatMessage({ id: 'common.state.saving' })}
               >
-                Lưu
+                {intl.formatMessage({ id: 'common.actions.save' })}
               </Button>
             </ShortcutTooltip>
           </DialogFooter>
@@ -288,9 +306,13 @@ export function TagFormDialog({
       <ConfirmDialog
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
-        title="Đóng chỉnh sửa?"
-        description="Bạn có thay đổi chưa lưu. Nếu đóng, các thay đổi hiện tại sẽ bị mất."
-        confirmLabel="Đóng"
+        title={intl.formatMessage({
+          id: 'common.dialogs.closeWithUnsavedTitle',
+        })}
+        description={intl.formatMessage({
+          id: 'common.dialogs.closeWithUnsavedDescription',
+        })}
+        confirmLabel={intl.formatMessage({ id: 'common.actions.close' })}
         confirmVariant="destructive"
         onConfirm={confirmClose}
       />

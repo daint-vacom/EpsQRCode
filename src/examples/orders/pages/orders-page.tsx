@@ -160,7 +160,7 @@ export function OrdersExamplePage() {
             size="sm"
             onClick={handleBulkStatus}
             loading={isBulkPending}
-            loadingText="Đang áp dụng..."
+            loadingText="Đang áp dụng"
           >
             Áp dụng
           </Button>

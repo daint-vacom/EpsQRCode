@@ -28,6 +28,7 @@ export const ROUTES = {
   PROJECT: {
     SETTINGS: '/settings',
     EMPLOYEES: '/employees',
+    MATERIAL_GROUPS: '/material-groups',
     ROLE_PERMISSIONS: '/permissions',
     DATA_CONFIGURATION: '/data-configuration',
     TAGS: '/tags',

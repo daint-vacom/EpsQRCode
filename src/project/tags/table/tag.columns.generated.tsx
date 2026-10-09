@@ -14,6 +14,7 @@ import {
   Tag as TagIcon,
   Trash2,
 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import {
   createColumnHelpers,
   DataGridActionButton,
@@ -89,13 +90,14 @@ export interface UseTagColumnsParams {
 }
 
 export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
+  const intl = useIntl();
   return useMemo(() => {
     const col = createColumnHelpers<Tag>();
 
     return [
       col.custom({
         id: 'name',
-        header: 'Danh mục',
+        header: intl.formatMessage({ id: 'tags.items.fields.name' }),
         headerClassName: 'min-w-[220px]',
         enableSorting: false,
         cell: (row) => (
@@ -110,7 +112,10 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
               <button
                 type="button"
                 className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label={`Thu gọn hoặc mở rộng nhóm ${row.name}`}
+                aria-label={intl.formatMessage(
+                  { id: 'tags.actions.expandGroup' },
+                  { group: row.name },
+                )}
                 aria-expanded={row.isExpanded}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -155,7 +160,7 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
       }),
       col.text({
         id: 'description',
-        header: 'Mô tả',
+        header: intl.formatMessage({ id: 'common.fields.description' }),
         get: (row) => row.description,
         headerClassName: 'min-w-[280px]',
         enableSorting: false,
@@ -174,24 +179,34 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
             {row.isGroup ? (
               <DataGridActionButton
                 action="other"
-                tooltip="Thêm danh mục"
+                tooltip={intl.formatMessage({ id: 'tags.items.add' })}
                 type="button"
                 size="sm"
-                aria-label={`Thêm danh mục cho nhóm ${row.name}`}
+                aria-label={intl.formatMessage(
+                  { id: 'tags.actions.addToGroup' },
+                  { group: row.name },
+                )}
                 onClick={() => params.onAddTag(row)}
               >
                 <Plus className="size-3.5" />
-                Thêm danh mục
+                {intl.formatMessage({ id: 'tags.items.add' })}
               </DataGridActionButton>
             ) : null}
             {!row.isSystem && params.canUpdateTag !== false ? (
               <DataGridActionButton
                 action="edit"
-                tooltip="Sửa"
+                tooltip={intl.formatMessage({ id: 'common.actions.edit' })}
                 type="button"
                 mode="icon"
                 size="sm"
-                aria-label={`Sửa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
+                aria-label={intl.formatMessage(
+                  {
+                    id: row.isGroup
+                      ? 'tags.actions.editGroupNamed'
+                      : 'tags.actions.editItemNamed',
+                  },
+                  { name: row.name },
+                )}
                 onClick={() => params.onEdit(row)}
               >
                 <Pencil className="size-4" />
@@ -200,11 +215,18 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
             {!row.isSystem && params.canDeleteTag !== false ? (
               <DataGridActionButton
                 action="delete"
-                tooltip="Xóa"
+                tooltip={intl.formatMessage({ id: 'common.actions.delete' })}
                 type="button"
                 mode="icon"
                 size="sm"
-                aria-label={`Xóa ${row.isGroup ? 'nhóm' : 'danh mục'} ${row.name}`}
+                aria-label={intl.formatMessage(
+                  {
+                    id: row.isGroup
+                      ? 'tags.actions.deleteGroupNamed'
+                      : 'tags.actions.deleteItemNamed',
+                  },
+                  { name: row.name },
+                )}
                 onClick={() => params.onDelete(row)}
               >
                 <Trash2 className="size-4" />
@@ -214,5 +236,5 @@ export function useTagColumns(params: UseTagColumnsParams): ColumnDef<Tag>[] {
         ),
       }),
     ];
-  }, [params]);
+  }, [intl, params]);
 }

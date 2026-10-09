@@ -25,7 +25,7 @@ describe('dialog-builder', () => {
           variant: 'primary',
           icon: 'Check',
           loadingProp: 'isSaving',
-          loadingText: 'Đang lưu...',
+          loadingText: 'Đang lưu',
         },
       ],
     });
@@ -43,7 +43,7 @@ describe('dialog-builder', () => {
     expect(source).toContain('{children}');
     expect(source).toContain('onConfirm: () => void;');
     expect(source).toContain('isSaving?: boolean;');
-    expect(source).toContain("loadingText='Đang lưu...'");
+    expect(source).toContain("loadingText='Đang lưu'");
     expect(source).toContain('<Check />');
   });
 
@@ -63,6 +63,37 @@ describe('dialog-builder', () => {
     expect(source).toContain('<DialogTitle>{dialogTitle}</DialogTitle>');
   });
 
+  it('localizes configured titles and footer actions', () => {
+    const source = buildDialogModule({
+      ...baseSpec,
+      titleMessageId: 'common.dialogs.title',
+      actions: [
+        {
+          name: 'cancel',
+          label: 'Cancel',
+          labelMessageId: 'common.actions.cancel',
+        },
+        {
+          name: 'confirm',
+          label: 'Save',
+          labelMessageId: 'common.actions.save',
+          loadingProp: 'isSaving',
+          loadingText: 'Saving',
+          loadingMessageId: 'common.state.saving',
+        },
+      ],
+    });
+
+    expect(source).toContain("import { useIntl } from 'react-intl';");
+    expect(source).toContain('const intl = useIntl();');
+    expect(source).toContain(
+      "<DialogTitle>{intl.formatMessage({ id: 'common.dialogs.title' })}</DialogTitle>",
+    );
+    expect(source).toContain(
+      "loadingText={intl.formatMessage({ id: 'common.state.saving' })}",
+    );
+  });
+
   it('rejects duplicate action names and loading text without a loading prop', () => {
     expect(() =>
       dialogSpecSchema.parse({
@@ -77,9 +108,7 @@ describe('dialog-builder', () => {
     expect(() =>
       dialogSpecSchema.parse({
         ...baseSpec,
-        actions: [
-          { name: 'confirm', label: 'Lưu', loadingText: 'Đang lưu...' },
-        ],
+        actions: [{ name: 'confirm', label: 'Lưu', loadingText: 'Đang lưu' }],
       }),
     ).toThrow(/loadingText cần có loadingProp/);
   });

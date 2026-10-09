@@ -135,7 +135,7 @@ export function EmployeeResetPasswordDialog({
             form="employee-reset-password-form"
             variant="primary"
             loading={isSaving}
-            loadingText="Đang đổi..."
+            loadingText="Đang đổi"
           >
             Đổi mật khẩu
           </Button>

@@ -123,6 +123,13 @@ type AuthRequestConfig = InternalAxiosRequestConfig & {
   _authRetry?: boolean;
 };
 
+export type ApiAuthMode = 'bearer' | 'cookie' | 'none';
+
+export interface ApiClientOptions {
+  authMode?: ApiAuthMode;
+  onUnauthorized?: () => void;
+}
+
 function isAuthTokenRequest(config: AuthRequestConfig | undefined): boolean {
   if (!config) return false;
 
@@ -136,6 +143,8 @@ function isAuthTokenRequest(config: AuthRequestConfig | undefined): boolean {
 async function handleResponseError(
   error: AxiosError<ApiErrorPayload>,
   instance: AxiosInstance,
+  authMode: ApiAuthMode,
+  clientOnUnauthorized?: () => void,
 ): Promise<never> {
   if (error.response?.status === 401) {
     const requestConfig = error.config as AuthRequestConfig | undefined;
@@ -143,6 +152,7 @@ async function handleResponseError(
     const currentRefreshToken = getRefreshToken();
 
     if (
+      authMode === 'bearer' &&
       !authTokenRequest &&
       requestConfig &&
       !requestConfig._authRetry &&
@@ -167,7 +177,11 @@ async function handleResponseError(
     }
 
     if (!authTokenRequest) {
-      onUnauthorized();
+      if (clientOnUnauthorized) {
+        clientOnUnauthorized();
+      } else if (authMode === 'bearer') {
+        onUnauthorized();
+      }
     }
   }
   if (axios.isCancel(error)) {
@@ -201,7 +215,9 @@ export function getConfiguredApiToken(): string | null {
 
 export function createApiClient(
   config: AxiosRequestConfig = {},
+  options: ApiClientOptions = {},
 ): AxiosInstance {
+  const authMode = options.authMode ?? 'bearer';
   const instance = axios.create({
     timeout: 30_000,
     ...config,
@@ -216,7 +232,7 @@ export function createApiClient(
         requestConfig.headers.set('Content-Type', 'application/json');
       }
 
-      const token = getToken();
+      const token = authMode === 'bearer' ? getToken() : null;
       if (token && !requestConfig.headers.has('Authorization')) {
         requestConfig.headers.set('Authorization', `Bearer ${token}`);
       }
@@ -227,7 +243,7 @@ export function createApiClient(
   instance.interceptors.response.use(
     (response: AxiosResponse) => response.data,
     (error: AxiosError<ApiErrorPayload>) =>
-      handleResponseError(error, instance),
+      handleResponseError(error, instance, authMode, options.onUnauthorized),
   );
 
   return instance;

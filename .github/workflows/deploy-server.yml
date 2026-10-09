@@ -67,7 +67,6 @@ jobs:
           VITE_SUPABASE_LOGIN_DOMAIN: ${{ vars.VITE_SUPABASE_LOGIN_DOMAIN || 'vacom.vn' }}
           VITE_USE_MOCK: ${{ vars.VITE_USE_MOCK || '0' }}
           VITE_APP_NAME: ${{ vars.VITE_APP_NAME || 'Admin Template' }}
-          VITE_DEFAULT_LOCALE: ${{ vars.VITE_DEFAULT_LOCALE || 'vi' }}
 
       - name: Build Docker image
         shell: bash

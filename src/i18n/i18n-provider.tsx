@@ -1,15 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { IntlProvider } from 'react-intl';
-import { env } from '@/config/env';
 import { setValidationLocale } from '@/lib/validation';
-import { DEFAULT_LOCALE, messagesByLocale, type Locale } from './config';
+import { DEFAULT_LOCALE, messagesByLocale } from './config';
 
-/**
- * Bọc app bằng react-intl. Hiện chỉ giữ locale ở state cục bộ; khi cần đổi
- * ngôn ngữ runtime, nâng `locale` lên ui.store và đọc từ đó.
- */
+/** Bọc ứng dụng bằng react-intl với catalog tiếng Việt. */
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale] = useState<Locale>(env.defaultLocale ?? DEFAULT_LOCALE);
+  const locale = DEFAULT_LOCALE;
 
   useEffect(() => {
     setValidationLocale(locale);

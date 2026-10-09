@@ -4,7 +4,7 @@
   "version": "9.4.13",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node tools/ensure-dev-cert.mjs && vite",
     "build": "tsc && vite build",
     "lint": "eslint src --fix",
     "lint:imports": "eslint --rule no-undef:error --max-warnings=0",

@@ -13,6 +13,7 @@ exports[`buildFormModule > matches the snapshot 1`] = `
 import { useState, type KeyboardEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -278,6 +279,7 @@ export function SupplierFormDialog({
   title,
   regionOptions,
 }: SupplierFormDialogProps) {
+  const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
@@ -328,25 +330,25 @@ export function SupplierFormDialog({
         </div>
 
         <DialogFooter className="shrink-0 px-6 py-4">
-          <ShortcutTooltip label="Hủy" shortcut="Esc">
+          <ShortcutTooltip label={intl.formatMessage({ id: 'common.actions.cancel' })} shortcut="Esc">
             <Button
               type="button"
               variant="outline"
               onClick={() => requestClose(false)}
               disabled={isSaving}
             >
-              Hủy
+              {intl.formatMessage({ id: 'common.actions.cancel' })}
             </Button>
           </ShortcutTooltip>
-          <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+          <ShortcutTooltip label={intl.formatMessage({ id: 'common.actions.save' })} shortcut="Ctrl/Cmd + S">
             <Button
               type="submit"
               variant="primary"
               form="supplier-form"
               loading={isSaving}
-              loadingText="Đang lưu..."
+              loadingText={intl.formatMessage({ id: 'common.state.saving' })}
             >
-              Lưu
+              {intl.formatMessage({ id: 'common.actions.save' })}
             </Button>
           </ShortcutTooltip>
         </DialogFooter>
@@ -355,9 +357,9 @@ export function SupplierFormDialog({
       <ConfirmDialog
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
-        title="Đóng chỉnh sửa?"
-        description="Bạn có thay đổi chưa lưu. Nếu đóng, các thay đổi hiện tại sẽ bị mất."
-        confirmLabel="Đóng"
+        title={intl.formatMessage({ id: 'common.dialogs.closeWithUnsavedTitle' })}
+        description={intl.formatMessage({ id: 'common.dialogs.closeWithUnsavedDescription' })}
+        confirmLabel={intl.formatMessage({ id: 'common.actions.close' })}
         confirmVariant="destructive"
         onConfirm={confirmClose}
       />

@@ -8,6 +8,7 @@ import type { KeyboardEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -67,6 +68,7 @@ export function TagGroupForm({
   onSubmit,
   id = 'tagGroup-form',
 }: TagGroupFormProps) {
+  const intl = useIntl();
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
@@ -77,7 +79,8 @@ export function TagGroupForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Mã nhóm<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.groups.fields.code' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />
@@ -93,7 +96,8 @@ export function TagGroupForm({
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  Tên nhóm<span className="text-destructive"> *</span>
+                  {intl.formatMessage({ id: 'tags.groups.fields.name' })}
+                  <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
                   <Input variant="md" {...field} />
@@ -108,7 +112,9 @@ export function TagGroupForm({
             name="description"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
-                <FormLabel>Mô tả</FormLabel>
+                <FormLabel>
+                  {intl.formatMessage({ id: 'common.fields.description' })}
+                </FormLabel>
                 <FormControl>
                   <Textarea rows={3} {...field} />
                 </FormControl>
@@ -139,6 +145,7 @@ export function TagGroupFormDialog({
   isSaving = false,
   title,
 }: TagGroupFormDialogProps) {
+  const intl = useIntl();
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
 
@@ -156,7 +163,9 @@ export function TagGroupFormDialog({
         onKeyDown={handleDialogKeyDown}
       >
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
-          <DialogTitle>{title ?? 'Nhóm danh mục'}</DialogTitle>
+          <DialogTitle>
+            {title ?? intl.formatMessage({ id: 'tags.groups.title' })}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
@@ -164,25 +173,31 @@ export function TagGroupFormDialog({
         </div>
 
         <DialogFooter className="shrink-0 px-6 py-4">
-          <ShortcutTooltip label="Hủy" shortcut="Esc">
+          <ShortcutTooltip
+            label={intl.formatMessage({ id: 'common.actions.cancel' })}
+            shortcut="Esc"
+          >
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSaving}
             >
-              Hủy
+              {intl.formatMessage({ id: 'common.actions.cancel' })}
             </Button>
           </ShortcutTooltip>
-          <ShortcutTooltip label="Lưu" shortcut="Ctrl/Cmd + S">
+          <ShortcutTooltip
+            label={intl.formatMessage({ id: 'common.actions.save' })}
+            shortcut="Ctrl/Cmd + S"
+          >
             <Button
               type="submit"
               variant="primary"
               form="tagGroup-form"
               loading={isSaving}
-              loadingText="Đang lưu..."
+              loadingText={intl.formatMessage({ id: 'common.state.saving' })}
             >
-              Lưu
+              {intl.formatMessage({ id: 'common.actions.save' })}
             </Button>
           </ShortcutTooltip>
         </DialogFooter>

@@ -58,7 +58,7 @@ export function FileRenameDialogShell({
             variant="primary"
             onClick={onConfirm}
             loading={isSaving}
-            loadingText="Đang lưu..."
+            loadingText="Đang lưu"
             disabled={!canConfirm}
           >
             <Check />

@@ -9,6 +9,7 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -71,6 +72,7 @@ type PendingDelete = {
 };
 
 export function TagsPage() {
+  const intl = useIntl();
   const { userId, hasPermission } = useUser();
   const { tenantId } = useTenant();
   const queryClient = useQueryClient();
@@ -78,7 +80,9 @@ export function TagsPage() {
     queryKey: ['project', 'tags', userId, tenantId],
     queryFn: () => {
       if (!userId || !tenantId) {
-        throw new Error('Chưa xác định tổ chức hiện tại.');
+        throw new Error(
+          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
+        );
       }
       return loadTagWorkspace(userId, tenantId);
     },
@@ -128,7 +132,10 @@ export function TagsPage() {
 
   const groupMutation = useMutation({
     mutationFn: async (values: TagGroupFormValues) => {
-      if (!workspace || !userId) throw new Error('Chưa xác định tenant.');
+      if (!workspace || !userId)
+        throw new Error(
+          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
+        );
       if (editingGroup) {
         return updateTagGroup(editingGroup.id, values);
       }
@@ -136,7 +143,11 @@ export function TagsPage() {
     },
     onSuccess: async () => {
       toast.success(
-        editingGroup ? 'Đã cập nhật nhóm danh mục.' : 'Đã tạo nhóm danh mục.',
+        intl.formatMessage({
+          id: editingGroup
+            ? 'tags.feedback.groupUpdated'
+            : 'tags.feedback.groupCreated',
+        }),
       );
       setGroupDialogOpen(false);
       await invalidateWorkspace();
@@ -152,13 +163,20 @@ export function TagsPage() {
       values: TagFormValues;
       tag: Tag | null;
     }) => {
-      if (!workspace || !userId) throw new Error('Chưa xác định tenant.');
+      if (!workspace || !userId)
+        throw new Error(
+          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
+        );
       if (tag) return updateTag(tag.id, values);
       return createTag(workspace.tenantId, userId, values);
     },
     onSuccess: async (_, variables) => {
       toast.success(
-        variables.tag ? 'Đã cập nhật danh mục.' : 'Đã tạo danh mục.',
+        intl.formatMessage({
+          id: variables.tag
+            ? 'tags.feedback.itemUpdated'
+            : 'tags.feedback.itemCreated',
+        }),
       );
       if (variables.tag) {
         setTagEditDialogOpen(false);
@@ -173,7 +191,7 @@ export function TagsPage() {
   const deleteGroupMutation = useMutation({
     mutationFn: deleteTagGroup,
     onSuccess: async () => {
-      toast.success('Đã xóa nhóm danh mục.');
+      toast.success(intl.formatMessage({ id: 'tags.feedback.groupDeleted' }));
       await invalidateWorkspace();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -182,7 +200,7 @@ export function TagsPage() {
   const deleteTagMutation = useMutation({
     mutationFn: deleteTag,
     onSuccess: async () => {
-      toast.success('Đã xóa danh mục.');
+      toast.success(intl.formatMessage({ id: 'tags.feedback.itemDeleted' }));
       await invalidateWorkspace();
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -211,13 +229,15 @@ export function TagsPage() {
         <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
           <TriangleAlert className="size-8 text-destructive" />
           <div>
-            <CardTitle>Không tải được hệ thống danh mục</CardTitle>
+            <CardTitle>
+              {intl.formatMessage({ id: 'tags.page.loadError' })}
+            </CardTitle>
             <CardDescription className="mt-1">
               {getApiErrorMessage(workspaceQuery.error)}
             </CardDescription>
           </div>
           <Button variant="outline" onClick={() => workspaceQuery.refetch()}>
-            Thử lại
+            {intl.formatMessage({ id: 'tags.page.retry' })}
           </Button>
         </Card>
       </div>
@@ -232,7 +252,9 @@ export function TagsPage() {
 
   function openEditGroup(group: TagGroup) {
     if (group.isSystem) {
-      toast.error('Không thể sửa hoặc xóa nhóm danh mục hệ thống.');
+      toast.error(
+        intl.formatMessage({ id: 'tags.errors.systemGroupReadOnly' }),
+      );
       return;
     }
     setEditingGroup(group);
@@ -265,11 +287,13 @@ export function TagsPage() {
 
   function requestDeleteGroup(group: TagGroup) {
     if (group.isSystem) {
-      toast.error('Không thể sửa hoặc xóa nhóm danh mục hệ thống.');
+      toast.error(
+        intl.formatMessage({ id: 'tags.errors.systemGroupReadOnly' }),
+      );
       return;
     }
     if (group.tagCount > 0) {
-      toast.error('Hãy xóa các danh mục trong nhóm trước khi xóa nhóm.');
+      toast.error(intl.formatMessage({ id: 'tags.errors.groupMustBeEmpty' }));
       return;
     }
     setPendingDelete({ kind: 'group', id: group.id, name: group.name });
@@ -277,12 +301,18 @@ export function TagsPage() {
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col gap-admin-page-section overflow-y-auto p-4 xl:overflow-hidden xl:p-5">
-      <PageHeader title="Quản lý danh mục" icon={Tags} className="shrink-0" />
+      <PageHeader
+        title={intl.formatMessage({ id: 'tags.page.title' })}
+        icon={Tags}
+        className="shrink-0"
+      />
       <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col gap-admin-page-section xl:flex-row xl:overflow-hidden">
         <Card className="max-h-[220px] w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
             <div className="flex w-full items-center justify-between gap-2">
-              <CardTitle className="text-[15px]">Nhóm danh mục</CardTitle>
+              <CardTitle className="text-[15px]">
+                {intl.formatMessage({ id: 'tags.groups.title' })}
+              </CardTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -290,20 +320,22 @@ export function TagsPage() {
                     variant="outline"
                     mode="icon"
                     size="sm"
-                    aria-label="Thêm nhóm danh mục"
+                    aria-label={intl.formatMessage({ id: 'tags.groups.add' })}
                     onClick={openCreateGroup}
                   >
                     <FolderPlus className="size-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Thêm nhóm danh mục</TooltipContent>
+                <TooltipContent>
+                  {intl.formatMessage({ id: 'tags.groups.add' })}
+                </TooltipContent>
               </Tooltip>
             </div>
           </CardHeader>
           <CardContent className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-3 sm:grid-cols-3 xl:flex xl:flex-col">
             {orderedGroups.length === 0 ? (
               <div className="flex min-h-20 items-center justify-center rounded-md border border-dashed px-3 text-center text-sm text-muted-foreground sm:col-span-3 xl:min-h-24">
-                Chưa có nhóm danh mục
+                {intl.formatMessage({ id: 'tags.groups.empty' })}
               </div>
             ) : (
               orderedGroups.map((group) => {
@@ -355,22 +387,30 @@ export function TagsPage() {
           isFetching={workspaceQuery.isFetching}
           emptyMessage={
             selectedGroup
-              ? `Nhóm "${selectedGroup.name}" chưa có danh mục`
-              : 'Chưa có nhóm danh mục'
+              ? intl.formatMessage(
+                  { id: 'tags.groups.emptyItems' },
+                  { group: selectedGroup.name },
+                )
+              : intl.formatMessage({ id: 'tags.groups.empty' })
           }
         >
           <Card className="min-h-0 w-full min-w-0 flex-1 overflow-hidden">
             <CardHeader className="justify-between">
               <CardTitle>
-                Danh sách danh mục
-                {selectedGroup ? (
-                  <span className="font-semibold text-primary">
-                    : {selectedGroup.name}
-                  </span>
-                ) : null}
+                {intl.formatMessage(
+                  {
+                    id: selectedGroup
+                      ? 'tags.items.listTitleForGroup'
+                      : 'tags.items.listTitle',
+                  },
+                  selectedGroup ? { group: selectedGroup.name } : undefined,
+                )}
               </CardTitle>
               <CardToolbar>
-                <ShortcutTooltip label="Thêm danh mục" shortcut="Alt + N">
+                <ShortcutTooltip
+                  label={intl.formatMessage({ id: 'tags.items.add' })}
+                  shortcut="Alt + N"
+                >
                   <Button
                     type="button"
                     variant="primary"
@@ -379,7 +419,7 @@ export function TagsPage() {
                     data-shortcut-action="create"
                   >
                     <Plus className="size-4" />
-                    Thêm danh mục
+                    {intl.formatMessage({ id: 'tags.items.add' })}
                   </Button>
                 </ShortcutTooltip>
                 {selectedGroup && !selectedGroup.isSystem ? (
@@ -392,10 +432,12 @@ export function TagsPage() {
                           onClick={() => openEditGroup(selectedGroup)}
                         >
                           <Pencil className="size-4" />
-                          Chỉnh sửa
+                          {intl.formatMessage({ id: 'common.actions.edit' })}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Chỉnh sửa nhóm danh mục</TooltipContent>
+                      <TooltipContent>
+                        {intl.formatMessage({ id: 'tags.groups.edit' })}
+                      </TooltipContent>
                     </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -403,13 +445,17 @@ export function TagsPage() {
                           type="button"
                           variant="outline"
                           mode="icon"
-                          aria-label="Xóa nhóm danh mục"
+                          aria-label={intl.formatMessage({
+                            id: 'tags.groups.delete',
+                          })}
                           onClick={() => requestDeleteGroup(selectedGroup)}
                         >
                           <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Xóa nhóm danh mục</TooltipContent>
+                      <TooltipContent>
+                        {intl.formatMessage({ id: 'tags.groups.delete' })}
+                      </TooltipContent>
                     </Tooltip>
                   </>
                 ) : null}
@@ -431,7 +477,11 @@ export function TagsPage() {
         form={groupForm}
         onSubmit={(values) => groupMutation.mutate(values)}
         isSaving={groupMutation.isPending}
-        title={editingGroup ? 'Sửa nhóm danh mục' : 'Thêm nhóm danh mục'}
+        title={intl.formatMessage({
+          id: editingGroup
+            ? 'tags.dialogs.groupEditTitle'
+            : 'tags.dialogs.groupCreateTitle',
+        })}
       />
       <TagFormDialog
         open={tagCreateDialogOpen}
@@ -440,7 +490,7 @@ export function TagsPage() {
         form={tagCreateForm}
         onSubmit={(values) => tagMutation.mutate({ values, tag: null })}
         isSaving={tagMutation.isPending}
-        title="Thêm danh mục"
+        title={intl.formatMessage({ id: 'tags.dialogs.itemCreateTitle' })}
         groupIdOptions={tagGroupOptions.map((group) => ({
           value: group.id,
           label: group.name,
@@ -457,7 +507,7 @@ export function TagsPage() {
           }
         }}
         isSaving={tagMutation.isPending}
-        title="Sửa danh mục"
+        title={intl.formatMessage({ id: 'tags.dialogs.itemEditTitle' })}
         groupIdOptions={tagGroupOptions.map((group) => ({
           value: group.id,
           label: group.name,
@@ -470,19 +520,28 @@ export function TagsPage() {
         }}
         title={
           pendingDelete?.kind === 'group'
-            ? 'Xóa nhóm danh mục?'
-            : 'Xóa danh mục?'
+            ? intl.formatMessage({ id: 'tags.dialogs.deleteGroupTitle' })
+            : intl.formatMessage({ id: 'tags.dialogs.deleteItemTitle' })
         }
         description={
           pendingDelete
-            ? `Bạn có chắc muốn xóa ${
-                pendingDelete.kind === 'group' ? 'nhóm danh mục' : 'danh mục'
-              } "${pendingDelete.name}"?`
+            ? intl.formatMessage(
+                {
+                  id:
+                    pendingDelete.kind === 'group'
+                      ? 'tags.dialogs.deleteGroupDescription'
+                      : 'tags.dialogs.deleteItemDescription',
+                },
+                { name: pendingDelete.name },
+              )
             : ''
         }
-        confirmLabel={
-          pendingDelete?.kind === 'group' ? 'Xóa nhóm danh mục' : 'Xóa danh mục'
-        }
+        confirmLabel={intl.formatMessage({
+          id:
+            pendingDelete?.kind === 'group'
+              ? 'tags.dialogs.deleteGroupConfirm'
+              : 'tags.dialogs.deleteItemConfirm',
+        })}
         confirmVariant="destructive"
         onConfirm={() => {
           if (!pendingDelete) return;

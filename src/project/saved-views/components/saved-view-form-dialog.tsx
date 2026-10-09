@@ -143,7 +143,7 @@ function SavedViewFormDialog({
               variant="primary"
               form="saved-view-form"
               loading={isSaving}
-              loadingText="Đang lưu..."
+              loadingText="Đang lưu"
             >
               Lưu
             </Button>

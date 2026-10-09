@@ -735,7 +735,7 @@ export function EmployeeFormDialog({
                 variant="primary"
                 onClick={handlePrimaryAction}
                 loading={isSaving}
-                loadingText="Đang lưu..."
+                loadingText="Đang lưu"
                 disabled={isSaving}
               >
                 <Check />

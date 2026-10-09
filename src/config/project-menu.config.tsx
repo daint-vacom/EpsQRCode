@@ -2,6 +2,7 @@ import { ROUTES } from '@/constants/routes';
 import {
   FolderOpen,
   ListTree,
+  PackageOpen,
   Settings,
   ShieldCheck,
   Tags,
@@ -12,12 +13,17 @@ import type { MenuGroupConfig } from './menu.types';
 /** Shared administration surfaces for the materials-management application. */
 export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   {
-    title: 'Quản trị tổ chức',
+    title: 'Quản lý vật tư',
     items: [
       {
         label: 'Nhân viên',
         icon: Users,
         path: ROUTES.PROJECT.EMPLOYEES,
+      },
+      {
+        label: 'Nhóm vật tư',
+        icon: PackageOpen,
+        path: ROUTES.PROJECT.MATERIAL_GROUPS,
       },
       { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
       {

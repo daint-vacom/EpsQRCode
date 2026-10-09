@@ -379,7 +379,7 @@ export function SupplierFormDialog({
                 variant="primary"
                 form="supplier-form"
                 loading={isSaving}
-                loadingText="Đang lưu..."
+                loadingText="Đang lưu"
               >
                 Lưu
               </Button>

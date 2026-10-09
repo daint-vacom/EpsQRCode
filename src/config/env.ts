@@ -49,7 +49,6 @@ export const env = {
   supabaseEnabled: Boolean(supabaseUrl && supabaseAnonKey),
   useMock: toBool(import.meta.env.VITE_USE_MOCK, true),
   appName: import.meta.env.VITE_APP_NAME ?? 'Admin Template',
-  defaultLocale: (import.meta.env.VITE_DEFAULT_LOCALE ?? 'vi') as 'vi' | 'en',
 } as const;
 
 export type AppEnv = typeof env;

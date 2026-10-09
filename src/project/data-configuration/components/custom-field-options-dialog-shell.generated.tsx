@@ -5,6 +5,7 @@
  */
 import { type ReactNode } from 'react';
 import { Save } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function CustomFieldOptionsDialogShell({
   isSaving = false,
   canSave = false,
 }: CustomFieldOptionsDialogShellProps) {
+  const intl = useIntl();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-w-lg flex-col gap-0 overflow-hidden p-0">
@@ -51,18 +53,20 @@ export function CustomFieldOptionsDialogShell({
             onClick={onCancel}
             disabled={isSaving}
           >
-            Hủy
+            {intl.formatMessage({ id: 'common.actions.cancel' })}
           </Button>
           <Button
             type="button"
             variant="primary"
             onClick={onSave}
             loading={isSaving}
-            loadingText="Đang lưu..."
+            loadingText={intl.formatMessage({
+              id: 'customFields.options.saving',
+            })}
             disabled={!canSave}
           >
             <Save />
-            Lưu danh sách
+            {intl.formatMessage({ id: 'customFields.options.save' })}
           </Button>
         </DialogFooter>
       </DialogContent>

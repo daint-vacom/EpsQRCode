@@ -60,6 +60,29 @@ describe('buildColumnsModule', () => {
     expect(source).toContain('col.date({');
   });
 
+  it('localizes column headers through react-intl', () => {
+    const localized = buildColumnsModule({
+      entity: 'Product',
+      modelImport: '../model/product',
+      columns: [
+        {
+          kind: 'text',
+          id: 'name',
+          header: 'Tên',
+          headerMessageId: 'products.fields.name',
+          field: 'name',
+        },
+      ],
+    });
+
+    expect(localized).toContain("import { useIntl } from 'react-intl';");
+    expect(localized).toContain('const intl = useIntl();');
+    expect(localized).toContain(
+      "header: intl.formatMessage({ id: 'products.fields.name' }),",
+    );
+    expect(localized).toContain('}, [intl]);');
+  });
+
   it('disables sorting by default and preserves explicit opt-in', () => {
     expect(source).toContain('enableSorting: false,');
 

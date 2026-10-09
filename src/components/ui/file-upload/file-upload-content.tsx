@@ -247,7 +247,7 @@ export const FileUploadContent = forwardRef<
               variant="primary"
               size="sm"
               loading={isUploading}
-              loadingText="Đang tải lên..."
+              loadingText="Đang tải lên"
               onClick={() => void confirmUpload()}
             >
               <Check />

@@ -18,10 +18,12 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   refreshToken: string | null;
+  cookieSession: boolean;
   setAuth: (payload: {
     user: AuthUser;
-    token: string;
+    token?: string | null;
     refreshToken?: string | null;
+    cookieSession?: boolean;
   }) => void;
   setPermissions: (permissions: string[]) => void;
   updateTokens: (payload: {
@@ -38,8 +40,13 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       refreshToken: null,
-      setAuth: ({ user, token, refreshToken = null }) =>
-        set({ user, token, refreshToken }),
+      cookieSession: false,
+      setAuth: ({
+        user,
+        token = null,
+        refreshToken = null,
+        cookieSession = false,
+      }) => set({ user, token, refreshToken, cookieSession }),
       setPermissions: (permissions) =>
         set((state) =>
           state.user ? { user: { ...state.user, permissions } } : state,
@@ -50,7 +57,13 @@ export const useAuthStore = create<AuthState>()(
           refreshToken:
             refreshToken === undefined ? state.refreshToken : refreshToken,
         })),
-      logout: () => set({ user: null, token: null, refreshToken: null }),
+      logout: () =>
+        set({
+          user: null,
+          token: null,
+          refreshToken: null,
+          cookieSession: false,
+        }),
       hasPermission: (permission) =>
         get().user?.permissions.includes(permission) ?? false,
     }),

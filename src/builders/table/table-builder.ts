@@ -224,10 +224,16 @@ function emitColumnCall(col: ColumnSpec): string {
     return 'col.select()';
   }
 
+  const header = col.headerMessageId
+    ? `intl.formatMessage({ id: ${quote(col.headerMessageId)} })`
+    : col.header !== undefined
+      ? quote(col.header)
+      : undefined;
+
   if (col.kind === 'index') {
     const lines: string[] = [];
     if (col.id) lines.push(`id: ${quote(col.id)},`);
-    if (col.header !== undefined) lines.push(`header: ${quote(col.header)},`);
+    if (header !== undefined) lines.push(`header: ${header},`);
     lines.push(...commonMetaLines(col));
     return lines.length === 0
       ? 'col.index()'
@@ -237,7 +243,7 @@ function emitColumnCall(col: ColumnSpec): string {
   if (col.kind === 'actions' || col.kind === 'custom') {
     const lines: string[] = [];
     if (col.id) lines.push(`id: ${quote(col.id)},`);
-    if (col.header !== undefined) lines.push(`header: ${quote(col.header)},`);
+    if (header !== undefined) lines.push(`header: ${header},`);
     const actionSizeExpression =
       col.kind === 'actions' && col.actionCount !== undefined
         ? `getDataGridActionsColumnSize(${col.actionCount})`
@@ -258,7 +264,7 @@ function emitColumnCall(col: ColumnSpec): string {
   // Accessor kinds: id, header, get, then kind-specific options, then meta.
   const lines: string[] = [
     `id: ${quote(col.id)},`,
-    `header: ${quote(col.header)},`,
+    `header: ${header},`,
     `get: ${accessor(col.field)},`,
   ];
 
@@ -447,6 +453,7 @@ function hasNumberFormatColumns(columns: ColumnSpec[]): boolean {
 /** Build the import block, including only what the columns actually use. */
 function emitImports(spec: TableSpec): string {
   const hasBadge = spec.columns.some((col) => col.kind === 'badge');
+  const hasLocalizedHeaders = spec.columns.some((col) => col.headerMessageId);
   const hasFormatters = hasNumberFormatColumns(spec.columns);
   const configuredActions = actionPresets(spec.columns);
   const hasActionCount = spec.columns.some(
@@ -454,6 +461,9 @@ function emitImports(spec: TableSpec): string {
   );
 
   const lines = ["import { useMemo } from 'react';"];
+  if (hasLocalizedHeaders) {
+    lines.push("import { useIntl } from 'react-intl';");
+  }
   lines.push(
     `import type { ${hasColumnPinning(spec) ? 'ColumnDef, ColumnPinningState' : 'ColumnDef'} } from '@tanstack/react-table';`,
   );
@@ -496,6 +506,7 @@ export function buildColumnsModule(input: TableSpec): string {
   const configuredActions = actionPresets(spec.columns);
   const hasActionParams = configuredActions.length > 0;
   const hasFormatters = hasNumberFormatColumns(spec.columns);
+  const hasLocalizedHeaders = spec.columns.some((col) => col.headerMessageId);
   const paramsInterface = emitHookParamsInterface(spec, hookName);
   const paramsSignature =
     hasEditableColumns || hasActionParams
@@ -508,6 +519,7 @@ export function buildColumnsModule(input: TableSpec): string {
   const formatterHook = hasFormatters
     ? '  const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();\n\n'
     : '';
+  const intlHook = hasLocalizedHeaders ? '  const intl = useIntl();\n\n' : '';
   const formatterSetup = hasFormatters
     ? `const col = createColumnHelpers<${spec.entity}>({\n  formatNumber,\n  formatCurrency,\n  formatPercent,\n});`
     : `const col = createColumnHelpers<${spec.entity}>();`;
@@ -523,9 +535,14 @@ export function buildColumnsModule(input: TableSpec): string {
   const actionDeps = configuredActions.map(
     (action) => `params.${actionCallbackName(action)}`,
   );
-  const deps = [...formatterDeps, ...editableDeps, ...actionDeps];
+  const deps = [
+    ...formatterDeps,
+    ...(hasLocalizedHeaders ? ['intl'] : []),
+    ...editableDeps,
+    ...actionDeps,
+  ];
   const hookMemoDeps = deps.length > 0 ? `[${deps.join(', ')}]` : '[]';
-  const fn = `export function ${hookName}(${paramsSignature}): ColumnDef<${spec.entity}>[] {\n${formatterHook}  return useMemo(() => {\n${indent(memoBody, 4)}\n  }, ${hookMemoDeps});\n}`;
+  const fn = `export function ${hookName}(${paramsSignature}): ColumnDef<${spec.entity}>[] {\n${formatterHook}${intlHook}  return useMemo(() => {\n${indent(memoBody, 4)}\n  }, ${hookMemoDeps});\n}`;
 
   const badgeConfigs = emitBadgeConfigs(spec.columns);
   const editableSelectOptions = emitEditableSelectOptions(spec.columns);

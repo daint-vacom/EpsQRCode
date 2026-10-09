@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -55,10 +56,6 @@ import {
   CUSTOM_FIELD_TYPE_LABELS,
   type CustomFieldType,
 } from '../model/custom-field';
-
-const fieldTypeOptions = Object.entries(CUSTOM_FIELD_TYPE_LABELS).map(
-  ([value, label]) => ({ value, label }),
-);
 
 function CustomFieldsEditorTableSortableRow({
   id,
@@ -111,6 +108,13 @@ export function CustomFieldsEditorTable({
   canAdd = true,
   canDelete = true,
 }: CustomFieldsEditorTableProps) {
+  const intl = useIntl();
+  const fieldTypeOptions = Object.keys(CUSTOM_FIELD_TYPE_LABELS).map(
+    (value) => ({
+      value,
+      label: intl.formatMessage({ id: `customFields.types.${value}` }),
+    }),
+  );
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
     name: 'fields',
@@ -144,15 +148,24 @@ export function CustomFieldsEditorTable({
       <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
         <div className="flex min-w-0 flex-col gap-1">
           <h2 className="text-sm font-semibold text-foreground">
-            {toolbarTitle ?? 'Trường bổ sung'}
+            {toolbarTitle ??
+              intl.formatMessage({ id: 'customFields.fields.sectionTitle' })}
           </h2>
           <div className="text-xs text-muted-foreground">
-            {fields.length} dòng
+            {intl.formatMessage(
+              { id: 'customFields.fields.rowCount' },
+              { count: fields.length },
+            )}
           </div>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {canAdd ? (
-            <ShortcutTooltip label="Thêm trường" shortcut="Alt + N">
+            <ShortcutTooltip
+              label={intl.formatMessage({
+                id: 'customFields.actions.addField',
+              })}
+              shortcut="Alt + N"
+            >
               <Button
                 type="button"
                 variant="outline"
@@ -161,7 +174,7 @@ export function CustomFieldsEditorTable({
                 disabled={readOnly || !canCreate}
               >
                 <Plus />
-                Thêm trường
+                {intl.formatMessage({ id: 'customFields.actions.addField' })}
               </Button>
             </ShortcutTooltip>
           ) : null}
@@ -179,22 +192,22 @@ export function CustomFieldsEditorTable({
               <TableRow>
                 <TableHead className="sticky top-0 z-20 bg-muted w-12 text-center"></TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted w-48">
-                  Mã trường
+                  {intl.formatMessage({ id: 'customFields.fields.key' })}
                 </TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted min-w-56">
-                  Tên trường
+                  {intl.formatMessage({ id: 'customFields.fields.name' })}
                 </TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted w-52">
-                  Kiểu dữ liệu
+                  {intl.formatMessage({ id: 'customFields.fields.type' })}
                 </TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted w-32">
-                  Bắt buộc
+                  {intl.formatMessage({ id: 'customFields.fields.required' })}
                 </TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted w-32">
-                  Kích hoạt
+                  {intl.formatMessage({ id: 'customFields.fields.active' })}
                 </TableHead>
                 <TableHead className="sticky top-0 z-20 bg-muted w-48">
-                  Danh sách giá trị
+                  {intl.formatMessage({ id: 'customFields.fields.options' })}
                 </TableHead>
                 <TableHead className="sticky top-0 right-0 z-30 bg-muted w-16 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
               </TableRow>
@@ -214,7 +227,9 @@ export function CustomFieldsEditorTable({
                       <TableCell colSpan={8} className="h-28 text-center">
                         <div className="flex flex-col items-center gap-3">
                           <span className="text-muted-foreground">
-                            Chưa có dữ liệu
+                            {intl.formatMessage({
+                              id: 'customFields.state.empty',
+                            })}
                           </span>
                           {canAdd ? (
                             <Button
@@ -224,7 +239,9 @@ export function CustomFieldsEditorTable({
                               disabled={readOnly || !canCreate}
                             >
                               <Plus />
-                              Thêm dòng
+                              {intl.formatMessage({
+                                id: 'customFields.actions.addRow',
+                              })}
                             </Button>
                           ) : null}
                         </div>
@@ -233,7 +250,8 @@ export function CustomFieldsEditorTable({
                   ) : (
                     fields.map((field, index) => {
                       const row = watchedRows[index] as
-                        CustomFieldEditorRow | undefined;
+                        | CustomFieldEditorRow
+                        | undefined;
                       const errors = form.formState.errors.fields?.[index];
                       const rowReadOnly =
                         readOnly || (row?.id ? !canUpdate : !canCreate);
@@ -251,8 +269,15 @@ export function CustomFieldsEditorTable({
                                   variant="ghost"
                                   mode="icon"
                                   size="sm"
-                                  aria-label={`Kéo để sắp xếp dòng ${index + 1}`}
-                                  title="Kéo để sắp xếp"
+                                  aria-label={intl.formatMessage(
+                                    {
+                                      id: 'customFields.actions.reorderRowAria',
+                                    },
+                                    { row: index + 1 },
+                                  )}
+                                  title={intl.formatMessage({
+                                    id: 'customFields.actions.reorderRowTitle',
+                                  })}
                                   disabled={rowReadOnly}
                                   {...sortable.attributes}
                                   {...sortable.listeners}
@@ -270,7 +295,12 @@ export function CustomFieldsEditorTable({
                                         <span className="block w-full">
                                           <Input
                                             {...inputField}
-                                            aria-label={`Mã trường dòng ${index + 1}`}
+                                            aria-label={intl.formatMessage(
+                                              {
+                                                id: 'customFields.actions.keyRowAria',
+                                              },
+                                              { row: index + 1 },
+                                            )}
                                             aria-invalid={!!errors?.key}
                                             variant="sm"
                                             disabled={rowReadOnly}
@@ -296,7 +326,12 @@ export function CustomFieldsEditorTable({
                                         <span className="block w-full">
                                           <Input
                                             {...inputField}
-                                            aria-label={`Tên trường dòng ${index + 1}`}
+                                            aria-label={intl.formatMessage(
+                                              {
+                                                id: 'customFields.actions.nameRowAria',
+                                              },
+                                              { row: index + 1 },
+                                            )}
                                             aria-invalid={!!errors?.label}
                                             variant="sm"
                                             disabled={rowReadOnly}
@@ -327,11 +362,16 @@ export function CustomFieldsEditorTable({
                                   }
                                 >
                                   <SelectTrigger
-                                    aria-label={`Kiểu dữ liệu dòng ${index + 1}`}
+                                    aria-label={intl.formatMessage(
+                                      {
+                                        id: 'customFields.actions.typeRowAria',
+                                      },
+                                      { row: index + 1 },
+                                    )}
                                     disabled={rowReadOnly}
                                     size="sm"
                                   >
-                                    <SelectValue placeholder="Chọn kiểu dữ liệu" />
+                                    <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {fieldTypeOptions.map((option) => (
@@ -359,7 +399,12 @@ export function CustomFieldsEditorTable({
                                     )
                                   }
                                   disabled={rowReadOnly}
-                                  aria-label={`Bắt buộc nhập dòng ${index + 1}`}
+                                  aria-label={intl.formatMessage(
+                                    {
+                                      id: 'customFields.actions.requiredRowAria',
+                                    },
+                                    { row: index + 1 },
+                                  )}
                                 />
                               </TableCell>
                               <TableCell className="px-2 py-2 align-top">
@@ -376,7 +421,12 @@ export function CustomFieldsEditorTable({
                                     )
                                   }
                                   disabled={rowReadOnly}
-                                  aria-label={`Kích hoạt trường dòng ${index + 1}`}
+                                  aria-label={intl.formatMessage(
+                                    {
+                                      id: 'customFields.actions.activeRowAria',
+                                    },
+                                    { row: index + 1 },
+                                  )}
                                 />
                               </TableCell>
                               <TableCell className="px-2 py-2 align-top">
@@ -388,7 +438,10 @@ export function CustomFieldsEditorTable({
                                     disabled={rowReadOnly || !onManageOptions}
                                     onClick={() => onManageOptions?.(index)}
                                   >
-                                    {row.options.length} lựa chọn
+                                    {intl.formatMessage(
+                                      { id: 'customFields.options.count' },
+                                      { count: row.options.length },
+                                    )}
                                   </Button>
                                 ) : (
                                   <span className="text-muted-foreground">
@@ -399,8 +452,15 @@ export function CustomFieldsEditorTable({
                               <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
                                 <div className="flex justify-end gap-1">
                                   <Button
-                                    aria-label={`Xóa dòng ${index + 1}`}
-                                    title="Xóa"
+                                    aria-label={intl.formatMessage(
+                                      {
+                                        id: 'customFields.actions.deleteRowAria',
+                                      },
+                                      { row: index + 1 },
+                                    )}
+                                    title={intl.formatMessage({
+                                      id: 'customFields.actions.deleteRow',
+                                    })}
                                     type="button"
                                     variant="destructive"
                                     appearance="ghost"

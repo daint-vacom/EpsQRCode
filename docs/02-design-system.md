@@ -55,6 +55,12 @@ Use the live tokens as source of truth. This document does not duplicate a color
 - Align numeric values for scanning and use Vietnamese formatting utilities.
 - Keep row actions discoverable without flooding every row with text buttons.
 
+### List toolbar and pagination
+
+- Use `DataGridHeader` for management-list controls. Place search and filters in its leading area and table actions in its trailing toolbar; let the shared header wrap these areas on narrow screens.
+- Use `DataGridPagination` as the table footer. It owns the page-size selector, result count, and page controls, so do not add a second entity-count label beside the selector.
+- Keep the primary page action visually consistent with other page actions by using the shared `Button` size and variant defaults.
+
 ### Responsive column sizing and browser review
 
 - Size fixed columns from their real content and cell padding. For switches, checkboxes, and icon actions,
@@ -194,37 +200,13 @@ Builder workflow: [`builders/form-dialog.md`](./builders/form-dialog.md). Contro
 - Filter card/item phải có affordance nhất quán: con trỏ pointer, hover state nhẹ (đổi nền hoặc
   elevation), focus ring nhìn thấy được, và icon filter/search ở vị trí cố định. Không dùng màu sắc
   đơn lẻ để truyền đạt card có thể click.
-- Tên accessible phải mô tả hành động và đối tượng, ví dụ `Lọc hợp đồng: Đang hiệu lực`. Card/item
+- Tên accessible phải mô tả hành động và đối tượng, ví dụ `Lọc vật tư: Đang sử dụng`. Card/item
   có lựa chọn trạng thái dùng `aria-pressed`; trạng thái đang chọn phải phân biệt được, còn trạng thái
   không chọn có thể giảm emphasis nhưng vẫn phải đọc được và vẫn dùng được.
 - Card/item đang chọn phải click lại được để bỏ lựa chọn hoặc reset đúng theo contract của bộ lọc. Hành
   vi này phải nhất quán giữa các stat card cùng nhóm.
 - Clickable card/item phải dùng được bằng touch và bàn phím (Enter/Space), có target đủ lớn và giữ thứ
   tự Tab tự nhiên. Khi đang loading hoặc action pending, giữ layout ổn định và chặn thao tác lặp.
-
-### Vai trò phụ trách khách hàng
-
-- `Vai trò phụ trách khách hàng` là phân loại nghiệp vụ theo từng quan hệ
-  `khách hàng - nhân viên`; không dùng chung entity `roles` hoặc `permission_groups` của module phân
-  quyền tenant.
-- Một nhân viên có thể có các vai trò khác nhau trên các khách hàng khác nhau và có thể giữ nhiều vai
-  trò trên cùng một khách hàng. Assignment luôn phải hiển thị đồng thời tên nhân viên và vai trò đang
-  phụ trách.
-- Trang phân quyền nhân viên chỉ quản lý quyền global. Các vai trò như `Hợp đồng` hoặc `Công nợ và
-  thanh toán` trong quan hệ khách hàng không được hiển thị hoặc chỉnh sửa tại ma trận quyền global.
-- Catalog vai trò phải lưu bằng ID/code ổn định; UI chỉ hiển thị `name`. Không lưu tên vai trò trực tiếp
-  trong bảng quan hệ và không dùng tên permission group làm khóa nghiệp vụ.
-- Khi phân công, một nhân viên đã chọn phải có ít nhất một vai trò. Nhân viên inactive có thể giữ
-  assignment cũ để bảo toàn lịch sử nhưng không được chọn mới.
-- Bộ lọc `Theo nhóm` và `Theo nhân viên` nằm trong một hàng full-width bên dưới header bảng. Khi đổi
-  chế độ, phải xóa lựa chọn quick-filter của chế độ cũ để không tạo bộ lọc ẩn.
-- Mỗi chế độ chỉ được chọn một chip view; chọn chip mới phải thay thế chip cũ. `Tất cả` là trạng thái
-  reset của chế độ hiện tại. Segment dùng variant `light-neutral`, chip đang chọn dùng kiểu solid; hàng
-  filter không dùng separator để ngăn với toolbar gốc của bảng.
-- Segment giữ dạng connected và có cùng chiều cao với chip; active dùng light-neutral với nền xám,
-  inactive giữ style nền/text bình thường. Chip inactive dùng light-neutral với nền xám. Danh sách chip
-  chiếm toàn bộ phần chiều rộng còn lại, luôn nằm trên một dòng và scroll ngang khi vượt quá viewport;
-  không wrap xuống dòng.
 
 ## Navigation And Interaction
 

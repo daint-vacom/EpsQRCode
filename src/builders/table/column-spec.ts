@@ -60,6 +60,8 @@ const fieldPath = z
 
 /** Common meta forwarded into `ColumnDef.meta` by every column-factory builder. */
 const commonMeta = {
+  /** Optional react-intl message ID used instead of the literal header. */
+  headerMessageId: z.string().min(1).optional(),
   headerClassName: z.string().optional(),
   cellClassName: z.string().optional(),
   size: z.number().int().positive().optional(),

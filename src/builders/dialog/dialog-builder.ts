@@ -56,7 +56,11 @@ function emitAction(action: DialogActionSpec): string {
     `onClick={${handlerName(action)}}`,
   ];
   if (action.loadingProp) props.push(`loading={${action.loadingProp}}`);
-  if (action.loadingText)
+  if (action.loadingMessageId)
+    props.push(
+      `loadingText={intl.formatMessage({ id: ${quote(action.loadingMessageId)} })}`,
+    );
+  else if (action.loadingText)
     props.push(`loadingText=${quote(action.loadingText)}`);
   if (action.disabledProp) {
     const expression =
@@ -67,13 +71,16 @@ function emitAction(action: DialogActionSpec): string {
   }
   if (action.className) props.push(`className=${quote(action.className)}`);
 
+  const label = action.labelMessageId
+    ? `{intl.formatMessage({ id: ${quote(action.labelMessageId)} })}`
+    : action.label;
   const icon = action.icon ? `\n          <${action.icon} />` : '';
   return [
     '        <Button',
     ...props.map((prop) => `          ${prop}`),
     '        >',
-    icon ? icon : `          ${action.label}`,
-    icon ? `          ${action.label}` : '',
+    icon ? icon : `          ${label}`,
+    icon ? `          ${label}` : '',
     '        </Button>',
   ]
     .filter(Boolean)
@@ -95,10 +102,18 @@ function emitIconImports(actions: DialogActionSpec[]): string {
 
 export function buildDialogModule(input: DialogSpec): string {
   const spec = dialogSpecSchema.parse(input);
+  const hasIntl = Boolean(
+    spec.titleMessageId ||
+    spec.descriptionMessageId ||
+    spec.actions.some(
+      (action) => action.labelMessageId || action.loadingMessageId,
+    ),
+  );
   const actionPropNamesForSpec = actionPropNames(spec.actions);
-  const description = spec.description
-    ? `\n          <DialogDescription>${spec.description}</DialogDescription>`
-    : '';
+  const description =
+    spec.description || spec.descriptionMessageId
+      ? `\n          <DialogDescription>${spec.descriptionMessageId ? `{intl.formatMessage({ id: ${quote(spec.descriptionMessageId)} })}` : spec.description}</DialogDescription>`
+      : '';
   const iconImports = emitIconImports(spec.actions);
   const actionProps = spec.actions.map(emitActionProps).join('\n');
   const stateProps = actionPropNamesForSpec
@@ -109,7 +124,9 @@ export function buildDialogModule(input: DialogSpec): string {
     '  Dialog,',
     '  DialogBody,',
     '  DialogContent,',
-    ...(spec.description ? ['  DialogDescription,'] : []),
+    ...(spec.description || spec.descriptionMessageId
+      ? ['  DialogDescription,']
+      : []),
     '  DialogFooter,',
     '  DialogHeader,',
     '  DialogTitle,',
@@ -118,6 +135,7 @@ export function buildDialogModule(input: DialogSpec): string {
   return [
     banner(spec.specPath),
     "import { type ReactNode } from 'react';",
+    ...(hasIntl ? ["import { useIntl } from 'react-intl';"] : []),
     iconImports,
     "import { Button } from '@/components/ui/button';",
     'import {',
@@ -141,11 +159,12 @@ export function buildDialogModule(input: DialogSpec): string {
     ...spec.actions.map((action) => `  ${handlerName(action)},`),
     ...actionPropNamesForSpec.map((name) => `  ${name} = false,`),
     `}: ${spec.componentName}Props) {`,
+    ...(hasIntl ? ['  const intl = useIntl();'] : []),
     '  return (',
     '    <Dialog open={open} onOpenChange={onOpenChange}>',
     `      <DialogContent className="flex ${WIDTH_CLASS[spec.width]} flex-col gap-0 overflow-hidden p-0">`,
     '        <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">',
-    `          <DialogTitle>${spec.titleProp ? `{${spec.titleProp}}` : spec.title}</DialogTitle>${description}`,
+    `          <DialogTitle>${spec.titleProp ? `{${spec.titleProp}}` : spec.titleMessageId ? `{intl.formatMessage({ id: ${quote(spec.titleMessageId)} })}` : spec.title}</DialogTitle>${description}`,
     '        </DialogHeader>',
     '',
     '        <DialogBody className="min-h-0 flex-1 overflow-y-auto px-6 py-5">',

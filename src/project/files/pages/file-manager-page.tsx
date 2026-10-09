@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { createSignedStorageUrl } from '@/lib/storage';
@@ -522,6 +523,7 @@ function FolderPath({
 }
 
 export function FileManagerPage() {
+  const intl = useIntl();
   const { tenantId, tenantName } = useTenant();
   const { userId } = useUser();
   const queryClient = useQueryClient();
@@ -924,9 +926,13 @@ export function FileManagerPage() {
                     autoFocus
                     value={keyword}
                     onChange={(event) => setKeyword(event.target.value)}
-                    placeholder="Tìm trong thư mục"
+                    placeholder={intl.formatMessage({
+                      id: 'files.filters.searchContents',
+                    })}
                     className="h-9 ps-8"
-                    aria-label="Tìm trong thư mục"
+                    aria-label={intl.formatMessage({
+                      id: 'files.filters.searchContents',
+                    })}
                   />
                 </div>
                 <Tooltip>
@@ -1163,7 +1169,9 @@ export function FileManagerPage() {
         canConfirm={Boolean(editingName.trim())}
       >
         <div className="flex flex-col gap-2.5">
-          <Label htmlFor="file-manager-rename">Tên mới</Label>
+          <Label htmlFor="file-manager-rename">
+            {intl.formatMessage({ id: 'files.fields.name' })}
+          </Label>
           <Input
             id="file-manager-rename"
             autoFocus

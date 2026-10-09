@@ -1,6 +1,10 @@
 import { DEFAULT_LOCALE } from '@/i18n/config';
 import { describe, expect, it } from 'vitest';
-import { formatMessage, setValidationLocale } from './messages';
+import {
+  formatMessage,
+  setValidationLocale,
+  syncValidationLocale,
+} from './messages';
 
 describe('validation message formatter', () => {
   it('formats Vietnamese catalog messages with params by default', () => {
@@ -17,13 +21,12 @@ describe('validation message formatter', () => {
     expect(formatMessage('validation.unknown')).toBe('validation.unknown');
   });
 
-  it('keeps module-scope formatting in sync with active locale', () => {
-    setValidationLocale('en');
+  it('keeps validation messages in Vietnamese for unsupported locale values', () => {
+    syncValidationLocale('en');
 
     expect(formatMessage('validation.number.max', { max: 10 })).toBe(
-      'Maximum is 10',
+      'Tối đa là 10',
     );
-
     setValidationLocale(DEFAULT_LOCALE);
   });
 });

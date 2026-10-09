@@ -9,6 +9,13 @@ function quote(value: string): string {
   return "'" + value.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
 }
 
+function messageExpression(messageId?: string, fallback?: string): string {
+  if (messageId) {
+    return `intl.formatMessage({ id: ${quote(messageId)} })`;
+  }
+  return fallback ? quote(fallback) : 'undefined';
+}
+
 function banner(specPath?: string): string {
   const marker = specPath
     ? ' from ' + String.fromCharCode(96) + specPath + String.fromCharCode(96)
@@ -85,7 +92,7 @@ function emitField(
       "        kind: 'search',",
       `        value: ${field.name},`,
       `        onValueChange: on${capitalize(field.name)}Change,`,
-      `        placeholder: ${field.placeholder ? quote(field.placeholder) : 'undefined'},`,
+      `        placeholder: ${messageExpression(field.placeholderMessageId, field.placeholder)},`,
       `        className: ${field.className ? quote(field.className) : 'undefined'},`,
       `        debounceMs: ${field.debounceMs ?? 300},`,
       '        disabled,',
@@ -99,9 +106,9 @@ function emitField(
     `        value: ${field.name},`,
     `        onValueChange: on${capitalize(field.name)}Change,`,
     `        options: ${field.name}Options ?? ${field.optionsSource === 'static' ? staticOptionsName(spec, field) : '[]'},`,
-    `        label: ${field.label ? quote(field.label) : 'undefined'},`,
-    `        placeholder: ${field.placeholder ? quote(field.placeholder) : 'undefined'},`,
-    `        ariaLabel: ${field.ariaLabel ? quote(field.ariaLabel) : 'undefined'},`,
+    `        label: ${messageExpression(field.labelMessageId, field.label)},`,
+    `        placeholder: ${messageExpression(field.placeholderMessageId, field.placeholder)},`,
+    `        ariaLabel: ${messageExpression(field.ariaLabelMessageId, field.ariaLabel)},`,
     `        className: ${field.className ? quote(field.className) : 'undefined'},`,
     '        disabled,',
     `        renderOption: ${field.name}RenderOption,`,
@@ -112,6 +119,13 @@ function emitField(
 
 export function buildFilterModule(input: FilterSpec): string {
   const spec = filterSpecSchema.parse(input);
+  const hasSelectFields = spec.fields.some((field) => field.type === 'select');
+  const hasLocalizedText = spec.fields.some(
+    (field) =>
+      field.placeholderMessageId ||
+      (field.type === 'select' &&
+        (field.labelMessageId || field.ariaLabelMessageId)),
+  );
   const staticOptions = spec.fields
     .filter(
       (field): field is Extract<typeof field, { type: 'select' }> =>
@@ -131,8 +145,11 @@ export function buildFilterModule(input: FilterSpec): string {
 
   return [
     banner(spec.specPath),
-    "import type { ReactNode } from 'react';",
-    "import { FilterToolbar, type FilterToolbarOption } from '@/components/ui/filter-toolbar';",
+    ...(hasSelectFields ? ["import type { ReactNode } from 'react';"] : []),
+    ...(hasLocalizedText ? ["import { useIntl } from 'react-intl';"] : []),
+    hasSelectFields
+      ? "import { FilterToolbar, type FilterToolbarOption } from '@/components/ui/filter-toolbar';"
+      : "import { FilterToolbar } from '@/components/ui/filter-toolbar';",
     '',
     ...optionAliases,
     optionAliases.length ? '' : null,
@@ -154,6 +171,7 @@ export function buildFilterModule(input: FilterSpec): string {
     '  disabled = false,',
     '  className,',
     `}: ${spec.componentName}Props) {`,
+    ...(hasLocalizedText ? ['  const intl = useIntl();'] : []),
     '  return (',
     '    <FilterToolbar',
     '      className={className}',

@@ -15,11 +15,34 @@ describe('buildFormModule', () => {
     expect(source).toContain("mode: 'create' | 'edit';");
     expect(source).toContain('isSaving?: boolean;');
     expect(source).toContain('loading={isSaving}');
-    expect(source).toContain('loadingText="Đang lưu..."');
+    expect(source).toContain(
+      "loadingText={intl.formatMessage({ id: 'common.state.saving' })}",
+    );
     expect(source).toContain(
       "import { ConfirmDialog } from '@/components/ui/confirm-dialog';",
     );
     expect(source).toContain("if (mode === 'edit') {");
+  });
+
+  it('supports localized form titles and field labels', () => {
+    const localized = buildFormModule({
+      ...employeeSpec,
+      titleMessageId: 'suppliers.dialogs.createTitle',
+      fields: employeeSpec.fields.map((field, index) =>
+        index === 0
+          ? { ...field, labelMessageId: 'suppliers.fields.name' }
+          : field,
+      ),
+    });
+
+    expect(localized).toContain("import { useIntl } from 'react-intl';");
+    expect(localized).toContain('const intl = useIntl();');
+    expect(localized).toContain(
+      "intl.formatMessage({ id: 'suppliers.fields.name' })",
+    );
+    expect(localized).toContain(
+      "intl.formatMessage({ id: 'suppliers.dialogs.createTitle' })",
+    );
   });
 
   it('wires parent-owned react-hook-form + zodResolver from the schema', () => {

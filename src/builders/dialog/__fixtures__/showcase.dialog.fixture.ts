@@ -13,7 +13,7 @@ const spec = {
       type: 'submit',
       icon: 'Check',
       loadingProp: 'isSaving',
-      loadingText: 'Đang lưu...',
+      loadingText: 'Đang lưu',
     },
   ],
 } as const;

@@ -6,6 +6,7 @@
  */
 import { useMemo } from 'react';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
+import { useIntl } from 'react-intl';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
 import type { FileManagerItem } from '../model/file-manager';
 
@@ -14,6 +15,8 @@ export const FILE_MANAGER_ITEM_COLUMN_PINNING: ColumnPinningState = {
 };
 
 export function useFileManagerItemColumns(): ColumnDef<FileManagerItem>[] {
+  const intl = useIntl();
+
   return useMemo(() => {
     const col = createColumnHelpers<FileManagerItem>();
 
@@ -21,7 +24,7 @@ export function useFileManagerItemColumns(): ColumnDef<FileManagerItem>[] {
       col.select(),
       col.text({
         id: 'name',
-        header: 'Tên',
+        header: intl.formatMessage({ id: 'files.fields.name' }),
         get: (row) => row.name,
         tooltipOnTruncate: true,
         headerClassName: 'min-w-[320px]',
@@ -30,7 +33,7 @@ export function useFileManagerItemColumns(): ColumnDef<FileManagerItem>[] {
       }),
       col.text({
         id: 'mimeType',
-        header: 'Loại',
+        header: intl.formatMessage({ id: 'files.fields.type' }),
         get: (row) => row.mimeType,
         headerClassName: 'w-[180px]',
         size: 180,
@@ -38,7 +41,7 @@ export function useFileManagerItemColumns(): ColumnDef<FileManagerItem>[] {
       }),
       col.text({
         id: 'sizeLabel',
-        header: 'Dung lượng',
+        header: intl.formatMessage({ id: 'files.fields.size' }),
         get: (row) => row.sizeLabel,
         headerClassName: 'w-[130px]',
         size: 130,
@@ -46,12 +49,12 @@ export function useFileManagerItemColumns(): ColumnDef<FileManagerItem>[] {
       }),
       col.text({
         id: 'modifiedAtLabel',
-        header: 'Cập nhật',
+        header: intl.formatMessage({ id: 'files.fields.activityDate' }),
         get: (row) => row.modifiedAtLabel,
         headerClassName: 'w-[180px]',
         size: 180,
         enableSorting: false,
       }),
     ];
-  }, []);
+  }, [intl]);
 }

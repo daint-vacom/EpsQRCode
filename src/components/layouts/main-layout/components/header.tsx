@@ -1,16 +1,12 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
-import { EmployeeRoleBadge } from '@/project/employees/components/employee-badges';
-import { useCurrentEmployeeProfile } from '@/project/employees/hooks/use-current-employee-profile';
-import type { EmployeeRole } from '@/project/employees/model/employee';
+import { logoutFromEps } from '@/features/eps/api/eps-auth.api';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
 import {
   Bell,
-  Building2,
   CircleHelp,
-  Languages,
   LogOut,
   Menu,
   PackageCheck,
@@ -24,9 +20,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,27 +51,9 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useLayout } from './context';
 import { SidebarPrimary } from './sidebar-primary';
 import { SidebarSecondary } from './sidebar-secondary';
-
-const DISPLAY_LANGUAGES = [
-  {
-    code: 'vi',
-    label: 'Tiếng Việt',
-    flag: toAbsoluteUrl('/media/flags/vietnam.svg'),
-  },
-  {
-    code: 'en',
-    label: 'English',
-    flag: toAbsoluteUrl('/media/flags/united-states.svg'),
-  },
-] as const;
 
 const DISPLAY_THEMES = [
   { value: 'system', label: 'Theo hệ thống' },
@@ -119,7 +96,7 @@ const MOCK_NOTIFICATIONS = [
   },
   {
     title: 'Nhân viên mới được thêm',
-    description: 'Nguyễn Minh Anh đã được thêm vào tổ chức.',
+    description: 'Nguyễn Minh Anh đã được thêm vào danh sách nhân sự.',
     time: '2 ngày trước',
     icon: UserRound,
     iconClassName: 'bg-admin-blue-bg text-admin-blue-primary',
@@ -151,17 +128,7 @@ const MOCK_NOTIFICATIONS = [
   },
 ] as const;
 
-function AccountMenuHeader({
-  name,
-  email,
-  avatarUrl,
-  roles,
-}: {
-  name: string;
-  email: string;
-  avatarUrl?: string | null;
-  roles: readonly EmployeeRole[];
-}) {
+function AccountMenuHeader({ name, email }: { name: string; email: string }) {
   const initial = name.trim().charAt(0).toUpperCase() || 'T';
 
   return (
@@ -170,9 +137,6 @@ function AccountMenuHeader({
         <div>
           <div className="flex items-center gap-3">
             <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
-              {avatarUrl ? (
-                <AvatarImage src={avatarUrl} alt="Ảnh đại diện" />
-              ) : null}
               <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
                 {initial}
               </AvatarFallback>
@@ -181,20 +145,13 @@ function AccountMenuHeader({
               <p className="truncate text-sm font-semibold text-foreground">
                 {name}
               </p>
-              <p className="truncate text-xs font-normal text-muted-foreground">
-                {email}
-              </p>
+              {email ? (
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  {email}
+                </p>
+              ) : null}
             </div>
           </div>
-          {roles.length > 0 ? (
-            <div className="mt-2 ps-11">
-              <div className="flex flex-wrap gap-1">
-                {roles.map((role) => (
-                  <EmployeeRoleBadge key={role.name} role={role} />
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
@@ -210,27 +167,19 @@ export function Header() {
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const employeeQuery = useCurrentEmployeeProfile({ enabled: isProjectShell });
+  const cookieSession = useAuthStore((state) => state.cookieSession);
   const { theme, setTheme } = useTheme();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [language, setLanguage] = useState('vi');
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] =
     useState(true);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-  const currentLanguage =
-    DISPLAY_LANGUAGES.find((item) => item.code === language) ??
-    DISPLAY_LANGUAGES[0];
   const currentTheme =
     DISPLAY_THEMES.find((item) => item.value === theme) ?? DISPLAY_THEMES[0];
   const unreadNotificationCount = notifications.filter(
     (notification) => notification.unread,
   ).length;
-  const accountName =
-    (isProjectShell && employeeQuery.data?.displayName) ||
-    authUser?.name ||
-    'Thanh Hiếu';
-  const accountEmail = authUser?.email ?? 'thanh.hieu@admin.vn';
-  const accountAvatar = isProjectShell ? employeeQuery.data?.avatarUrl : null;
+  const accountName = authUser?.name || 'Tài khoản';
+  const accountEmail = authUser?.email ?? '';
   const accountInitial = accountName.trim().charAt(0).toUpperCase() || 'T';
   const breadcrumbItems = shell.breadcrumbItems ?? [
     { label: shell.breadcrumbRootLabel, path: shell.breadcrumbRootPath },
@@ -239,7 +188,11 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      await signOutFromSupabase();
+      if (cookieSession) {
+        await logoutFromEps();
+      } else {
+        await signOutFromSupabase();
+      }
     } finally {
       logout();
       navigate('/login', { replace: true });
@@ -488,9 +441,6 @@ export function Header() {
               aria-label="Mở menu tài khoản"
             >
               <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
-                {accountAvatar ? (
-                  <AvatarImage src={accountAvatar} alt="Ảnh đại diện" />
-                ) : null}
                 <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
                   {accountInitial}
                 </AvatarFallback>
@@ -513,66 +463,18 @@ export function Header() {
             sideOffset={8}
             className="w-64 p-1.5"
           >
-            <AccountMenuHeader
-              name={accountName}
-              email={accountEmail}
-              avatarUrl={accountAvatar}
-              roles={shell.accountRoles}
-            />
+            <AccountMenuHeader name={accountName} email={accountEmail} />
 
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
-              <DropdownMenuItem
-                onSelect={
-                  isProjectShell
-                    ? () => navigate(`${ROUTES.PROJECT.SETTINGS}?tab=account`)
-                    : undefined
-                }
-              >
-                <UserRound />
-                <span className="min-w-0 flex-1">Tài khoản</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Badge
-                      variant="destructive"
-                      size="xs"
-                      shape="circle"
-                      className="size-4 min-w-4 shrink-0 px-0 text-[0.625rem]"
-                    >
-                      !
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent variant="destructive">
-                    Cần cập nhật thông tin tài khoản
-                  </TooltipContent>
-                </Tooltip>
-              </DropdownMenuItem>
-              {!isProjectShell ? (
+            {!isProjectShell ? (
+              <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <Settings />
                   Cài đặt
                 </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuItem
-                className="items-start py-2"
-                onSelect={
-                  isProjectShell
-                    ? () =>
-                        navigate(`${ROUTES.PROJECT.SETTINGS}?tab=organization`)
-                    : undefined
-                }
-              >
-                <Building2 className="mt-0.5" />
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span>Tổ chức</span>
-                  <span className="truncate text-xs font-normal text-muted-foreground">
-                    {shell.organizationLabel ?? 'Công ty TNHH Vacom'}
-                  </span>
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+              </DropdownMenuGroup>
+            ) : null}
 
-            <DropdownMenuSeparator />
+            {!isProjectShell ? <DropdownMenuSeparator /> : null}
 
             <DropdownMenuGroup>
               <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
@@ -612,40 +514,6 @@ export function Header() {
               </DropdownMenuSub>
               {!isProjectShell ? (
                 <>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Languages />
-                      <span className="min-w-0 flex-1 truncate">Ngôn ngữ</span>
-                      <img
-                        src={currentLanguage.flag}
-                        alt={currentLanguage.label}
-                        className="h-3.5 w-5 shrink-0 rounded-sm object-cover"
-                      />
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="w-48">
-                      <DropdownMenuRadioGroup
-                        value={language}
-                        onValueChange={setLanguage}
-                      >
-                        {DISPLAY_LANGUAGES.map((item) => (
-                          <DropdownMenuRadioItem
-                            key={item.code}
-                            value={item.code}
-                            indicator="check"
-                            indicatorPosition="end"
-                            className="gap-2"
-                          >
-                            <img
-                              src={item.flag}
-                              alt={item.label}
-                              className="h-3.5 w-5 rounded-sm object-cover"
-                            />
-                            {item.label}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
                   <DropdownMenuItem
                     className="justify-between"
                     onSelect={(event) => event.preventDefault()}
