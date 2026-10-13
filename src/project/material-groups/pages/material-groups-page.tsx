@@ -30,6 +30,7 @@ import {
   useCreateMaterialGroupMutation,
   useDeleteMaterialGroupMutation,
   useMaterialGroupsQuery,
+  useUpdateMaterialGroupAvailabilityMutation,
   useUpdateMaterialGroupMutation,
 } from '../hooks/use-material-groups';
 import type { MaterialGroup } from '../model/material-group';
@@ -61,10 +62,14 @@ export function MaterialGroupsPage() {
   const query = useMaterialGroupsQuery(isPermissionsPending || canView);
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
+  const availabilityMutation = useUpdateMaterialGroupAvailabilityMutation();
   const deleteMutation = useDeleteMaterialGroupMutation();
   const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   const [editingGroup, setEditingGroup] = useState<MaterialGroup | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<MaterialGroup | null>(
     null,
@@ -97,6 +102,30 @@ export function MaterialGroupsPage() {
     },
     canEdit: canManage,
     canDelete: canManage,
+    canManage,
+    onAvailabilityChange: async (group, isActive) => {
+      if (!canManage || pendingAvailabilityIds.has(group.id)) return;
+      setPendingAvailabilityIds((current) => new Set(current).add(group.id));
+      try {
+        await availabilityMutation.mutateAsync({ id: group.id, isActive });
+        toast.success(
+          intl.formatMessage({
+            id: isActive
+              ? 'materialGroups.toasts.activated'
+              : 'materialGroups.toasts.deactivated',
+          }),
+        );
+      } catch (error) {
+        toast.error(getApiErrorMessage(error));
+      } finally {
+        setPendingAvailabilityIds((current) => {
+          const next = new Set(current);
+          next.delete(group.id);
+          return next;
+        });
+      }
+    },
+    pendingAvailabilityIds,
   });
   const table = useReactTable({
     data: filteredGroups,
@@ -159,7 +188,7 @@ export function MaterialGroupsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
-        title={intl.formatMessage({ id: 'materialGroups.page.title' })}
+        title={intl.formatMessage({ id: 'materialGroups.page.header' })}
         icon={PackageOpen}
         actions={
           canManage ? (

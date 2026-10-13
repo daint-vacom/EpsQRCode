@@ -58,6 +58,27 @@ export async function updateMaterialGroup(
   );
 }
 
+export async function updateMaterialGroupAvailability(
+  id: string,
+  isActive: boolean,
+): Promise<Pick<MaterialGroupRow, 'id' | 'is_active' | 'updated_at'>> {
+  assertSupabaseConfigured();
+  const rows = await request<
+    Pick<MaterialGroupRow, 'id' | 'is_active' | 'updated_at'>[]
+  >(
+    supabaseApi.patch(
+      '/material_groups',
+      { is_active: isActive },
+      {
+        ...queryParams({ id: `eq.${id}`, select: 'id,is_active,updated_at' }),
+        headers: { Prefer: 'return=representation' },
+      },
+    ),
+  );
+  if (!rows[0]) throw new Error('Không tìm thấy nhóm vật tư để cập nhật.');
+  return rows[0];
+}
+
 export async function deleteMaterialGroup(id: string): Promise<void> {
   assertSupabaseConfigured();
   await request(

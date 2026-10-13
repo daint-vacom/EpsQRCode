@@ -55,6 +55,20 @@ Use the live tokens as source of truth. This document does not duplicate a color
 - Align numeric values for scanning and use Vietnamese formatting utilities.
 - Keep row actions discoverable without flooding every row with text buttons.
 
+### Quick row updates
+
+- For a quick table edit such as a switch, inline select, or status change, update the edited
+  row optimistically so the interaction responds immediately. Keep the pending state local to
+  that row; other rows remain usable.
+- When the mutation fails, roll back only the edited row and show the normal error feedback.
+  A failure on one row must not reset or disable unrelated rows.
+- Prefer a mutation response that returns the saved row or the changed fields. Use that server
+  result to reconcile the row in the existing query cache; do not reload the whole table after
+  every successful quick edit.
+- Invalidate the affected query only when the response cannot reconcile its data, or when the
+  mutation also changes derived values, ordering, filters, or other rows that the client cannot
+  update reliably. Keep invalidation scoped to the affected query.
+
 ### List toolbar and pagination
 
 - Use `DataGridHeader` for management-list controls. Place search and filters in its leading area and table actions in its trailing toolbar; let the shared header wrap these areas on narrow screens.

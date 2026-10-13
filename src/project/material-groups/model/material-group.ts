@@ -13,6 +13,7 @@ export interface MaterialGroup {
   code: string;
   name: string;
   description: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +23,7 @@ export interface MaterialGroupRow {
   code: string;
   name: string;
   description: string | null;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -32,6 +34,7 @@ export function mapMaterialGroupRow(row: MaterialGroupRow): MaterialGroup {
     code: row.code,
     name: row.name,
     description: row.description ?? '',
+    isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

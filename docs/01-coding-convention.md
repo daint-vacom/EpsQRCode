@@ -59,7 +59,10 @@ is available.
   the single workspace.
 - API calls live in feature API modules and use the shared Axios client.
 - Query keys come from the project's query-key helpers and remain stable.
-- Mutations explicitly handle invalidation, success feedback, and normalized failures.
+- Mutations explicitly reconcile affected query caches, show success feedback, and handle
+  normalized failures. For quick row updates, prefer the mutation response as the canonical
+  server result and patch the matching cached row; invalidate/refetch only when the response
+  lacks data needed by the cache or the mutation changes derived data outside that row.
 
 ## Forms
 

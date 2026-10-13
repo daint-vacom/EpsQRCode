@@ -13,6 +13,7 @@ import {
   DataGridActionButton,
   getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
+import { Switch } from '@/components/ui/switch';
 import type { MaterialGroup } from '../model/material-group';
 
 export const MATERIAL_GROUP_COLUMN_PINNING: ColumnPinningState = {
@@ -24,32 +25,64 @@ export interface UseMaterialGroupColumnsParams {
   onDelete: (row: MaterialGroup) => void;
   canEdit: boolean;
   canDelete: boolean;
+  canManage: boolean;
+  onAvailabilityChange: (row: MaterialGroup, isActive: boolean) => void;
+  pendingAvailabilityIds: ReadonlySet<string>;
 }
 
 export function useMaterialGroupColumns(
   params: UseMaterialGroupColumnsParams,
 ): ColumnDef<MaterialGroup>[] {
   const intl = useIntl();
-  const { canEdit, canDelete, onEdit, onDelete } = params;
+  const {
+    canEdit,
+    canDelete,
+    canManage,
+    onEdit,
+    onDelete,
+    onAvailabilityChange,
+    pendingAvailabilityIds,
+  } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<MaterialGroup>();
     const actionCount = Number(canEdit) + Number(canDelete);
 
     const columns: ColumnDef<MaterialGroup>[] = [
-      col.text({
-        id: 'code',
-        header: intl.formatMessage({ id: 'materialGroups.fields.code' }),
-        get: (row) => row.code,
-        size: 180,
+      col.custom({
+        id: 'availability',
+        header: intl.formatMessage({
+          id: 'materialGroups.fields.availability',
+        }),
+        size: 110,
         enableSorting: false,
+        cell: (row) => (
+          <div className="flex items-center justify-center">
+            <Switch
+              size="sm"
+              checked={row.isActive}
+              disabled={!canManage || pendingAvailabilityIds.has(row.id)}
+              aria-label={`${row.isActive ? 'Tắt' : 'Bật'} sử dụng nhóm vật tư ${row.name}`}
+              onCheckedChange={(checked) => onAvailabilityChange(row, checked)}
+            />
+          </div>
+        ),
       }),
-      col.text({
-        id: 'name',
-        header: intl.formatMessage({ id: 'materialGroups.fields.name' }),
-        get: (row) => row.name,
+      col.custom({
+        id: 'materialGroup',
+        header: intl.formatMessage({ id: 'materialGroups.columns.group' }),
         size: 320,
         enableSorting: false,
+        cell: (row) => (
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-sm font-medium text-foreground">
+              {row.name}
+            </span>
+            <span className="truncate text-xs text-muted-foreground">
+              {row.code}
+            </span>
+          </div>
+        ),
       }),
       col.text({
         id: 'description',
@@ -103,5 +136,14 @@ export function useMaterialGroupColumns(
     }
 
     return columns;
-  }, [intl, canEdit, canDelete, onEdit, onDelete]);
+  }, [
+    intl,
+    canEdit,
+    canDelete,
+    canManage,
+    onEdit,
+    onDelete,
+    onAvailabilityChange,
+    pendingAvailabilityIds,
+  ]);
 }
