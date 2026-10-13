@@ -13,7 +13,6 @@ import { useIntl } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -74,19 +73,11 @@ type PendingDelete = {
 export function TagsPage() {
   const intl = useIntl();
   const { userId, hasPermission } = useUser();
-  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
   const workspaceQuery = useQuery({
-    queryKey: ['project', 'tags', userId, tenantId],
-    queryFn: () => {
-      if (!userId || !tenantId) {
-        throw new Error(
-          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
-        );
-      }
-      return loadTagWorkspace(userId, tenantId);
-    },
-    enabled: Boolean(userId && tenantId),
+    queryKey: ['project', 'tags', userId],
+    queryFn: () => loadTagWorkspace(userId!),
+    enabled: Boolean(userId),
   });
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [tagCreateDialogOpen, setTagCreateDialogOpen] = useState(false);
@@ -139,7 +130,7 @@ export function TagsPage() {
       if (editingGroup) {
         return updateTagGroup(editingGroup.id, values);
       }
-      return createTagGroup(workspace.tenantId, userId, values);
+      return createTagGroup(userId, values);
     },
     onSuccess: async () => {
       toast.success(
@@ -168,7 +159,7 @@ export function TagsPage() {
           intl.formatMessage({ id: 'common.errors.dataNotReady' }),
         );
       if (tag) return updateTag(tag.id, values);
-      return createTag(workspace.tenantId, userId, values);
+      return createTag(userId, values);
     },
     onSuccess: async (_, variables) => {
       toast.success(

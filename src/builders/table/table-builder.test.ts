@@ -157,7 +157,7 @@ describe('buildColumnsModule', () => {
     expect(source).toContain('config: statusBadgeConfig,');
   });
 
-  it('emits inline cell stubs for actions/custom and tenant formatters', () => {
+  it('emits inline cell stubs for actions/custom and workspace formatters', () => {
     expect(source).toContain('col.custom({');
     expect(source).toContain('col.actions({');
     expect(source).toContain('// TODO(scaffold): điền nội dung cell');

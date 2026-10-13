@@ -1,43 +1,40 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  createTenantSavedView,
-  deleteTenantSavedView,
-  loadTenantSavedViews,
-  updateTenantSavedView,
+  createSavedView,
+  deleteSavedView,
+  loadSavedViews,
+  updateSavedView,
 } from '../api/saved-views.api';
 import type {
+  SavedView,
   SavedViewConfig,
   SavedViewResource,
-  TenantSavedView,
 } from '../model/saved-view';
 
-interface UseTenantSavedViewsOptions {
-  tenantId: string | null | undefined;
+interface UseSavedViewsOptions {
   userId: string | null | undefined;
   resource: SavedViewResource;
 }
 
-interface SaveTenantSavedViewInput<TFilters extends object> {
+interface SaveSavedViewInput<TFilters extends object> {
   name: string;
-  view: TenantSavedView<TFilters> | null;
+  view: SavedView<TFilters> | null;
   config: SavedViewConfig<TFilters>;
 }
 
-export function useTenantSavedViews<TFilters extends object>({
-  tenantId,
+export function useSavedViews<TFilters extends object>({
   userId,
   resource,
-}: UseTenantSavedViewsOptions) {
+}: UseSavedViewsOptions) {
   const queryClient = useQueryClient();
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
-  const queryKey = ['project', 'saved-views', tenantId, resource] as const;
+  const queryKey = ['project', 'saved-views', resource] as const;
 
   const savedViewsQuery = useQuery({
     queryKey,
-    queryFn: ({ signal }) =>
-      loadTenantSavedViews<TFilters>(tenantId!, resource, signal),
-    enabled: Boolean(tenantId),
+    queryFn: ({ signal }) => loadSavedViews<TFilters>(resource, signal),
+    enabled: Boolean(userId),
     staleTime: 60 * 1000,
   });
 
@@ -53,14 +50,14 @@ export function useTenantSavedViews<TFilters extends object>({
       name,
       view,
       config,
-    }: SaveTenantSavedViewInput<TFilters>) => {
-      if (!tenantId || !userId) {
-        throw new Error('Chưa xác định tenant hoặc tài khoản đăng nhập.');
+    }: SaveSavedViewInput<TFilters>) => {
+      if (!userId) {
+        throw new Error('Chưa xác định tài khoản đăng nhập.');
       }
 
       return view
-        ? updateTenantSavedView(tenantId, userId, view, name, config)
-        : createTenantSavedView(tenantId, userId, resource, name, config);
+        ? updateSavedView(userId, view, name, config)
+        : createSavedView(userId, resource, name, config);
     },
     onSuccess: async (view) => {
       setActiveViewId(view.id);
@@ -69,9 +66,8 @@ export function useTenantSavedViews<TFilters extends object>({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (view: TenantSavedView<TFilters>) => {
-      if (!tenantId) throw new Error('Chưa xác định tenant.');
-      return deleteTenantSavedView(tenantId, view.id);
+    mutationFn: (view: SavedView<TFilters>) => {
+      return deleteSavedView(view.id);
     },
     onSuccess: async (_, view) => {
       if (activeViewId === view.id) setActiveViewId(null);
@@ -91,4 +87,4 @@ export function useTenantSavedViews<TFilters extends object>({
   };
 }
 
-export type { SaveTenantSavedViewInput, UseTenantSavedViewsOptions };
+export type { SaveSavedViewInput, UseSavedViewsOptions };

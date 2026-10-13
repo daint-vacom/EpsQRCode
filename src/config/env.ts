@@ -41,9 +41,6 @@ export const env = {
   supabaseRestUrl: supabaseUrl ? `${supabaseUrl}/rest/v1` : '',
   supabaseAuthUrl: supabaseUrl ? `${supabaseUrl}/auth/v1` : '',
   supabaseAnonKey,
-  supabaseLoginDomain: getOptionalString(
-    import.meta.env.VITE_SUPABASE_LOGIN_DOMAIN,
-  ),
   supabaseSchema:
     getOptionalString(import.meta.env.VITE_SUPABASE_SCHEMA) || 'public',
   supabaseEnabled: Boolean(supabaseUrl && supabaseAnonKey),

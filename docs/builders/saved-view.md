@@ -1,6 +1,6 @@
 # Saved-view builder
 
-`saved-view` scaffolds the typed persistence adapter for a tenant-shared list view.
+`saved-view` scaffolds the typed persistence adapter for a shared list view.
 It normalizes legacy or incomplete JSON from the database back to the feature's initial
 filter shape, validates enum arrays, and preserves column visibility/order.
 
@@ -9,7 +9,7 @@ npm run gen:saved-view -- <spec.ts> <out.ts>
 ```
 
 The generated adapter does not own query state or UI. Feature hooks own filter state,
-React Query and table state; `useTenantSavedViews`, `SavedViewsToolbar` and
+React Query and table state; `useSavedViews`, `SavedViewsToolbar` and
 `SavedViewFormDialog` provide the shared runtime behavior.
 
 ## Apply a view to a table

@@ -90,7 +90,6 @@ export interface EmployeeDistributionChartPoint {
 
 export interface Employee {
   id: string;
-  tenantId: string;
   userId: string | null;
   username: string | null;
   avatarUrl: string | null;
@@ -109,7 +108,6 @@ export interface Employee {
 
 export interface EmployeeRow {
   id: string;
-  tenant_id: string;
   user_id: string | null;
   username?: string | null;
   employee_code: string;
@@ -179,7 +177,6 @@ export function mapEmployeeRow(
 
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     userId: row.user_id,
     username,
     avatarUrl: avatarUrl ?? row.avatar_url ?? null,

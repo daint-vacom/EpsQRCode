@@ -33,7 +33,6 @@ const spec: TableSpec = {
       kind: 'actions',
       id: 'actions',
       header: '',
-      actionPresets: ['edit', 'delete'],
       actionCount: 2,
       cellClassName: 'text-right',
     },

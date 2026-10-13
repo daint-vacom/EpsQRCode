@@ -25,7 +25,7 @@ export function setStorageItem<T>(key: string, value: T): void {
   }
 }
 
-export const TENANT_ASSETS_BUCKET = 'tenant-assets';
+export const WORKSPACE_ASSETS_BUCKET = 'workspace-assets';
 export const WORK_ATTACHMENTS_BUCKET = 'work-attachments';
 
 export interface StorageObjectInput {

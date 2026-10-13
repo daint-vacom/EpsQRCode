@@ -11,15 +11,10 @@ import {
   type RolePermissionRow,
   type RoleRow,
   type RoleSummary,
-  type TenantMemberRoleRow,
+  type UserRoleRow,
 } from '../model/role-permission';
 
-interface TenantMembershipRow {
-  tenant_id: string;
-}
-
 interface CreateRoleInput {
-  tenant_id: string;
   code: string;
   name: string;
   color: RoleColor;
@@ -35,7 +30,6 @@ interface UpdateRoleInput {
 }
 
 export interface RolePermissionsWorkspace {
-  tenantId: string;
   roles: RoleSummary[];
   modulesByRoleId: Record<string, PermissionModule[]>;
 }
@@ -48,32 +42,8 @@ function queryParams(params: Record<string, string>) {
   return { params };
 }
 
-export async function loadRolePermissionsWorkspace(
-  userId: string,
-  tenantIdOverride?: string,
-): Promise<RolePermissionsWorkspace> {
+export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWorkspace> {
   assertSupabaseConfigured();
-
-  const tenantId =
-    tenantIdOverride ??
-    (
-      await request<TenantMembershipRow[]>(
-        supabaseApi.get(
-          '/tenant_members',
-          queryParams({
-            select: 'tenant_id',
-            user_id: `eq.${userId}`,
-            status: 'eq.active',
-            order: 'created_at.asc',
-            limit: '1',
-          }),
-        ),
-      )
-    )[0]?.tenant_id;
-
-  if (!tenantId) {
-    throw new Error('Tài khoản chưa thuộc tenant đang hoạt động.');
-  }
 
   const [roles, definitions, modules, groups, rolePermissions, assignments] =
     await Promise.all([
@@ -82,7 +52,6 @@ export async function loadRolePermissionsWorkspace(
           '/roles',
           queryParams({
             select: '*',
-            tenant_id: `eq.${tenantId}`,
             is_active: 'eq.true',
             order: 'is_system.desc,sort_order.asc,name.asc',
           }),
@@ -126,12 +95,11 @@ export async function loadRolePermissionsWorkspace(
           }),
         ),
       ),
-      request<TenantMemberRoleRow[]>(
+      request<UserRoleRow[]>(
         supabaseApi.get(
-          '/tenant_member_roles',
+          '/user_roles',
           queryParams({
-            select: 'tenant_id,user_id,role_id',
-            tenant_id: `eq.${tenantId}`,
+            select: 'user_id,role_id',
           }),
         ),
       ),
@@ -168,6 +136,8 @@ export async function loadRolePermissionsWorkspace(
     scope: role.scope,
     isSystem: role.is_system,
     isActive: role.is_active,
+    customerAssignable: role.customer_assignable,
+    grantAllPermissions: role.grant_all_permissions,
   }));
 
   const permissionModules: PermissionModule[] = modules.map((module) => ({
@@ -204,7 +174,6 @@ export async function loadRolePermissionsWorkspace(
   );
 
   return {
-    tenantId,
     roles: roleSummaries,
     modulesByRoleId,
   };

@@ -22,17 +22,21 @@ export const MATERIAL_GROUP_COLUMN_PINNING: ColumnPinningState = {
 export interface UseMaterialGroupColumnsParams {
   onEdit: (row: MaterialGroup) => void;
   onDelete: (row: MaterialGroup) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 export function useMaterialGroupColumns(
   params: UseMaterialGroupColumnsParams,
 ): ColumnDef<MaterialGroup>[] {
   const intl = useIntl();
+  const { canEdit, canDelete, onEdit, onDelete } = params;
 
   return useMemo(() => {
     const col = createColumnHelpers<MaterialGroup>();
+    const actionCount = Number(canEdit) + Number(canDelete);
 
-    return [
+    const columns: ColumnDef<MaterialGroup>[] = [
       col.text({
         id: 'code',
         header: intl.formatMessage({ id: 'materialGroups.fields.code' }),
@@ -54,39 +58,50 @@ export function useMaterialGroupColumns(
         size: 280,
         enableSorting: false,
       }),
-      col.actions({
-        id: 'actions',
-        header: '',
-        cellClassName: 'text-right',
-        size: getDataGridActionsColumnSize(2),
-        enableSorting: false,
-        cell: (row) => (
-          <div className="flex justify-end gap-1">
-            <DataGridActionButton
-              action="edit"
-              tooltip="Sửa"
-              aria-label="Sửa"
-              type="button"
-              mode="icon"
-              size="sm"
-              onClick={() => params.onEdit(row)}
-            >
-              <Pencil className="size-4" />
-            </DataGridActionButton>
-            <DataGridActionButton
-              action="delete"
-              tooltip="Xóa"
-              aria-label="Xóa"
-              type="button"
-              mode="icon"
-              size="sm"
-              onClick={() => params.onDelete(row)}
-            >
-              <Trash2 className="size-4" />
-            </DataGridActionButton>
-          </div>
-        ),
-      }),
     ];
-  }, [intl, params.onEdit, params.onDelete]);
+
+    if (actionCount > 0) {
+      columns.push(
+        col.actions({
+          id: 'actions',
+          header: '',
+          cellClassName: 'text-right',
+          size: getDataGridActionsColumnSize(actionCount),
+          enableSorting: false,
+          cell: (row) => (
+            <div className="flex justify-end gap-1">
+              {canEdit ? (
+                <DataGridActionButton
+                  action="edit"
+                  tooltip="Sửa"
+                  aria-label="Sửa"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  onClick={() => onEdit(row)}
+                >
+                  <Pencil className="size-4" />
+                </DataGridActionButton>
+              ) : null}
+              {canDelete ? (
+                <DataGridActionButton
+                  action="delete"
+                  tooltip="Xóa"
+                  aria-label="Xóa"
+                  type="button"
+                  mode="icon"
+                  size="sm"
+                  onClick={() => onDelete(row)}
+                >
+                  <Trash2 className="size-4" />
+                </DataGridActionButton>
+              ) : null}
+            </div>
+          ),
+        }),
+      );
+    }
+
+    return columns;
+  }, [intl, canEdit, canDelete, onEdit, onDelete]);
 }

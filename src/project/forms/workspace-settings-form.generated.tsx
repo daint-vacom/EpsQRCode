@@ -1,5 +1,5 @@
 /**
- * Scaffolded by form-builder from `src/project/forms/tenant.form.fixture.ts`. Run `npm run gen:form` — do NOT hand-write this file.
+ * Scaffolded by form-builder from `src/project/forms/workspace-settings.form.fixture.ts`. Run `npm run gen:form` — do NOT hand-write this file.
  * You own this file now — keep create and edit dialog state separate in the parent. Create forms
  * keep their draft when closed; edit forms reset after the selected entity is assigned on the next
  * open. Never clear the selected entity or reset the form while an edit dialog is closing. To change
@@ -41,9 +41,9 @@ import {
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  tenantSettingsSchema,
-  type TenantSettingsValues,
-} from '../model/tenant-settings';
+  workspaceSettingsSchema,
+  type WorkspaceSettingsValues,
+} from '../model/workspace-settings';
 
 const numberLocaleOptions = [
   { value: 'vi-VN', label: 'Việt Nam (1.234,56)' },
@@ -55,7 +55,7 @@ const compactDisplayOptions = [
   { value: 'short', label: 'Viết tắt (Tr, Tỷ)' },
 ];
 
-export const tenantSettingsDefaultValues: TenantSettingsValues = {
+export const workspaceSettingsDefaultValues: WorkspaceSettingsValues = {
   logoUrl: '',
   name: '',
   legalName: '',
@@ -71,41 +71,41 @@ export const tenantSettingsDefaultValues: TenantSettingsValues = {
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
-type TenantSettingsFormSource = unknown;
+type WorkspaceSettingsFormSource = unknown;
 
-export function useTenantSettingsForm(
-  options?: Omit<UseFormProps<TenantSettingsValues>, 'resolver'>,
+export function useWorkspaceSettingsForm(
+  options?: Omit<UseFormProps<WorkspaceSettingsValues>, 'resolver'>,
 ) {
-  return useForm<TenantSettingsValues>({
-    resolver: zodResolver(tenantSettingsSchema),
-    defaultValues: tenantSettingsDefaultValues,
+  return useForm<WorkspaceSettingsValues>({
+    resolver: zodResolver(workspaceSettingsSchema),
+    defaultValues: workspaceSettingsDefaultValues,
     ...options,
   });
 }
 
-export function mapTenantSettingsToFormValues(
-  entity: TenantSettingsFormSource,
-): TenantSettingsValues {
+export function mapWorkspaceSettingsToFormValues(
+  entity: WorkspaceSettingsFormSource,
+): WorkspaceSettingsValues {
   // TODO(scaffold): map entity → form values for edit mode.
   void entity;
-  return tenantSettingsDefaultValues;
+  return workspaceSettingsDefaultValues;
 }
 
-interface TenantSettingsFormProps {
-  form: UseFormReturn<TenantSettingsValues>;
-  onSubmit: (values: TenantSettingsValues) => void;
+interface WorkspaceSettingsFormProps {
+  form: UseFormReturn<WorkspaceSettingsValues>;
+  onSubmit: (values: WorkspaceSettingsValues) => void;
   id?: string;
   currencyCodeOptions: { value: string; label: string }[];
   onLogoUrlFileChange?: (file: File | null) => void;
 }
 
-export function TenantSettingsForm({
+export function WorkspaceSettingsForm({
   form,
   onSubmit,
-  id = 'tenantSettings-form',
+  id = 'workspaceSettings-form',
   currencyCodeOptions,
   onLogoUrlFileChange,
-}: TenantSettingsFormProps) {
+}: WorkspaceSettingsFormProps) {
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
@@ -329,19 +329,19 @@ export function TenantSettingsForm({
   );
 }
 
-interface TenantSettingsFormDialogProps {
+interface WorkspaceSettingsFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
-  form: UseFormReturn<TenantSettingsValues>;
-  onSubmit: (values: TenantSettingsValues) => void;
+  form: UseFormReturn<WorkspaceSettingsValues>;
+  onSubmit: (values: WorkspaceSettingsValues) => void;
   isSaving?: boolean;
   title?: string;
   currencyCodeOptions: { value: string; label: string }[];
   onLogoUrlFileChange?: (file: File | null) => void;
 }
 
-export function TenantSettingsFormDialog({
+export function WorkspaceSettingsFormDialog({
   open,
   onOpenChange,
   mode,
@@ -351,7 +351,7 @@ export function TenantSettingsFormDialog({
   title,
   currencyCodeOptions,
   onLogoUrlFileChange,
-}: TenantSettingsFormDialogProps) {
+}: WorkspaceSettingsFormDialogProps) {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (isSaving || !(event.ctrlKey || event.metaKey)) return;
@@ -396,10 +396,10 @@ export function TenantSettingsFormDialog({
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <TenantSettingsForm
+            <WorkspaceSettingsForm
               form={form}
               onSubmit={onSubmit}
-              id="tenantSettings-form"
+              id="workspaceSettings-form"
               currencyCodeOptions={currencyCodeOptions}
               onLogoUrlFileChange={onLogoUrlFileChange}
             />
@@ -420,7 +420,7 @@ export function TenantSettingsFormDialog({
               <Button
                 type="submit"
                 variant="primary"
-                form="tenantSettings-form"
+                form="workspaceSettings-form"
                 loading={isSaving}
                 loadingText="Đang lưu"
               >

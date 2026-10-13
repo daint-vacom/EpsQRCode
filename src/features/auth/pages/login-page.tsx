@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { loginToEps, startEpsSsoLogin } from '@/features/eps/api/eps-auth.api';
 import { useAuthStore } from '@/stores/auth.store';
-import { Building2, LogIn, ShieldCheck } from 'lucide-react';
+import { LogIn, ShieldCheck } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
 import { useIntl } from 'react-intl';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { signInWithPassword } from '../api/auth.api';
 import { LoginForm, useLoginForm } from '../forms/login-form.generated';
 import type { LoginFormValues } from '../forms/login-form.schema';
 
@@ -18,7 +18,6 @@ export function LoginPage() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSsoStarting, setIsSsoStarting] = useState(false);
   const form = useLoginForm();
 
   const handleSubmit = async (values: LoginFormValues) => {
@@ -26,12 +25,24 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const user = await loginToEps({
-        userName: values.identifier,
-        password: values.password,
-      });
+      const session = await signInWithPassword(values.email, values.password);
+      const email = session.user.email ?? values.email;
+      const metadata = session.user.user_metadata ?? {};
+      const name =
+        (typeof metadata.display_name === 'string' && metadata.display_name) ||
+        (typeof metadata.full_name === 'string' && metadata.full_name) ||
+        email.split('@')[0];
 
-      setAuth({ user, cookieSession: true });
+      setAuth({
+        user: {
+          id: session.user.id,
+          name,
+          email,
+          permissions: [],
+        },
+        token: session.access_token,
+        refreshToken: session.refresh_token,
+      });
 
       navigate(searchParams.get('redirect') || '/', { replace: true });
     } catch (error) {
@@ -39,12 +50,6 @@ export function LoginPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleSsoLogin = () => {
-    setErrorMessage(null);
-    setIsSsoStarting(true);
-    startEpsSsoLogin(searchParams.get('redirect') || '/');
   };
 
   return (
@@ -84,16 +89,6 @@ export function LoginPage() {
               >
                 <LogIn className="size-4" />
                 {intl.formatMessage({ id: 'auth.login.submit' })}
-              </Button>
-              <Button
-                className="w-full"
-                disabled={isSubmitting || isSsoStarting}
-                onClick={handleSsoLogin}
-                type="button"
-                variant="outline"
-              >
-                <Building2 className="size-4" />
-                {intl.formatMessage({ id: 'auth.login.sso' })}
               </Button>
             </div>
           </CardContent>

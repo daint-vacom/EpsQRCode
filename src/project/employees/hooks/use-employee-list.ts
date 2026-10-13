@@ -2,7 +2,7 @@ import { useSubjectTagFilter } from '@/project/tags/hooks/use-subject-tag-filter
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { buildListQueryParams } from '@/lib/list-query-params';
 import { useTableListState } from '@/hooks/use-table-list-state';
-import { useTenant } from '@/providers/tenant-provider';
+import { useWorkspace } from '@/providers/workspace-provider';
 import {
   loadEmployeeList,
   loadEmployeeRoleOptions,
@@ -17,7 +17,7 @@ import {
 import type { EmployeeListFilters } from '../model/employee';
 
 export function useEmployeeList() {
-  const tenantState = useTenant();
+  const workspaceState = useWorkspace();
   const listState = useTableListState<EmployeeListFilters>({
     initialFilters: EMPLOYEE_LIST_INITIAL_FILTERS,
     initialPageSize: 10,
@@ -78,33 +78,22 @@ export function useEmployeeList() {
   });
 
   const roleOptionsQuery = useQuery({
-    queryKey: ['project', 'employees', 'role-options', tenantState.tenantId],
-    queryFn: () => loadEmployeeRoleOptions(tenantState.tenantId!),
-    enabled: Boolean(tenantState.tenantId),
+    queryKey: ['project', 'employees', 'role-options'],
+    queryFn: () => loadEmployeeRoleOptions(),
     staleTime: 5 * 60 * 1000,
   });
 
   const listQuery = useQuery({
-    queryKey: [
-      'project',
-      'employees',
-      'list',
-      tenantState.tenantId,
-      listParams,
-    ],
+    queryKey: ['project', 'employees', 'list', listParams],
     queryFn: ({ signal }) => {
-      if (!tenantState.tenantId) {
-        throw new Error('Chưa xác định tenant đang hoạt động.');
-      }
-      return loadEmployeeList(tenantState.tenantId, listParams, signal);
+      return loadEmployeeList(listParams, signal);
     },
-    enabled: Boolean(tenantState.tenantId),
     placeholderData: keepPreviousData,
   });
 
   return {
     ...listState,
-    tenantQuery: tenantState,
+    accountQuery: workspaceState,
     workspaceQuery: listQuery,
     employees: listQuery.data?.employees ?? [],
     total: listQuery.data?.total ?? 0,

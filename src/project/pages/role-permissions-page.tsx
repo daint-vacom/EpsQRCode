@@ -25,7 +25,6 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { queryClient } from '@/lib/query-client';
 import { cn } from '@/lib/utils';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import {
   AlertDialog,
@@ -49,6 +48,7 @@ import {
   CardToolbar,
 } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -155,24 +155,25 @@ function countAllPermissions(modules: PermissionModule[]) {
 export function RolePermissionsPage() {
   const intl = useIntl();
   const { userId } = useUser();
-  const { tenantId } = useTenant();
   const workspaceQuery = useQuery({
-    queryKey: ['project', 'role-permissions', userId, tenantId],
+    queryKey: ['project', 'role-permissions', userId],
     queryFn: () => {
-      if (!userId || !tenantId) {
+      if (!userId) {
         throw new Error(
           intl.formatMessage({
             id: 'common.errors.dataNotReady',
           }),
         );
       }
-      return loadRolePermissionsWorkspace(userId, tenantId);
+      return loadRolePermissionsWorkspace();
     },
-    enabled: Boolean(userId && tenantId),
+    enabled: Boolean(userId),
   });
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [modules, setModules] = useState<PermissionModule[]>([]);
-  const [expandedModules, setExpandedModules] = useState<string[]>(['system']);
+  const [expandedModules, setExpandedModules] = useState<string[]>([
+    'material_catalog',
+  ]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogRole, setDialogRole] = useState<RoleSummary | null>(null);
   const [deletingRole, setDeletingRole] = useState<RoleSummary | null>(null);
@@ -397,7 +398,6 @@ export function RolePermissionsPage() {
       }
 
       return createRole({
-        tenant_id: workspaceQuery.data.tenantId,
         code,
         name: values.name.trim(),
         color: values.color,
@@ -456,24 +456,46 @@ export function RolePermissionsPage() {
     />
   );
 
+  if (!userId) {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
+        {pageHeader}
+        <ErrorState
+          className="flex-1"
+          title={intl.formatMessage({ id: 'permissions.page.loadError' })}
+          description={intl.formatMessage({ id: 'common.errors.dataNotReady' })}
+        />
+      </div>
+    );
+  }
+
   if (workspaceQuery.isPending) {
     return (
-      <PageLoading
-        label={intl.formatMessage({ id: 'permissions.page.loading' })}
-        className="h-full"
-      />
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
+        {pageHeader}
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <PageLoading
+            label={intl.formatMessage({ id: 'permissions.page.loading' })}
+          />
+        </div>
+      </div>
     );
   }
 
   if (workspaceQuery.isError) {
     return (
-      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 text-sm text-destructive lg:p-5">
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-auto p-4 lg:p-5">
         {pageHeader}
-        <div className="flex flex-1 items-center justify-center">
-          {workspaceQuery.error instanceof Error
-            ? workspaceQuery.error.message
-            : intl.formatMessage({ id: 'permissions.page.loadError' })}
-        </div>
+        <ErrorState
+          className="flex-1"
+          title={intl.formatMessage({ id: 'permissions.page.loadError' })}
+          description={
+            workspaceQuery.error instanceof Error
+              ? workspaceQuery.error.message
+              : undefined
+          }
+          onRetry={() => void workspaceQuery.refetch()}
+        />
       </div>
     );
   }

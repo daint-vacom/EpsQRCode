@@ -6,7 +6,6 @@ describe('file manager model helpers', () => {
     const tree = buildFileFolderTree([
       {
         id: 'folder-1',
-        tenantId: 'tenant-1',
         parentId: 'shared-files',
         folderType: 'custom',
         systemKey: null,
@@ -23,7 +22,6 @@ describe('file manager model helpers', () => {
       },
       {
         id: 'shared-files',
-        tenantId: 'tenant-1',
         parentId: null,
         folderType: 'system_root',
         systemKey: null,
@@ -45,7 +43,7 @@ describe('file manager model helpers', () => {
     expect(tree[0].children[0].depth).toBe(1);
   });
 
-  it('formats storage sizes for the quota and file list', () => {
+  it('formats storage sizes for the file list', () => {
     expect(formatFileSize(0)).toBe('0 B');
     expect(formatFileSize(1024 * 1024)).toBe('1.0 MB');
     expect(formatFileSize(5 * 1024 * 1024 * 1024)).toBe('5.0 GB');

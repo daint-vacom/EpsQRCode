@@ -154,7 +154,7 @@ function DataGridColumnVisibility<TData>({
     useSensor(KeyboardSensor),
   );
   // TanStack keeps the table instance stable while its column definitions can
-  // change asynchronously (for example, tenant custom fields loading later).
+  // change asynchronously (for example, workspace custom fields loading later).
   // Read the current columns on every render so the picker follows the table.
   const columns = getReorderableColumns(table);
   const columnOrder = table.getState().columnOrder;

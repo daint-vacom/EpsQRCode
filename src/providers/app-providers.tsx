@@ -14,8 +14,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import { AppSettingsProvider } from './app-settings-provider';
 import { NumberFormatProvider } from './number-format-provider';
-import { TenantProvider } from './tenant-provider';
 import { UserProvider } from './user-provider';
+import { WorkspaceProvider } from './workspace-provider';
 
 const { BASE_URL } = import.meta.env;
 
@@ -65,7 +65,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
             <HelmetProvider>
               <QueryClientProvider client={queryClient}>
                 <UserProvider>
-                  <TenantProvider>
+                  <WorkspaceProvider>
                     <NumberFormatProvider>
                       <LoadingBarContainer>
                         <BrowserRouter basename={BASE_URL}>
@@ -74,7 +74,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                         </BrowserRouter>
                       </LoadingBarContainer>
                     </NumberFormatProvider>
-                  </TenantProvider>
+                  </WorkspaceProvider>
                 </UserProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
               </QueryClientProvider>

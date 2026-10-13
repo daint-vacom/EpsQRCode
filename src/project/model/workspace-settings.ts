@@ -12,7 +12,7 @@ const currencyCodeSchema = z
   .toUpperCase()
   .regex(/^[A-Z]{3}$/, 'Mã tiền tệ phải gồm 3 ký tự chữ in hoa.');
 
-export const tenantSettingsSchema = z.object({
+export const workspaceSettingsSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên tổ chức.'),
   legalName: z.string().trim(),
   description: z.string().trim().max(500, 'Mô tả không được quá 500 ký tự.'),
@@ -30,9 +30,9 @@ export const tenantSettingsSchema = z.object({
   compactDisplay: z.enum(NUMBER_FORMAT_COMPACT_DISPLAYS),
 });
 
-export type TenantSettingsValues = z.infer<typeof tenantSettingsSchema>;
+export type WorkspaceSettingsValues = z.infer<typeof workspaceSettingsSchema>;
 
-export interface TenantSettingsRow {
+export interface WorkspaceSettingsRow {
   id: string;
   name: string;
   legal_name: string | null;
@@ -41,7 +41,7 @@ export interface TenantSettingsRow {
   settings: Record<string, unknown>;
 }
 
-export const emptyTenantSettings: TenantSettingsValues = {
+export const emptyWorkspaceSettings: WorkspaceSettingsValues = {
   name: '',
   legalName: '',
   description: '',
@@ -56,9 +56,9 @@ export const emptyTenantSettings: TenantSettingsValues = {
   compactDisplay: DEFAULT_NUMBER_FORMAT_COMPACT_DISPLAY,
 };
 
-export function mapTenantSettingsRow(
-  row: TenantSettingsRow,
-): TenantSettingsValues {
+export function mapWorkspaceSettingsRow(
+  row: WorkspaceSettingsRow,
+): WorkspaceSettingsValues {
   return {
     name: row.name,
     legalName: row.legal_name ?? '',

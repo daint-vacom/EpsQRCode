@@ -3,10 +3,9 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 export function ProtectedRoute() {
   const token = useAuthStore((state) => state.token);
-  const cookieSession = useAuthStore((state) => state.cookieSession);
   const location = useLocation();
 
-  if (!token && !cookieSession) {
+  if (!token) {
     const redirect = `${location.pathname}${location.search}`;
     return (
       <Navigate

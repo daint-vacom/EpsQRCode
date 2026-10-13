@@ -2,8 +2,8 @@ import { loadCustomFields } from '@/project/data-configuration/api/custom-fields
 import type { CustomField } from '@/project/data-configuration/model/custom-field';
 import {
   getPublicStorageUrl,
-  TENANT_ASSETS_BUCKET,
   uploadStorageObject,
+  WORKSPACE_ASSETS_BUCKET,
 } from '@/lib/storage';
 import {
   assertSupabaseConfigured,
@@ -23,10 +23,6 @@ import type {
   EmployeeStatus,
 } from '../model/employee';
 import { mapEmployeeRow } from '../model/employee';
-
-interface TenantMembershipRow {
-  tenant_id: string;
-}
 
 interface EmployeeRoleAssignmentRow {
   user_id: string;
@@ -74,7 +70,6 @@ function numberValue(value: number | string | null | undefined) {
 }
 
 export interface EmployeeWorkspace {
-  tenantId: string;
   employees: Employee[];
 }
 
@@ -89,10 +84,8 @@ export interface UpdateCurrentEmployeeProfileInput {
   avatarUrl: string | null;
 }
 
-export async function loadEmployeeCustomFields(
-  tenantId: string,
-): Promise<CustomField[]> {
-  return loadCustomFields(tenantId, 'employee');
+export async function loadEmployeeCustomFields(): Promise<CustomField[]> {
+  return loadCustomFields('employee');
 }
 
 function normalizeCustomFieldValues(
@@ -107,7 +100,6 @@ function normalizeCustomFieldValues(
 }
 
 export async function loadEmployeeCustomFieldValues(
-  tenantId: string,
   employeeId: string,
 ): Promise<Record<string, string>> {
   assertSupabaseConfigured();
@@ -116,7 +108,6 @@ export async function loadEmployeeCustomFieldValues(
       '/entity_custom_data',
       queryParams({
         select: 'data',
-        tenant_id: `eq.${tenantId}`,
         entity_type: 'eq.employee',
         entity_id: `eq.${employeeId}`,
         limit: '1',
@@ -128,7 +119,6 @@ export async function loadEmployeeCustomFieldValues(
 }
 
 export async function saveEmployeeCustomFieldValues(
-  tenantId: string,
   employeeId: string,
   data: Record<string, string>,
 ): Promise<void> {
@@ -136,13 +126,12 @@ export async function saveEmployeeCustomFieldValues(
   await supabaseApi.post(
     '/entity_custom_data',
     {
-      tenant_id: tenantId,
       entity_type: 'employee',
       entity_id: employeeId,
       data,
     },
     {
-      ...queryParams({ on_conflict: 'tenant_id,entity_type,entity_id' }),
+      ...queryParams({ on_conflict: 'entity_type,entity_id' }),
       headers: {
         Prefer: 'resolution=merge-duplicates,return=minimal',
       },
@@ -151,7 +140,6 @@ export async function saveEmployeeCustomFieldValues(
 }
 
 export async function loadEmployeeList(
-  tenantId: string,
   params: EmployeeListParams,
   signal?: AbortSignal,
 ): Promise<EmployeeListResult> {
@@ -160,34 +148,15 @@ export async function loadEmployeeList(
     supabaseApi.post(
       '/rpc/list_employees',
       {
-        p_tenant_id: tenantId,
         p_page: params.page,
         p_page_size: params.pageSize,
         p_search: params.search?.trim() || null,
         p_statuses: params.statuses ?? [],
         p_role_ids: params.roleIds ?? [],
         p_account_linked: params.accountLinked ?? null,
-        p_tag_ids: params.tagIds ?? [],
       },
       { signal },
     ),
-  );
-  const userIds = response.items
-    .map((row) => row.user_id)
-    .filter((userId): userId is string => Boolean(userId));
-  const profiles = userIds.length
-    ? await request<EmployeeAvatarRow[]>(
-        supabaseApi.get(
-          '/user_profiles',
-          queryParams({
-            select: 'id,username',
-            id: `in.(${userIds.join(',')})`,
-          }),
-        ),
-      )
-    : [];
-  const usernamesByUserId = new Map(
-    profiles.map((profile) => [profile.id, profile.username ?? null]),
   );
 
   return {
@@ -197,7 +166,7 @@ export async function loadEmployeeList(
         row.avatar_url,
         row.roles ?? [],
         row.role_ids ?? [],
-        row.user_id ? (usernamesByUserId.get(row.user_id) ?? null) : null,
+        row.username ?? null,
       ),
     ),
     total: numberValue(response.total),
@@ -205,7 +174,6 @@ export async function loadEmployeeList(
 }
 
 export async function loadEmployeeDetail(
-  tenantId: string,
   employeeId: string,
 ): Promise<Employee | null> {
   assertSupabaseConfigured();
@@ -214,7 +182,6 @@ export async function loadEmployeeDetail(
       '/employees',
       queryParams({
         select: '*',
-        tenant_id: `eq.${tenantId}`,
         id: `eq.${employeeId}`,
         limit: '1',
       }),
@@ -239,10 +206,9 @@ export async function loadEmployeeDetail(
     row.user_id
       ? request<EmployeeRoleAssignmentRow[]>(
           supabaseApi.get(
-            '/tenant_member_roles',
+            '/user_roles',
             queryParams({
               select: 'user_id,role_id',
-              tenant_id: `eq.${tenantId}`,
               user_id: `eq.${row.user_id}`,
             }),
           ),
@@ -253,7 +219,6 @@ export async function loadEmployeeDetail(
         '/roles',
         queryParams({
           select: 'id,name,color,is_active',
-          tenant_id: `eq.${tenantId}`,
           is_active: 'eq.true',
         }),
       ),
@@ -279,13 +244,11 @@ export async function loadEmployeeDetail(
 }
 
 export async function loadEmployeeStatusStats(
-  tenantId: string,
   signal?: AbortSignal,
 ): Promise<EmployeeStatusStats> {
   const [all, active, inactive] = await Promise.all(
     [undefined, 'active', 'inactive'].map((status) =>
       loadEmployeeList(
-        tenantId,
         {
           page: 1,
           pageSize: 1,
@@ -303,16 +266,13 @@ export async function loadEmployeeStatusStats(
   };
 }
 
-export async function loadEmployeeRoleOptions(
-  tenantId: string,
-): Promise<EmployeeRoleOption[]> {
+export async function loadEmployeeRoleOptions(): Promise<EmployeeRoleOption[]> {
   assertSupabaseConfigured();
   return request<EmployeeRoleRow[]>(
     supabaseApi.get(
       '/roles',
       queryParams({
         select: 'id,name,color,is_active',
-        tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         order: 'is_system.desc,sort_order.asc,name.asc',
       }),
@@ -327,36 +287,16 @@ export async function loadEmployeeRoleOptions(
   );
 }
 
-async function resolveTenantId(userId: string) {
-  const memberships = await request<TenantMembershipRow[]>(
-    supabaseApi.get(
-      '/tenant_members',
-      queryParams({
-        select: 'tenant_id',
-        user_id: `eq.${userId}`,
-        status: 'eq.active',
-        order: 'created_at.asc',
-        limit: '1',
-      }),
-    ),
-  );
-  const tenantId = memberships[0]?.tenant_id;
-  if (!tenantId) throw new Error('Tài khoản chưa thuộc tenant đang hoạt động.');
-  return tenantId;
-}
-
 export async function loadEmployeeWorkspace(
   userId: string,
-  tenantIdOverride?: string,
 ): Promise<EmployeeWorkspace> {
   assertSupabaseConfigured();
-  const tenantId = tenantIdOverride ?? (await resolveTenantId(userId));
+  void userId;
   const rows = await request<EmployeeRow[]>(
     supabaseApi.get(
       '/employees',
       queryParams({
         select: '*',
-        tenant_id: `eq.${tenantId}`,
         order: 'created_at.asc',
       }),
     ),
@@ -373,10 +313,9 @@ export async function loadEmployeeWorkspace(
   const [assignments, roles] = await Promise.all([
     request<EmployeeRoleAssignmentRow[]>(
       supabaseApi.get(
-        '/tenant_member_roles',
+        '/user_roles',
         queryParams({
           select: 'user_id,role_id',
-          tenant_id: `eq.${tenantId}`,
         }),
       ),
     ),
@@ -385,7 +324,6 @@ export async function loadEmployeeWorkspace(
         '/roles',
         queryParams({
           select: 'id,name,color,is_active',
-          tenant_id: `eq.${tenantId}`,
           is_active: 'eq.true',
           order: 'is_system.desc,sort_order.asc,name.asc',
         }),
@@ -407,7 +345,6 @@ export async function loadEmployeeWorkspace(
   }
 
   return {
-    tenantId,
     employees: rows.map((row) =>
       mapEmployeeRow(
         row,
@@ -426,7 +363,6 @@ export async function loadEmployeeWorkspace(
 }
 
 export async function loadCurrentEmployeeProfile(
-  tenantId: string,
   userId: string,
 ): Promise<Employee | null> {
   assertSupabaseConfigured();
@@ -436,7 +372,6 @@ export async function loadCurrentEmployeeProfile(
       '/employees',
       queryParams({
         select: '*',
-        tenant_id: `eq.${tenantId}`,
         user_id: `eq.${userId}`,
         limit: '1',
       }),
@@ -447,7 +382,6 @@ export async function loadCurrentEmployeeProfile(
 }
 
 export async function updateCurrentEmployeeProfile(
-  tenantId: string,
   employeeId: string,
   values: UpdateCurrentEmployeeProfileInput,
 ): Promise<Employee> {
@@ -455,7 +389,6 @@ export async function updateCurrentEmployeeProfile(
 
   const rows = await request<EmployeeRow[]>(
     supabaseApi.post('/rpc/update_my_employee_profile', {
-      p_tenant_id: tenantId,
       p_employee_id: employeeId,
       p_employee_code: values.employeeCode,
       p_first_name: values.firstName,
@@ -500,40 +433,35 @@ function fileExtension(file: File): string {
 }
 
 export async function uploadEmployeeAvatar(
-  tenantId: string,
   employeeId: string,
   file: File,
 ): Promise<string> {
   assertSupabaseConfigured();
-  const path = `${tenantId}/employees/${employeeId}/avatar.${fileExtension(file)}`;
+  const path = `employees/${employeeId}/avatar.${fileExtension(file)}`;
   await uploadStorageObject({
-    bucket: TENANT_ASSETS_BUCKET,
+    bucket: WORKSPACE_ASSETS_BUCKET,
     path,
     file,
     upsert: true,
   });
 
-  return getPublicStorageUrl(TENANT_ASSETS_BUCKET, path);
+  return getPublicStorageUrl(WORKSPACE_ASSETS_BUCKET, path);
 }
 
 export async function createEmployee(
-  tenantId: string,
   values: EmployeeFormValues,
 ): Promise<Employee> {
   assertSupabaseConfigured();
   const rows = await request<EmployeeRow[]>(
-    supabaseApi.post(
-      '/employees',
-      { tenant_id: tenantId, ...toPayload(values) },
-      { headers: { Prefer: 'return=representation' } },
-    ),
+    supabaseApi.post('/employees', toPayload(values), {
+      headers: { Prefer: 'return=representation' },
+    }),
   );
   if (!rows[0]) throw new Error('Không thể tạo nhân viên.');
   return mapEmployeeRow(rows[0]);
 }
 
 export async function createEmployeeAccount(
-  tenantId: string,
   employeeId: string,
   username: string,
   password: string,
@@ -542,7 +470,6 @@ export async function createEmployeeAccount(
   return request<EmployeeAccountResult>(
     supabaseFunctionApi.post('/employee-account', {
       action: 'create',
-      tenantId,
       employeeId,
       username,
       password,
@@ -551,7 +478,6 @@ export async function createEmployeeAccount(
 }
 
 export async function updateEmployeeUsername(
-  tenantId: string,
   employeeId: string,
   username: string,
 ): Promise<EmployeeAccountResult> {
@@ -559,7 +485,6 @@ export async function updateEmployeeUsername(
   return request<EmployeeAccountResult>(
     supabaseFunctionApi.post('/employee-account', {
       action: 'update-username',
-      tenantId,
       employeeId,
       username,
     }),
@@ -567,7 +492,6 @@ export async function updateEmployeeUsername(
 }
 
 export async function resetEmployeePassword(
-  tenantId: string,
   employeeId: string,
   password: string,
 ): Promise<EmployeeAccountResult> {
@@ -575,7 +499,6 @@ export async function resetEmployeePassword(
   return request<EmployeeAccountResult>(
     supabaseFunctionApi.post('/employee-account', {
       action: 'reset-password',
-      tenantId,
       employeeId,
       password,
     }),
@@ -618,13 +541,11 @@ export async function updateEmployeeStatus(
 }
 
 export async function saveEmployeeAccess(
-  tenantId: string,
   employeeId: string,
   roleIds: string[] | null,
 ): Promise<void> {
   assertSupabaseConfigured();
   await supabaseApi.post('/rpc/save_employee_role_assignments', {
-    p_tenant_id: tenantId,
     p_employee_id: employeeId,
     p_role_ids: roleIds,
   });

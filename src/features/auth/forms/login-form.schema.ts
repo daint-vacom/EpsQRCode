@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const loginFormSchema = z.object({
-  identifier: z.string().trim().min(1, 'Vui lòng nhập tài khoản.'),
+  email: z.string().trim().email('Vui lòng nhập email hợp lệ.'),
   password: z.string().min(1, 'Vui lòng nhập mật khẩu.'),
 });
 

@@ -1,7 +1,6 @@
 import { ROUTES } from '@/constants/routes';
 import { exampleRoutes } from '@/examples/example-routes';
 import { LoginPage } from '@/features/auth/pages/login-page';
-import { EpsAuthCallbackPage } from '@/features/eps/pages/eps-auth-callback-page';
 import { Layout1Page } from '@/pages/layout-1/page';
 import { Layout2Page } from '@/pages/layout-2/page';
 import { Layout3Page } from '@/pages/layout-3/page';
@@ -97,7 +96,6 @@ export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/auth/callback" element={<EpsAuthCallbackPage />} />
       <Route element={<Layout1 />}>
         <Route path="/layout-1" element={<Layout1Page />} />
         <Route path="/layout-1/dark-sidebar" element={<Layout1Page />} />

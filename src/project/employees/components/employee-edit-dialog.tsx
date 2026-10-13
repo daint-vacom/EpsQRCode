@@ -3,7 +3,6 @@ import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import {
   createEmployeeAccount,
@@ -37,7 +36,6 @@ export function EmployeeEditDialog({
   open,
   onOpenChange,
 }: EmployeeEditDialogProps) {
-  const { tenantId } = useTenant();
   const { hasPermission } = useUser();
   const queryClient = useQueryClient();
   const form = useEmployeeForm();
@@ -49,20 +47,18 @@ export function EmployeeEditDialog({
     'organization:employee:update',
   );
   const employeeAccess = useEmployeeAccessWorkspace({
-    tenantId,
     enabled: open,
   });
 
   const employeeCustomFieldsQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-fields', tenantId],
-    queryFn: () => loadEmployeeCustomFields(tenantId!),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'employees', 'custom-fields'],
+    queryFn: () => loadEmployeeCustomFields(),
     staleTime: 60 * 1000,
   });
   const employeeCustomDataQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-data', tenantId, employee.id],
-    queryFn: () => loadEmployeeCustomFieldValues(tenantId!, employee.id),
-    enabled: Boolean(tenantId && open),
+    queryKey: ['project', 'employees', 'custom-data', employee.id],
+    queryFn: () => loadEmployeeCustomFieldValues(employee.id),
+    enabled: open,
   });
 
   useEffect(() => {
@@ -87,13 +83,10 @@ export function EmployeeEditDialog({
 
   const saveMutation = useMutation({
     mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
-      if (!tenantId) throw new Error('Chưa xác định tenant.');
-
       let savedEmployee = await updateEmployee(employee.id, values);
 
       if (employeeImageFile) {
         const imageUrl = await uploadEmployeeAvatar(
-          tenantId,
           savedEmployee.id,
           employeeImageFile,
         );
@@ -108,7 +101,6 @@ export function EmployeeEditDialog({
         const currentUsername = employee.username?.toLowerCase() ?? '';
         if (requestedUsername && requestedUsername !== currentUsername) {
           const account = await updateEmployeeUsername(
-            tenantId,
             savedEmployee.id,
             requestedUsername,
           );
@@ -119,7 +111,6 @@ export function EmployeeEditDialog({
         }
       } else if (values.createAccount && canManageEmployeeAccount) {
         const account = await createEmployeeAccount(
-          tenantId,
           savedEmployee.id,
           values.accountUsername,
           values.initialPassword,
@@ -133,14 +124,12 @@ export function EmployeeEditDialog({
       }
 
       await saveEmployeeCustomFieldValues(
-        tenantId,
         savedEmployee.id,
         values.customFields,
       );
 
       if (savedEmployee.userId) {
         await saveEmployeeAccess(
-          tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
         );

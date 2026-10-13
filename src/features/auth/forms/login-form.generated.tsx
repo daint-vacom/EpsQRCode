@@ -34,7 +34,7 @@ import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { loginFormSchema, type LoginFormValues } from './login-form.schema';
 
 export const loginDefaultValues: LoginFormValues = {
-  identifier: '',
+  email: '',
   password: '',
 };
 
@@ -75,15 +75,15 @@ export function LoginForm({
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
           <FormField
             control={form.control}
-            name="identifier"
+            name="email"
             render={({ field }) => (
               <FormItem className="md:col-span-12">
                 <FormLabel>
-                  {intl.formatMessage({ id: 'auth.login.identifier' })}
+                  {intl.formatMessage({ id: 'auth.login.email' })}
                   <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  <Input variant="md" {...field} />
+                  <Input type="email" variant="md" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -11,12 +11,12 @@ const spec = {
   fields: [
     {
       kind: 'text',
-      name: 'identifier',
-      label: 'Tài khoản hoặc email',
-      labelMessageId: 'auth.login.identifier',
+      name: 'email',
+      label: 'Email',
+      labelMessageId: 'auth.login.email',
       width: 'full',
       required: true,
-      inputType: 'text',
+      inputType: 'email',
     },
     {
       kind: 'text',

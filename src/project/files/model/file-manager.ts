@@ -5,7 +5,6 @@ export type FileSubjectType = string;
 
 export interface FileFolder {
   id: string;
-  tenantId: string;
   parentId: string | null;
   folderType: FileFolderType;
   systemKey: string | null;
@@ -41,13 +40,6 @@ export interface FileManagerItem {
   folderId: string | null;
   storageBucket?: string;
   storagePath?: string;
-}
-
-export interface TenantStorageQuota {
-  limitBytes: number;
-  usedBytes: number;
-  reservedBytes: number;
-  maxFileSizeBytes: number | null;
 }
 
 export const fileFolderCreateFormSchema = z.object({

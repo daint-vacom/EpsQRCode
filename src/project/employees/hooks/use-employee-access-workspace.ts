@@ -1,17 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { loadEmployeeRoleOptions } from '../api/employees.api';
 
-export function useEmployeeAccessWorkspace({
-  tenantId,
-  enabled,
-}: {
-  tenantId: string | null;
-  enabled: boolean;
-}) {
+export function useEmployeeAccessWorkspace({ enabled }: { enabled: boolean }) {
   const roleOptionsQuery = useQuery({
-    queryKey: ['project', 'employees', 'access-role-options', tenantId],
-    queryFn: () => loadEmployeeRoleOptions(tenantId!),
-    enabled: Boolean(tenantId && enabled),
+    queryKey: ['project', 'employees', 'access-role-options'],
+    queryFn: () => loadEmployeeRoleOptions(),
+    enabled,
     staleTime: 5 * 60 * 1000,
   });
 

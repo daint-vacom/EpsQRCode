@@ -1,13 +1,12 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
+  SavedView,
   SavedViewConfig,
   SavedViewResource,
-  TenantSavedView,
 } from '../model/saved-view';
 
-interface TenantSavedViewRow {
+interface SavedViewRow {
   id: string;
-  tenant_id: string;
   resource: SavedViewResource;
   name: string;
   config: Record<string, unknown>;
@@ -28,11 +27,10 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
 }
 
 function mapSavedView<TFilters extends object>(
-  row: TenantSavedViewRow,
-): TenantSavedView<TFilters> {
+  row: SavedViewRow,
+): SavedView<TFilters> {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     resource: row.resource,
     name: row.name,
     config: row.config as unknown as SavedViewConfig<TFilters>,
@@ -45,19 +43,17 @@ function mapSavedView<TFilters extends object>(
   };
 }
 
-export async function loadTenantSavedViews<TFilters extends object>(
-  tenantId: string,
+export async function loadSavedViews<TFilters extends object>(
   resource: SavedViewResource,
   signal?: AbortSignal,
-): Promise<TenantSavedView<TFilters>[]> {
+): Promise<SavedView<TFilters>[]> {
   assertSupabaseConfigured();
 
-  const rows = await request<TenantSavedViewRow[]>(
-    supabaseApi.get('/tenant_saved_views', {
+  const rows = await request<SavedViewRow[]>(
+    supabaseApi.get('/saved_views', {
       ...queryParams({
         select:
-          'id,tenant_id,resource,name,config,is_default,version,created_by,updated_by,created_at,updated_at',
-        tenant_id: `eq.${tenantId}`,
+          'id,resource,name,config,is_default,version,created_by,updated_by,created_at,updated_at',
         resource: `eq.${resource}`,
         order: 'is_default.desc,created_at.asc,name.asc',
       }),
@@ -68,20 +64,18 @@ export async function loadTenantSavedViews<TFilters extends object>(
   return rows.map((row) => mapSavedView<TFilters>(row));
 }
 
-export async function createTenantSavedView<TFilters extends object>(
-  tenantId: string,
+export async function createSavedView<TFilters extends object>(
   userId: string,
   resource: SavedViewResource,
   name: string,
   config: SavedViewConfig<TFilters>,
-): Promise<TenantSavedView<TFilters>> {
+): Promise<SavedView<TFilters>> {
   assertSupabaseConfigured();
 
-  const rows = await request<TenantSavedViewRow[]>(
+  const rows = await request<SavedViewRow[]>(
     supabaseApi.post(
-      '/tenant_saved_views',
+      '/saved_views',
       {
-        tenant_id: tenantId,
         resource,
         name: name.trim(),
         config,
@@ -98,18 +92,17 @@ export async function createTenantSavedView<TFilters extends object>(
   return mapSavedView<TFilters>(rows[0]);
 }
 
-export async function updateTenantSavedView<TFilters extends object>(
-  tenantId: string,
+export async function updateSavedView<TFilters extends object>(
   userId: string,
-  view: TenantSavedView<TFilters>,
+  view: SavedView<TFilters>,
   name: string,
   config: SavedViewConfig<TFilters>,
-): Promise<TenantSavedView<TFilters>> {
+): Promise<SavedView<TFilters>> {
   assertSupabaseConfigured();
 
-  const rows = await request<TenantSavedViewRow[]>(
+  const rows = await request<SavedViewRow[]>(
     supabaseApi.patch(
-      '/tenant_saved_views',
+      '/saved_views',
       {
         name: name.trim(),
         config,
@@ -119,7 +112,6 @@ export async function updateTenantSavedView<TFilters extends object>(
       {
         ...queryParams({
           id: `eq.${view.id}`,
-          tenant_id: `eq.${tenantId}`,
           version: `eq.${view.version}`,
         }),
         headers: { Prefer: 'return=representation' },
@@ -135,13 +127,7 @@ export async function updateTenantSavedView<TFilters extends object>(
   return mapSavedView<TFilters>(rows[0]);
 }
 
-export async function deleteTenantSavedView(
-  tenantId: string,
-  viewId: string,
-): Promise<void> {
+export async function deleteSavedView(viewId: string): Promise<void> {
   assertSupabaseConfigured();
-  await supabaseApi.delete(
-    '/tenant_saved_views',
-    queryParams({ id: `eq.${viewId}`, tenant_id: `eq.${tenantId}` }),
-  );
+  await supabaseApi.delete('/saved_views', queryParams({ id: `eq.${viewId}` }));
 }

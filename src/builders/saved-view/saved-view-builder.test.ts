@@ -30,7 +30,7 @@ const baseSpec = {
 } as const;
 
 describe('saved-view-builder', () => {
-  it('emits a normalized tenant view adapter', () => {
+  it('emits a normalized saved view adapter', () => {
     const source = buildSavedViewModule(baseSpec);
     expect(source).toContain('Scaffolded by saved-view-builder');
     expect(source).toContain('normalizeEmployeeSavedViewConfig');

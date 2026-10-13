@@ -1,10 +1,10 @@
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SavedViewList } from '@/components/ui/saved-view-list';
-import type { TenantSavedView } from '../model/saved-view';
+import type { SavedView } from '../model/saved-view';
 
 interface SavedViewsToolbarProps<TFilters extends object> {
-  views: readonly TenantSavedView<TFilters>[];
+  views: readonly SavedView<TFilters>[];
   activeViewId: string | null;
   canManage: boolean;
   isLoading?: boolean;
@@ -12,7 +12,7 @@ interface SavedViewsToolbarProps<TFilters extends object> {
   isSaving?: boolean;
   onSelect: (viewId: string | null) => void;
   onCreate: () => void;
-  onEdit: (view: TenantSavedView<TFilters>) => void;
+  onEdit: (view: SavedView<TFilters>) => void;
   onSaveCurrent: () => void;
 }
 

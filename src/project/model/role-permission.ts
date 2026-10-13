@@ -35,6 +35,8 @@ export interface RoleSummary {
   scope?: PermissionScope;
   isSystem?: boolean;
   isActive?: boolean;
+  customerAssignable?: boolean;
+  grantAllPermissions?: boolean;
 }
 
 export interface PermissionItem {
@@ -91,7 +93,6 @@ export interface PermissionGroupRow {
 
 export interface RoleRow {
   id: string;
-  tenant_id: string;
   code: string;
   name: string;
   color: RoleColor;
@@ -100,6 +101,8 @@ export interface RoleRow {
   is_system: boolean;
   is_active: boolean;
   sort_order: number;
+  customer_assignable: boolean;
+  grant_all_permissions: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -109,8 +112,7 @@ export interface RolePermissionRow {
   permission_code: string;
 }
 
-export interface TenantMemberRoleRow {
-  tenant_id: string;
+export interface UserRoleRow {
   user_id: string;
   role_id: string;
 }

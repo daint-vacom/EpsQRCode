@@ -32,6 +32,16 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Existing Metronic `layout-*` files keep their layout-first structure; do not relocate them just to match docs.
 - New domain work should be feature-first (`src/features/<domain>/...`) unless working inside `src/examples/`.
 
+## Reference Repositories and Ownership
+
+- `C:\Users\PC\Desktop\web-template` is the canonical reference for reusable UI patterns, page behavior, and application data flows, including roles and permissions. Before implementing a matching feature here, inspect the corresponding web-template screen and data flow, then adapt the pattern to EpsQRCode's own contracts and runtime.
+- `C:\Users\PC\Vacom\EPS\PLEpsClient` is not a test data source for EpsQRCode. During the test phase, do not connect to it or reuse its accounts, employees, departments, teams, positions, specialties, or other records. Its code may be consulted for reusable integration helpers when a later EPS integration is explicitly in scope. Never extend its business model or role endpoints for EpsQRCode, and do not modify that repository unless the user explicitly asks.
+- EpsQRCode owns its account profile and catalog data. Create the small set of Supabase tables and seed records needed to exercise the current flows; do not import or mirror old EPS Training data. Keep UI and domain code independent of Supabase so the temporary provider can later be replaced by the EpsQRCode backend without changing the web-template-derived interaction model.
+- EpsQRCode is a single-workspace application and does not use tenants. Do not add `tenant_id`, tenant membership, tenant-scoped roles, or tenant-scoped permission queries/RLS to EpsQRCode unless the user explicitly changes this requirement. Adapt web-template's role and permission UI/data flow to account-level role assignments instead of copying its tenant model.
+- Test accounts authenticate through Supabase Auth. Use the Supabase Auth UUID as the account identity in `user_profiles`, account role assignments, and permission checks, following web-template's Auth identity behavior. Do not use the EPS cookie session or EPS `userId` as `auth.uid()`.
+- Supabase usage in this repository is temporary development persistence. Any access that relies on the browser's anon/publishable key is not authorization: it can be called or spoofed outside the UI. Keep such data and policies isolated to a development project, label them non-production, and never claim client-side permission checks secure the data. Never put a service-role key in the frontend.
+- When the reference pattern, identity mapping, or API contract leaves a consequential choice unclear, inspect the relevant code and ask the user before committing to a different architecture. Do not infer that a similarly named PLEpsClient endpoint is the intended source of truth.
+
 ## UI Implementation Rules
 
 - Before implementing any page, feature screen, repeated UI surface, or generated scaffold candidate, always use `.codex/skills/use-builder/SKILL.md`. Follow `docs/workflows/implement-ui.md`; the registry decides which builder guide and command apply. This builder gate is the default route for UI work and should stay narrower than broad architecture/design exploration.

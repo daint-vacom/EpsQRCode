@@ -13,7 +13,7 @@ export interface UserProfileSettings {
   [key: string]: unknown;
 }
 
-/** Hồ sơ ứng dụng dùng chung, không chứa role/status theo tenant. */
+/** Hồ sơ ứng dụng dùng chung, không chứa role/status theo workspace. */
 export interface UserProfile {
   id: string;
   displayName: string | null;

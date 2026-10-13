@@ -1,23 +1,29 @@
 # Supabase trong dự án
 
-Supabase được giữ làm backend tạm thời cho các luồng nguyên mẫu trước khi có
-backend riêng. Mỗi môi trường cần dùng một Supabase project riêng; không dùng
-project, dữ liệu hay khóa production của khách hàng trong môi trường phát triển.
+Supabase chỉ là nơi lưu dữ liệu tạm cho phát triển và thử nghiệm trước khi có
+backend EpsQRCode. Mỗi môi trường cần dùng một Supabase project riêng; không
+dùng project, dữ liệu hay khóa production của khách hàng trong môi trường phát
+triển.
 
-Frontend gọi Supabase Auth, PostgREST và Storage qua
-[`src/lib/supabase.ts`](../src/lib/supabase.ts). Browser chỉ dùng publishable/anon
-key; dữ liệu tenant được giới hạn bằng RLS và kiểm tra quyền ở database.
+Trong giai đoạn test, tài khoản đăng nhập được tạo riêng trên Supabase Auth;
+UUID của tài khoản là identity dùng cho `user_profiles`, `user_roles` và RLS.
+EpsQRCode dùng một workspace duy nhất. Không đăng nhập qua EPS cookie và không
+lấy account hay dữ liệu danh mục từ EPS Training/PLEpsClient.
+
+Frontend gọi Supabase qua [`src/lib/supabase.ts`](../src/lib/supabase.ts) bằng
+publishable/anon key. RLS và các RPC dùng `auth.uid()` để giới hạn dữ liệu theo
+tài khoản Supabase đã đăng nhập. Không đưa `SUPABASE_SERVICE_ROLE_KEY` vào
+frontend.
 
 ## Cấu hình local
 
-Sao chép `.env.example` thành `.env.local`, rồi điền URL, publishable/anon key
-và domain đăng nhập username cho project thử nghiệm:
+Sao chép `.env.example` thành `.env.local`, rồi điền URL và publishable/anon key
+cho project thử nghiệm:
 
 ```env
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<publishable-or-anon-key>
 VITE_SUPABASE_SCHEMA=public
-VITE_SUPABASE_LOGIN_DOMAIN=<development-login-domain>
 ```
 
 Nếu dùng luồng tạo tài khoản nhân viên, cấu hình `SUPABASE_LOGIN_DOMAIN` cùng
@@ -26,45 +32,58 @@ giá trị trong secrets của Edge Function `employee-account`. Không đưa
 
 ## Khởi tạo cơ sở dữ liệu
 
-Các migration trong `supabase/migrations` là nguồn cấu trúc cho project mới.
-Chúng bao gồm tenant và hồ sơ người dùng, role cùng quyền theo tenant, nhân viên,
-nhãn dùng chung, cấu hình trường bổ sung, chế độ xem đã lưu, tiền tệ và định dạng,
-tệp, quota lưu trữ, avatar nhân viên, cùng các RPC hỗ trợ danh sách và phân vai.
-
-Chạy migration theo thứ tự timestamp bằng Supabase CLI trên project phát triển
-được cấu hình rõ ràng. Không chạy migration lên project production hoặc project
-khách hàng từ repository này.
+Các migration trong `supabase/migrations` là schema hiện hành của EpsQRCode.
+Áp dụng migration theo version; không chạy lại migration đã có trong
+`supabase_migrations.schema_migrations`.
 
 ## Danh mục nhóm vật tư
 
-`material_groups` là danh mục dùng chung toàn hệ thống EPS, không có `tenant_id`.
-Mã nhóm duy nhất, không phân biệt chữ hoa/thường; ID UUID do database tự sinh.
-RLS cấp CRUD cho cả `anon` và `authenticated` để phục vụ giai đoạn phát triển
-frontend bằng dữ liệu thử nghiệm. Mọi người biết URL và publishable/anon key đều
-có thể đọc/ghi danh mục này; không dùng policy này với dữ liệu thật hoặc project
-production. Khi có backend, cần chuyển quyền ghi sang danh tính đã xác thực.
+`material_groups` là danh mục dùng chung toàn hệ thống. Mã nhóm duy nhất, không
+phân biệt chữ hoa/thường; ID UUID do database tự sinh. Nhóm quyền `Nhóm vật tư`
+thuộc module `Vật tư`, với hai
+quyền `Xem` và `Thêm, sửa, xóa` được kiểm tra theo các mã
+`material_catalog:material_group:view` và
+`material_catalog:material_group:manage` trong role đang gán cho tài khoản.
+Không nạp danh mục cũ từ EPS Training/PLEpsClient.
 
-## Tenant, tài khoản và quyền
+## Tài khoản và quyền
 
-- `auth.users` là identity đăng nhập toàn cục. `user_profiles` lưu hồ sơ dùng
-  chung, còn `tenant_members` liên kết người dùng với từng tenant.
-- `create_tenant` tạo tenant, membership owner, các role mặc định theo tenant và
-  gán role quản trị viên cho người tạo.
-- Role được lưu trong `roles` theo tenant; thành viên có thể nhận nhiều role
-  qua `tenant_member_roles`. Quyền hiệu lực kết hợp role và override user.
-- Các bảng tenant bật RLS. RPC có quyền cao dùng `SECURITY DEFINER`, cố định
-  `search_path`, kiểm tra membership/quyền và chỉ cấp execute cho role cần thiết.
+Tài khoản test được tạo trong Supabase Auth; `user_profiles` là hồ sơ ứng dụng
+gắn với `auth.users`. Mỗi Auth account tự có một hồ sơ trong `employees`, liên
+kết qua `employees.user_id`. Role được định nghĩa một lần trong `roles`;
+`user_roles.user_id` gắn role vào UUID Supabase Auth. Quyền hiệu lực được tính
+từ `role_permissions` và account overrides.
 
-## Nhãn và dữ liệu mở rộng
+Tạo account test trong Supabase Dashboard → Authentication → Users. Hồ sơ ứng
+dụng và hồ sơ nhân viên được tạo tự động từ Auth trigger. Vai trò mặc định
+`system_admin` tên `Quản trị hệ thống` có toàn quyền và là vai trò hệ thống.
+Đăng nhập bằng email đầy đủ; `VITE_SUPABASE_URL` xác định project.
 
-`tag_groups`, `tags` và `tag_assignments` là bộ nhãn dùng chung cho các loại đối
-tượng. Nhóm nhãn hệ thống bảo vệ cấu trúc nhóm; quyền `system:tag:*` kiểm soát
-việc xem và thay đổi catalog. Trường mở rộng theo tenant hiện chỉ được cấu hình
-cho nhân viên; khi bổ sung loại đối tượng cần thêm hỗ trợ một cách chủ động.
+Để khởi tạo quản trị viên đầu tiên trên project phát triển, lấy UUID của account
+đã tạo trong Auth rồi gán role `system_admin` một lần bằng SQL:
+
+```sql
+insert into public.user_roles (user_id, role_id)
+select '<auth-user-uuid>', id
+from public.roles
+where code = 'system_admin'
+on conflict do nothing;
+```
+
+Màn hình role, permission catalog, mã quyền và luồng thao tác tham khảo
+`C:\Users\PC\Desktop\web-template`. Dùng UI, permission catalog và hành vi
+role của model này trong EpsQRCode; gắn role trực tiếp vào account.
+
+Các account, danh mục và nghiệp vụ test phải là dữ liệu mới do EpsQRCode sở
+hữu. Chỉ tạo những bảng và seed records tối thiểu để chạy luồng đang làm; không
+cần sao chép đầy đủ danh mục EPS Training. Các policy dev-only, nếu có, phải
+được ghi rõ và chỉ áp dụng trên project phát triển.
+
+Khi backend EpsQRCode sẵn sàng, thay adapter Supabase bằng API backend, giữ hợp
+đồng role/permission của giao diện, xác thực account ở server và kiểm tra quyền
+ở phía server trước khi cho phép thao tác dữ liệu.
 
 ## Tệp và lưu trữ
 
-File Manager dùng `files`, `file_links`, `file_folders` và
-`tenant_storage_quotas`. Folder có thể là root dùng chung, root tùy chỉnh hoặc
-folder gắn với một đối tượng có hỗ trợ. Tệp được lưu trong bucket riêng tư và
-được truy cập theo tenant; không dùng khóa service role ở client.
+Tệp được lưu theo đường dẫn chung của workspace; không phân vùng theo khách
+hàng hay tổ chức.

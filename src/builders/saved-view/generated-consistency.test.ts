@@ -16,7 +16,7 @@ describe('saved-view-builder generated consistency', () => {
       fields: [{ name: 'name', kind: 'string' }],
     });
 
-    expect(generated).toContain('TenantSavedView<DemoFilters>');
+    expect(generated).toContain('SavedView<DemoFilters>');
     expect(generated).not.toContain(': any');
   });
 });

@@ -5,8 +5,8 @@ import {
   NumberFormatProvider,
   useNumberFormat,
 } from './number-format-provider';
-import { TenantProvider } from './tenant-provider';
 import { UserProvider } from './user-provider';
+import { WorkspaceProvider } from './workspace-provider';
 
 function NumberFormatProbe() {
   const { formatCurrency, formatNumber, inputSeparators } = useNumberFormat();
@@ -29,7 +29,7 @@ describe('NumberFormatProvider', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <UserProvider>
-          <TenantProvider>
+          <WorkspaceProvider>
             <NumberFormatProvider
               settings={{
                 locale: 'en-US',
@@ -39,7 +39,7 @@ describe('NumberFormatProvider', () => {
             >
               <NumberFormatProbe />
             </NumberFormatProvider>
-          </TenantProvider>
+          </WorkspaceProvider>
         </UserProvider>
       </QueryClientProvider>,
     );

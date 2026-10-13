@@ -8,6 +8,8 @@ import { Columns3Cog, PackageOpen, Plus, RefreshCw } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { useUser } from '@/providers/user-provider';
+import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -17,7 +19,6 @@ import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { CardLoading } from '@/components/ui/loading';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -32,6 +33,7 @@ import {
   useUpdateMaterialGroupMutation,
 } from '../hooks/use-material-groups';
 import type { MaterialGroup } from '../model/material-group';
+import { MATERIAL_GROUP_PERMISSION_CODES } from '../model/material-group-permissions';
 import {
   MATERIAL_GROUP_COLUMN_PINNING,
   useMaterialGroupColumns,
@@ -52,7 +54,11 @@ function isAuthorizationError(error: unknown): boolean {
 
 export function MaterialGroupsPage() {
   const intl = useIntl();
-  const query = useMaterialGroupsQuery();
+  const { hasPermission } = useUser();
+  const { isPermissionsPending } = useWorkspace();
+  const canView = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.view);
+  const canManage = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.manage);
+  const query = useMaterialGroupsQuery(isPermissionsPending || canView);
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
   const deleteMutation = useDeleteMaterialGroupMutation();
@@ -78,6 +84,7 @@ export function MaterialGroupsPage() {
   }, [groups, keyword]);
 
   const openEdit = (group: MaterialGroup) => {
+    if (!canManage) return;
     setEditingGroup(group);
     editForm.reset(mapMaterialGroupToFormValues(group));
     setEditOpen(true);
@@ -85,7 +92,11 @@ export function MaterialGroupsPage() {
 
   const columns = useMaterialGroupColumns({
     onEdit: openEdit,
-    onDelete: setDeletingGroup,
+    onDelete: (group) => {
+      if (canManage) setDeletingGroup(group);
+    },
+    canEdit: canManage,
+    canDelete: canManage,
   });
   const table = useReactTable({
     data: filteredGroups,
@@ -99,6 +110,7 @@ export function MaterialGroupsPage() {
   const handleCreate = (
     values: Parameters<typeof createMutation.mutate>[0],
   ) => {
+    if (!canManage) return;
     createMutation.mutate(values, {
       onSuccess: () => {
         toast.success(
@@ -113,7 +125,7 @@ export function MaterialGroupsPage() {
   const handleUpdate = (
     values: Parameters<typeof updateMutation.mutate>[0]['values'],
   ) => {
-    if (!editingGroup) return;
+    if (!canManage || !editingGroup) return;
     updateMutation.mutate(
       { id: editingGroup.id, values },
       {
@@ -129,7 +141,7 @@ export function MaterialGroupsPage() {
   };
 
   const handleDelete = () => {
-    if (!deletingGroup) return;
+    if (!canManage || !deletingGroup) return;
     deleteMutation.mutate(deletingGroup.id, {
       onSuccess: () => {
         toast.success(
@@ -150,22 +162,24 @@ export function MaterialGroupsPage() {
         title={intl.formatMessage({ id: 'materialGroups.page.title' })}
         icon={PackageOpen}
         actions={
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            onClick={() => setCreateOpen(true)}
-          >
-            <Plus />
-            {intl.formatMessage({ id: 'materialGroups.actions.create' })}
-          </Button>
+          canManage ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => setCreateOpen(true)}
+            >
+              <Plus />
+              {intl.formatMessage({ id: 'materialGroups.actions.create' })}
+            </Button>
+          ) : null
         }
       />
 
       <DataGrid
         table={table}
         recordCount={filteredGroups.length}
-        isLoading={query.isPending}
+        isLoading={isPermissionsPending || (canView && query.isPending)}
         isFetching={query.isFetching}
         emptyMessage={
           keyword
@@ -219,9 +233,14 @@ export function MaterialGroupsPage() {
           />
 
           <CardTable className="min-h-0 flex-1">
-            {query.isPending ? (
-              <CardLoading
-                label={intl.formatMessage({ id: 'materialGroups.loading' })}
+            {!isPermissionsPending && !canView ? (
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'materialGroups.errors.authorizationTitle',
+                })}
+                description={intl.formatMessage({
+                  id: 'materialGroups.errors.authorization',
+                })}
               />
             ) : query.isError ? (
               <ErrorState
@@ -246,7 +265,9 @@ export function MaterialGroupsPage() {
           </CardTable>
 
           <CardFooter className="justify-between">
-            {!query.isError ? <DataGridPagination /> : null}
+            {canView && !isPermissionsPending && !query.isError ? (
+              <DataGridPagination />
+            ) : null}
           </CardFooter>
         </Card>
       </DataGrid>

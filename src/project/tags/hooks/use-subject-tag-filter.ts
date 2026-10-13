@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { useTenant } from '@/providers/tenant-provider';
 import {
   loadSubjectTagFilter,
   type TaggableSubjectType,
@@ -10,7 +9,6 @@ export function useSubjectTagFilter(
   subjectType: TaggableSubjectType,
   config: TagSelectConfig,
 ) {
-  const { tenantId } = useTenant();
   const moduleCodes = config.moduleCodes ?? [];
   const allowCustomGroups = config.allowCustomGroups ?? true;
   const enabled = config.enabled ?? true;
@@ -20,17 +18,16 @@ export function useSubjectTagFilter(
       'project',
       'tags',
       'subject-filter',
-      tenantId,
       subjectType,
       moduleCodes,
       allowCustomGroups,
     ],
     queryFn: () =>
-      loadSubjectTagFilter(tenantId!, subjectType, {
+      loadSubjectTagFilter(subjectType, {
         moduleCodes,
         allowCustomGroups,
       }),
-    enabled: Boolean(tenantId && enabled),
+    enabled,
     staleTime: 5 * 60 * 1000,
   });
 }

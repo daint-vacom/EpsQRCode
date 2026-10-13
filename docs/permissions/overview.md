@@ -10,13 +10,12 @@ Then read one focused guide:
 ## Model
 
 - A **permission** authorizes one action on one resource.
-- A **role** (phân hệ) groups permissions and one data scope. System roles are
-  global catalog rows; custom roles are tenant-scoped rows.
+- A **role** (phân hệ) groups permissions and one data scope. Roles are shared
+  across the workspace and assigned directly to Auth accounts.
 - A user may have multiple roles; permissions are their union.
 - `effectiveScope` is the widest scope granted by those roles.
 - Permission groups organize admin UI only; they do not imply runtime inheritance.
-- `tenant_member_roles` stores the tenant/user assignment to a role. It does not
-  require a copied system-role definition for each tenant.
+- `user_roles` stores each account's role assignments.
 
 ## Permission Codes
 

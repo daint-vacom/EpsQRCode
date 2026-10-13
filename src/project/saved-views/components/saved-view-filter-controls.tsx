@@ -26,7 +26,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { TenantSavedView } from '../model/saved-view';
+import type { SavedView } from '../model/saved-view';
 
 export interface SavedViewFilterDrawerRenderProps {
   open: boolean;
@@ -35,7 +35,7 @@ export interface SavedViewFilterDrawerRenderProps {
 }
 
 export interface SavedViewFilterControlsProps<TFilters extends object> {
-  views: readonly TenantSavedView<TFilters>[];
+  views: readonly SavedView<TFilters>[];
   activeViewId: string | null;
   canManage: boolean;
   isLoading?: boolean;
@@ -46,12 +46,12 @@ export interface SavedViewFilterControlsProps<TFilters extends object> {
   renderFilterDrawer: (props: SavedViewFilterDrawerRenderProps) => ReactNode;
   onSelect: (viewId: string | null) => void;
   onCreate: () => void;
-  onEdit: (view: TenantSavedView<TFilters>) => void;
+  onEdit: (view: SavedView<TFilters>) => void;
   onSaveCurrent: () => void;
 }
 
 export interface SavedViewFilterMenuProps<TFilters extends object> {
-  views: readonly TenantSavedView<TFilters>[];
+  views: readonly SavedView<TFilters>[];
   activeViewId: string | null;
   canManage: boolean;
   isDirty?: boolean;
@@ -61,7 +61,7 @@ export interface SavedViewFilterMenuProps<TFilters extends object> {
   onOpenFilterDrawer: () => void;
   onSelect: (viewId: string | null) => void;
   onCreate: () => void;
-  onEdit: (view: TenantSavedView<TFilters>) => void;
+  onEdit: (view: SavedView<TFilters>) => void;
   onSaveCurrent: () => void;
   trigger: ReactNode;
 }

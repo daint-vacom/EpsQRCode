@@ -1,13 +1,13 @@
 import type { FormSpec } from '@/builders/form';
 
 const spec: FormSpec = {
-  entity: 'TenantSettings',
-  schemaImport: '../model/tenant-settings',
-  schemaName: 'tenantSettingsSchema',
-  valuesType: 'TenantSettingsValues',
+  entity: 'WorkspaceSettings',
+  schemaImport: '../model/workspace-settings',
+  schemaName: 'workspaceSettingsSchema',
+  valuesType: 'WorkspaceSettingsValues',
   title: 'Thông tin tổ chức',
   description: 'Cập nhật thông tin nhận diện và liên hệ của tổ chức.',
-  specPath: 'src/project/forms/tenant.form.fixture.ts',
+  specPath: 'src/project/forms/workspace-settings.form.fixture.ts',
   fields: [
     {
       kind: 'image',

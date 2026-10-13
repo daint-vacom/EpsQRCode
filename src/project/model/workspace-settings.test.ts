@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { mapTenantSettingsRow } from './tenant-settings';
+import { mapWorkspaceSettingsRow } from './workspace-settings';
 
-describe('mapTenantSettingsRow', () => {
-  it('uses the tenant currency and formats as defaults when settings are absent', () => {
-    const values = mapTenantSettingsRow({
-      id: 'tenant-1',
-      name: 'Tenant',
+describe('mapWorkspaceSettingsRow', () => {
+  it('uses the workspace currency and formats as defaults when settings are absent', () => {
+    const values = mapWorkspaceSettingsRow({
+      id: 'workspace-1',
+      name: 'Workspace',
       legal_name: null,
       logo_url: null,
       default_currency_code: 'USD',

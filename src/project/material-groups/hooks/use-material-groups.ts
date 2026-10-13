@@ -12,10 +12,11 @@ export const materialGroupKeys = {
   list: () => [...materialGroupKeys.all, 'list'] as const,
 };
 
-export function useMaterialGroupsQuery() {
+export function useMaterialGroupsQuery(enabled = true) {
   return useQuery({
     queryKey: materialGroupKeys.list(),
     queryFn: ({ signal }) => loadMaterialGroups(signal),
+    enabled,
     retry: 0,
   });
 }

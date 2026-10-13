@@ -89,7 +89,7 @@ export function buildSavedViewModule(input: SavedViewSpec): string {
   return [
     banner(spec.specPath),
     "import type { ColumnOrderState, VisibilityState } from '@tanstack/react-table';",
-    "import type { SavedViewConfig, TenantSavedView } from '@/project/saved-views/model/saved-view';",
+    "import type { SavedViewConfig, SavedView } from '@/project/saved-views/model/saved-view';",
     importLine(spec),
     '',
     `export const ${resourceConst} = ${quote(spec.resource)} as const;`,
@@ -97,7 +97,7 @@ export function buildSavedViewModule(input: SavedViewSpec): string {
       ? [`export const ${permissionConst} = ${quote(spec.managePermission)};`]
       : []),
     '',
-    `export type ${viewType} = TenantSavedView<${spec.filtersType}>;`,
+    `export type ${viewType} = SavedView<${spec.filtersType}>;`,
     `export type ${configType} = SavedViewConfig<${spec.filtersType}>;`,
     '',
     'function isRecord(value: unknown): value is Record<string, unknown> {',

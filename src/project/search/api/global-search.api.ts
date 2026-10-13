@@ -5,12 +5,10 @@ import {
 } from '../model/global-search';
 
 export async function loadGlobalSearch(
-  tenantId: string,
   query: string,
   signal?: AbortSignal,
 ): Promise<GlobalSearchResult> {
   const result = await loadEmployeeList(
-    tenantId,
     { page: 1, pageSize: GLOBAL_SEARCH_LIMIT_PER_SOURCE, search: query.trim() },
     signal,
   );
@@ -22,7 +20,7 @@ export async function loadGlobalSearch(
       code: employee.employeeCode,
       subtitle: employee.phone || null,
       status: employee.status,
-      imageUrl: employee.imageUrl,
+      imageUrl: employee.avatarUrl,
     })),
   };
 }

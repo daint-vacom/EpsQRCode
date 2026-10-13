@@ -6,7 +6,7 @@ import {
   useSavedViewForm,
 } from '@/project/saved-views/components/saved-view-form-dialog';
 import { useSavedViewTableState } from '@/project/saved-views/hooks/use-saved-view-table-state';
-import { useTenantSavedViews } from '@/project/saved-views/hooks/use-tenant-saved-views';
+import { useSavedViews } from '@/project/saved-views/hooks/use-saved-views';
 import { TagColumnFilter } from '@/project/tags/components/tag-column-filter';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -26,7 +26,6 @@ import {
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,7 +96,6 @@ const employeeDefaultColumnVisibility = { account: false };
 
 export function EmployeesPage() {
   const intl = useIntl();
-  const { tenantId } = useTenant();
   const { userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -131,28 +129,19 @@ export function EmployeesPage() {
     'organization:employee:reset-password',
   );
   const employeeAccess = useEmployeeAccessWorkspace({
-    tenantId,
     enabled: dialogOpen,
   });
 
   const employeeCustomFieldsQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-fields', tenantId],
-    queryFn: () => loadEmployeeCustomFields(tenantId!),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'employees', 'custom-fields'],
+    queryFn: () => loadEmployeeCustomFields(),
     staleTime: 60 * 1000,
   });
 
   const employeeCustomDataQuery = useQuery({
-    queryKey: [
-      'project',
-      'employees',
-      'custom-data',
-      tenantId,
-      editingEmployee?.id,
-    ],
-    queryFn: () =>
-      loadEmployeeCustomFieldValues(tenantId!, editingEmployee!.id),
-    enabled: Boolean(tenantId && dialogOpen && editingEmployee),
+    queryKey: ['project', 'employees', 'custom-data', editingEmployee?.id],
+    queryFn: () => loadEmployeeCustomFieldValues(editingEmployee!.id),
+    enabled: Boolean(dialogOpen && editingEmployee),
   });
 
   useEffect(() => {
@@ -183,15 +172,14 @@ export function EmployeesPage() {
     resetAll,
     pagination,
     onPaginationChange,
-    tenantQuery,
+    accountQuery,
     workspaceQuery,
     employeeTagsByEmployeeId,
     employeeRoleOptions,
     employeeRoleOptionsQuery,
   } = useEmployeeList();
 
-  const savedViewState = useTenantSavedViews<EmployeeListFilters>({
-    tenantId,
+  const savedViewState = useSavedViews<EmployeeListFilters>({
     userId,
     resource: EMPLOYEE_SAVED_VIEW_RESOURCE,
   });
@@ -203,15 +191,12 @@ export function EmployeesPage() {
 
   const saveMutation = useMutation({
     mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
-      if (!tenantId) throw new Error('Chưa xác định tenant.');
-
       if (!editingEmployee) throw new Error('Chưa chọn nhân viên cần sửa.');
 
       let savedEmployee = await updateEmployee(editingEmployee.id, values);
 
       if (employeeImageFile) {
         const imageUrl = await uploadEmployeeAvatar(
-          tenantId,
           savedEmployee.id,
           employeeImageFile,
         );
@@ -226,7 +211,6 @@ export function EmployeesPage() {
         const currentUsername = editingEmployee.username?.toLowerCase() ?? '';
         if (requestedUsername && requestedUsername !== currentUsername) {
           const account = await updateEmployeeUsername(
-            tenantId,
             savedEmployee.id,
             requestedUsername,
           );
@@ -237,7 +221,6 @@ export function EmployeesPage() {
         }
       } else if (values.createAccount && canManageEmployeeAccount) {
         const account = await createEmployeeAccount(
-          tenantId,
           savedEmployee.id,
           values.accountUsername,
           values.initialPassword,
@@ -251,14 +234,12 @@ export function EmployeesPage() {
       }
 
       await saveEmployeeCustomFieldValues(
-        tenantId,
         savedEmployee.id,
         values.customFields,
       );
 
       if (savedEmployee.userId) {
         await saveEmployeeAccess(
-          tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
         );
@@ -292,8 +273,7 @@ export function EmployeesPage() {
       employee: Employee;
       password: string;
     }) => {
-      if (!tenantId) throw new Error('Chưa xác định tenant.');
-      return resetEmployeePassword(tenantId, employee.id, password);
+      return resetEmployeePassword(employee.id, password);
     },
     onSuccess: () => {
       toast.success('Đã đổi mật khẩu tài khoản nhân viên.');
@@ -508,13 +488,13 @@ export function EmployeesPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const listError = tenantQuery.error ?? workspaceQuery.error;
-  const isListLoading = tenantQuery.isPending || workspaceQuery.isLoading;
+  const listError = accountQuery.error ?? workspaceQuery.error;
+  const isListLoading = accountQuery.isPending || workspaceQuery.isLoading;
   const selectedEmployees = table
     .getSelectedRowModel()
     .rows.map((row) => row.original);
 
-  if (tenantQuery.isError || workspaceQuery.isError) {
+  if (accountQuery.isError || workspaceQuery.isError) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
         {pageHeader}
@@ -529,7 +509,7 @@ export function EmployeesPage() {
           <Button
             variant="outline"
             onClick={() => {
-              void tenantQuery.refetch();
+              void accountQuery.refetch();
               void workspaceQuery.refetch();
             }}
           >
@@ -814,7 +794,7 @@ export function EmployeesPage() {
         title="Xóa chế độ xem?"
         description={
           deletingView
-            ? `Chế độ xem "${deletingView.name}" sẽ bị xóa cho toàn bộ tenant.`
+            ? `Chế độ xem "${deletingView.name}" sẽ bị xóa cho toàn bộ workspace.`
             : ''
         }
         confirmLabel="Xóa chế độ xem"

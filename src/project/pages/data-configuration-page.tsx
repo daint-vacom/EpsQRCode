@@ -8,7 +8,6 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PROJECT_ENTITY_ORDER } from '@/config/project-menu.config';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +110,6 @@ function validateFieldRows(fields: CustomFieldEditorRow[], intl: IntlShape) {
 
 export function DataConfigurationPage() {
   const intl = useIntl();
-  const { tenantId } = useTenant();
   const { hasPermission } = useUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const canView = hasPermission('organization:custom-field:view');
@@ -136,15 +134,9 @@ export function DataConfigurationPage() {
   });
 
   const fieldsQuery = useQuery({
-    queryKey: ['project', 'custom-fields', tenantId, selectedEntity],
-    queryFn: () => {
-      if (!tenantId)
-        throw new Error(
-          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
-        );
-      return loadCustomFields(tenantId, selectedEntity);
-    },
-    enabled: Boolean(tenantId && canView),
+    queryKey: ['project', 'custom-fields', selectedEntity],
+    queryFn: () => loadCustomFields(selectedEntity),
+    enabled: canView,
   });
 
   useEffect(() => {
@@ -156,15 +148,11 @@ export function DataConfigurationPage() {
 
   const invalidateFields = () =>
     queryClient.invalidateQueries({
-      queryKey: ['project', 'custom-fields', tenantId, selectedEntity],
+      queryKey: ['project', 'custom-fields', selectedEntity],
     });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!tenantId)
-        throw new Error(
-          intl.formatMessage({ id: 'common.errors.dataNotReady' }),
-        );
       const values = editorForm.getValues();
       const parsed = customFieldsEditorFormSchema.safeParse(values);
       if (!parsed.success) {
@@ -174,7 +162,7 @@ export function DataConfigurationPage() {
         );
       }
       const fields = validateFieldRows(parsed.data.fields, intl);
-      return saveCustomFields(tenantId, selectedEntity, fields);
+      return saveCustomFields(selectedEntity, fields);
     },
     onSuccess: async () => {
       editorForm.reset(editorForm.getValues());
@@ -223,17 +211,6 @@ export function DataConfigurationPage() {
     );
     closeOptionsDialog();
   };
-
-  if (!tenantId) {
-    return (
-      <PageLoading
-        label={intl.formatMessage({
-          id: 'dataConfiguration.page.loadingTenant',
-        })}
-        className="h-full"
-      />
-    );
-  }
 
   if (!canView) {
     return (

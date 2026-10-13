@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
 import { getApiErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { BadgeButton } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -59,7 +58,6 @@ export function TagSelect({
   ...props
 }: TagSelectProps) {
   const { userId } = useUser();
-  const { tenantId } = useTenant();
   const normalizedModuleCodes = useMemo(
     () =>
       Array.from(
@@ -73,24 +71,16 @@ export function TagSelect({
       'tags',
       'select-options',
       userId,
-      tenantId,
       normalizedModuleCodes,
       allowCustomGroups,
     ],
     queryFn: () => {
-      if (!userId || !tenantId) {
-        throw new Error('Chưa xác định tổ chức hiện tại.');
-      }
-      return loadTagSelectOptions(
-        userId,
-        {
-          moduleCodes: normalizedModuleCodes,
-          allowCustomGroups,
-        },
-        tenantId,
-      );
+      return loadTagSelectOptions(userId, {
+        moduleCodes: normalizedModuleCodes,
+        allowCustomGroups,
+      });
     },
-    enabled: Boolean(userId && tenantId && enabled),
+    enabled: Boolean(userId && enabled),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -183,7 +173,7 @@ export function TagSelect({
         }
         loading={query.isPending}
         loadingMessage="Đang tải danh sách nhãn..."
-        disabled={disabled || !userId || !tenantId || !enabled}
+        disabled={disabled || !userId || !enabled}
         className={cn(useButtonVariant && BUTTON_TRIGGER_CLASS, className)}
         showSelectedOptionsInTrigger={!useButtonVariant}
         triggerVariant={useButtonVariant ? 'ghost' : 'outline'}

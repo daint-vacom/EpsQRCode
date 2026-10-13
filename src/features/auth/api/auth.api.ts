@@ -20,19 +20,8 @@ export interface SupabaseAuthSession {
   user: SupabaseAuthUser;
 }
 
-function normalizeLoginEmail(identifier: string): string {
-  const value = identifier.trim();
-  if (value.includes('@')) return value;
-  if (!env.supabaseLoginDomain) {
-    throw new Error(
-      'Vui lòng cấu hình VITE_SUPABASE_LOGIN_DOMAIN để dùng username đăng nhập.',
-    );
-  }
-  return `${value}@${env.supabaseLoginDomain}`;
-}
-
 export async function signInWithPassword(
-  identifier: string,
+  email: string,
   password: string,
 ): Promise<SupabaseAuthSession> {
   assertSupabaseConfigured();
@@ -40,7 +29,7 @@ export async function signInWithPassword(
   return supabaseAuthApi.post<SupabaseAuthSession>(
     '/token?grant_type=password',
     {
-      email: normalizeLoginEmail(identifier),
+      email: email.trim(),
       password,
     },
   );

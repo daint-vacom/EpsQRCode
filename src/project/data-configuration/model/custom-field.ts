@@ -62,7 +62,6 @@ export interface CustomFieldOption {
 
 export interface CustomField {
   id: string;
-  tenantId: string;
   entityType: CustomFieldEntityType;
   key: string;
   label: string;
@@ -77,7 +76,6 @@ export interface CustomField {
 
 export interface CustomFieldDefinitionRow {
   id: string;
-  tenant_id: string;
   entity_type: CustomFieldEntityType;
   field_key: string;
   label: string;
@@ -100,7 +98,6 @@ export interface CustomFieldOptionRow {
 
 export const customFieldDefinitionRowSchema = z.object({
   id: z.string(),
-  tenant_id: z.string(),
   entity_type: z.enum(CUSTOM_FIELD_ENTITY_TYPES),
   field_key: z.string(),
   label: z.string(),

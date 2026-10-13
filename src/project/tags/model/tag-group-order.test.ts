@@ -5,7 +5,6 @@ import { sortTagGroups } from './tag-group-order';
 function group(code: string, isSystem: boolean, sortOrder: number): TagGroup {
   return {
     id: code,
-    tenantId: 'tenant-1',
     code,
     name: code,
     description: '',

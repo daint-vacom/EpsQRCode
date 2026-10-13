@@ -9,14 +9,12 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
 }
 
 export async function getEffectivePermissionCodes(
-  tenantId: string,
   userId?: string,
 ): Promise<string[]> {
   assertSupabaseConfigured();
 
   const rows = await request<EffectivePermissionRow[]>(
     supabaseApi.post('/rpc/get_effective_permissions', {
-      target_tenant_id: tenantId,
       ...(userId ? { target_user_id: userId } : {}),
     }),
   );
@@ -24,16 +22,14 @@ export async function getEffectivePermissionCodes(
   return rows.map((row) => row.permission_code);
 }
 
-export async function hasTenantPermission(
-  tenantId: string,
+export async function hasPermission(
   permissionCode: string,
   userId?: string,
 ): Promise<boolean> {
   assertSupabaseConfigured();
 
   return request<boolean>(
-    supabaseApi.post('/rpc/has_tenant_permission', {
-      target_tenant_id: tenantId,
+    supabaseApi.post('/rpc/has_permission', {
       required_permission_code: permissionCode,
       ...(userId ? { target_user_id: userId } : {}),
     }),

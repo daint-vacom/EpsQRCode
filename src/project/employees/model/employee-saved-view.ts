@@ -3,8 +3,8 @@
  * This adapter owns persistence normalization for one list resource; page state and query behavior stay in the feature hook.
  */
 import type {
+  SavedView,
   SavedViewConfig,
-  TenantSavedView,
 } from '@/project/saved-views/model/saved-view';
 import type { ColumnOrderState, VisibilityState } from '@tanstack/react-table';
 import {
@@ -16,7 +16,7 @@ import {
 export const EMPLOYEE_SAVED_VIEW_RESOURCE = 'employees' as const;
 export const EMPLOYEE_SAVED_VIEW_MANAGE_PERMISSION = 'system:views:manage';
 
-export type EmployeeSavedView = TenantSavedView<EmployeeListFilters>;
+export type EmployeeSavedView = SavedView<EmployeeListFilters>;
 export type EmployeeSavedViewConfig = SavedViewConfig<EmployeeListFilters>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {

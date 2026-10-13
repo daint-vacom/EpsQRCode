@@ -1,19 +1,17 @@
 import {
   removeStorageObjects,
-  TENANT_ASSETS_BUCKET,
   uploadStorageObject,
+  WORKSPACE_ASSETS_BUCKET,
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import {
   formatFileSize,
   type FileFolder,
   type FileManagerItem,
-  type TenantStorageQuota,
 } from '../model/file-manager';
 
 interface FolderRow {
   id: string;
-  tenant_id: string;
   parent_id: string | null;
   folder_type: FileFolder['folderType'];
   system_key: string | null;
@@ -43,13 +41,6 @@ interface FileStorageRow {
   storage_path: string;
 }
 
-interface QuotaRow {
-  limit_bytes: number | string;
-  used_bytes: number | string;
-  reserved_bytes: number | string;
-  max_file_size_bytes: number | string | null;
-}
-
 function queryParams(params: Record<string, string>) {
   return { params };
 }
@@ -72,7 +63,6 @@ function formatDateTime(value: string) {
 function mapFolder(row: FolderRow): FileFolder {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     parentId: row.parent_id,
     folderType: row.folder_type,
     systemKey: row.system_key,
@@ -89,15 +79,14 @@ function mapFolder(row: FolderRow): FileFolder {
   };
 }
 
-export async function listFileFolders(tenantId: string): Promise<FileFolder[]> {
+export async function listFileFolders(): Promise<FileFolder[]> {
   assertSupabaseConfigured();
   const rows = await request<FolderRow[]>(
     supabaseApi.get(
       '/file_folder_listing',
       queryParams({
         select:
-          'id,tenant_id,parent_id,folder_type,system_key,subject_type,subject_id,name,display_name,sort_order,created_at,updated_at,deleted_at',
-        tenant_id: `eq.${tenantId}`,
+          'id,parent_id,folder_type,system_key,subject_type,subject_id,name,display_name,sort_order,created_at,updated_at,deleted_at',
         deleted_at: 'is.null',
         order: 'sort_order.asc,display_name.asc',
       }),
@@ -107,7 +96,6 @@ export async function listFileFolders(tenantId: string): Promise<FileFolder[]> {
 }
 
 export async function listFileManagerItems(
-  tenantId: string,
   folderId: string | null,
 ): Promise<FileManagerItem[]> {
   assertSupabaseConfigured();
@@ -117,8 +105,7 @@ export async function listFileManagerItems(
         '/file_folder_listing',
         queryParams({
           select:
-            'id,tenant_id,parent_id,folder_type,system_key,subject_type,subject_id,name,display_name,sort_order,created_at,updated_at,deleted_at',
-          tenant_id: `eq.${tenantId}`,
+            'id,parent_id,folder_type,system_key,subject_type,subject_id,name,display_name,sort_order,created_at,updated_at,deleted_at',
           parent_id: folderId ? `eq.${folderId}` : 'is.null',
           deleted_at: 'is.null',
           order: 'folder_type.asc,display_name.asc',
@@ -131,7 +118,6 @@ export async function listFileManagerItems(
         queryParams({
           select:
             'id,storage_bucket,storage_path,file_name,mime_type,size_bytes,created_at',
-          tenant_id: `eq.${tenantId}`,
           folder_id: folderId ? `eq.${folderId}` : 'is.null',
           status: 'eq.active',
           order: 'created_at.desc',
@@ -172,36 +158,7 @@ export async function listFileManagerItems(
   ];
 }
 
-export async function getTenantStorageQuota(
-  tenantId: string,
-): Promise<TenantStorageQuota | null> {
-  assertSupabaseConfigured();
-  const rows = await request<QuotaRow[]>(
-    supabaseApi.get(
-      '/tenant_storage_quotas',
-      queryParams({
-        select: 'limit_bytes,used_bytes,reserved_bytes,max_file_size_bytes',
-        tenant_id: `eq.${tenantId}`,
-        limit: '1',
-      }),
-    ),
-  );
-  const row = rows[0];
-  return row
-    ? {
-        limitBytes: numberValue(row.limit_bytes),
-        usedBytes: numberValue(row.used_bytes),
-        reservedBytes: numberValue(row.reserved_bytes),
-        maxFileSizeBytes:
-          row.max_file_size_bytes == null
-            ? null
-            : numberValue(row.max_file_size_bytes),
-      }
-    : null;
-}
-
 export async function createCustomFileFolder(
-  tenantId: string,
   parentId: string | null,
   name: string,
   userId: string,
@@ -211,7 +168,6 @@ export async function createCustomFileFolder(
     supabaseApi.post(
       '/file_folders',
       {
-        tenant_id: tenantId,
         parent_id: parentId,
         name: name.trim(),
         folder_type: 'custom',
@@ -231,7 +187,6 @@ export interface UploadFilesToFolderOptions {
 }
 
 export async function uploadFilesToFolder(
-  tenantId: string,
   folderId: string | null,
   userId: string,
   files: File[],
@@ -244,12 +199,12 @@ export async function uploadFilesToFolder(
   try {
     for (const file of files) {
       const fileId = crypto.randomUUID();
-      const storagePath = `${tenantId}/objects/${fileId}/${safeFileName(file.name)}`;
+      const storagePath = `objects/${fileId}/${safeFileName(file.name)}`;
 
       options?.onProgress?.(file, 0);
 
       await uploadStorageObject({
-        bucket: TENANT_ASSETS_BUCKET,
+        bucket: WORKSPACE_ASSETS_BUCKET,
         path: storagePath,
         file,
         onProgress: ({ loaded, total }) => {
@@ -267,9 +222,8 @@ export async function uploadFilesToFolder(
           '/files',
           {
             id: fileId,
-            tenant_id: tenantId,
             folder_id: folderId,
-            storage_bucket: TENANT_ASSETS_BUCKET,
+            storage_bucket: WORKSPACE_ASSETS_BUCKET,
             storage_path: storagePath,
             file_name: file.name,
             mime_type: file.type || 'application/octet-stream',
@@ -284,16 +238,10 @@ export async function uploadFilesToFolder(
   } catch (error) {
     if (fileIds.length > 0) {
       await supabaseApi
-        .delete(
-          '/files',
-          queryParams({
-            tenant_id: `eq.${tenantId}`,
-            id: `in.(${fileIds.join(',')})`,
-          }),
-        )
+        .delete('/files', queryParams({ id: `in.(${fileIds.join(',')})` }))
         .catch(() => undefined);
     }
-    await removeStorageObjects(TENANT_ASSETS_BUCKET, uploadedPaths).catch(
+    await removeStorageObjects(WORKSPACE_ASSETS_BUCKET, uploadedPaths).catch(
       () => undefined,
     );
     throw error;
@@ -301,7 +249,6 @@ export async function uploadFilesToFolder(
 }
 
 export async function renameFileManagerItem(
-  tenantId: string,
   item: FileManagerItem,
   name: string,
 ) {
@@ -319,17 +266,14 @@ export async function renameFileManagerItem(
       item.kind === 'folder' ? '/file_folders' : '/files',
       item.kind === 'folder' ? { name: nextName } : { file_name: nextName },
       {
-        ...queryParams({ tenant_id: `eq.${tenantId}`, id: `eq.${item.id}` }),
+        ...queryParams({ id: `eq.${item.id}` }),
         headers: { Prefer: 'return=minimal' },
       },
     ),
   );
 }
 
-export async function deleteFileManagerItem(
-  tenantId: string,
-  item: FileManagerItem,
-) {
+export async function deleteFileManagerItem(item: FileManagerItem) {
   assertSupabaseConfigured();
 
   if (item.kind === 'folder') {
@@ -343,7 +287,6 @@ export async function deleteFileManagerItem(
           '/file_folders',
           queryParams({
             select: 'id',
-            tenant_id: `eq.${tenantId}`,
             parent_id: `eq.${item.id}`,
             deleted_at: 'is.null',
             limit: '1',
@@ -355,7 +298,6 @@ export async function deleteFileManagerItem(
           '/files',
           queryParams({
             select: 'id',
-            tenant_id: `eq.${tenantId}`,
             folder_id: `eq.${item.id}`,
             status: 'eq.active',
             limit: '1',
@@ -373,7 +315,7 @@ export async function deleteFileManagerItem(
         '/file_folders',
         { deleted_at: new Date().toISOString() },
         {
-          ...queryParams({ tenant_id: `eq.${tenantId}`, id: `eq.${item.id}` }),
+          ...queryParams({ id: `eq.${item.id}` }),
           headers: { Prefer: 'return=minimal' },
         },
       ),
@@ -386,7 +328,6 @@ export async function deleteFileManagerItem(
       '/file_links',
       queryParams({
         select: 'id',
-        tenant_id: `eq.${tenantId}`,
         file_id: `eq.${item.id}`,
         limit: '1',
       }),
@@ -403,7 +344,6 @@ export async function deleteFileManagerItem(
       '/files',
       queryParams({
         select: 'id,storage_bucket,storage_path',
-        tenant_id: `eq.${tenantId}`,
         id: `eq.${item.id}`,
         limit: '1',
       }),
@@ -412,10 +352,7 @@ export async function deleteFileManagerItem(
   if (files.length === 0) throw new Error('Không tìm thấy tệp để xóa.');
 
   await request(
-    supabaseApi.delete(
-      '/files',
-      queryParams({ tenant_id: `eq.${tenantId}`, id: `eq.${item.id}` }),
-    ),
+    supabaseApi.delete('/files', queryParams({ id: `eq.${item.id}` })),
   );
   await removeStorageObjects(
     files[0].storage_bucket,

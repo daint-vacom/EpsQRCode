@@ -3,7 +3,6 @@ import { ROUTES } from '@/constants/routes';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import {
   createEmployee,
@@ -30,13 +29,11 @@ export function EmployeeCreateDialog({
   open,
   onOpenChange,
 }: EmployeeCreateDialogProps) {
-  const { tenantId } = useTenant();
   const { hasPermission } = useUser();
   const queryClient = useQueryClient();
   const form = useEmployeeForm();
   const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
   const employeeAccess = useEmployeeAccessWorkspace({
-    tenantId,
     enabled: open,
   });
   const canManageEmployeeRoles = hasPermission(
@@ -53,25 +50,22 @@ export function EmployeeCreateDialog({
   }, [form, open]);
 
   const employeeCustomFieldsQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-fields', tenantId],
-    queryFn: () => loadEmployeeCustomFields(tenantId!),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'employees', 'custom-fields'],
+    queryFn: () => loadEmployeeCustomFields(),
     staleTime: 60 * 1000,
   });
 
   const saveMutation = useMutation({
     mutationFn: async ({ values }: { values: EmployeeFormValues }) => {
-      if (!tenantId) throw new Error('Chưa xác định tenant.');
       if (!canManageEmployeeAccount) {
         throw new Error(
           'Bạn không có quyền tạo tài khoản đăng nhập cho nhân viên.',
         );
       }
 
-      let savedEmployee = await createEmployee(tenantId, values);
+      let savedEmployee = await createEmployee(values);
       if (employeeImageFile) {
         const imageUrl = await uploadEmployeeAvatar(
-          tenantId,
           savedEmployee.id,
           employeeImageFile,
         );
@@ -82,7 +76,6 @@ export function EmployeeCreateDialog({
       }
 
       const account = await createEmployeeAccount(
-        tenantId,
         savedEmployee.id,
         values.accountUsername,
         values.initialPassword,
@@ -95,14 +88,12 @@ export function EmployeeCreateDialog({
       };
 
       await saveEmployeeCustomFieldValues(
-        tenantId,
         savedEmployee.id,
         values.customFields,
       );
 
       if (savedEmployee.userId) {
         await saveEmployeeAccess(
-          tenantId,
           savedEmployee.id,
           canManageEmployeeRoles ? values.roleIds : null,
         );

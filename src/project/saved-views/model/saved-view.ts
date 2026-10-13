@@ -14,11 +14,8 @@ export interface SavedViewConfig<
   columnOrder: ColumnOrderState;
 }
 
-export interface TenantSavedView<
-  TFilters extends object = Record<string, unknown>,
-> {
+export interface SavedView<TFilters extends object = Record<string, unknown>> {
   id: string;
-  tenantId: string;
   resource: SavedViewResource;
   name: string;
   config: SavedViewConfig<TFilters>;

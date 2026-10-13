@@ -12,10 +12,6 @@ import type {
   TagWorkspace,
 } from '../model/tag';
 
-interface TenantMembershipRow {
-  tenant_id: string;
-}
-
 interface PermissionModuleRow {
   code: string;
   name: string;
@@ -29,28 +25,6 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
   return (await promise) as T;
 }
 
-async function getCurrentTenantId(userId: string): Promise<string> {
-  const memberships = await request<TenantMembershipRow[]>(
-    supabaseApi.get(
-      '/tenant_members',
-      queryParams({
-        select: 'tenant_id',
-        user_id: `eq.${userId}`,
-        status: 'eq.active',
-        order: 'created_at.asc',
-        limit: '1',
-      }),
-    ),
-  );
-
-  const tenantId = memberships[0]?.tenant_id;
-  if (!tenantId) {
-    throw new Error('Tài khoản chưa thuộc tenant đang hoạt động.');
-  }
-
-  return tenantId;
-}
-
 function mapGroup(
   row: TagGroupRow,
   tagCount: number,
@@ -58,7 +32,6 @@ function mapGroup(
 ): TagGroup {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     code: row.code,
     name: row.name,
     description: row.description,
@@ -77,7 +50,6 @@ function mapGroup(
 function mapTag(row: TagRow, groupName: string, assignmentCount: number): Tag {
   return {
     id: row.id,
-    tenantId: row.tenant_id,
     groupId: row.group_id,
     code: row.code,
     name: row.name,
@@ -90,20 +62,14 @@ function mapTag(row: TagRow, groupName: string, assignmentCount: number): Tag {
   };
 }
 
-export async function loadTagWorkspace(
-  userId: string,
-  tenantIdOverride?: string,
-): Promise<TagWorkspace> {
+export async function loadTagWorkspace(_userId: string): Promise<TagWorkspace> {
   assertSupabaseConfigured();
-
-  const tenantId = tenantIdOverride ?? (await getCurrentTenantId(userId));
   const [groupRows, tagRows, assignmentRows, moduleRows] = await Promise.all([
     request<TagGroupRow[]>(
       supabaseApi.get(
         '/tag_groups',
         queryParams({
           select: '*',
-          tenant_id: `eq.${tenantId}`,
           order: 'sort_order.asc,name.asc',
         }),
       ),
@@ -113,7 +79,6 @@ export async function loadTagWorkspace(
         '/tags',
         queryParams({
           select: '*',
-          tenant_id: `eq.${tenantId}`,
           order: 'sort_order.asc,name.asc',
         }),
       ),
@@ -123,7 +88,6 @@ export async function loadTagWorkspace(
         '/tag_assignments',
         queryParams({
           select: '*',
-          tenant_id: `eq.${tenantId}`,
           order: 'created_at.asc',
         }),
       ),
@@ -162,7 +126,6 @@ export async function loadTagWorkspace(
   }
 
   return {
-    tenantId,
     groups: groupRows.map((group) =>
       mapGroup(group, tagCountByGroupId.get(group.id) ?? 0, moduleNameByCode),
     ),
@@ -175,7 +138,6 @@ export async function loadTagWorkspace(
     ),
     assignments: assignmentRows.map<TagAssignment>((assignment) => ({
       id: assignment.id,
-      tenantId: assignment.tenant_id,
       tagId: assignment.tag_id,
       subjectType: assignment.subject_type,
       subjectId: assignment.subject_id,
@@ -204,11 +166,9 @@ interface SubjectTagAssignmentRow {
 export async function loadTagSelectOptions(
   userId: string,
   config: TagSelectConfig = {},
-  tenantIdOverride?: string,
 ): Promise<TagSelectOption[]> {
   assertSupabaseConfigured();
-
-  const tenantId = tenantIdOverride ?? (await getCurrentTenantId(userId));
+  void userId;
   const moduleCodes = Array.from(
     new Set(
       (config.moduleCodes ?? []).map((code) => code.trim()).filter(Boolean),
@@ -233,7 +193,6 @@ export async function loadTagSelectOptions(
       queryParams({
         select: 'id,code,name,module_code,is_system,is_active,kind',
         kind: 'eq.tag',
-        tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         ...groupFilterParams,
         order: 'sort_order.asc,name.asc',
@@ -248,7 +207,6 @@ export async function loadTagSelectOptions(
       '/tags',
       queryParams({
         select: 'id,group_id,name,color,is_active,sort_order',
-        tenant_id: `eq.${tenantId}`,
         group_id: `in.(${groupIds.join(',')})`,
         order: 'sort_order.asc,name.asc',
       }),
@@ -276,7 +234,6 @@ export async function loadTagSelectOptions(
 }
 
 export async function loadSubjectTagFilter(
-  tenantId: string,
   subjectType: TaggableSubjectType,
   config: TagSelectConfig = {},
 ): Promise<SubjectTagFilterData> {
@@ -307,7 +264,6 @@ export async function loadSubjectTagFilter(
       queryParams({
         select: 'id,code,name,module_code,is_system,is_active,kind',
         kind: 'eq.tag',
-        tenant_id: `eq.${tenantId}`,
         is_active: 'eq.true',
         ...groupFilterParams,
         order: 'sort_order.asc,name.asc',
@@ -325,7 +281,6 @@ export async function loadSubjectTagFilter(
         '/tags',
         queryParams({
           select: 'id,group_id,name,color,is_active,sort_order',
-          tenant_id: `eq.${tenantId}`,
           group_id: `in.(${groupIds.join(',')})`,
           order: 'sort_order.asc,name.asc',
         }),
@@ -336,7 +291,6 @@ export async function loadSubjectTagFilter(
         '/tag_assignments',
         queryParams({
           select: 'tag_id,subject_id',
-          tenant_id: `eq.${tenantId}`,
           subject_type: `eq.${subjectType}`,
         }),
       ),
@@ -376,14 +330,12 @@ export async function loadSubjectTagFilter(
 }
 
 export async function createTagGroup(
-  tenantId: string,
   userId: string,
   values: TagGroupFormValues,
 ): Promise<void> {
   assertSupabaseConfigured();
   await request(
     supabaseApi.post('/tag_groups', {
-      tenant_id: tenantId,
       code: values.code,
       name: values.name,
       description: values.description,
@@ -421,14 +373,12 @@ export async function deleteTagGroup(groupId: string): Promise<void> {
 }
 
 export async function createTag(
-  tenantId: string,
   userId: string,
   values: TagFormValues,
 ): Promise<void> {
   assertSupabaseConfigured();
   await request(
     supabaseApi.post('/tags', {
-      tenant_id: tenantId,
       group_id: values.groupId,
       code: values.code,
       name: values.name,
@@ -470,7 +420,6 @@ export async function deleteTag(tagId: string): Promise<void> {
 }
 
 export async function replaceSubjectTags(
-  tenantId: string,
   subjectType: string,
   subjectId: string,
   tagIds: string[],
@@ -478,7 +427,6 @@ export async function replaceSubjectTags(
   assertSupabaseConfigured();
   await request(
     supabaseApi.post('/rpc/replace_tag_assignments', {
-      target_tenant_id: tenantId,
       target_subject_type: subjectType,
       target_subject_id: subjectId,
       target_tag_ids: tagIds,

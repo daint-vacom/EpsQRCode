@@ -16,17 +16,15 @@ function queryParams(params: Record<string, string>) {
 }
 
 export async function loadCustomFields(
-  tenantId: string,
   entityType: CustomFieldEntityType,
 ): Promise<CustomField[]> {
   assertSupabaseConfigured();
 
   const fields = await request<CustomFieldDefinitionRow[]>(
     supabaseApi.get(
-      '/tenant_custom_field_definitions',
+      '/custom_field_definitions',
       queryParams({
         select: '*',
-        tenant_id: `eq.${tenantId}`,
         entity_type: `eq.${entityType}`,
         order: 'sort_order.asc,label.asc',
       }),
@@ -37,7 +35,7 @@ export async function loadCustomFields(
 
   const options = await request<CustomFieldOptionRow[]>(
     supabaseApi.get(
-      '/tenant_custom_field_options',
+      '/custom_field_options',
       queryParams({
         select: '*',
         field_id: `in.(${fields.map((field) => field.id).join(',')})`,
@@ -62,7 +60,6 @@ export async function loadCustomFields(
 
   return fields.map((field) => ({
     id: field.id,
-    tenantId: field.tenant_id,
     entityType: field.entity_type,
     key: field.field_key,
     label: field.label,
@@ -77,15 +74,13 @@ export async function loadCustomFields(
 }
 
 export async function saveCustomFields(
-  tenantId: string,
   entityType: CustomFieldEntityType,
   fields: CustomFieldEditorRow[],
 ): Promise<void> {
   assertSupabaseConfigured();
 
   await request(
-    supabaseApi.post('/rpc/save_tenant_custom_fields', {
-      p_tenant_id: tenantId,
+    supabaseApi.post('/rpc/save_custom_fields', {
       p_entity_type: entityType,
       p_fields: fields.map((field) => ({
         ...(field.id ? { id: field.id } : {}),

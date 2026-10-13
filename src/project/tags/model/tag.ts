@@ -39,7 +39,6 @@ export type TagFormValues = z.infer<typeof tagFormSchema>;
 
 export interface TagGroup {
   id: string;
-  tenantId: string;
   code: string;
   name: string;
   description: string;
@@ -54,7 +53,6 @@ export interface TagGroup {
 
 export interface Tag {
   id: string;
-  tenantId: string;
   groupId: string;
   code: string;
   name: string;
@@ -85,14 +83,12 @@ export interface TagSelectOption {
 
 export interface TagAssignment {
   id: string;
-  tenantId: string;
   tagId: string;
   subjectType: string;
   subjectId: string;
 }
 
 export interface TagWorkspace {
-  tenantId: string;
   groups: TagGroup[];
   tags: Tag[];
   assignments: TagAssignment[];
@@ -114,7 +110,6 @@ export const emptyTagForm: TagFormValues = {
 
 export interface TagGroupRow {
   id: string;
-  tenant_id: string;
   code: string;
   name: string;
   description: string;
@@ -127,7 +122,6 @@ export interface TagGroupRow {
 
 export interface TagRow {
   id: string;
-  tenant_id: string;
   group_id: string;
   code: string;
   name: string;
@@ -139,7 +133,6 @@ export interface TagRow {
 
 export interface TagAssignmentRow {
   id: string;
-  tenant_id: string;
   tag_id: string;
   subject_type: string;
   subject_id: string;

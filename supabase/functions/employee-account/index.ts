@@ -15,7 +15,6 @@ type AccountAction = 'create' | 'update-username' | 'reset-password';
 
 interface AccountRequest {
   action?: AccountAction;
-  tenantId?: string;
   employeeId?: string;
   username?: string;
   password?: string;
@@ -23,7 +22,6 @@ interface AccountRequest {
 
 interface EmployeeRow {
   id: string;
-  tenant_id: string;
   user_id: string | null;
   first_name: string;
   last_name: string;
@@ -81,11 +79,9 @@ function createAdminClient() {
 
 async function assertPermission(
   client: ReturnType<typeof createUserClient>,
-  tenantId: string,
   permissionCode: string,
 ) {
-  const { data, error } = await client.rpc('has_tenant_permission', {
-    target_tenant_id: tenantId,
+  const { data, error } = await client.rpc('has_permission', {
     required_permission_code: permissionCode,
   });
 
@@ -96,18 +92,16 @@ async function assertPermission(
 
 async function loadEmployee(
   admin: ReturnType<typeof createAdminClient>,
-  tenantId: string,
   employeeId: string,
 ) {
   const { data, error } = await admin
     .from('employees')
-    .select('id,tenant_id,user_id,first_name,last_name')
+    .select('id,user_id,first_name,last_name')
     .eq('id', employeeId)
-    .eq('tenant_id', tenantId)
     .maybeSingle<EmployeeRow>();
 
   if (error) throw error;
-  if (!data) throw new Error('Không tìm thấy nhân viên trong tenant hiện tại.');
+  if (!data) throw new Error('Không tìm thấy hồ sơ nhân viên.');
   return data;
 }
 
@@ -189,35 +183,13 @@ async function createAccount(
       .eq('id', userId);
     if (profileError) throw profileError;
 
-    const { data: linkedEmployee, error: employeeError } = await admin
-      .from('employees')
-      .update({ user_id: userId })
-      .eq('id', employee.id)
-      .eq('tenant_id', employee.tenant_id)
-      .is('user_id', null)
-      .select('id')
-      .maybeSingle<{ id: string }>();
-    if (employeeError) throw employeeError;
-    if (!linkedEmployee)
-      throw new Error('Nhân viên đã được liên kết tài khoản khác.');
-
-    const { error: membershipError } = await admin
-      .from('tenant_members')
-      .insert({
-        tenant_id: employee.tenant_id,
-        user_id: userId,
-        role: 'member',
-        status: 'active',
-        joined_at: new Date().toISOString(),
-      });
-    if (membershipError) throw membershipError;
+    const { error: linkError } = await admin.rpc('link_employee_account', {
+      p_employee_id: employee.id,
+      p_user_id: userId,
+      p_username: username,
+    });
+    if (linkError) throw linkError;
   } catch (error) {
-    await admin
-      .from('employees')
-      .update({ user_id: null })
-      .eq('id', employee.id)
-      .eq('tenant_id', employee.tenant_id)
-      .eq('user_id', userId);
     await admin.auth.admin.deleteUser(userId);
     throw error;
   }
@@ -274,9 +246,8 @@ Deno.serve(async (request) => {
 
     const body = (await request.json()) as AccountRequest;
     const action = body.action;
-    const tenantId = body.tenantId?.trim();
     const employeeId = body.employeeId?.trim();
-    if (!action || !tenantId || !employeeId) {
+    if (!action || !employeeId) {
       return json(
         { message: 'Thiếu thông tin xử lý tài khoản nhân viên.' },
         400,
@@ -288,21 +259,16 @@ Deno.serve(async (request) => {
 
     await assertPermission(
       userClient,
-      tenantId,
       action === 'reset-password'
         ? 'organization:employee:reset-password'
         : 'organization:employee:update',
     );
     if (action === 'create') {
-      await assertPermission(
-        userClient,
-        tenantId,
-        'organization:employee:create',
-      );
+      await assertPermission(userClient, 'organization:employee:create');
     }
 
     const admin = createAdminClient();
-    const employee = await loadEmployee(admin, tenantId, employeeId);
+    const employee = await loadEmployee(admin, employeeId);
 
     if (action === 'create') {
       return json(

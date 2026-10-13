@@ -2,7 +2,7 @@
  * Shared number formatting primitives.
  *
  * Values stay numeric until the final display step. The provider layer can
- * create these formatters from tenant settings, while these exports keep a
+ * create these formatters from workspace settings, while these exports keep a
  * safe Vietnamese/VND default for non-React code and legacy callers.
  */
 

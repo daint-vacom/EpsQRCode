@@ -23,7 +23,6 @@ import { KeyRound, LockKeyhole, Save, UserRound } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -65,7 +64,6 @@ const employeeFormId = 'account-employee-form';
 const passwordFormId = 'account-password-form';
 
 export function AccountSettings() {
-  const { tenantId } = useTenant();
   const { user, userId, hasPermission } = useUser();
   const queryClient = useQueryClient();
   const employeeQuery = useCurrentEmployeeProfile();
@@ -85,15 +83,14 @@ export function AccountSettings() {
 
   const employeeId = employeeQuery.data?.id ?? null;
   const customFieldsQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-fields', tenantId],
-    queryFn: () => loadEmployeeCustomFields(tenantId!),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'employees', 'custom-fields'],
+    queryFn: () => loadEmployeeCustomFields(),
     staleTime: 60 * 1000,
   });
   const customValuesQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-values', tenantId, employeeId],
-    queryFn: () => loadEmployeeCustomFieldValues(tenantId!, employeeId!),
-    enabled: Boolean(tenantId && employeeId),
+    queryKey: ['project', 'employees', 'custom-values', employeeId],
+    queryFn: () => loadEmployeeCustomFieldValues(employeeId!),
+    enabled: Boolean(employeeId),
   });
 
   const canManageEmployee = hasPermission('organization:employee:update');
@@ -114,20 +111,15 @@ export function AccountSettings() {
 
   const employeeMutation = useMutation({
     mutationFn: async (values: EmployeeFormValues) => {
-      if (!tenantId || !employeeQuery.data) {
+      if (!employeeQuery.data) {
         throw new Error('Chưa tải được hồ sơ nhân viên hiện tại.');
       }
 
       const avatarUrl = employeeImageFile
-        ? await uploadEmployeeAvatar(
-            tenantId,
-            employeeQuery.data.id,
-            employeeImageFile,
-          )
+        ? await uploadEmployeeAvatar(employeeQuery.data.id, employeeImageFile)
         : employeeQuery.data.avatarUrl;
 
       const savedEmployee = await updateCurrentEmployeeProfile(
-        tenantId,
         employeeQuery.data.id,
         {
           employeeCode: values.employeeCode,
@@ -145,7 +137,6 @@ export function AccountSettings() {
 
       if (canManageEmployee && activeCustomFields.length > 0) {
         await saveEmployeeCustomFieldValues(
-          tenantId,
           employeeQuery.data.id,
           values.customFields,
         );
@@ -160,7 +151,7 @@ export function AccountSettings() {
       });
       setEmployeeImageFile(null);
       await queryClient.invalidateQueries({
-        queryKey: ['project', 'current-employee-profile', tenantId, userId],
+        queryKey: ['project', 'current-employee-profile', userId],
       });
       await queryClient.invalidateQueries({
         queryKey: ['project', 'employees'],

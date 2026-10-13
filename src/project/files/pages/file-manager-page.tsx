@@ -9,10 +9,8 @@ import {
   ChevronDown,
   ChevronUp,
   CircleAlert,
-  FileWarning,
   FolderOpen,
   FolderPlus,
-  HardDrive,
   MoreVertical,
   Pencil,
   RefreshCw,
@@ -27,8 +25,8 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { createSignedStorageUrl } from '@/lib/storage';
 import { cn } from '@/lib/utils';
-import { useTenant } from '@/providers/tenant-provider';
 import { useUser } from '@/providers/user-provider';
+import { useWorkspace } from '@/providers/workspace-provider';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -38,7 +36,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   DropdownMenu,
@@ -47,6 +45,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ErrorState } from '@/components/ui/error-state';
 import { FileIcon } from '@/components/ui/files/file-icon';
 import { FileThumbnail } from '@/components/ui/files/file-thumbnail';
 import { Input } from '@/components/ui/input';
@@ -63,7 +62,6 @@ import {
 import {
   createCustomFileFolder,
   deleteFileManagerItem,
-  getTenantStorageQuota,
   listFileFolders,
   listFileManagerItems,
   renameFileManagerItem,
@@ -81,41 +79,6 @@ import {
   type FileFolderCreateFormValues,
   type FileManagerItem,
 } from '../model/file-manager';
-
-function formatQuota(used: number, limit: number) {
-  return `${formatFileSize(used)} / ${formatFileSize(limit)}`;
-}
-
-function StorageQuotaBadge({
-  usedBytes,
-  limitBytes,
-  percent,
-}: {
-  usedBytes: number;
-  limitBytes: number;
-  percent: number;
-}) {
-  return (
-    <div className="flex w-56 max-w-full min-w-0 flex-none flex-col gap-1.5 text-xs">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <HardDrive className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="truncate font-medium">
-            {formatQuota(usedBytes, limitBytes)}
-          </span>
-        </div>
-        <span className="shrink-0 font-medium tabular-nums text-muted-foreground">
-          {Math.round(percent)}%
-        </span>
-      </div>
-      <Progress
-        value={percent}
-        className="h-1.5 bg-border"
-        indicatorClassName="bg-primary"
-      />
-    </div>
-  );
-}
 
 type UploadQueueItemStatus = 'queued' | 'uploading' | 'success' | 'error';
 
@@ -253,12 +216,15 @@ function FileManagerItemMenu({
   item,
   onRename,
   onDelete,
+  canManage,
 }: {
   item: FileManagerItem;
   onRename: (item: FileManagerItem) => void;
   onDelete: (item: FileManagerItem) => void;
+  canManage: boolean;
 }) {
-  const canEdit = item.kind === 'file' || item.folderType === 'custom';
+  const canEdit =
+    canManage && (item.kind === 'file' || item.folderType === 'custom');
 
   return (
     <DropdownMenu>
@@ -309,12 +275,14 @@ function FileManagerTile({
   onOpen,
   onRename,
   onDelete,
+  canManage,
   isOpening,
 }: {
   item: FileManagerItem;
   onOpen: (item: FileManagerItem) => void;
   onRename: (item: FileManagerItem) => void;
   onDelete: (item: FileManagerItem) => void;
+  canManage: boolean;
   isOpening: boolean;
 }) {
   const isFolder = item.kind === 'folder';
@@ -366,6 +334,7 @@ function FileManagerTile({
           item={item}
           onRename={onRename}
           onDelete={onDelete}
+          canManage={canManage}
         />
       </div>
 
@@ -444,12 +413,12 @@ function FileManagerLoadingSkeleton() {
 function FolderPath({
   folders,
   selectedFolderId,
-  tenantName,
+  workspaceName,
   onSelect,
 }: {
   folders: FileFolder[];
   selectedFolderId: string | null;
-  tenantName: string | null;
+  workspaceName: string;
   onSelect: (folderId: string | null) => void;
 }) {
   const folderById = useMemo(
@@ -478,7 +447,7 @@ function FolderPath({
         <BreadcrumbItem>
           {path.length === 0 ? (
             <BreadcrumbPage className="font-semibold">
-              {tenantName ?? 'Tenant'}
+              {workspaceName}
             </BreadcrumbPage>
           ) : (
             <BreadcrumbLink
@@ -488,7 +457,7 @@ function FolderPath({
                 onSelect(null);
               }}
             >
-              {tenantName ?? 'Tenant'}
+              {workspaceName}
             </BreadcrumbLink>
           )}
         </BreadcrumbItem>
@@ -524,8 +493,10 @@ function FolderPath({
 
 export function FileManagerPage() {
   const intl = useIntl();
-  const { tenantId, tenantName } = useTenant();
-  const { userId } = useUser();
+  const { userId, hasPermission } = useUser();
+  const { isPermissionsPending } = useWorkspace();
+  const canView = hasPermission('files:file_manager:view');
+  const canManage = hasPermission('files:file_manager:manage');
   const queryClient = useQueryClient();
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
@@ -545,21 +516,15 @@ export function FileManagerPage() {
   const folderForm = useFileFolderCreateForm();
 
   const foldersQuery = useQuery({
-    queryKey: ['project', 'file-manager', 'folders', tenantId],
-    queryFn: () => listFileFolders(tenantId!),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'file-manager', 'folders'],
+    queryFn: () => listFileFolders(),
+    enabled: !isPermissionsPending && canView,
   });
   const itemsQuery = useQuery({
-    queryKey: ['project', 'file-manager', 'items', tenantId, selectedFolderId],
-    queryFn: () => listFileManagerItems(tenantId!, selectedFolderId),
-    enabled: Boolean(tenantId),
+    queryKey: ['project', 'file-manager', 'items', selectedFolderId],
+    queryFn: () => listFileManagerItems(selectedFolderId),
+    enabled: !isPermissionsPending && canView,
   });
-  const quotaQuery = useQuery({
-    queryKey: ['project', 'file-manager', 'quota', tenantId],
-    queryFn: () => getTenantStorageQuota(tenantId!),
-    enabled: Boolean(tenantId),
-  });
-
   const selectedFolder = useMemo(
     () =>
       selectedFolderId
@@ -570,11 +535,13 @@ export function FileManagerPage() {
     [foldersQuery.data, selectedFolderId],
   );
   const canUploadToCurrentFolder =
-    selectedFolderId === null ||
-    selectedFolder?.folderType === 'entity' ||
-    selectedFolder?.folderType === 'custom';
+    canManage &&
+    (selectedFolderId === null ||
+      selectedFolder?.folderType === 'entity' ||
+      selectedFolder?.folderType === 'custom');
   const canCreateFolderInCurrentFolder =
-    selectedFolderId === null || selectedFolder?.folderType === 'custom';
+    canManage &&
+    (selectedFolderId === null || selectedFolder?.folderType === 'custom');
 
   const beginCreateFolder = useCallback((parentId: string | null) => {
     setNewFolderParentId(parentId);
@@ -620,15 +587,10 @@ export function FileManagerPage() {
 
   const folderMutation = useMutation({
     mutationFn: (values: FileFolderCreateFormValues) => {
-      if (!tenantId || !userId) {
-        throw new Error('Chưa xác định tenant hoặc người dùng.');
+      if (!userId) {
+        throw new Error('Chưa xác định người dùng.');
       }
-      return createCustomFileFolder(
-        tenantId,
-        newFolderParentId,
-        values.name,
-        userId,
-      );
+      return createCustomFileFolder(newFolderParentId, values.name, userId);
     },
     onSuccess: () => {
       toast.success('Đã tạo thư mục.');
@@ -636,10 +598,10 @@ export function FileManagerPage() {
       setNewFolderParentId(null);
       setIsCreatingFolder(false);
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'folders', tenantId],
+        queryKey: ['project', 'file-manager', 'folders'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'items', tenantId],
+        queryKey: ['project', 'file-manager', 'items'],
       });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -663,8 +625,8 @@ export function FileManagerPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ folderId, items }: UploadBatch) => {
-      if (!tenantId || !userId) {
-        throw new Error('Chưa xác định tenant hoặc người dùng.');
+      if (!userId) {
+        throw new Error('Chưa xác định người dùng.');
       }
 
       let successCount = 0;
@@ -674,7 +636,7 @@ export function FileManagerPage() {
         updateUploadItem(item.id, { status: 'uploading', progress: 0 });
 
         try {
-          await uploadFilesToFolder(tenantId, folderId, userId, [item.file], {
+          await uploadFilesToFolder(folderId, userId, [item.file], {
             onProgress: (_, progress) =>
               updateUploadItem(item.id, { progress }),
           });
@@ -702,10 +664,7 @@ export function FileManagerPage() {
         toast.error('Không thể tải các tệp đã chọn lên kho lưu trữ.');
       }
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'items', tenantId, folderId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'quota', tenantId],
+        queryKey: ['project', 'file-manager', 'items', folderId],
       });
     },
     onError: (error, variables) => {
@@ -721,20 +680,20 @@ export function FileManagerPage() {
 
   const renameMutation = useMutation({
     mutationFn: () => {
-      if (!tenantId || !editingItem) {
+      if (!editingItem) {
         throw new Error('Không tìm thấy mục cần đổi tên.');
       }
-      return renameFileManagerItem(tenantId, editingItem, editingName);
+      return renameFileManagerItem(editingItem, editingName);
     },
     onSuccess: () => {
       toast.success('Đã đổi tên mục.');
       setEditingItem(null);
       setEditingName('');
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'folders', tenantId],
+        queryKey: ['project', 'file-manager', 'folders'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'items', tenantId],
+        queryKey: ['project', 'file-manager', 'items'],
       });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -742,39 +701,41 @@ export function FileManagerPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (item: FileManagerItem) => {
-      if (!tenantId) {
-        throw new Error('Chưa xác định tenant.');
-      }
-      return deleteFileManagerItem(tenantId, item);
+      return deleteFileManagerItem(item);
     },
     onSuccess: () => {
       toast.success('Đã xóa mục.');
       setDeletingItem(null);
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'folders', tenantId],
+        queryKey: ['project', 'file-manager', 'folders'],
       });
       void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'items', tenantId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['project', 'file-manager', 'quota', tenantId],
+        queryKey: ['project', 'file-manager', 'items'],
       });
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
 
-  const requestRename = useCallback((item: FileManagerItem) => {
-    setEditingItem(item);
-    setEditingName(item.name);
-  }, []);
+  const requestRename = useCallback(
+    (item: FileManagerItem) => {
+      if (!canManage) return;
+      setEditingItem(item);
+      setEditingName(item.name);
+    },
+    [canManage],
+  );
 
-  const requestDelete = useCallback((item: FileManagerItem) => {
-    setDeletingItem(item);
-  }, []);
+  const requestDelete = useCallback(
+    (item: FileManagerItem) => {
+      if (!canManage) return;
+      setDeletingItem(item);
+    },
+    [canManage],
+  );
 
   const onDrop = useCallback(
     (files: File[]) => {
-      if (!canUploadToCurrentFolder || files.length === 0) return;
+      if (!canManage || !canUploadToCurrentFolder || files.length === 0) return;
 
       const items = files.map<UploadQueueItem>((file) => ({
         id: crypto.randomUUID(),
@@ -786,14 +747,14 @@ export function FileManagerPage() {
       setIsUploadPanelExpanded(true);
       uploadMutation.mutate({ folderId: selectedFolderId, items });
     },
-    [canUploadToCurrentFolder, selectedFolderId, uploadMutation],
+    [canManage, canUploadToCurrentFolder, selectedFolderId, uploadMutation],
   );
   const dropzone = useDropzone({
     onDrop,
     multiple: true,
     noClick: true,
     noKeyboard: true,
-    disabled: uploadMutation.isPending,
+    disabled: uploadMutation.isPending || !canManage,
   });
 
   const openItem = useCallback(async (item: FileManagerItem) => {
@@ -839,34 +800,56 @@ export function FileManagerPage() {
     }
   }, []);
 
-  const quota = quotaQuery.data;
-  const quotaPercent = quota
-    ? Math.min(
-        100,
-        ((quota.usedBytes + quota.reservedBytes) / quota.limitBytes) * 100,
-      )
-    : 0;
+  if (isPermissionsPending) {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
+        <PageHeader
+          title="Tệp lưu trữ"
+          icon={FolderOpen}
+          className="shrink-0"
+        />
+        <Card className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+          <FileManagerLoadingSkeleton />
+        </Card>
+      </div>
+    );
+  }
+
+  if (!canView) {
+    return (
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
+        <PageHeader
+          title="Tệp lưu trữ"
+          icon={FolderOpen}
+          className="shrink-0"
+        />
+        <ErrorState
+          title={intl.formatMessage({ id: 'files.errors.authorizationTitle' })}
+          description={intl.formatMessage({ id: 'files.errors.authorization' })}
+        />
+      </div>
+    );
+  }
 
   if (foldersQuery.isError || itemsQuery.isError) {
     return (
-      <div className="flex h-full items-center justify-center p-6">
-        <Card className="max-w-md p-8 text-center">
-          <FileWarning className="mx-auto mb-3 size-9 text-destructive" />
-          <CardTitle>Không tải được kho tệp</CardTitle>
-          <CardDescription className="mt-2">
-            Kiểm tra cấu hình kho tệp và quyền truy cập của tenant.
-          </CardDescription>
-          <Button
-            className="mt-5"
-            variant="outline"
-            onClick={() => {
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
+        <PageHeader
+          title="Tệp lưu trữ"
+          icon={FolderOpen}
+          className="shrink-0"
+        />
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <ErrorState
+            title="Không tải được kho tệp"
+            description={getApiErrorMessage(
+              foldersQuery.error ?? itemsQuery.error,
+            )}
+            onRetry={() => {
               void foldersQuery.refetch();
               void itemsQuery.refetch();
             }}
-          >
-            <RefreshCw className="size-4" />
-            Thử lại
-          </Button>
+          />
         </Card>
       </div>
     );
@@ -875,22 +858,148 @@ export function FileManagerPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
       <PageHeader
-        title="Tệp lưu trữ"
-        icon={FolderOpen}
-        className="shrink-0"
+        title={<span className="sr-only">Tệp lưu trữ</span>}
         titleAside={
-          quota ? (
-            <StorageQuotaBadge
-              usedBytes={quota.usedBytes}
-              limitBytes={quota.limitBytes}
-              percent={quotaPercent}
-            />
+          <FolderPath
+            folders={foldersQuery.data ?? []}
+            selectedFolderId={selectedFolderId}
+            workspaceName="Tệp lưu trữ"
+            onSelect={setSelectedFolderId}
+          />
+        }
+        actions={
+          isSearchOpen ? (
+            <div className="flex w-48 min-w-0 items-center gap-1 sm:w-56">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder={intl.formatMessage({
+                    id: 'files.filters.searchContents',
+                  })}
+                  className="h-9 ps-8"
+                  aria-label={intl.formatMessage({
+                    id: 'files.filters.searchContents',
+                  })}
+                />
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label="Đóng tìm kiếm"
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      setKeyword('');
+                    }}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="light">Đóng tìm kiếm</TooltipContent>
+              </Tooltip>
+            </div>
           ) : (
-            <span className="text-xs text-muted-foreground">
-              Chưa cấu hình quota
-            </span>
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label="Tìm kiếm"
+                    onClick={() => setIsSearchOpen(true)}
+                  >
+                    <Search className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="light">Tìm kiếm</TooltipContent>
+              </Tooltip>
+              <ShortcutTooltip
+                label={
+                  canUploadToCurrentFolder
+                    ? 'Thêm tệp'
+                    : 'Không thể thêm tệp trong thư mục hệ thống'
+                }
+                shortcut="Alt + U"
+              >
+                <span className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label="Thêm tệp"
+                    aria-keyshortcuts="Alt+U"
+                    data-shortcut-action="upload"
+                    disabled={
+                      !canUploadToCurrentFolder || uploadMutation.isPending
+                    }
+                    loading={uploadMutation.isPending}
+                    onClick={dropzone.open}
+                  >
+                    <Upload className="size-4" />
+                  </Button>
+                </span>
+              </ShortcutTooltip>
+              <ShortcutTooltip
+                label={
+                  canCreateFolderInCurrentFolder
+                    ? 'Tạo thư mục'
+                    : selectedFolder?.folderType === 'entity'
+                      ? 'Không thể tạo thư mục trong thư mục đối tượng'
+                      : 'Không thể tạo thư mục trong thư mục hệ thống'
+                }
+                shortcut="Alt + N"
+              >
+                <span className="inline-flex">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label="Tạo thư mục"
+                    aria-keyshortcuts="Alt+N"
+                    data-shortcut-action="create"
+                    disabled={!canCreateFolderInCurrentFolder}
+                    onClick={() => beginCreateFolder(selectedFolderId)}
+                  >
+                    <FolderPlus className="size-4" />
+                  </Button>
+                </span>
+              </ShortcutTooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label="Làm mới danh sách tệp"
+                    onClick={() => void itemsQuery.refetch()}
+                  >
+                    <RefreshCw
+                      className={cn(
+                        'size-4',
+                        itemsQuery.isFetching && 'animate-spin',
+                      )}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent variant="light">
+                  Làm mới danh sách tệp
+                </TooltipContent>
+              </Tooltip>
+            </>
           )
         }
+        className="shrink-0"
       />
 
       <Card
@@ -917,146 +1026,6 @@ export function FileManagerPage() {
           </div>
         ) : null}
         <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          <div className="mb-5 flex min-w-0 items-center justify-between gap-3">
-            {isSearchOpen ? (
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <Search className="absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    value={keyword}
-                    onChange={(event) => setKeyword(event.target.value)}
-                    placeholder={intl.formatMessage({
-                      id: 'files.filters.searchContents',
-                    })}
-                    className="h-9 ps-8"
-                    aria-label={intl.formatMessage({
-                      id: 'files.filters.searchContents',
-                    })}
-                  />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      mode="icon"
-                      size="lg"
-                      aria-label="Đóng tìm kiếm"
-                      onClick={() => {
-                        setIsSearchOpen(false);
-                        setKeyword('');
-                      }}
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent variant="light">Đóng tìm kiếm</TooltipContent>
-                </Tooltip>
-              </div>
-            ) : (
-              <>
-                <FolderPath
-                  folders={foldersQuery.data ?? []}
-                  selectedFolderId={selectedFolderId}
-                  tenantName={tenantName}
-                  onSelect={setSelectedFolderId}
-                />
-                <div className="flex shrink-0 items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        mode="icon"
-                        size="lg"
-                        aria-label="Tìm kiếm"
-                        onClick={() => setIsSearchOpen(true)}
-                      >
-                        <Search className="size-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent variant="light">Tìm kiếm</TooltipContent>
-                  </Tooltip>
-                  <ShortcutTooltip
-                    label={
-                      canUploadToCurrentFolder
-                        ? 'Thêm tệp'
-                        : 'Không thể thêm tệp trong thư mục hệ thống'
-                    }
-                    shortcut="Alt + U"
-                  >
-                    <span className="inline-flex">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        mode="icon"
-                        size="lg"
-                        aria-label="Thêm tệp"
-                        aria-keyshortcuts="Alt+U"
-                        data-shortcut-action="upload"
-                        disabled={
-                          !canUploadToCurrentFolder || uploadMutation.isPending
-                        }
-                        loading={uploadMutation.isPending}
-                        onClick={dropzone.open}
-                      >
-                        <Upload className="size-4" />
-                      </Button>
-                    </span>
-                  </ShortcutTooltip>
-                  <ShortcutTooltip
-                    label={
-                      canCreateFolderInCurrentFolder
-                        ? 'Tạo thư mục'
-                        : selectedFolder?.folderType === 'entity'
-                          ? 'Không thể tạo thư mục trong thư mục đối tượng'
-                          : 'Không thể tạo thư mục trong thư mục hệ thống'
-                    }
-                    shortcut="Alt + N"
-                  >
-                    <span className="inline-flex">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        mode="icon"
-                        size="lg"
-                        aria-label="Tạo thư mục"
-                        aria-keyshortcuts="Alt+N"
-                        data-shortcut-action="create"
-                        disabled={!canCreateFolderInCurrentFolder}
-                        onClick={() => beginCreateFolder(selectedFolderId)}
-                      >
-                        <FolderPlus className="size-4" />
-                      </Button>
-                    </span>
-                  </ShortcutTooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        mode="icon"
-                        size="lg"
-                        aria-label="Làm mới danh sách tệp"
-                        onClick={() => void itemsQuery.refetch()}
-                      >
-                        <RefreshCw
-                          className={cn(
-                            'size-4',
-                            itemsQuery.isFetching && 'animate-spin',
-                          )}
-                        />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent variant="light">
-                      Làm mới danh sách tệp
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              </>
-            )}
-          </div>
           {itemsQuery.isLoading ? (
             <FileManagerLoadingSkeleton />
           ) : visibleItems.length > 0 ? (
@@ -1070,6 +1039,7 @@ export function FileManagerPage() {
                       onOpen={openItem}
                       onRename={requestRename}
                       onDelete={requestDelete}
+                      canManage={canManage}
                       isOpening={openingItemId === item.id}
                     />
                   ))}
@@ -1084,6 +1054,7 @@ export function FileManagerPage() {
                       onOpen={openItem}
                       onRename={requestRename}
                       onDelete={requestDelete}
+                      canManage={canManage}
                       isOpening={openingItemId === item.id}
                     />
                   ))}
@@ -1098,6 +1069,7 @@ export function FileManagerPage() {
                       onOpen={openItem}
                       onRename={requestRename}
                       onDelete={requestDelete}
+                      canManage={canManage}
                       isOpening={openingItemId === item.id}
                     />
                   ))}

@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
-import { logoutFromEps } from '@/features/eps/api/eps-auth.api';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
 import {
@@ -166,8 +165,8 @@ export function Header() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const authUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
-  const cookieSession = useAuthStore((state) => state.cookieSession);
   const { theme, setTheme } = useTheme();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] =
@@ -188,11 +187,7 @@ export function Header() {
 
   const handleLogout = async () => {
     try {
-      if (cookieSession) {
-        await logoutFromEps();
-      } else {
-        await signOutFromSupabase();
-      }
+      if (token) await signOutFromSupabase();
     } finally {
       logout();
       navigate('/login', { replace: true });
