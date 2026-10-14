@@ -31,7 +31,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -95,58 +94,6 @@ export function MaterialModelForm({
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="codeMode"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({ id: 'common.fields.codeCreation' })}
-                  </FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      aria-label={intl.formatMessage({
-                        id: 'common.fields.codeCreation',
-                      })}
-                      className="flex min-h-9 flex-wrap items-center gap-5"
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value as 'auto' | 'manual');
-                        form.setValue('code', '');
-                        form.clearErrors('code');
-                      }}
-                    >
-                      <label className="flex items-center gap-2 text-sm">
-                        <RadioGroupItem
-                          value="auto"
-                          aria-label={intl.formatMessage({
-                            id: 'common.fields.codeAuto',
-                          })}
-                        />
-                        {intl.formatMessage({ id: 'common.fields.codeAuto' })}
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <RadioGroupItem
-                          value="manual"
-                          aria-label={intl.formatMessage({
-                            id: 'common.fields.codeManual',
-                          })}
-                        />
-                        {intl.formatMessage({ id: 'common.fields.codeManual' })}
-                      </label>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
           <FormField
             control={form.control}
             name="code"
@@ -170,6 +117,14 @@ export function MaterialModelForm({
                     codeMode={codeMode}
                     pattern={codePattern}
                     resetKey={resetKey}
+                    showCodeModeSelector={mode === 'create'}
+                    onCodeModeChange={(nextCodeMode) => {
+                      form.setValue('codeMode', nextCodeMode, {
+                        shouldDirty: true,
+                      });
+                      form.setValue('code', '');
+                      form.clearErrors('code');
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
