@@ -28,14 +28,18 @@ export async function createMaterialModel(
   values: MaterialModelFormValues,
 ): Promise<void> {
   assertSupabaseConfigured();
-  await request(
-    supabaseApi.post('/material_models', {
-      code: values.code.trim(),
-      name: values.name.trim(),
-      image_url: values.imageUrl.trim() || null,
-      description: values.description.trim() || null,
-    }),
-  );
+  const payload: {
+    code?: string;
+    name: string;
+    image_url: string | null;
+    description: string | null;
+  } = {
+    name: values.name.trim(),
+    image_url: values.imageUrl.trim() || null,
+    description: values.description.trim() || null,
+  };
+  if (values.codeMode === 'manual') payload.code = values.code.trim();
+  await request(supabaseApi.post('/material_models', payload));
 }
 
 export async function updateMaterialModel(

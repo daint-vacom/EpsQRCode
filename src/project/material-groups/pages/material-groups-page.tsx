@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
+import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -59,6 +61,12 @@ export function MaterialGroupsPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.manage);
+  const codePatternsQuery = useCodeGenerationPatternsQuery(
+    !isPermissionsPending && canManage,
+  );
+  const codePattern =
+    codePatternsQuery.data?.find((item) => item.entityKey === 'material_group')
+      ?.pattern ?? DEFAULT_CODE_GENERATION_PATTERNS.material_group;
   const query = useMaterialGroupsQuery(isPermissionsPending || canView);
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
@@ -140,6 +148,15 @@ export function MaterialGroupsPage() {
     values: Parameters<typeof createMutation.mutate>[0],
   ) => {
     if (!canManage) return;
+    if (values.codeMode === 'manual' && !values.code.trim()) {
+      createForm.setError('code', {
+        type: 'manual',
+        message: intl.formatMessage({
+          id: 'materialGroups.errors.codeRequired',
+        }),
+      });
+      return;
+    }
     createMutation.mutate(values, {
       onSuccess: () => {
         toast.success(
@@ -309,6 +326,8 @@ export function MaterialGroupsPage() {
         onSubmit={handleCreate}
         isSaving={createMutation.isPending}
         title={intl.formatMessage({ id: 'materialGroups.dialogs.createTitle' })}
+        codePattern={codePattern}
+        resetKey="create"
       />
       <MaterialGroupFormDialog
         open={editOpen}
@@ -318,6 +337,8 @@ export function MaterialGroupsPage() {
         onSubmit={handleUpdate}
         isSaving={updateMutation.isPending}
         title={intl.formatMessage({ id: 'materialGroups.dialogs.editTitle' })}
+        codePattern={codePattern}
+        resetKey={editingGroup?.id ?? 'edit'}
       />
       <ConfirmDialog
         open={deletingGroup !== null}

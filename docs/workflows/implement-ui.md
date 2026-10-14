@@ -43,6 +43,7 @@ files only to a scratch path, then reconcile manually.
 - [ ] Create and edit have separate visibility/form state; create keeps its draft on reopen.
 - [ ] Opening edit assigns the entity before resetting mapped values.
 - [ ] Generated dialog receives an explicit `mode="create"` or `mode="edit"`.
+- [ ] Initial focus lands on an intended input. A `readOnly` input is still focusable; for edit dialogs, override `onOpenAutoFocus` and focus the first editable field when needed.
 - [ ] Edit close confirmation is builder-provided and entity/form stay stable while closing.
 - [ ] Validation comes from the feature zod schema and uses Vietnamese messages.
 - [ ] Submit is disabled or guarded while the mutation is pending.

@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const materialModelFormSchema = z.object({
-  code: z.string().trim().min(1, 'Vui lòng nhập mã mẫu.'),
+  code: z.string().trim(),
+  codeMode: z.enum(['auto', 'manual']),
   name: z.string().trim().min(1, 'Vui lòng nhập tên mẫu.'),
   imageUrl: z.union([z.literal(''), z.url('Đường dẫn ảnh không hợp lệ.')]),
   description: z.string().trim(),

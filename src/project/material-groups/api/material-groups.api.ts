@@ -28,13 +28,12 @@ export async function createMaterialGroup(
   values: MaterialGroupFormValues,
 ): Promise<void> {
   assertSupabaseConfigured();
-  await request(
-    supabaseApi.post('/material_groups', {
-      code: values.code.trim(),
-      name: values.name.trim(),
-      description: values.description.trim() || null,
-    }),
-  );
+  const payload: { code?: string; name: string; description: string | null } = {
+    name: values.name.trim(),
+    description: values.description.trim() || null,
+  };
+  if (values.codeMode === 'manual') payload.code = values.code.trim();
+  await request(supabaseApi.post('/material_groups', payload));
 }
 
 export async function updateMaterialGroup(

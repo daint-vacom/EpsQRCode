@@ -8,6 +8,7 @@
  * bypassed builder.
  */
 import { useState, type KeyboardEvent } from 'react';
+import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
@@ -30,21 +31,24 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
   materialGroupFormSchema,
   type MaterialGroupFormValues,
 } from '../model/material-group';
+import type { MaterialGroup } from '../model/material-group';
 
 export const materialGroupDefaultValues: MaterialGroupFormValues = {
   code: '',
+  codeMode: 'auto',
   name: '',
   description: '',
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
-type MaterialGroupFormSource = unknown;
+type MaterialGroupFormSource = MaterialGroup;
 
 export function useMaterialGroupForm(
   options?: Omit<UseFormProps<MaterialGroupFormValues>, 'resolver'>,
@@ -59,27 +63,89 @@ export function useMaterialGroupForm(
 export function mapMaterialGroupToFormValues(
   entity: MaterialGroupFormSource,
 ): MaterialGroupFormValues {
-  // TODO(scaffold): map entity → form values for edit mode.
-  void entity;
-  return materialGroupDefaultValues;
+  return {
+    code: entity.code,
+    codeMode: 'manual',
+    name: entity.name,
+    description: entity.description,
+  };
 }
 
 interface MaterialGroupFormProps {
   form: UseFormReturn<MaterialGroupFormValues>;
   onSubmit: (values: MaterialGroupFormValues) => void;
   id?: string;
+  mode: 'create' | 'edit';
+  codePattern: string;
+  resetKey: string;
 }
 
 export function MaterialGroupForm({
   form,
   onSubmit,
   id = 'materialGroup-form',
+  mode,
+  codePattern,
+  resetKey,
 }: MaterialGroupFormProps) {
   const intl = useIntl();
+  const codeMode = form.watch('codeMode');
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
+          {mode === 'create' && (
+            <FormField
+              control={form.control}
+              name="codeMode"
+              render={({ field }) => (
+                <FormItem
+                  className="md:col-span-12"
+                  layout="horizontal"
+                  labelWidth="md"
+                >
+                  <FormLabel>
+                    {intl.formatMessage({ id: 'common.fields.codeCreation' })}
+                  </FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      aria-label={intl.formatMessage({
+                        id: 'common.fields.codeCreation',
+                      })}
+                      className="flex min-h-9 flex-wrap items-center gap-5"
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value as 'auto' | 'manual');
+                        form.setValue('code', '');
+                        form.clearErrors('code');
+                      }}
+                    >
+                      <label className="flex items-center gap-2 text-sm">
+                        <RadioGroupItem
+                          value="auto"
+                          aria-label={intl.formatMessage({
+                            id: 'common.fields.codeAuto',
+                          })}
+                        />
+                        {intl.formatMessage({ id: 'common.fields.codeAuto' })}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <RadioGroupItem
+                          value="manual"
+                          aria-label={intl.formatMessage({
+                            id: 'common.fields.codeManual',
+                          })}
+                        />
+                        {intl.formatMessage({ id: 'common.fields.codeManual' })}
+                      </label>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="code"
@@ -91,10 +157,19 @@ export function MaterialGroupForm({
               >
                 <FormLabel>
                   {intl.formatMessage({ id: 'materialGroups.fields.code' })}
-                  <span className="text-destructive"> *</span>
+                  {codeMode === 'manual' && (
+                    <span className="text-destructive"> *</span>
+                  )}
                 </FormLabel>
                 <FormControl>
-                  <Input variant="md" {...field} />
+                  <CodeInputField
+                    variant="md"
+                    {...field}
+                    mode={mode}
+                    codeMode={codeMode}
+                    pattern={codePattern}
+                    resetKey={resetKey}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -157,6 +232,8 @@ interface MaterialGroupFormDialogProps {
   onSubmit: (values: MaterialGroupFormValues) => void;
   isSaving?: boolean;
   title?: string;
+  codePattern: string;
+  resetKey: string;
 }
 
 export function MaterialGroupFormDialog({
@@ -167,6 +244,8 @@ export function MaterialGroupFormDialog({
   onSubmit,
   isSaving = false,
   title,
+  codePattern,
+  resetKey,
 }: MaterialGroupFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -203,6 +282,12 @@ export function MaterialGroupFormDialog({
       <Dialog open={open} onOpenChange={requestClose}>
         <DialogContent
           className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          onOpenAutoFocus={(event) => {
+            if (mode !== 'edit') return;
+
+            event.preventDefault();
+            form.setFocus('name');
+          }}
           onKeyDown={handleDialogKeyDown}
         >
           <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 text-start">
@@ -219,6 +304,9 @@ export function MaterialGroupFormDialog({
               form={form}
               onSubmit={onSubmit}
               id="materialGroup-form"
+              mode={mode}
+              codePattern={codePattern}
+              resetKey={resetKey}
             />
           </div>
 

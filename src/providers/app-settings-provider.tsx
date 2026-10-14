@@ -18,7 +18,7 @@ export const APP_DENSITY_SCALES = {
 
 export type AppTheme = 'system' | 'light' | 'dark';
 export type AppDensity = keyof typeof APP_DENSITY_SCALES;
-export type AppSidebarTheme = 'light' | 'dark';
+export type AppSidebarTheme = 'theme' | 'light' | 'dark';
 
 export type AppAppearanceSettings = {
   theme: AppTheme;
@@ -34,11 +34,11 @@ type AppSettingsContextValue = {
 };
 
 const defaultAppearance: AppAppearanceSettings = {
-  theme: 'system',
+  theme: 'light',
   density: 'small',
-  sidebarTheme: 'dark',
+  sidebarTheme: 'theme',
   sidebarCollapsed: false,
-  autoCollapseSidebarOnDetail: true,
+  autoCollapseSidebarOnDetail: false,
 };
 
 const AppSettingsContext = createContext<AppSettingsContextValue | null>(null);
@@ -52,7 +52,7 @@ function isAppDensity(value: unknown): value is AppDensity {
 }
 
 function isAppSidebarTheme(value: unknown): value is AppSidebarTheme {
-  return value === 'light' || value === 'dark';
+  return value === 'theme' || value === 'light' || value === 'dark';
 }
 
 function isBoolean(value: unknown): value is boolean {

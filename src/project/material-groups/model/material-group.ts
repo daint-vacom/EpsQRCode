@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const materialGroupFormSchema = z.object({
-  code: z.string().trim().min(1, 'Vui lòng nhập mã nhóm.'),
+  code: z.string().trim(),
+  codeMode: z.enum(['auto', 'manual']),
   name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm.'),
   description: z.string().trim(),
 });

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
+import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import { Boxes, Save } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -34,6 +36,12 @@ export function MaterialModelEditorPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.manage);
+  const codePatternsQuery = useCodeGenerationPatternsQuery(
+    !isPermissionsPending && canManage,
+  );
+  const codePattern =
+    codePatternsQuery.data?.find((item) => item.entityKey === 'material_model')
+      ?.pattern ?? DEFAULT_CODE_GENERATION_PATTERNS.material_model;
   const query = useMaterialModelsQuery(
     isEdit && (isPermissionsPending || canView),
   );
@@ -50,6 +58,15 @@ export function MaterialModelEditorPage() {
 
   const handleSubmit = (values: MaterialModelFormValues) => {
     if (!canManage) return;
+    if (values.codeMode === 'manual' && !values.code.trim()) {
+      form.setError('code', {
+        type: 'manual',
+        message: intl.formatMessage({
+          id: 'materialModels.errors.codeRequired',
+        }),
+      });
+      return;
+    }
     if (isEdit && id) {
       updateMutation.mutate(
         { id, values },
@@ -163,7 +180,10 @@ export function MaterialModelEditorPage() {
             <MaterialModelForm
               form={form}
               onSubmit={handleSubmit}
+              mode={isEdit ? 'edit' : 'create'}
               id="materialModel-form"
+              codePattern={codePattern}
+              resetKey={id ?? 'create'}
             />
           </CardContent>
         </Card>

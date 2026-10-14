@@ -132,6 +132,12 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 - Disable duplicate submit while pending and keep user input on recoverable failure.
 - Edit dialogs reset values when the selected record changes; create dialogs preserve their draft
   across close/reopen and reset only through an explicit new-task action.
+- Kiểm tra điểm focus ban đầu của mọi dialog form. Trình duyệt/Radix có thể tự focus control đầu tiên
+  có thể nhận focus; input `readOnly` vẫn focus được nên không được xem là đã bị loại khỏi thứ tự này.
+  Với dialog chỉnh sửa, nếu field đầu tiên là mã `readOnly` hoặc control không phù hợp để nhập ngay,
+  hãy xử lý `onOpenAutoFocus` trên `DialogContent`, gọi `preventDefault()` rồi focus field nhập liệu
+  đầu tiên (ví dụ `form.setFocus('name')`). Giữ nguyên hành vi mặc định ở chế độ tạo nếu đó là điểm
+  focus phù hợp; không đổi `readOnly` thành `disabled` chỉ để né autofocus.
 - Dialog chỉnh sửa phải hiển thị tên đối tượng ngay trong `DialogTitle`, theo mẫu
   `Sửa [loại đối tượng]: [tên đối tượng]`. Tên đối tượng dùng `font-semibold text-primary` để
   phân biệt ngữ cảnh đang chỉnh sửa; giữ toàn bộ nội dung trong một tiêu đề accessible và dùng
