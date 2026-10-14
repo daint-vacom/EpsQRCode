@@ -34,39 +34,40 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import type { MaterialModel } from '../../model/material-model';
+import type { ExampleMaterialModel } from '../../model/material-model';
 import {
-  materialModelFormSchema,
-  type MaterialModelFormValues,
+  exampleMaterialModelFormSchema,
+  type ExampleMaterialModelFormValues,
 } from '../material-model.schema';
 
-export const materialModelDefaultValues: MaterialModelFormValues = {
-  name: '',
-  code: '',
-  groupId: '',
-  origin: '',
-  description: '',
-  isSafetyManaged: false,
-  inspectionTableId: '',
-  imageUrls: [],
-  specs: [],
-};
+export const exampleMaterialModelDefaultValues: ExampleMaterialModelFormValues =
+  {
+    name: '',
+    code: '',
+    groupId: '',
+    origin: '',
+    description: '',
+    isSafetyManaged: false,
+    inspectionTableId: '',
+    imageUrls: [],
+    specs: [],
+  };
 
-type MaterialModelFormSource = MaterialModel;
+type ExampleMaterialModelFormSource = ExampleMaterialModel;
 
-export function useMaterialModelForm(
-  options?: Omit<UseFormProps<MaterialModelFormValues>, 'resolver'>,
+export function useExampleMaterialModelForm(
+  options?: Omit<UseFormProps<ExampleMaterialModelFormValues>, 'resolver'>,
 ) {
-  return useForm<MaterialModelFormValues>({
-    resolver: zodResolver(materialModelFormSchema),
-    defaultValues: materialModelDefaultValues,
+  return useForm<ExampleMaterialModelFormValues>({
+    resolver: zodResolver(exampleMaterialModelFormSchema),
+    defaultValues: exampleMaterialModelDefaultValues,
     ...options,
   });
 }
 
-export function mapMaterialModelToFormValues(
-  entity: MaterialModelFormSource,
-): MaterialModelFormValues {
+export function mapExampleMaterialModelToFormValues(
+  entity: ExampleMaterialModelFormSource,
+): ExampleMaterialModelFormValues {
   return {
     name: entity.name,
     code: entity.code,
@@ -96,21 +97,21 @@ export function mapMaterialModelToFormValues(
   };
 }
 
-interface MaterialModelFormProps {
-  form: UseFormReturn<MaterialModelFormValues>;
-  onSubmit: (values: MaterialModelFormValues) => void;
+interface ExampleMaterialModelFormProps {
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
+  onSubmit: (values: ExampleMaterialModelFormValues) => void;
   id?: string;
   groupIdOptions: { value: string; label: string }[];
   inspectionTableIdOptions: { value: string; label: string }[];
 }
 
-export function MaterialModelForm({
+export function ExampleMaterialModelForm({
   form,
   onSubmit,
-  id = 'materialModel-form',
+  id = 'exampleMaterialModel-form',
   groupIdOptions,
   inspectionTableIdOptions,
-}: MaterialModelFormProps) {
+}: ExampleMaterialModelFormProps) {
   const isSafetyManaged = form.watch('isSafetyManaged');
 
   return (
@@ -214,6 +215,35 @@ export function MaterialModelForm({
 
           <FormField
             control={form.control}
+            name="imageUrls"
+            render={({ field }) => (
+              <FormItem className="md:col-span-12">
+                <FormLabel>Ảnh đại diện (đường dẫn ảnh)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    value={field.value[0] ?? ''}
+                    onChange={(event) =>
+                      field.onChange(
+                        event.target.value ? [event.target.value] : [],
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+                {field.value[0] ? (
+                  <img
+                    src={field.value[0]}
+                    alt="Ảnh mẫu vật tư"
+                    className="mt-2 size-20 rounded-admin-control border border-border object-cover"
+                  />
+                ) : null}
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="isSafetyManaged"
             render={({ field }) => (
               <FormItem className="md:col-span-12 flex-row items-center gap-2.5">
@@ -264,17 +294,17 @@ export function MaterialModelForm({
   );
 }
 
-interface MaterialModelFormDialogProps {
+interface ExampleMaterialModelFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  form: UseFormReturn<MaterialModelFormValues>;
-  onSubmit: (values: MaterialModelFormValues) => void;
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
+  onSubmit: (values: ExampleMaterialModelFormValues) => void;
   title?: string;
   groupIdOptions: { value: string; label: string }[];
   inspectionTableIdOptions: { value: string; label: string }[];
 }
 
-export function MaterialModelFormDialog({
+export function ExampleMaterialModelFormDialog({
   open,
   onOpenChange,
   form,
@@ -282,7 +312,7 @@ export function MaterialModelFormDialog({
   title,
   groupIdOptions,
   inspectionTableIdOptions,
-}: MaterialModelFormDialogProps) {
+}: ExampleMaterialModelFormDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0">
@@ -292,10 +322,10 @@ export function MaterialModelFormDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <MaterialModelForm
+          <ExampleMaterialModelForm
             form={form}
             onSubmit={onSubmit}
-            id="materialModel-form"
+            id="exampleMaterialModel-form"
             groupIdOptions={groupIdOptions}
             inspectionTableIdOptions={inspectionTableIdOptions}
           />
@@ -309,7 +339,11 @@ export function MaterialModelFormDialog({
           >
             Hủy
           </Button>
-          <Button type="submit" variant="primary" form="materialModel-form">
+          <Button
+            type="submit"
+            variant="primary"
+            form="exampleMaterialModel-form"
+          >
             Lưu
           </Button>
         </DialogFooter>

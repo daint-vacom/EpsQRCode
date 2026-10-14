@@ -41,7 +41,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ConfirmDeleteDialog } from '../../components/confirm-delete-dialog';
-import { MATERIAL_MODELS_MOCK } from '../../data/material-models.mock';
+import { EXAMPLE_MATERIAL_MODELS_MOCK } from '../../data/material-models.mock';
 import { SPEC_DEFINITIONS_MOCK } from '../../data/spec-definitions.mock';
 import { SPEC_VALUE_SETS_MOCK } from '../../data/spec-value-sets.mock';
 import type {
@@ -68,9 +68,8 @@ let optionSeq = 0;
 
 export function SpecDefinitionsPage() {
   const [specs, setSpecs] = useState<SpecDefinition[]>(SPEC_DEFINITIONS_MOCK);
-  const [valueSets, setValueSets] = useState<SpecValueSet[]>(
-    SPEC_VALUE_SETS_MOCK,
-  );
+  const [valueSets, setValueSets] =
+    useState<SpecValueSet[]>(SPEC_VALUE_SETS_MOCK);
   const [keyword, setKeyword] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editing, setEditing] = useState<SpecDefinition | null>(null);
@@ -122,7 +121,9 @@ export function SpecDefinitionsPage() {
           ? values.unit.trim() || undefined
           : undefined,
       description: values.description.trim() || undefined,
-      defaultValueSetId: isList ? values.defaultValueSetId || undefined : undefined,
+      defaultValueSetId: isList
+        ? values.defaultValueSetId || undefined
+        : undefined,
       defaultSelectionMode: isList ? values.defaultSelectionMode : undefined,
       allowModelSelectionOverride: isList
         ? values.allowModelSelectionOverride
@@ -413,13 +414,16 @@ function ValueSetEditor({
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
-        const [code, label, colorHex] = line.split(/\t|,/).map((part) => part.trim());
+        const [code, label, colorHex] = line
+          .split(/\t|,/)
+          .map((part) => part.trim());
         const id = code || `opt-${(optionSeq += 1)}`;
         return {
           id,
           value: code || id,
           label: label || code || id,
-          colorHex: valueSet.kind === 'color' ? colorHex || undefined : undefined,
+          colorHex:
+            valueSet.kind === 'color' ? colorHex || undefined : undefined,
         };
       });
     onChange({ options: [...valueSet.options, ...pasted] });
@@ -460,7 +464,9 @@ function ValueSetEditor({
           </Select>
           <Select
             value={valueSet.isActive ? 'active' : 'inactive'}
-            onValueChange={(value) => onChange({ isActive: value === 'active' })}
+            onValueChange={(value) =>
+              onChange({ isActive: value === 'active' })
+            }
           >
             <SelectTrigger size="sm">
               <SelectValue />
@@ -477,7 +483,12 @@ function ValueSetEditor({
             <span className="text-xs font-medium text-muted-foreground">
               Option
             </span>
-            <Button type="button" variant="outline" size="sm" onClick={handleAddOption}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddOption}
+            >
               <Plus className="size-3.5" />
               Thêm
             </Button>
@@ -563,13 +574,19 @@ function buildValueSetUsage(
   const usage = new Map(valueSets.map((set) => [set.id, 0]));
   specs.forEach((spec) => {
     if (spec.defaultValueSetId) {
-      usage.set(spec.defaultValueSetId, (usage.get(spec.defaultValueSetId) ?? 0) + 1);
+      usage.set(
+        spec.defaultValueSetId,
+        (usage.get(spec.defaultValueSetId) ?? 0) + 1,
+      );
     }
   });
-  MATERIAL_MODELS_MOCK.forEach((model) => {
+  EXAMPLE_MATERIAL_MODELS_MOCK.forEach((model) => {
     model.specs.forEach((spec) => {
       if (spec.valueSetIdOverride) {
-        usage.set(spec.valueSetIdOverride, (usage.get(spec.valueSetIdOverride) ?? 0) + 1);
+        usage.set(
+          spec.valueSetIdOverride,
+          (usage.get(spec.valueSetIdOverride) ?? 0) + 1,
+        );
       }
     });
   });

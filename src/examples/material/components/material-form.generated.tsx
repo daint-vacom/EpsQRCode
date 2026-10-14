@@ -37,7 +37,7 @@ import {
   type MaterialFormValues,
 } from '../material.schema';
 import type { Material } from '../model/material';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 import type { SpecDefinition } from '../model/spec-definition';
 import type { SpecValueSet } from '../model/spec-value-set';
 import { DeviceSpecField } from './device-spec-field';
@@ -80,7 +80,7 @@ interface MaterialFormProps {
   id?: string;
   groupIdOptions: { value: string; label: string }[];
   modelIdOptions: { value: string; label: string }[];
-  selectedModel: MaterialModel | undefined;
+  selectedModel: ExampleMaterialModel | undefined;
   definitions: SpecDefinition[];
   valueSets: SpecValueSet[];
   onGroupChange?: (groupId: string) => void;
@@ -233,7 +233,7 @@ interface MaterialFormDialogProps {
   title?: string;
   groupIdOptions: { value: string; label: string }[];
   modelIdOptions: { value: string; label: string }[];
-  selectedModel: MaterialModel | undefined;
+  selectedModel: ExampleMaterialModel | undefined;
   definitions: SpecDefinition[];
   valueSets: SpecValueSet[];
   onGroupChange?: (groupId: string) => void;

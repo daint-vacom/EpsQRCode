@@ -1,49 +1,55 @@
 import { useEffect, useMemo } from 'react';
 import { ROUTES } from '@/constants/routes';
-import { ArrowLeft } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Boxes, Save } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Card,
+  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardHeading,
   CardTitle,
 } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
+import { PageHeader } from '@/components/ui/page-header';
 import { MATERIAL_GROUPS_MOCK } from '../../data/material-groups.mock';
 import { SPEC_DEFINITIONS_MOCK } from '../../data/spec-definitions.mock';
 import { SPEC_VALUE_SETS_MOCK } from '../../data/spec-value-sets.mock';
-import type { MaterialModel } from '../../model/material-model';
+import type { ExampleMaterialModel } from '../../model/material-model';
 import {
-  nextMaterialModelId,
+  nextExampleMaterialModelId,
   useMaterialCatalogStore,
 } from '../../stores/material-catalog.store';
 import {
-  mapMaterialModelToFormValues,
-  materialModelDefaultValues,
-  useMaterialModelForm,
+  exampleMaterialModelDefaultValues,
+  ExampleMaterialModelForm,
+  mapExampleMaterialModelToFormValues,
+  useExampleMaterialModelForm,
 } from '../components/material-model-form.generated';
-import { MaterialModelWizard } from '../components/material-model-wizard';
-import type { MaterialModelFormValues } from '../material-model.schema';
+import { ModelSpecEditor } from '../components/model-spec-editor';
+import type { ExampleMaterialModelFormValues } from '../material-model.schema';
 
-export function MaterialModelEditorPage() {
+export function ExampleMaterialModelEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { inspectionTables, materialModels, upsertMaterialModel } =
-    useMaterialCatalogStore();
+  const {
+    inspectionTables,
+    exampleMaterialModels,
+    upsertExampleMaterialModel,
+  } = useMaterialCatalogStore();
   const editing = id
-    ? (materialModels.find((model) => model.id === id) ?? null)
+    ? (exampleMaterialModels.find((model) => model.id === id) ?? null)
     : null;
   const isEdit = Boolean(id);
-  const form = useMaterialModelForm();
+  const form = useExampleMaterialModelForm();
 
   useEffect(() => {
     form.reset(
       editing
-        ? mapMaterialModelToFormValues(editing)
-        : materialModelDefaultValues,
+        ? mapExampleMaterialModelToFormValues(editing)
+        : exampleMaterialModelDefaultValues,
     );
   }, [editing, form]);
 
@@ -60,7 +66,6 @@ export function MaterialModelEditorPage() {
       }
       return depth;
     };
-
     return MATERIAL_GROUPS_MOCK.map((group) => ({
       value: group.id,
       label: `${'— '.repeat(depthOf(group.id))}${group.name}`,
@@ -76,11 +81,14 @@ export function MaterialModelEditorPage() {
     [inspectionTables],
   );
 
-  const handleSubmit = (values: MaterialModelFormValues) => {
-    const next: MaterialModel = {
-      id: editing?.id ?? nextMaterialModelId(),
+  const handleSubmit = (values: ExampleMaterialModelFormValues) => {
+    const next: ExampleMaterialModel = {
+      id: editing?.id ?? nextExampleMaterialModelId(),
       code: values.code.trim(),
       name: values.name.trim(),
+      isActive: editing?.isActive ?? true,
+      createdAt: editing?.createdAt ?? '',
+      updatedAt: editing?.updatedAt ?? '',
       description: values.description.trim() || undefined,
       origin: values.origin.trim() || undefined,
       groupId: values.groupId,
@@ -88,7 +96,7 @@ export function MaterialModelEditorPage() {
       inspectionTableId: values.isSafetyManaged
         ? values.inspectionTableId || undefined
         : undefined,
-      imageUrls: values.imageUrls,
+      imageUrls: values.imageUrls.filter(Boolean),
       specs: values.specs.map((spec, index) => ({
         id: spec.id,
         source: spec.source,
@@ -106,68 +114,95 @@ export function MaterialModelEditorPage() {
       })),
     };
 
-    upsertMaterialModel(next);
+    upsertExampleMaterialModel(next);
     toast.success(
-      editing ? `Đã cập nhật mẫu "${next.name}"` : `Đã thêm mẫu "${next.name}"`,
+      editing
+        ? `Đã cập nhật mẫu “${next.name}”.`
+        : `Đã thêm mẫu “${next.name}”.`,
     );
-    navigate(ROUTES.EXAMPLE.MATERIAL_MODELS);
+    navigate(ROUTES.EXAMPLE.MATERIAL_MODELS_DEMO);
   };
 
-  if (isEdit && !editing) {
-    return (
-      <div className="flex h-full min-h-0 flex-col p-6">
-        <Card>
-          <CardHeader>
-            <CardHeading>
-              <CardTitle>Không tìm thấy mẫu vật tư</CardTitle>
-              <CardDescription>
-                Mẫu đã bị xóa hoặc mã truy cập không hợp lệ.
-              </CardDescription>
-            </CardHeading>
-          </CardHeader>
-          <CardFooter>
-            <Button asChild variant="outline">
-              <Link to={ROUTES.EXAMPLE.MATERIAL_MODELS}>
-                <ArrowLeft className="size-4" />
-                Quay lại danh sách
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-6 xl:overflow-hidden">
-      <div className="flex shrink-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" mode="icon" size="sm" asChild>
-              <Link
-                to={ROUTES.EXAMPLE.MATERIAL_MODELS}
-                aria-label="Quay lại danh sách mẫu vật tư"
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+      <PageHeader
+        title={
+          editing?.name ?? (isEdit ? 'Chi tiết mẫu vật tư' : 'Thêm mẫu vật tư')
+        }
+        icon={Boxes}
+        showBackButton
+        backLabel="Quay lại danh sách mẫu vật tư"
+        onBack={() => navigate(ROUTES.EXAMPLE.MATERIAL_MODELS_DEMO)}
+        actions={
+          !isEdit || editing ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => navigate(ROUTES.EXAMPLE.MATERIAL_MODELS_DEMO)}
               >
-                <ArrowLeft />
-              </Link>
-            </Button>
-            <h1 className="truncate text-lg font-semibold leading-none text-foreground">
-              {editing ? 'Sửa mẫu vật tư' : 'Thêm mẫu vật tư'}
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      <MaterialModelWizard
-        form={form}
-        definitions={SPEC_DEFINITIONS_MOCK}
-        valueSets={SPEC_VALUE_SETS_MOCK}
-        groupOptions={groupOptions}
-        inspectionTableIdOptions={inspectionTableIdOptions}
-        onSubmit={handleSubmit}
-        onCancel={() => navigate(ROUTES.EXAMPLE.MATERIAL_MODELS)}
-        title={editing ? 'Sửa mẫu vật tư' : 'Thêm mẫu vật tư'}
+                Hủy
+              </Button>
+              <Button
+                type="submit"
+                form="exampleMaterialModel-form"
+                variant="primary"
+                size="md"
+              >
+                <Save />
+                Lưu mẫu
+              </Button>
+            </>
+          ) : null
+        }
       />
+
+      {isEdit && !editing ? (
+        <ErrorState
+          title="Không tìm thấy mẫu vật tư"
+          description="Mẫu đã bị xóa hoặc mã truy cập không hợp lệ. Quay lại danh sách để chọn mẫu khác."
+        />
+      ) : (
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+          <Card>
+            <CardHeader>
+              <CardHeading>
+                <CardTitle>Thông tin mẫu</CardTitle>
+                <CardDescription>
+                  Khai báo tên, mã, nhóm và thông tin nhận diện của mẫu vật tư.
+                </CardDescription>
+              </CardHeading>
+            </CardHeader>
+            <CardContent>
+              <ExampleMaterialModelForm
+                form={form}
+                onSubmit={handleSubmit}
+                id="exampleMaterialModel-form"
+                groupIdOptions={groupOptions}
+                inspectionTableIdOptions={inspectionTableIdOptions}
+              />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardHeading>
+                <CardTitle>Thông số kỹ thuật</CardTitle>
+                <CardDescription>
+                  Chọn thông số áp dụng cho mẫu và thiết lập giá trị mặc định.
+                </CardDescription>
+              </CardHeading>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ModelSpecEditor
+                form={form}
+                definitions={SPEC_DEFINITIONS_MOCK}
+                valueSets={SPEC_VALUE_SETS_MOCK}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

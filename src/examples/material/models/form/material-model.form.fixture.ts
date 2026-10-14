@@ -8,10 +8,10 @@ import type { FormSpec } from '@/builders/form';
  *     src/examples/material/models/components/material-model-form.generated.tsx
  */
 const spec: FormSpec = {
-  entity: 'MaterialModel',
+  entity: 'ExampleMaterialModel',
   schemaImport: '../material-model.schema',
-  schemaName: 'materialModelFormSchema',
-  valuesType: 'MaterialModelFormValues',
+  schemaName: 'exampleMaterialModelFormSchema',
+  valuesType: 'ExampleMaterialModelFormValues',
   title: 'Mẫu vật tư',
   description: 'Thông tin cơ bản của mẫu.',
   specPath: 'src/examples/material/models/form/material-model.form.fixture.ts',

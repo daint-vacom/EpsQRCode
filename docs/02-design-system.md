@@ -126,6 +126,7 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 - Placeholder và empty state không cần bọc trong `Card`; chỉ hiển thị text trực tiếp
   trên nền trang, trừ khi nội dung đó cần một container có cấu trúc riêng.
 - Required state and Vietnamese validation messages are explicit.
+- Every form field uses the horizontal label-and-control layout. Keep labels in a consistent left column and controls on the right; prefer the shared `md` label-width preset unless the content needs a different shared preset.
 - Default to a compact two-column desktop grid and one column on narrow screens.
 - Place destructive actions away from the primary submit action.
 - Disable duplicate submit while pending and keep user input on recoverable failure.

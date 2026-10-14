@@ -69,7 +69,7 @@ is available.
 - Use react-hook-form with a feature zod schema and `zodResolver`.
 - Validation text, labels, placeholders, and feedback default to Vietnamese.
 - Required fields show a clear marker and preserve predictable tab order.
-- In forms with both a code and a name, place the code field full-width above or before the name field.
+- All form fields use the horizontal label-and-control layout. In forms with both a code and a name, place the code field before the name field.
 - Create and edit modes reset from explicit values when opened.
 - Pending submit cannot run twice; failed submit preserves entered values.
 - Use the form builder when its registry row matches. See [`builders/form-dialog.md`](./builders/form-dialog.md).

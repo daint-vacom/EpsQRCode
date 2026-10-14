@@ -52,14 +52,14 @@ const InspectionTablesPage = lazy(() =>
     default: m.InspectionTablesPage,
   })),
 );
-const MaterialModelsPage = lazy(() =>
+const ExampleMaterialModelsPage = lazy(() =>
   import('./material/models/pages/material-models-page').then((m) => ({
-    default: m.MaterialModelsPage,
+    default: m.ExampleMaterialModelsPage,
   })),
 );
-const MaterialModelEditorPage = lazy(() =>
+const ExampleMaterialModelEditorPage = lazy(() =>
   import('./material/models/pages/material-model-editor-page').then((m) => ({
-    default: m.MaterialModelEditorPage,
+    default: m.ExampleMaterialModelEditorPage,
   })),
 );
 const MaterialPublicDetailPage = lazy(() =>
@@ -184,26 +184,26 @@ const exampleRoutes: ReactNode = (
         }
       />
       <Route
-        path={ROUTES.EXAMPLE.MATERIAL_MODELS}
+        path={ROUTES.EXAMPLE.MATERIAL_MODELS_DEMO}
         element={
           <Suspense fallback={<ScreenLoader />}>
-            <MaterialModelsPage />
+            <ExampleMaterialModelsPage />
           </Suspense>
         }
       />
       <Route
-        path={ROUTES.EXAMPLE.MATERIAL_MODEL_CREATE}
+        path={ROUTES.EXAMPLE.MATERIAL_MODEL_DEMO_CREATE}
         element={
           <Suspense fallback={<ScreenLoader />}>
-            <MaterialModelEditorPage />
+            <ExampleMaterialModelEditorPage />
           </Suspense>
         }
       />
       <Route
-        path={ROUTES.EXAMPLE.MATERIAL_MODEL_EDIT}
+        path={ROUTES.EXAMPLE.MATERIAL_MODEL_DEMO_EDIT}
         element={
           <Suspense fallback={<ScreenLoader />}>
-            <MaterialModelEditorPage />
+            <ExampleMaterialModelEditorPage />
           </Suspense>
         }
       />

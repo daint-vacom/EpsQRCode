@@ -7,12 +7,18 @@ import type { TableSpec } from '@/builders/table';
  *     src/examples/material/models/components/material-model-columns.generated.tsx
  */
 const spec: TableSpec = {
-  entity: 'MaterialModel',
+  entity: 'ExampleMaterialModel',
   modelImport: '../../model/material-model',
   specPath:
     'src/examples/material/models/table/material-model.table.fixture.ts',
   columns: [
-    { kind: 'index', header: 'STT', headerClassName: 'w-[64px]', size: 64 },
+    {
+      kind: 'custom',
+      id: 'availability',
+      header: 'Sử dụng',
+      headerClassName: 'w-[110px]',
+      size: 110,
+    },
     {
       kind: 'custom',
       id: 'identity',
@@ -21,32 +27,18 @@ const spec: TableSpec = {
       size: 320,
     },
     {
-      kind: 'custom',
-      id: 'group',
-      header: 'Nhóm',
-      headerClassName: 'w-[170px]',
+      kind: 'date',
+      id: 'createdAt',
+      field: 'createdAt',
+      header: 'Ngày tạo',
+      sizePreset: 'date',
+    },
+    {
+      kind: 'date',
+      id: 'updatedAt',
+      field: 'updatedAt',
+      header: 'Ngày chỉnh sửa',
       size: 170,
-    },
-    {
-      kind: 'custom',
-      id: 'origin',
-      header: 'Xuất xứ',
-      headerClassName: 'w-[140px]',
-      size: 140,
-    },
-    {
-      kind: 'custom',
-      id: 'specCount',
-      header: 'Thông số',
-      headerClassName: 'w-[110px]',
-      size: 110,
-    },
-    {
-      kind: 'custom',
-      id: 'deviceCount',
-      header: 'Thiết bị',
-      headerClassName: 'w-[110px]',
-      size: 110,
     },
     {
       kind: 'actions',

@@ -20,7 +20,7 @@ describe('buildPath', () => {
 
   it('thay thế param cho trang sửa mẫu vật tư', () => {
     expect(
-      buildPath(ROUTES.EXAMPLE.MATERIAL_MODEL_EDIT, { id: 'model-1' }),
+      buildPath(ROUTES.EXAMPLE.MATERIAL_MODEL_DEMO_EDIT, { id: 'model-1' }),
     ).toBe('/example/materials/models/model-1/edit');
   });
 });

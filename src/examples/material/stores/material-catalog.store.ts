@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { INSPECTION_TABLES_MOCK } from '../data/inspection-tables.mock';
-import { MATERIAL_MODELS_MOCK } from '../data/material-models.mock';
+import { EXAMPLE_MATERIAL_MODELS_MOCK } from '../data/material-models.mock';
 import { MATERIALS_MOCK } from '../data/materials.mock';
 import type { InspectionTable } from '../model/inspection-table';
 import type { Material } from '../model/material';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 
 let inspectionTables = [...INSPECTION_TABLES_MOCK];
 let materials = [...MATERIALS_MOCK];
-let materialModels = [...MATERIAL_MODELS_MOCK];
+let exampleMaterialModels: ExampleMaterialModel[] =
+  EXAMPLE_MATERIAL_MODELS_MOCK.map((model, index) => ({
+    ...model,
+    isActive: true,
+    createdAt: new Date(Date.UTC(2026, 5, 1 + index)).toISOString(),
+    updatedAt: new Date(Date.UTC(2026, 5, 1 + index)).toISOString(),
+  }));
 let inspectionTableSeq = 0;
 let materialSeq = 0;
-let materialModelSeq = 0;
+let exampleMaterialModelSeq = 0;
 
 const listeners = new Set<() => void>();
 
@@ -29,9 +35,9 @@ export function nextMaterialId() {
   return `material-new-${materialSeq}`;
 }
 
-export function nextMaterialModelId() {
-  materialModelSeq += 1;
-  return `model-new-${materialModelSeq}`;
+export function nextExampleMaterialModelId() {
+  exampleMaterialModelSeq += 1;
+  return `model-new-${exampleMaterialModelSeq}`;
 }
 
 export function nextInspectionTableId() {
@@ -47,7 +53,7 @@ export function useMaterialCatalogStore() {
   return {
     inspectionTables,
     materials,
-    materialModels,
+    exampleMaterialModels,
     upsertInspectionTable(table: InspectionTable) {
       inspectionTables = inspectionTables.some((item) => item.id === table.id)
         ? inspectionTables.map((item) => (item.id === table.id ? table : item))
@@ -68,14 +74,35 @@ export function useMaterialCatalogStore() {
       materials = materials.filter((material) => material.id !== id);
       emitChange();
     },
-    upsertMaterialModel(model: MaterialModel) {
-      materialModels = materialModels.some((item) => item.id === model.id)
-        ? materialModels.map((item) => (item.id === model.id ? model : item))
-        : [model, ...materialModels];
+    upsertExampleMaterialModel(model: ExampleMaterialModel) {
+      const existing = exampleMaterialModels.find(
+        (item) => item.id === model.id,
+      );
+      const saved = {
+        ...model,
+        isActive: existing?.isActive ?? model.isActive,
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      exampleMaterialModels = existing
+        ? exampleMaterialModels.map((item) =>
+            item.id === model.id ? saved : item,
+          )
+        : [saved, ...exampleMaterialModels];
       emitChange();
     },
-    removeMaterialModel(id: string) {
-      materialModels = materialModels.filter((model) => model.id !== id);
+    setExampleMaterialModelActive(id: string, isActive: boolean) {
+      exampleMaterialModels = exampleMaterialModels.map((model) =>
+        model.id === id
+          ? { ...model, isActive, updatedAt: new Date().toISOString() }
+          : model,
+      );
+      emitChange();
+    },
+    removeExampleMaterialModel(id: string) {
+      exampleMaterialModels = exampleMaterialModels.filter(
+        (model) => model.id !== id,
+      );
       emitChange();
     },
   };

@@ -39,7 +39,7 @@ type CriterionDialogState =
 export function InspectionTablesPage() {
   const {
     inspectionTables,
-    materialModels,
+    exampleMaterialModels,
     upsertInspectionTable,
     removeInspectionTable,
   } = useMaterialCatalogStore();
@@ -97,7 +97,7 @@ export function InspectionTablesPage() {
 
   const handleRequestDeleteTable = () => {
     if (!selectedTable) return;
-    const isUsed = materialModels.some(
+    const isUsed = exampleMaterialModels.some(
       (model) => model.inspectionTableId === selectedTable.id,
     );
     if (isUsed) {

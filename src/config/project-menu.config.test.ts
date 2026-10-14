@@ -13,6 +13,7 @@ describe('PROJECT_MENU_GROUPS', () => {
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
       'Nhân viên',
       'Nhóm vật tư',
+      'Mẫu vật tư',
       'Tệp lưu trữ',
       'Phân quyền',
       'Cấu hình dữ liệu',

@@ -38,7 +38,7 @@ import {
 export function MaterialEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { materials, materialModels, upsertMaterial } =
+  const { materials, exampleMaterialModels, upsertMaterial } =
     useMaterialCatalogStore();
   const editing = id
     ? (materials.find((material) => material.id === id) ?? null)
@@ -49,8 +49,8 @@ export function MaterialEditorPage() {
   const watchedModelId = form.watch('modelId');
 
   const modelById = useMemo(
-    () => new Map(materialModels.map((model) => [model.id, model])),
-    [materialModels],
+    () => new Map(exampleMaterialModels.map((model) => [model.id, model])),
+    [exampleMaterialModels],
   );
   const groupNameById = useMemo(
     () => new Map(MATERIAL_GROUPS_MOCK.map((group) => [group.id, group.name])),
@@ -67,14 +67,14 @@ export function MaterialEditorPage() {
   const modelIdOptions = useMemo(
     () =>
       filterModelsByGroup(
-        materialModels,
+        exampleMaterialModels,
         MATERIAL_GROUPS_MOCK,
         watchedGroupId || null,
       ).map((model) => ({
         value: model.id,
         label: `${model.name} · ${groupNameById.get(model.groupId) ?? '—'}`,
       })),
-    [groupNameById, materialModels, watchedGroupId],
+    [groupNameById, exampleMaterialModels, watchedGroupId],
   );
   const selectedModel = watchedModelId
     ? modelById.get(watchedModelId)

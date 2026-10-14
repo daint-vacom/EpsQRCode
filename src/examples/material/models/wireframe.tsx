@@ -36,7 +36,7 @@ const C = {
   footer: 'rgba(148,163,184,0.18)',
 };
 
-export function MaterialModelSpecWireframe() {
+export function ExampleMaterialModelSpecWireframe() {
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [tab, setTab] = useState<'specs' | 'valuesets'>('specs');
@@ -62,7 +62,8 @@ export function MaterialModelSpecWireframe() {
       {/* PAGE HEADER — định danh mẫu */}
       <div style={block(C.header, { flexDirection: 'column', gap: 4 })}>
         <div>
-          PAGE HEADER → tên mẫu + mã + nhóm + ảnh (MaterialModelForm header)
+          PAGE HEADER → tên mẫu + mã + nhóm + ảnh (ExampleMaterialModelForm
+          header)
         </div>
         <div style={{ fontWeight: 400, opacity: 0.7 }}>
           breadcrumb · nút Lưu / Hủy ở FOOTER sticky dưới cùng

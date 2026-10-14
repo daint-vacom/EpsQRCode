@@ -1,5 +1,6 @@
 import { ROUTES } from '@/constants/routes';
 import {
+  Boxes,
   FolderOpen,
   ListTree,
   PackageOpen,
@@ -24,6 +25,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Nhóm vật tư',
         icon: PackageOpen,
         path: ROUTES.PROJECT.MATERIAL_GROUPS,
+      },
+      {
+        label: 'Mẫu vật tư',
+        icon: Boxes,
+        path: ROUTES.PROJECT.MATERIAL_MODELS,
       },
       { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
       {

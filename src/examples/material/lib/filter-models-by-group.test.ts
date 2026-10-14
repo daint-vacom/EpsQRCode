@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MaterialGroup } from '../model/material-group';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 import { filterModelsByGroup } from './filter-models-by-group';
 
 const groups: MaterialGroup[] = [
@@ -11,7 +11,7 @@ const groups: MaterialGroup[] = [
 const models = [
   { id: 'm1', groupId: 'g1' },
   { id: 'm2', groupId: 'g2' },
-] as MaterialModel[];
+] as ExampleMaterialModel[];
 
 describe('filterModelsByGroup', () => {
   it('null group trả tất cả', () => {

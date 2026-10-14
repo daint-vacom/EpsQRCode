@@ -7,11 +7,12 @@
 import { useMemo } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExternalLink, Package, Pencil, QrCode, Trash2 } from 'lucide-react';
+import { ExternalLink, Pencil, QrCode, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
+import { MaterialIdentity } from '@/components/material-identity';
 import type { Material } from '../model/material';
 
 export interface UseMaterialColumnsParams {
@@ -56,25 +57,11 @@ export function useMaterialColumns({
         headerClassName: 'min-w-[280px]',
         size: 340,
         cell: (row) => (
-          <div className="flex items-center gap-3">
-            {row.imageUrl ? (
-              <img
-                src={row.imageUrl}
-                alt={row.name}
-                className="size-10 shrink-0 rounded-admin-control border border-border object-cover"
-              />
-            ) : (
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-admin-control border border-border bg-admin-surface-alt text-muted-foreground">
-                <Package className="size-5" />
-              </span>
-            )}
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate font-medium text-foreground">
-                {row.name}
-              </span>
-              <span className="text-xs text-muted-foreground">{row.code}</span>
-            </div>
-          </div>
+          <MaterialIdentity
+            name={row.name}
+            code={row.code}
+            imageUrl={row.imageUrl}
+          />
         ),
       }),
       col.custom({

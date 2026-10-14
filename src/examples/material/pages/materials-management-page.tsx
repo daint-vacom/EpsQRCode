@@ -34,14 +34,14 @@ const sampleMaterialId = '601af811-5def-4bd0-b8d3-8429dece65a7';
 
 export function MaterialsManagementPage() {
   const navigate = useNavigate();
-  const { materials, materialModels, removeMaterial } =
+  const { materials, exampleMaterialModels, removeMaterial } =
     useMaterialCatalogStore();
   const [keyword, setKeyword] = useState('');
   const [deleting, setDeleting] = useState<Material | null>(null);
 
   const modelNameById = useMemo(
-    () => new Map(materialModels.map((model) => [model.id, model.name])),
-    [materialModels],
+    () => new Map(exampleMaterialModels.map((model) => [model.id, model.name])),
+    [exampleMaterialModels],
   );
   const groupNameById = useMemo(
     () => new Map(MATERIAL_GROUPS_MOCK.map((group) => [group.id, group.name])),
@@ -50,12 +50,12 @@ export function MaterialsManagementPage() {
   const groupNameByModelId = useMemo(
     () =>
       new Map(
-        materialModels.map((model) => [
+        exampleMaterialModels.map((model) => [
           model.id,
           groupNameById.get(model.groupId) ?? '—',
         ]),
       ),
-    [groupNameById, materialModels],
+    [groupNameById, exampleMaterialModels],
   );
   const filtered = useMemo(() => {
     const kw = keyword.trim().toLowerCase();

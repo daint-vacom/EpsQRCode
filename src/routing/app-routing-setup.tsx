@@ -45,6 +45,8 @@ import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { MaterialGroupsPage } from '@/project/material-groups/pages/material-groups-page';
+import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
+import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
@@ -221,6 +223,18 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIAL_GROUPS}
             element={<MaterialGroupsPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_MODELS}
+            element={<MaterialModelsPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_MODEL_CREATE}
+            element={<MaterialModelEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_MODEL_EDIT}
+            element={<MaterialModelEditorPage />}
           />
           <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />
           <Route

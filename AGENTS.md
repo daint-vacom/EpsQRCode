@@ -54,7 +54,7 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Favor dense, desktop-admin layouts over marketing-style pages.
 - Build actual working screens, not landing pages, when asked for an app/template feature.
 - Tables should support sticky headers, fixed action columns, loading/empty states, pagination, and permission-aware actions when relevant.
-- Forms should use Vietnamese validation copy, clear required markers, compact spacing, and predictable tab order.
+- All form fields use a horizontal layout: keep the label in a consistent left column and the control to its right. For builder forms, set `layout: 'horizontal'` and the shared `labelWidth`; for handwritten forms, set `FormItem layout="horizontal"`. Forms should use Vietnamese validation copy, clear required markers, compact spacing, and predictable tab order.
 - Do not use placeholder text on text or textarea inputs in create/edit forms unless the user explicitly requests it. Use the visible field label to identify the input.
 - Prefer Lucide icons when a matching icon exists. Keep icon-only controls to familiar actions or provide accessible labels/tooltips.
 - Set Button loading labels to concise copy without trailing dots or an ellipsis (for example, `Đang lưu`). The spinner already communicates the loading state; apply this to every `loadingText`.

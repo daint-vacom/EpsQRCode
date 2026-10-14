@@ -9,7 +9,7 @@ import type {
   SpecValue,
 } from './spec-definition';
 
-export type MaterialModelSpecSource = 'catalog' | 'custom';
+export type ExampleMaterialModelSpecSource = 'catalog' | 'custom';
 
 /** Cách giá trị thông số ứng xử khi tạo/sửa vật tư thật từ mẫu. */
 export type MaterialValueMode = 'locked' | 'editable';
@@ -30,25 +30,25 @@ export interface CustomSpecDefinition {
   description?: string;
 }
 
-export const MATERIAL_MODEL_SPEC_SOURCE_LABELS: Record<
-  MaterialModelSpecSource,
+export const EXAMPLE_MATERIAL_MODEL_SPEC_SOURCE_LABELS: Record<
+  ExampleMaterialModelSpecSource,
   string
 > = {
   catalog: 'Từ danh mục',
   custom: 'Riêng của mẫu',
 };
 
-export interface MaterialModelSpec {
+export interface ExampleMaterialModelSpec {
   /** ID thông số trong phạm vi mẫu; catalog specs thường dùng chính specDefinitionId. */
   id: string;
-  source: MaterialModelSpecSource;
+  source: ExampleMaterialModelSpecSource;
   specDefinitionId?: string;
   customDefinition?: CustomSpecDefinition;
   labelOverride?: string;
   partKey?: string;
   selectionModeOverride?: ListSelectionMode;
   valueSetIdOverride?: string;
-  optionSource?: MaterialModelSpecOptionSource;
+  optionSource?: ExampleMaterialModelSpecOptionSource;
   materialValueMode: MaterialValueMode;
   /** Giá trị khóa theo mẫu hoặc giá trị mặc định khi vật tư được nhập riêng. */
   defaultValue?: SpecValue;
@@ -56,20 +56,22 @@ export interface MaterialModelSpec {
   sortOrder: number;
 }
 
-export type MaterialModelSpecOptionSource =
-  | { mode: 'inherit' }
-  | { mode: 'subset'; optionIds: string[] };
+export type ExampleMaterialModelSpecOptionSource =
+  { mode: 'inherit' } | { mode: 'subset'; optionIds: string[] };
 
-export interface MaterialModel {
+export interface ExampleMaterialModel {
   id: string;
   code: string;
   name: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
   description?: string;
   /** Xuất xứ. */
   origin?: string;
   groupId: string;
   imageUrls: string[];
-  specs: MaterialModelSpec[];
+  specs: ExampleMaterialModelSpec[];
   /** "Quản lý an toàn" — bật thì gắn bảng kiểm định. */
   isSafetyManaged?: boolean;
   /** FK -> InspectionTable, chỉ khi isSafetyManaged. */

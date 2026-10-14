@@ -1,5 +1,5 @@
 import type { MaterialGroup } from '../model/material-group';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 
 export interface GroupTreeNode extends MaterialGroup {
   children: GroupTreeNode[];
@@ -71,7 +71,7 @@ export function countDirectChildren(
 
 /** Đếm mẫu trực thuộc mỗi nhóm, gồm cả các nhóm con của nhóm đó. */
 export function countModelsByGroup(
-  models: MaterialModel[],
+  models: ExampleMaterialModel[],
   groups: MaterialGroup[],
 ): Map<string, number> {
   const byId = new Map(groups.map((group) => [group.id, group]));

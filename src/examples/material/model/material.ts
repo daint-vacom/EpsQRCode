@@ -6,14 +6,14 @@ import type { SpecValue } from './spec-definition';
 
 /**
  * Khóa nhóm legacy (enum cứng) — còn dùng cho bảng quản lý hiện tại + badge cột.
- * Sẽ được thay bằng `Material.modelId -> MaterialModel.groupId -> MaterialGroup`
+ * Sẽ được thay bằng `Material.modelId -> ExampleMaterialModel.groupId -> MaterialGroup`
  * ở bước refactor thiết bị thật.
  */
 export type MaterialGroupKey = 'kiem-ke' | 'van-phong' | 'an-toan' | 'cong-cu';
 
-/** Override giá trị thông số ở vật tư thật khi MaterialModelSpec cho nhập riêng. */
+/** Override giá trị thông số ở vật tư thật khi ExampleMaterialModelSpec cho nhập riêng. */
 export interface MaterialSpecValue {
-  materialModelSpecId: string;
+  exampleMaterialModelSpecId: string;
   value: SpecValue;
 }
 
@@ -23,7 +23,7 @@ export interface Material {
   code: string;
   imageUrl: string;
   group: MaterialGroupKey;
-  /** FK -> MaterialModel. */
+  /** FK -> ExampleMaterialModel. */
   modelId: string;
   /** Chỉ chứa override cho thông số có materialValueMode = 'editable'. */
   specValues: MaterialSpecValue[];

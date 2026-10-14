@@ -3,7 +3,7 @@ import type {
   MaterialGroupKey,
   MaterialSpecValue,
 } from '../model/material';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 import type { SpecDefinition } from '../model/spec-definition';
 import type { SpecValueSet } from '../model/spec-value-set';
 import {
@@ -26,27 +26,27 @@ export function legacyGroupFromModelGroupId(groupId: string): MaterialGroupKey {
 
 export function getModelForMaterial(
   material: Pick<Material, 'modelId'>,
-  models: MaterialModel[],
-): MaterialModel | undefined {
+  models: ExampleMaterialModel[],
+): ExampleMaterialModel | undefined {
   return models.find((model) => model.id === material.modelId);
 }
 
 export function getDerivedGroupIdForMaterial(
   material: Pick<Material, 'modelId'>,
-  models: MaterialModel[],
+  models: ExampleMaterialModel[],
 ): string | undefined {
   return getModelForMaterial(material, models)?.groupId;
 }
 
 export function buildMaterialSpecValues(
-  model: MaterialModel,
+  model: ExampleMaterialModel,
   specValues: MaterialSpecValue[],
   definitions: SpecDefinition[],
   valueSets: SpecValueSet[],
 ): MaterialSpecValue[] {
   const valueById = new Map(
     specValues.map((specValue) => [
-      specValue.materialModelSpecId,
+      specValue.exampleMaterialModelSpecId,
       specValue.value,
     ]),
   );
@@ -82,12 +82,12 @@ export function buildMaterialSpecValues(
         return [];
       }
 
-      return [{ materialModelSpecId: modelSpec.id, value }];
+      return [{ exampleMaterialModelSpecId: modelSpec.id, value }];
     });
 }
 
 export function validateMaterialSpecValues(
-  model: MaterialModel,
+  model: ExampleMaterialModel,
   specValues: MaterialSpecValue[],
   definitions: SpecDefinition[],
   valueSets: SpecValueSet[],
@@ -100,7 +100,7 @@ export function validateMaterialSpecValues(
   );
   const valueById = new Map(
     normalizedValues.map((specValue) => [
-      specValue.materialModelSpecId,
+      specValue.exampleMaterialModelSpecId,
       specValue.value,
     ]),
   );

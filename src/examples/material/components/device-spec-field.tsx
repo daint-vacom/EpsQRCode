@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { resolveEffectiveSpecs } from '../lib/resolve-effective-specs';
 import { formatSpecValue, isNumberSpecValue } from '../lib/spec-value';
 import type { MaterialFormValues } from '../material.schema';
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 import type {
   ListSelectionMode,
   SpecDefinition,
@@ -25,7 +25,7 @@ import type { SpecValueSet } from '../model/spec-value-set';
 
 interface DeviceSpecFieldProps {
   form: UseFormReturn<MaterialFormValues>;
-  model: MaterialModel | undefined;
+  model: ExampleMaterialModel | undefined;
   definitions: SpecDefinition[];
   valueSets: SpecValueSet[];
 }
@@ -61,17 +61,20 @@ export function DeviceSpecField({
     );
   }
 
-  const handleChange = (materialModelSpecId: string, value: SpecValue) => {
+  const handleChange = (
+    exampleMaterialModelSpecId: string,
+    value: SpecValue,
+  ) => {
     const current = form.getValues('specValues');
     const next = current.some(
-      (item) => item.materialModelSpecId === materialModelSpecId,
+      (item) => item.exampleMaterialModelSpecId === exampleMaterialModelSpecId,
     )
       ? current.map((item) =>
-          item.materialModelSpecId === materialModelSpecId
+          item.exampleMaterialModelSpecId === exampleMaterialModelSpecId
             ? { ...item, value }
             : item,
         )
-      : [...current, { materialModelSpecId, value }];
+      : [...current, { exampleMaterialModelSpecId, value }];
 
     form.setValue('specValues', next, {
       shouldDirty: true,
@@ -98,7 +101,7 @@ export function DeviceSpecField({
 
         return (
           <div
-            key={effectiveSpec.materialModelSpecId}
+            key={effectiveSpec.exampleMaterialModelSpecId}
             className="rounded-admin-control border border-border p-3"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -139,7 +142,10 @@ export function DeviceSpecField({
                   allowedOptions={allowedOptions}
                   selectionMode={effectiveSpec.selectionMode}
                   onChange={(value) =>
-                    handleChange(effectiveSpec.materialModelSpecId, value)
+                    handleChange(
+                      effectiveSpec.exampleMaterialModelSpecId,
+                      value,
+                    )
                   }
                 />
               )}

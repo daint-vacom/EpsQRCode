@@ -49,7 +49,7 @@ const modelSpecSchema = z.object({
   isRequired: z.boolean(),
 });
 
-export const materialModelFormSchema = z
+export const exampleMaterialModelFormSchema = z
   .object({
     name: z.string().min(1, 'Bắt buộc'),
     code: z.string().min(1, 'Bắt buộc'),
@@ -118,5 +118,7 @@ export const materialModelFormSchema = z
     });
   });
 
-export type MaterialModelFormValues = z.infer<typeof materialModelFormSchema>;
+export type ExampleMaterialModelFormValues = z.infer<
+  typeof exampleMaterialModelFormSchema
+>;
 export type ModelSpecFormValue = z.infer<typeof modelSpecSchema>;

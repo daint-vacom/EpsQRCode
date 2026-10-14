@@ -1,7 +1,7 @@
-import type { MaterialModel } from '../model/material-model';
+import type { ExampleMaterialModel } from '../model/material-model';
 
 /** Mẫu vật tư mock — gom các thiết bị thật cùng loại. */
-export const MATERIAL_MODELS_MOCK: MaterialModel[] = [
+export const EXAMPLE_MATERIAL_MODELS_MOCK: ExampleMaterialModel[] = [
   {
     id: 'model-palang-xich-tay',
     code: 'MAU-PALANG-XT',

@@ -10,18 +10,21 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'kiem-ke',
     modelId: 'model-palang-xich-tay',
     specValues: [
-      { materialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
+      { exampleMaterialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
       {
-        materialModelSpecId: 'pl-taitrong-tk',
+        exampleMaterialModelSpecId: 'pl-taitrong-tk',
         value: { amount: 1, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-chieucao', value: { amount: 3, unit: 'Mét' } },
       {
-        materialModelSpecId: 'pl-taitrong-max',
+        exampleMaterialModelSpecId: 'pl-chieucao',
+        value: { amount: 3, unit: 'Mét' },
+      },
+      {
+        exampleMaterialModelSpecId: 'pl-taitrong-max',
         value: { amount: 1, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-nsx', value: 'NITTO' },
-      { materialModelSpecId: 'pl-mahieu', value: 'NITTO 1T X 3M' },
+      { exampleMaterialModelSpecId: 'pl-nsx', value: 'NITTO' },
+      { exampleMaterialModelSpecId: 'pl-mahieu', value: 'NITTO 1T X 3M' },
     ],
     tags: ['palăng', 'kiểm định'],
   },
@@ -33,18 +36,21 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'kiem-ke',
     modelId: 'model-palang-xich-tay',
     specValues: [
-      { materialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
+      { exampleMaterialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
       {
-        materialModelSpecId: 'pl-taitrong-tk',
+        exampleMaterialModelSpecId: 'pl-taitrong-tk',
         value: { amount: 2, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-chieucao', value: { amount: 3, unit: 'Mét' } },
       {
-        materialModelSpecId: 'pl-taitrong-max',
+        exampleMaterialModelSpecId: 'pl-chieucao',
+        value: { amount: 3, unit: 'Mét' },
+      },
+      {
+        exampleMaterialModelSpecId: 'pl-taitrong-max',
         value: { amount: 2, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-nsx', value: 'NITTO' },
-      { materialModelSpecId: 'pl-mahieu', value: 'NITTO 2T X 3M' },
+      { exampleMaterialModelSpecId: 'pl-nsx', value: 'NITTO' },
+      { exampleMaterialModelSpecId: 'pl-mahieu', value: 'NITTO 2T X 3M' },
     ],
     tags: ['palăng', 'kiểm định'],
   },
@@ -56,18 +62,21 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'kiem-ke',
     modelId: 'model-palang-xich-tay',
     specValues: [
-      { materialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
+      { exampleMaterialModelSpecId: 'pl-muctai', value: 'muctai-le-3' },
       {
-        materialModelSpecId: 'pl-taitrong-tk',
+        exampleMaterialModelSpecId: 'pl-taitrong-tk',
         value: { amount: 3, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-chieucao', value: { amount: 5, unit: 'Mét' } },
       {
-        materialModelSpecId: 'pl-taitrong-max',
+        exampleMaterialModelSpecId: 'pl-chieucao',
+        value: { amount: 5, unit: 'Mét' },
+      },
+      {
+        exampleMaterialModelSpecId: 'pl-taitrong-max',
         value: { amount: 3, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-nsx', value: 'NITTO' },
-      { materialModelSpecId: 'pl-mahieu', value: 'NITTO 3T X 5M' },
+      { exampleMaterialModelSpecId: 'pl-nsx', value: 'NITTO' },
+      { exampleMaterialModelSpecId: 'pl-mahieu', value: 'NITTO 3T X 5M' },
     ],
     tags: ['palăng', 'kiểm định'],
   },
@@ -79,18 +88,21 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'kiem-ke',
     modelId: 'model-palang-xich-tay',
     specValues: [
-      { materialModelSpecId: 'pl-muctai', value: 'muctai-3-75' },
+      { exampleMaterialModelSpecId: 'pl-muctai', value: 'muctai-3-75' },
       {
-        materialModelSpecId: 'pl-taitrong-tk',
+        exampleMaterialModelSpecId: 'pl-taitrong-tk',
         value: { amount: 5, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-chieucao', value: { amount: 4, unit: 'Mét' } },
       {
-        materialModelSpecId: 'pl-taitrong-max',
+        exampleMaterialModelSpecId: 'pl-chieucao',
+        value: { amount: 4, unit: 'Mét' },
+      },
+      {
+        exampleMaterialModelSpecId: 'pl-taitrong-max',
         value: { amount: 5, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-nsx', value: 'NITTO' },
-      { materialModelSpecId: 'pl-mahieu', value: 'NITTO 5T X 4M' },
+      { exampleMaterialModelSpecId: 'pl-nsx', value: 'NITTO' },
+      { exampleMaterialModelSpecId: 'pl-mahieu', value: 'NITTO 5T X 4M' },
     ],
     tags: ['palăng', 'kiểm định'],
   },
@@ -102,18 +114,21 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'kiem-ke',
     modelId: 'model-palang-xich-tay',
     specValues: [
-      { materialModelSpecId: 'pl-muctai', value: 'muctai-tren-75' },
+      { exampleMaterialModelSpecId: 'pl-muctai', value: 'muctai-tren-75' },
       {
-        materialModelSpecId: 'pl-taitrong-tk',
+        exampleMaterialModelSpecId: 'pl-taitrong-tk',
         value: { amount: 10, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-chieucao', value: { amount: 5, unit: 'Mét' } },
       {
-        materialModelSpecId: 'pl-taitrong-max',
+        exampleMaterialModelSpecId: 'pl-chieucao',
+        value: { amount: 5, unit: 'Mét' },
+      },
+      {
+        exampleMaterialModelSpecId: 'pl-taitrong-max',
         value: { amount: 10, unit: 'Tấn' },
       },
-      { materialModelSpecId: 'pl-nsx', value: 'NITTO' },
-      { materialModelSpecId: 'pl-mahieu', value: 'NITTO 10T X 5M' },
+      { exampleMaterialModelSpecId: 'pl-nsx', value: 'NITTO' },
+      { exampleMaterialModelSpecId: 'pl-mahieu', value: 'NITTO 10T X 5M' },
     ],
     tags: ['palăng', 'kiểm định'],
   },
@@ -145,7 +160,10 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'an-toan',
     modelId: 'model-helmet',
     specValues: [
-      { materialModelSpecId: 'helmet-shell-color', value: 'color-yellow' },
+      {
+        exampleMaterialModelSpecId: 'helmet-shell-color',
+        value: 'color-yellow',
+      },
     ],
     tags: ['Bảo hộ', 'Cấp phát'],
   },
@@ -176,7 +194,9 @@ export const MATERIALS_MOCK: Material[] = [
     imageUrl: '',
     group: 'an-toan',
     modelId: 'model-co2',
-    specValues: [{ materialModelSpecId: 'co2-mfg-date', value: '2026-01-15' }],
+    specValues: [
+      { exampleMaterialModelSpecId: 'co2-mfg-date', value: '2026-01-15' },
+    ],
     tags: ['PCCC', 'Định kỳ'],
   },
   {
@@ -187,8 +207,8 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'van-phong',
     modelId: 'model-iphone17pro',
     specValues: [
-      { materialModelSpecId: 'iphone-color', value: 'color-blue' },
-      { materialModelSpecId: 'iphone-storage', value: 'dl-256' },
+      { exampleMaterialModelSpecId: 'iphone-color', value: 'color-blue' },
+      { exampleMaterialModelSpecId: 'iphone-storage', value: 'dl-256' },
     ],
     tags: ['Cấp phát', 'Kinh doanh'],
   },
@@ -200,8 +220,8 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'van-phong',
     modelId: 'model-iphone17pro',
     specValues: [
-      { materialModelSpecId: 'iphone-color', value: 'color-black' },
-      { materialModelSpecId: 'iphone-storage', value: 'dl-512' },
+      { exampleMaterialModelSpecId: 'iphone-color', value: 'color-black' },
+      { exampleMaterialModelSpecId: 'iphone-storage', value: 'dl-512' },
     ],
     tags: ['Cấp phát', 'IT'],
   },
@@ -213,8 +233,14 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'an-toan',
     modelId: 'model-safety-glasses',
     specValues: [
-      { materialModelSpecId: 'glasses-glass-color', value: 'color-clear' },
-      { materialModelSpecId: 'glasses-shell-color', value: 'color-black' },
+      {
+        exampleMaterialModelSpecId: 'glasses-glass-color',
+        value: 'color-clear',
+      },
+      {
+        exampleMaterialModelSpecId: 'glasses-shell-color',
+        value: 'color-black',
+      },
     ],
     tags: ['Bảo hộ', 'Kho A'],
   },
@@ -227,7 +253,7 @@ export const MATERIALS_MOCK: Material[] = [
     modelId: 'model-magnet-pair',
     specValues: [
       {
-        materialModelSpecId: 'magnet-colors',
+        exampleMaterialModelSpecId: 'magnet-colors',
         value: ['color-blue', 'color-red'],
       },
     ],
@@ -241,7 +267,7 @@ export const MATERIALS_MOCK: Material[] = [
     group: 'cong-cu',
     modelId: 'model-powder-coated-shell',
     specValues: [
-      { materialModelSpecId: 'dyed-shell-color', value: 'dye-cobalt' },
+      { exampleMaterialModelSpecId: 'dyed-shell-color', value: 'dye-cobalt' },
     ],
     tags: ['Vỏ thay thế', 'Sơn nhuộm'],
   },

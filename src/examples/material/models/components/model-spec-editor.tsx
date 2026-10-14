@@ -31,7 +31,7 @@ import {
 } from '../../lib/resolve-effective-specs';
 import { isNumberSpecValue } from '../../lib/spec-value';
 import {
-  MATERIAL_MODEL_SPEC_SOURCE_LABELS,
+  EXAMPLE_MATERIAL_MODEL_SPEC_SOURCE_LABELS,
   type CustomSpecDefinition,
 } from '../../model/material-model';
 import {
@@ -45,12 +45,12 @@ import {
 } from '../../model/spec-definition';
 import type { SpecValueSet } from '../../model/spec-value-set';
 import type {
-  MaterialModelFormValues,
+  ExampleMaterialModelFormValues,
   ModelSpecFormValue,
 } from '../material-model.schema';
 
 interface ModelSpecEditorProps {
-  form: UseFormReturn<MaterialModelFormValues>;
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
   definitions: SpecDefinition[];
   valueSets: SpecValueSet[];
 }
@@ -242,7 +242,7 @@ function ModelSpecListRow({
   onOpenChange,
   onRemove,
 }: {
-  form: UseFormReturn<MaterialModelFormValues>;
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
   index: number;
   spec: ModelSpecFormValue;
   def: SpecDefinition;
@@ -273,7 +273,7 @@ function ModelSpecListRow({
             {label}
           </span>
           <Badge variant="secondary" appearance="light">
-            {MATERIAL_MODEL_SPEC_SOURCE_LABELS[spec.source]}
+            {EXAMPLE_MATERIAL_MODEL_SPEC_SOURCE_LABELS[spec.source]}
           </Badge>
         </div>
         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -361,7 +361,7 @@ function ModelSpecSheet({
   open,
   onOpenChange,
 }: {
-  form: UseFormReturn<MaterialModelFormValues>;
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
   base: `specs.${number}`;
   spec: ModelSpecFormValue;
   def: SpecDefinition;
@@ -634,7 +634,7 @@ function CustomDefinitionEditor({
   def,
   onDataTypeChange,
 }: {
-  form: UseFormReturn<MaterialModelFormValues>;
+  form: UseFormReturn<ExampleMaterialModelFormValues>;
   base: `specs.${number}`;
   def: SpecDefinition;
   onDataTypeChange: (dataType: SpecDataType) => void;
