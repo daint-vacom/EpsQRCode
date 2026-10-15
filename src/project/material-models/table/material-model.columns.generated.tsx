@@ -6,11 +6,11 @@
  */
 import { useMemo } from 'react';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { Button } from '@/components/ui/button';
 import {
   createColumnHelpers,
+  DataGridActionButton,
   getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
 import { Switch } from '@/components/ui/switch';
@@ -22,7 +22,6 @@ export const MATERIAL_MODEL_COLUMN_PINNING: ColumnPinningState = {
 };
 
 export interface UseMaterialModelColumnsParams {
-  onView: (row: MaterialModel) => void;
   onEdit: (row: MaterialModel) => void;
   onDelete: (row: MaterialModel) => void;
   canManage: boolean;
@@ -31,7 +30,6 @@ export interface UseMaterialModelColumnsParams {
 }
 
 export function useMaterialModelColumns({
-  onView,
   onEdit,
   onDelete,
   canManage,
@@ -42,8 +40,9 @@ export function useMaterialModelColumns({
 
   return useMemo(() => {
     const col = createColumnHelpers<MaterialModel>();
+    const actionCount = canManage ? 2 : 0;
 
-    return [
+    const columns: ColumnDef<MaterialModel>[] = [
       col.custom({
         id: 'availability',
         header: intl.formatMessage({
@@ -81,74 +80,69 @@ export function useMaterialModelColumns({
           />
         ),
       }),
-      col.date({
-        id: 'createdAt',
-        header: intl.formatMessage({ id: 'materialModels.columns.createdAt' }),
-        get: (row) => row.createdAt,
-        size: 150,
+      col.text({
+        id: 'description',
+        header: intl.formatMessage({ id: 'materialModels.fields.description' }),
+        get: (row) => row.description,
+        size: 280,
         enableSorting: false,
-      }),
-      col.date({
-        id: 'updatedAt',
-        header: intl.formatMessage({ id: 'materialModels.columns.updatedAt' }),
-        get: (row) => row.updatedAt,
-        size: 170,
-        enableSorting: false,
-      }),
-      col.actions({
-        header: intl.formatMessage({ id: 'materialModels.columns.actions' }),
-        size: getDataGridActionsColumnSize(3),
-        enableSorting: false,
-        cell: (row) => (
-          <div className="flex items-center justify-end gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              mode="icon"
-              aria-label={intl.formatMessage(
-                { id: 'materialModels.columns.view' },
-                { name: row.name },
-              )}
-              onClick={() => onView(row)}
-            >
-              <Eye />
-            </Button>
-            {canManage ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  mode="icon"
-                  aria-label={intl.formatMessage(
-                    { id: 'materialModels.columns.edit' },
-                    { name: row.name },
-                  )}
-                  onClick={() => onEdit(row)}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  mode="icon"
-                  aria-label={intl.formatMessage(
-                    { id: 'materialModels.columns.delete' },
-                    { name: row.name },
-                  )}
-                  className="text-muted-foreground"
-                  onClick={() => onDelete(row)}
-                >
-                  <Trash2 />
-                </Button>
-              </>
-            ) : null}
-          </div>
-        ),
+        tooltipOnTruncate: true,
       }),
     ];
+
+    if (actionCount > 0) {
+      columns.push(
+        col.actions({
+          id: 'actions',
+          header: '',
+          cellClassName: 'text-right',
+          size: getDataGridActionsColumnSize(actionCount),
+          enableSorting: false,
+          cell: (row) => (
+            <div className="flex justify-end gap-1">
+              <DataGridActionButton
+                action="edit"
+                tooltip={intl.formatMessage(
+                  { id: 'materialModels.columns.edit' },
+                  { name: row.name },
+                )}
+                aria-label={intl.formatMessage(
+                  { id: 'materialModels.columns.edit' },
+                  { name: row.name },
+                )}
+                type="button"
+                mode="icon"
+                size="sm"
+                onClick={() => onEdit(row)}
+              >
+                <Pencil className="size-4" />
+              </DataGridActionButton>
+              <DataGridActionButton
+                action="delete"
+                tooltip={intl.formatMessage(
+                  { id: 'materialModels.columns.delete' },
+                  { name: row.name },
+                )}
+                aria-label={intl.formatMessage(
+                  { id: 'materialModels.columns.delete' },
+                  { name: row.name },
+                )}
+                type="button"
+                mode="icon"
+                size="sm"
+                onClick={() => onDelete(row)}
+              >
+                <Trash2 className="size-4" />
+              </DataGridActionButton>
+            </div>
+          ),
+        }),
+      );
+    }
+
+    return columns;
   }, [
     intl,
-    onView,
     onEdit,
     onDelete,
     canManage,

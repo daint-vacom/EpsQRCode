@@ -145,6 +145,13 @@ ghost buttons so color communicates intent without making every table row visual
 conditional or domain-specific actions, keep the inline cell owned by the feature and use
 `DataGridActionButton` directly.
 
+For icon-only row actions, leave the actions header empty (`header: ''`) and use `actionCount` to size
+the column. Prefer `actionPresets` for a fixed action set; when actions depend on permissions or row
+state, render `DataGridActionButton` in the owned cell and include only the actions the user can take.
+Do not use a plain `Button` for row actions because it loses the shared semantic color mapping. Add a
+view action or detail dialog only when it exposes information or a workflow that is not already
+available in the row or its tooltips.
+
 ### `editableSelect`
 
 Use `editableSelect` for Phase 1 inline editing: one cell commits immediately when the user chooses a new

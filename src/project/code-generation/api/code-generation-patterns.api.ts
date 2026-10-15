@@ -1,6 +1,7 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 
-export type CodeGenerationEntityKey = 'material_group' | 'material_model';
+export type CodeGenerationEntityKey =
+  'material_group' | 'material_model' | 'material_specification';
 
 export interface CodeGenerationPattern {
   entityKey: CodeGenerationEntityKey;

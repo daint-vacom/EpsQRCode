@@ -1,0 +1,73 @@
+import type { FormSpec } from '@/builders/form';
+
+const spec: FormSpec = {
+  entity: 'MaterialSpecification',
+  schemaImport: '../model/material-specification',
+  schemaName: 'materialSpecificationFormSchema',
+  valuesType: 'MaterialSpecificationFormValues',
+  title: 'Thông số',
+  titleMessageId: 'materialSpecifications.dialogs.createTitle',
+  specPath:
+    'src/project/material-specifications/forms/material-specification.form.fixture.ts',
+  fields: [
+    {
+      kind: 'text',
+      name: 'code',
+      label: 'Mã thông số',
+      labelMessageId: 'materialSpecifications.fields.code',
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+      required: true,
+    },
+    {
+      kind: 'text',
+      name: 'name',
+      label: 'Tên thông số',
+      labelMessageId: 'materialSpecifications.fields.name',
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+      required: true,
+    },
+    {
+      kind: 'textarea',
+      name: 'description',
+      label: 'Mô tả',
+      labelMessageId: 'materialSpecifications.fields.description',
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+      rows: 3,
+    },
+    {
+      kind: 'select',
+      name: 'dataType',
+      label: 'Kiểu dữ liệu',
+      labelMessageId: 'materialSpecifications.fields.dataType',
+      options: [
+        { value: 'text', label: 'Văn bản' },
+        { value: 'number', label: 'Số + đơn vị' },
+        { value: 'boolean', label: 'Có / Không' },
+        { value: 'date', label: 'Ngày tháng' },
+        { value: 'color', label: 'Màu sắc' },
+        { value: 'length', label: 'Độ dài' },
+        { value: 'weight', label: 'Cân nặng' },
+      ],
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+    },
+    {
+      kind: 'text',
+      name: 'unit',
+      label: 'Đơn vị',
+      labelMessageId: 'materialSpecifications.fields.unit',
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+    },
+  ],
+};
+
+export default spec;

@@ -66,7 +66,7 @@ export function ProjectSettingsPage() {
   const saveCodePatternsMutation = useSaveCodeGenerationPatternsMutation();
   const [patternDrafts, setPatternDrafts] = useState<
     Record<CodeGenerationEntityKey, string>
-  >({ material_group: '', material_model: '' });
+  >({ material_group: '', material_model: '', material_specification: '' });
   const [activeTab, setActiveTab] = useState<SettingsTab>(
     canViewDataConfiguration ? 'data' : 'appearance',
   );
@@ -83,6 +83,10 @@ export function ProjectSettingsPage() {
         codePatternsQuery.data.find(
           (pattern) => pattern.entityKey === 'material_model',
         )?.pattern ?? '',
+      material_specification:
+        codePatternsQuery.data.find(
+          (pattern) => pattern.entityKey === 'material_specification',
+        )?.pattern ?? '',
     });
   }, [codePatternsQuery.data]);
 
@@ -91,6 +95,10 @@ export function ProjectSettingsPage() {
       [
         { entityKey: 'material_group', pattern: patternDrafts.material_group },
         { entityKey: 'material_model', pattern: patternDrafts.material_model },
+        {
+          entityKey: 'material_specification',
+          pattern: patternDrafts.material_specification,
+        },
       ],
       {
         onSuccess: () =>
@@ -261,6 +269,37 @@ export function ProjectSettingsPage() {
                               {
                                 example: getCodePatternExample(
                                   patternDrafts.material_model,
+                                ),
+                              },
+                            )}
+                          </p>
+                        </SettingsField>
+                        <SettingsField
+                          label={intl.formatMessage({
+                            id: 'settings.dataConfiguration.fields.materialSpecificationPattern',
+                          })}
+                        >
+                          <Input
+                            aria-label={intl.formatMessage({
+                              id: 'settings.dataConfiguration.fields.materialSpecificationPattern',
+                            })}
+                            value={patternDrafts.material_specification}
+                            disabled={!canManageDataConfiguration}
+                            onChange={(event) =>
+                              setPatternDrafts((current) => ({
+                                ...current,
+                                material_specification: event.target.value,
+                              }))
+                            }
+                          />
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {intl.formatMessage(
+                              {
+                                id: 'settings.dataConfiguration.patternExample',
+                              },
+                              {
+                                example: getCodePatternExample(
+                                  patternDrafts.material_specification,
                                 ),
                               },
                             )}

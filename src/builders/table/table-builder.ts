@@ -453,7 +453,9 @@ function hasNumberFormatColumns(columns: ColumnSpec[]): boolean {
 /** Build the import block, including only what the columns actually use. */
 function emitImports(spec: TableSpec): string {
   const hasBadge = spec.columns.some((col) => col.kind === 'badge');
-  const hasLocalizedHeaders = spec.columns.some((col) => col.headerMessageId);
+  const hasLocalizedHeaders = spec.columns.some(
+    (col) => 'headerMessageId' in col && col.headerMessageId,
+  );
   const hasFormatters = hasNumberFormatColumns(spec.columns);
   const configuredActions = actionPresets(spec.columns);
   const hasActionCount = spec.columns.some(
@@ -506,7 +508,9 @@ export function buildColumnsModule(input: TableSpec): string {
   const configuredActions = actionPresets(spec.columns);
   const hasActionParams = configuredActions.length > 0;
   const hasFormatters = hasNumberFormatColumns(spec.columns);
-  const hasLocalizedHeaders = spec.columns.some((col) => col.headerMessageId);
+  const hasLocalizedHeaders = spec.columns.some(
+    (col) => 'headerMessageId' in col && col.headerMessageId,
+  );
   const paramsInterface = emitHookParamsInterface(spec, hookName);
   const paramsSignature =
     hasEditableColumns || hasActionParams

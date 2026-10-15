@@ -31,6 +31,7 @@ const CODE_PATTERN_EXAMPLE_CONFIG = {
 export const DEFAULT_CODE_GENERATION_PATTERNS = {
   material_group: 'NVT-{SEQ:5}',
   material_model: 'MVT-{SEQ:5}',
+  material_specification: 'TS-{SEQ:5}',
 } as const;
 
 export function getCodePatternExample(pattern: string): string {

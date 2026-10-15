@@ -6,6 +6,7 @@ import {
   PackageOpen,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   Tags,
   Users,
 } from 'lucide-react';
@@ -30,6 +31,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Mẫu vật tư',
         icon: Boxes,
         path: ROUTES.PROJECT.MATERIAL_MODELS,
+      },
+      {
+        label: 'Danh mục thông số',
+        icon: SlidersHorizontal,
+        path: ROUTES.PROJECT.MATERIAL_SPECIFICATIONS,
       },
       { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
       {

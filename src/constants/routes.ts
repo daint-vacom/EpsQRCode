@@ -30,6 +30,7 @@ export const ROUTES = {
     EMPLOYEES: '/employees',
     MATERIAL_GROUPS: '/material-groups',
     MATERIAL_MODELS: '/material-models',
+    MATERIAL_SPECIFICATIONS: '/material-specifications',
     MATERIAL_MODEL_CREATE: '/material-models/new',
     MATERIAL_MODEL_EDIT: '/material-models/:id/edit',
     ROLE_PERMISSIONS: '/permissions',

@@ -51,6 +51,7 @@ Use the live tokens as source of truth. This document does not duplicate a color
 - Use `DataGrid` for paginated management lists and the table builder for columns.
 - Keep headers sticky when the table scrolls.
 - Give action columns stable width and position when horizontal scrolling is possible.
+- Keep icon-only row action columns unlabeled and use `DataGridActionButton` so edit, delete, and other actions retain their shared semantic colors. Add a detail action only when the row and its tooltips do not expose the needed information.
 - Expose loading, empty, error, and pagination behavior as applicable.
 - Align numeric values for scanning and use Vietnamese formatting utilities.
 - Keep row actions discoverable without flooding every row with text buttons.

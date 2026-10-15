@@ -19,17 +19,10 @@ import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { MaterialIdentity } from '@/components/material-identity';
 import {
   useDeleteMaterialModelMutation,
   useMaterialModelsQuery,
@@ -54,13 +47,6 @@ function isAuthorizationError(error: unknown): boolean {
   return status === 401 || status === 403;
 }
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat('vi-VN', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
 export function MaterialModelsPage() {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -78,8 +64,6 @@ export function MaterialModelsPage() {
   const [deletingModel, setDeletingModel] = useState<MaterialModel | null>(
     null,
   );
-  const [viewingModel, setViewingModel] = useState<MaterialModel | null>(null);
-
   const models = query.data ?? EMPTY_MATERIAL_MODELS;
   const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
@@ -92,7 +76,6 @@ export function MaterialModelsPage() {
   }, [models, keyword]);
 
   const columns = useMaterialModelColumns({
-    onView: setViewingModel,
     onEdit: (model) =>
       navigate(buildPath(ROUTES.PROJECT.MATERIAL_MODEL_EDIT, { id: model.id })),
     onDelete: (model) => setDeletingModel(model),
@@ -177,6 +160,7 @@ export function MaterialModelsPage() {
             ? 'materialModels.empty.search'
             : 'materialModels.empty.list',
         })}
+        tableLayout={{ dense: true }}
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
@@ -257,75 +241,6 @@ export function MaterialModelsPage() {
         closeOnConfirm={false}
         onConfirm={handleDelete}
       />
-
-      <Dialog
-        open={viewingModel !== null}
-        onOpenChange={(open) => !open && setViewingModel(null)}
-      >
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>
-              {viewingModel?.name ??
-                intl.formatMessage({ id: 'materialModels.dialogs.viewTitle' })}
-            </DialogTitle>
-          </DialogHeader>
-          {viewingModel ? (
-            <div className="space-y-5">
-              <MaterialIdentity
-                name={viewingModel.name}
-                code={viewingModel.code}
-                imageUrl={viewingModel.imageUrl}
-              />
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {intl.formatMessage({ id: 'materialModels.fields.status' })}
-                  </dt>
-                  <dd className="mt-1 text-sm text-foreground">
-                    {intl.formatMessage({
-                      id: viewingModel.isActive
-                        ? 'materialModels.fields.active'
-                        : 'materialModels.fields.inactive',
-                    })}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {intl.formatMessage({
-                      id: 'materialModels.columns.createdAt',
-                    })}
-                  </dt>
-                  <dd className="mt-1 text-sm text-foreground">
-                    {formatDate(viewingModel.createdAt)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {intl.formatMessage({
-                      id: 'materialModels.columns.updatedAt',
-                    })}
-                  </dt>
-                  <dd className="mt-1 text-sm text-foreground">
-                    {formatDate(viewingModel.updatedAt)}
-                  </dd>
-                </div>
-                {viewingModel.description ? (
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs text-muted-foreground">
-                      {intl.formatMessage({
-                        id: 'materialModels.fields.description',
-                      })}
-                    </dt>
-                    <dd className="mt-1 text-sm text-foreground">
-                      {viewingModel.description}
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
