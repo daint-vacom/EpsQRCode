@@ -18,7 +18,6 @@ import {
   Funnel,
   MoreVertical,
   Plus,
-  RefreshCw,
   Trash2,
   TriangleAlert,
   Users,
@@ -538,6 +537,7 @@ export function EmployeesPage() {
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             variant="stats"
+            recordCountLabel="nhân viên"
             className="pe-3"
             stats={
               <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -602,9 +602,14 @@ export function EmployeesPage() {
                   saveDisabled={!isActiveViewDirty}
                   isSaving={savedViewState.saveMutation.isPending}
                   trigger={
-                    <Button type="button" variant="outline">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      aria-label="Lọc chi tiết"
+                      title="Lọc chi tiết"
+                    >
                       <Funnel />
-                      Lọc chi tiết
                     </Button>
                   }
                 />
@@ -612,17 +617,6 @@ export function EmployeesPage() {
             }
             toolbar={
               <div className="ms-auto flex shrink-0 items-center gap-2.5">
-                <Button
-                  variant="outline"
-                  mode="icon"
-                  aria-label="Làm mới"
-                  title="Làm mới"
-                  onClick={() => {
-                    void workspaceQuery.refetch();
-                  }}
-                >
-                  <RefreshCw />
-                </Button>
                 <DataGridColumnVisibility
                   table={table}
                   mode="drawer"

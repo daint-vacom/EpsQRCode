@@ -23,10 +23,11 @@ import {
   CardHeader,
   CardTable,
   CardTitle,
-  CardToolbar,
 } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridHeader } from '@/components/ui/data-grid-header';
+import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -386,72 +387,74 @@ export function TagsPage() {
           }
         >
           <Card className="min-h-0 w-full min-w-0 flex-1 overflow-hidden">
-            <CardHeader className="justify-between">
-              <CardTitle>
-                {intl.formatMessage(
-                  {
-                    id: selectedGroup
-                      ? 'tags.items.listTitleForGroup'
-                      : 'tags.items.listTitle',
-                  },
-                  selectedGroup ? { group: selectedGroup.name } : undefined,
-                )}
-              </CardTitle>
-              <CardToolbar>
-                <ShortcutTooltip
-                  label={intl.formatMessage({ id: 'tags.items.add' })}
-                  shortcut="Alt + N"
-                >
-                  <Button
-                    type="button"
-                    variant="primary"
-                    disabled={!activeGroupId || !canCreateTag}
-                    onClick={() => openCreateTag()}
-                    data-shortcut-action="create"
+            <DataGridHeader
+              recordCountLabel="thẻ"
+              title={intl.formatMessage(
+                {
+                  id: selectedGroup
+                    ? 'tags.items.listTitleForGroup'
+                    : 'tags.items.listTitle',
+                },
+                selectedGroup ? { group: selectedGroup.name } : undefined,
+              )}
+              toolbar={
+                <div className="flex items-center gap-2">
+                  <ShortcutTooltip
+                    label={intl.formatMessage({ id: 'tags.items.add' })}
+                    shortcut="Alt + N"
                   >
-                    <Plus className="size-4" />
-                    {intl.formatMessage({ id: 'tags.items.add' })}
-                  </Button>
-                </ShortcutTooltip>
-                {selectedGroup && !selectedGroup.isSystem ? (
-                  <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => openEditGroup(selectedGroup)}
-                        >
-                          <Pencil className="size-4" />
-                          {intl.formatMessage({ id: 'common.actions.edit' })}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {intl.formatMessage({ id: 'tags.groups.edit' })}
-                      </TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          mode="icon"
-                          aria-label={intl.formatMessage({
-                            id: 'tags.groups.delete',
-                          })}
-                          onClick={() => requestDeleteGroup(selectedGroup)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {intl.formatMessage({ id: 'tags.groups.delete' })}
-                      </TooltipContent>
-                    </Tooltip>
-                  </>
-                ) : null}
-              </CardToolbar>
-            </CardHeader>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      disabled={!activeGroupId || !canCreateTag}
+                      onClick={() => openCreateTag()}
+                      data-shortcut-action="create"
+                    >
+                      <Plus className="size-4" />
+                      {intl.formatMessage({ id: 'tags.items.add' })}
+                    </Button>
+                  </ShortcutTooltip>
+                  {selectedGroup && !selectedGroup.isSystem ? (
+                    <>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => openEditGroup(selectedGroup)}
+                          >
+                            <Pencil className="size-4" />
+                            {intl.formatMessage({ id: 'common.actions.edit' })}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {intl.formatMessage({ id: 'tags.groups.edit' })}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            mode="icon"
+                            aria-label={intl.formatMessage({
+                              id: 'tags.groups.delete',
+                            })}
+                            onClick={() => requestDeleteGroup(selectedGroup)}
+                          >
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {intl.formatMessage({ id: 'tags.groups.delete' })}
+                        </TooltipContent>
+                      </Tooltip>
+                    </>
+                  ) : null}
+                  <DataGridHeaderMenu table={table} />
+                </div>
+              }
+            />
             <CardTable className="min-h-0 flex-1">
               <ScrollArea className="h-full">
                 <DataGridTable />

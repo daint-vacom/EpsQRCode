@@ -6,7 +6,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Columns3Cog, PackageOpen, Plus, RefreshCw } from 'lucide-react';
+import { PackageOpen, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -16,8 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
-import { DataGridColumnVisibility } from '@/components/ui/data-grid-column-visibility';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
+import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
@@ -236,6 +236,7 @@ export function MaterialGroupsPage() {
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             variant="stats"
+            recordCountLabel="nhóm vật tư"
             stats={
               <MaterialGroupFilterBar
                 className="w-64 shrink-0"
@@ -246,36 +247,7 @@ export function MaterialGroupsPage() {
                 }}
               />
             }
-            toolbar={
-              <div className="ms-auto flex shrink-0 items-center gap-0">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  mode="icon"
-                  aria-label={intl.formatMessage({
-                    id: 'common.actions.refresh',
-                  })}
-                  title={intl.formatMessage({ id: 'common.actions.refresh' })}
-                  onClick={() => void query.refetch()}
-                >
-                  <RefreshCw />
-                </Button>
-                <DataGridColumnVisibility
-                  table={table}
-                  trigger={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      mode="icon"
-                      aria-label="Hiển thị cột"
-                      title="Hiển thị cột"
-                    >
-                      <Columns3Cog />
-                    </Button>
-                  }
-                />
-              </div>
-            }
+            toolbar={<DataGridHeaderMenu table={table} />}
           />
 
           <CardTable className="min-h-0 flex-1">

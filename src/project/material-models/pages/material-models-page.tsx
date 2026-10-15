@@ -17,6 +17,7 @@ import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
+import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
@@ -164,25 +165,25 @@ export function MaterialModelsPage() {
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
-            title={intl.formatMessage({ id: 'materialModels.page.header' })}
-            toolbar={
-              <div className="flex w-full items-center justify-end gap-2">
-                <Input
-                  aria-label={intl.formatMessage({
-                    id: 'materialModels.filters.searchPlaceholder',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'materialModels.filters.searchPlaceholder',
-                  })}
-                  value={keyword}
-                  onChange={(event) => {
-                    setKeyword(event.target.value);
-                    table.setPageIndex(0);
-                  }}
-                  className="w-full sm:w-64"
-                />
-              </div>
+            variant="stats"
+            recordCountLabel="mẫu vật tư"
+            stats={
+              <Input
+                aria-label={intl.formatMessage({
+                  id: 'materialModels.filters.searchPlaceholder',
+                })}
+                placeholder={intl.formatMessage({
+                  id: 'materialModels.filters.searchPlaceholder',
+                })}
+                value={keyword}
+                onChange={(event) => {
+                  setKeyword(event.target.value);
+                  table.setPageIndex(0);
+                }}
+                className="w-full sm:w-64"
+              />
             }
+            toolbar={<DataGridHeaderMenu table={table} />}
           />
 
           <CardTable className="min-h-0 flex-1">

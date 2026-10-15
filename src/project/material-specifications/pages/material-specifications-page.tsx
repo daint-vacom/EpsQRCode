@@ -17,6 +17,7 @@ import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridHeader } from '@/components/ui/data-grid-header';
+import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
@@ -197,6 +198,7 @@ export function MaterialSpecificationsPage() {
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             variant="stats"
+            recordCountLabel="thông số"
             stats={
               <Input
                 aria-label={intl.formatMessage({
@@ -213,6 +215,7 @@ export function MaterialSpecificationsPage() {
                 className="w-full sm:w-72"
               />
             }
+            toolbar={<DataGridHeaderMenu table={table} />}
           />
           <CardTable className="min-h-0 flex-1">
             {!isPermissionsPending && !canView ? (
