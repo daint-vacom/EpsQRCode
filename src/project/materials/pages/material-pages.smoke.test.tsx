@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,13 @@ import type { Material } from '../model/material';
 
 const mocks = vi.hoisted(() => ({
   material: null as Material | null,
+  createSignedStorageUrl: vi.fn(() =>
+    Promise.resolve('https://example.test/signed-image'),
+  ),
+}));
+
+vi.mock('@/lib/storage', () => ({
+  createSignedStorageUrl: mocks.createSignedStorageUrl,
 }));
 
 vi.mock('@/providers/user-provider', () => ({
@@ -172,6 +179,7 @@ function renderPage(path: string, element: ReactNode) {
 describe('production material pages', () => {
   beforeEach(() => {
     mocks.material = sample;
+    mocks.createSignedStorageUrl.mockClear();
   });
 
   it('renders the create form without example-store dependencies', async () => {
@@ -196,6 +204,54 @@ describe('production material pages', () => {
     ).toHaveAttribute(
       'data-qr-value',
       `${window.location.origin}/materials/material-1`,
+    );
+  });
+
+  it('keeps the selected gallery image when switching detail tabs', async () => {
+    mocks.material = {
+      ...sample,
+      modelSnapshot: {
+        ...sample.modelSnapshot,
+        images: [
+          {
+            id: 'image-1',
+            storagePath: 'material-1/image-1.jpg',
+            externalUrl: null,
+            sortOrder: 0,
+            isCover: true,
+          },
+          {
+            id: 'image-2',
+            storagePath: 'material-1/image-2.jpg',
+            externalUrl: null,
+            sortOrder: 1,
+            isCover: false,
+          },
+        ],
+      },
+    };
+
+    const { MaterialDetailPage } = await import('./material-detail-page');
+    renderPage('/materials/material-1', <MaterialDetailPage />);
+
+    const imageButtons = await screen.findAllByRole('button', {
+      name: 'Xem ảnh Máy đo',
+    });
+    fireEvent.click(imageButtons[1]);
+    expect(imageButtons[1]).toHaveAttribute('aria-current', 'true');
+
+    const signedUrlRequestCount =
+      mocks.createSignedStorageUrl.mock.calls.length;
+    fireEvent.click(screen.getByRole('tab', { name: /Lịch sử kiểm kê/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Thông tin chung/ }));
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('button', { name: 'Xem ảnh Máy đo' })[1],
+      ).toHaveAttribute('aria-current', 'true');
+    });
+    expect(mocks.createSignedStorageUrl).toHaveBeenCalledTimes(
+      signedUrlRequestCount,
     );
   });
 });

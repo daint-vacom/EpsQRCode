@@ -205,7 +205,7 @@ export function MaterialDetailPage() {
               />
             ) : (
               <>
-                <TabsContent value="general" className="mt-0">
+                <TabsContent value="general" className="mt-0" forceMount>
                   <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
                     <div className="flex min-w-0 flex-col gap-6">
                       <MaterialGalleryCard
