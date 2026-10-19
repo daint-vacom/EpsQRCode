@@ -57,8 +57,14 @@ export function useMaterialHistoryQuery(id: string, enabled = true) {
 export function useSaveMaterialMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, expectedVersion, values }: SaveMaterialInput) =>
-      saveMaterial(id, expectedVersion, values),
+    mutationFn: ({
+      id,
+      expectedVersion,
+      values,
+      images,
+      previousImages,
+    }: SaveMaterialInput) =>
+      saveMaterial(id, expectedVersion, values, images, previousImages),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialKeys.all }),
   });

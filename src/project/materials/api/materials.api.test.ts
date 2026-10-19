@@ -35,27 +35,27 @@ describe('materials API RPC contract', () => {
       modelId: 'model-1',
       nameOverride: '',
       descriptionOverride: '',
-      imageUrlOverride: '',
       specificationOverrides: {},
+      specificationOverrideLabels: { 'spec-color': ['Xanh'] },
       serialNumber: '',
       ownerPartyId: 'party-1',
       condition: 'good' as const,
-      conditionNote: '',
+      note: '',
     };
     post.mockResolvedValue('material-1');
 
-    await saveMaterial(null, null, values);
-    await saveMaterial('material-1', 4, values);
+    await saveMaterial(null, null, values, [], []);
+    await saveMaterial('material-1', 4, values, [], []);
 
     expect(post).toHaveBeenNthCalledWith(1, '/rpc/save_material', {
       p_id: null,
       p_expected_version: null,
-      p_values: values,
+      p_values: { ...values, images: [] },
     });
     expect(post).toHaveBeenNthCalledWith(2, '/rpc/save_material', {
       p_id: 'material-1',
       p_expected_version: 4,
-      p_values: values,
+      p_values: { ...values, images: [] },
     });
   });
 

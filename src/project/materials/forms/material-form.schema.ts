@@ -6,23 +6,14 @@ export const materialFormSchema = z
     modelId: z.string().uuid('Vui lòng chọn mẫu vật tư.'),
     nameOverride: z.string().trim(),
     descriptionOverride: z.string().trim(),
-    imageUrlOverride: z
-      .string()
-      .trim()
-      .refine((value) => {
-        if (!value) return true;
-        try {
-          const url = new URL(value);
-          return url.protocol === 'http:' || url.protocol === 'https:';
-        } catch {
-          return false;
-        }
-      }, 'Vui lòng nhập đường dẫn ảnh HTTP hoặc HTTPS hợp lệ.'),
     serialNumber: z.string().trim(),
     ownerPartyId: z.string().uuid('Vui lòng chọn chủ sở hữu.'),
     condition: z.enum(['good', 'damaged']),
-    conditionNote: z.string().trim(),
+    note: z.string().trim(),
     specificationOverrides: z.record(z.string(), z.array(z.string())),
+    specificationOverrideLabels: z
+      .record(z.string(), z.array(z.string()))
+      .optional(),
   })
   .superRefine((values, context) => {
     if (!values.modelId)
@@ -37,13 +28,6 @@ export const materialFormSchema = z
         path: ['ownerPartyId'],
         message: 'Vui lòng chọn chủ sở hữu.',
       });
-    if (values.condition === 'damaged' && !values.conditionNote) {
-      context.addIssue({
-        code: 'custom',
-        path: ['conditionNote'],
-        message: 'Vui lòng mô tả tình trạng hỏng hóc.',
-      });
-    }
   });
 
 export type MaterialFormSchemaValues = z.infer<typeof materialFormSchema>;

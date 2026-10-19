@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const materialSpecificationOptionSchema = z.object({
   id: z.string().uuid(),
   label: z.string().trim().min(1, 'Vui lòng nhập giá trị gợi ý.'),
+  name: z.string().trim().optional(),
 });
 
 export const materialSpecificationDataTypeSchema = z.enum([

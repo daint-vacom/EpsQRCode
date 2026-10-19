@@ -109,6 +109,7 @@ export const vi: Record<string, string> = {
   'materialModels.specifications.add': 'Thêm thông số',
   'materialModels.specifications.changeType': 'Đổi kiểu dữ liệu',
   'materialModels.specifications.addValue': 'Thêm giá trị',
+  'materialModels.specifications.colorLabel': 'Tên màu',
   'materialModels.specifications.removeValue': 'Xóa giá trị {index}',
   'materialModels.specifications.removeRow': 'Xóa thông số {name}',
   'materialModels.specifications.switchToList': 'Bật dạng danh sách',

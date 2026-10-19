@@ -38,7 +38,7 @@ import type {
   MaterialModelImageDraft,
 } from '../model/material-model';
 import { MATERIAL_MODEL_PERMISSION_CODES } from '../model/material-model-permissions';
-import { MaterialModelSpecificationsEditorTable } from '../table/material-model-specifications-editor-table.generated';
+import { MaterialSpecificationsTable } from '../table/material-specifications-table';
 
 export function MaterialModelEditorPage() {
   const intl = useIntl();
@@ -296,7 +296,7 @@ export function MaterialModelEditorPage() {
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
               <Card className="min-h-[32rem] min-w-0 flex-1 flex-col overflow-hidden">
-                <MaterialModelSpecificationsEditorTable form={form} />
+                <MaterialSpecificationsTable mode="model" form={form} />
               </Card>
             </TabsContent>
             {requiresInspection && (

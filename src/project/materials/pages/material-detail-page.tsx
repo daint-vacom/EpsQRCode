@@ -12,6 +12,7 @@ import {
   MessageSquareWarning,
   QrCode,
   ShieldCheck,
+  StickyNote,
   UserRound,
   Wrench,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ import 'yet-another-react-lightbox/styles.css';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { QRCodeSVG } from 'qrcode.react';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -270,44 +272,49 @@ function MaterialGalleryCard({
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [slides, setSlides] = useState<GallerySlide[]>([]);
-  const sourceImages = material.modelSnapshot.images;
+  const sourceImages = useMemo(
+    () =>
+      material.images.length > 0
+        ? material.images
+        : material.modelSnapshot.images.map((image) => ({
+            ...image,
+            storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
+            url: '',
+          })),
+    [material.images, material.modelSnapshot.images],
+  );
 
   useEffect(() => {
     let cancelled = false;
     setActiveIndex(0);
 
     if (sourceImages.length === 0) {
-      setSlides(
-        material.imageUrlOverride
-          ? [
-              {
-                src: material.imageUrlOverride,
-                alt: title,
-                imageFit: 'contain',
-              },
-            ]
-          : [],
-      );
+      setSlides([]);
       return () => {
         cancelled = true;
       };
     }
 
     void Promise.all(
-      sourceImages.map(async (image, index) => {
-        const src =
-          index === 0 && material.imageUrlOverride
-            ? material.imageUrlOverride
-            : image.externalUrl ||
-              (image.storagePath
-                ? await createSignedStorageUrl(
-                    'material-model-images',
-                    image.storagePath,
-                    3600,
-                  ).catch(() => '')
-                : '');
-        return src ? { src, alt: title, imageFit: 'contain' as const } : null;
-      }),
+      [...sourceImages]
+        .sort(
+          (first, second) =>
+            Number(second.isCover) - Number(first.isCover) ||
+            first.sortOrder - second.sortOrder,
+        )
+        .map(async (image) => {
+          const src =
+            image.externalUrl ||
+            image.url ||
+            (image.storagePath && image.storageBucket
+              ? await createSignedStorageUrl(
+                  image.storageBucket,
+                  image.storagePath,
+                  3600,
+                ).catch(() => '')
+              : '');
+          return src ? { src, alt: title, imageFit: 'contain' as const } : null;
+        }),
     ).then((resolved) => {
       if (!cancelled) setSlides(resolved.filter((slide) => slide !== null));
     });
@@ -315,7 +322,7 @@ function MaterialGalleryCard({
     return () => {
       cancelled = true;
     };
-  }, [material.id, material.imageUrlOverride, sourceImages, title]);
+  }, [material.id, sourceImages, title]);
 
   const activeImage = slides[activeIndex];
 
@@ -450,13 +457,43 @@ function MaterialSpecificationsCard({ material }: { material: Material }) {
   const intl = useIntl();
   const specifications = useMemo(
     () =>
-      material.modelSnapshot.specifications.map((specification) => ({
-        ...specification,
-        values:
-          material.specificationOverrides[specification.id] ??
-          specification.values,
-      })),
-    [material.modelSnapshot.specifications, material.specificationOverrides],
+      material.modelSnapshot.specifications.map((specification) => {
+        const hasOverride = Object.prototype.hasOwnProperty.call(
+          material.specificationOverrides,
+          specification.id,
+        );
+        const values = hasOverride
+          ? material.specificationOverrides[specification.id]
+          : specification.values.length === 1
+            ? [specification.values[0]]
+            : [];
+        const labelsByValue = new Map(
+          specification.values.map((value, index) => [
+            value,
+            specification.valueLabels[index],
+          ]),
+        );
+        const labelOverrides =
+          material.specificationOverrideLabels[specification.id] ?? [];
+
+        return {
+          ...specification,
+          values,
+          valueLabels:
+            specification.dataType === 'color'
+              ? values.map((value, index) =>
+                  Object.prototype.hasOwnProperty.call(labelOverrides, index)
+                    ? labelOverrides[index]
+                    : (labelsByValue.get(value) ?? ''),
+                )
+              : specification.valueLabels,
+        };
+      }),
+    [
+      material.modelSnapshot.specifications,
+      material.specificationOverrides,
+      material.specificationOverrideLabels,
+    ],
   );
 
   return (
@@ -498,7 +535,12 @@ function MaterialSpecificationsCard({ material }: { material: Material }) {
                   {specification.name}
                 </td>
                 <td className="break-words whitespace-normal px-3 py-2.5 align-top text-admin-neutral-700 sm:px-4">
-                  {specification.values.join(', ')}
+                  {specification.values
+                    .map((value, valueIndex) => {
+                      if (specification.dataType !== 'color') return value;
+                      return specification.valueLabels[valueIndex] || value;
+                    })
+                    .join(', ')}
                 </td>
               </tr>
             ))}
@@ -611,6 +653,16 @@ function MaterialSummarySidebar({
               tone="muted"
             />
           ) : null}
+          {material.note ? (
+            <DetailFact
+              icon={StickyNote}
+              label={intl.formatMessage({
+                id: 'project.materials.fields.note',
+              })}
+              value={material.note}
+              tone="muted"
+            />
+          ) : null}
         </div>
       </PublicInfoCard>
 
@@ -638,10 +690,9 @@ function MaterialSummarySidebar({
                 {statusText}
               </span>
               <span className="text-sm font-medium text-admin-neutral-800">
-                {material.conditionNote ||
-                  intl.formatMessage({
-                    id: `project.materials.condition.${material.condition}`,
-                  })}
+                {intl.formatMessage({
+                  id: `project.materials.condition.${material.condition}`,
+                })}
               </span>
             </div>
           </div>

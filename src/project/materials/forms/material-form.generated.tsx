@@ -50,11 +50,9 @@ export const materialDefaultValues: MaterialFormSchemaValues = {
   serialNumber: '',
   nameOverride: '',
   descriptionOverride: '',
-  imageUrlOverride: '',
   ownerPartyId: '',
   condition: 'good',
-  conditionNote: '',
-  specificationOverrides: {},
+  note: '',
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
@@ -82,6 +80,7 @@ interface MaterialFormProps {
   form: UseFormReturn<MaterialFormSchemaValues>;
   onSubmit: (values: MaterialFormSchemaValues) => void;
   id?: string;
+  renderFormElement?: boolean;
   mode: 'create' | 'edit';
   modelIdOptions: SelectOption[];
   ownerPartyIdOptions: SelectOption[];
@@ -91,241 +90,226 @@ export function MaterialForm({
   form,
   onSubmit,
   id = 'material-form',
+  renderFormElement = true,
   mode,
   modelIdOptions,
   ownerPartyIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
+  const fields = (
+    <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
+      {mode === 'create' && (
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+            >
+              <FormLabel>
+                {intl.formatMessage({
+                  id: 'project.materials.fields.code',
+                })}
+                <span className="text-destructive"> *</span>
+              </FormLabel>
+              <FormControl>
+                <Input variant="md" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {mode === 'create' && (
+        <FormField
+          control={form.control}
+          name="modelId"
+          render={({ field }) => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+            >
+              <FormLabel>
+                {intl.formatMessage({
+                  id: 'project.materials.fields.model',
+                })}
+                <span className="text-destructive"> *</span>
+              </FormLabel>
+              <FormControl>
+                <OptionSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={modelIdOptions}
+                  searchable
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      <FormField
+        control={form.control}
+        name="serialNumber"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.serialNumber',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="nameOverride"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'project.materials.fields.name' })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="descriptionOverride"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="start"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.description',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Textarea rows={3} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {mode === 'create' && (
+        <FormField
+          control={form.control}
+          name="ownerPartyId"
+          render={({ field }) => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+            >
+              <FormLabel>
+                {intl.formatMessage({
+                  id: 'project.materials.fields.initialOwner',
+                })}
+                <span className="text-destructive"> *</span>
+              </FormLabel>
+              <FormControl>
+                <OptionSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={ownerPartyIdOptions}
+                  searchable
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {mode === 'create' && (
+        <FormField
+          control={form.control}
+          name="condition"
+          render={({ field }) => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+            >
+              <FormLabel>
+                {intl.formatMessage({
+                  id: 'project.materials.fields.condition',
+                })}
+                <span className="text-destructive"> *</span>
+              </FormLabel>
+              <FormControl>
+                <OptionSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={conditionOptions}
+                  searchable={false}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      <FormField
+        control={form.control}
+        name="note"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="start"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'project.materials.fields.note' })}
+            </FormLabel>
+            <FormControl>
+              <Textarea rows={2} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+
   return (
     <Form {...form}>
-      <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="code"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.code',
-                    })}
-                    <span className="text-destructive"> *</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input variant="md" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="modelId"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.model',
-                    })}
-                    <span className="text-destructive"> *</span>
-                  </FormLabel>
-                  <FormControl>
-                    <OptionSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={modelIdOptions}
-                      searchable
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          <FormField
-            control={form.control}
-            name="serialNumber"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.materials.fields.serialNumber',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="nameOverride"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.materials.fields.name' })}
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="descriptionOverride"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-                alignment="start"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.materials.fields.description',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="imageUrlOverride"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.materials.fields.image' })}
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="ownerPartyId"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.initialOwner',
-                    })}
-                    <span className="text-destructive"> *</span>
-                  </FormLabel>
-                  <FormControl>
-                    <OptionSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={ownerPartyIdOptions}
-                      searchable
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="condition"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.condition',
-                    })}
-                    <span className="text-destructive"> *</span>
-                  </FormLabel>
-                  <FormControl>
-                    <OptionSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={conditionOptions}
-                      searchable={false}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {mode === 'create' && (
-            <FormField
-              control={form.control}
-              name="conditionNote"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                  alignment="start"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.conditionNote',
-                    })}
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea rows={2} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
-      </form>
+      {renderFormElement ? (
+        <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
+          {fields}
+        </form>
+      ) : (
+        fields
+      )}
     </Form>
   );
 }

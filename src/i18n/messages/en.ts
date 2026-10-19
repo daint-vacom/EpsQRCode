@@ -8,4 +8,5 @@ export const en: Record<string, string> = {
   'project.navigation.materials': 'Materials',
   'project.navigation.handovers': 'Handovers',
   'project.navigation.custodians': 'Custodians',
+  'materialModels.specifications.colorLabel': 'Color name',
 };

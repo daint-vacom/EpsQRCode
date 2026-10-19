@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
+import { MaterialModelGalleryCard } from '@/project/material-models/forms/material-model-gallery-card';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
+import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
 import { Boxes, Save } from 'lucide-react';
+import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,10 +14,12 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageLoading } from '@/components/ui/loading';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
-import { MaterialSpecificationFields } from '../components/material-specification-fields';
+import { MATERIAL_IMAGES_BUCKET } from '../api/materials.api';
 import {
   materialDefaultValues,
   MaterialForm,
@@ -28,6 +34,7 @@ import type {
   Material,
   MaterialCondition,
   MaterialFormValues,
+  MaterialImageDraft,
 } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 
@@ -43,6 +50,8 @@ export function MaterialEditorPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const form = useMaterialForm();
+  const [galleryImages, setGalleryImages] = useState<MaterialImageDraft[]>([]);
+  const [activeTab, setActiveTab] = useState('general');
   const materialQuery = useMaterialQuery(
     id,
     !isPermissionsPending && isEdit && canView,
@@ -57,7 +66,6 @@ export function MaterialEditorPage() {
   const saveMutation = useSaveMaterialMutation();
   const editingMaterial = materialQuery.data;
   const selectedModelId = form.watch('modelId');
-  const imageOverride = form.watch('imageUrlOverride');
   const previousModelId = useRef('');
   const currentModel = modelsQuery.data?.find(
     (model) =>
@@ -68,9 +76,11 @@ export function MaterialEditorPage() {
   useEffect(() => {
     if (isEdit && editingMaterial) {
       form.reset(mapMaterialToForm(editingMaterial));
+      setGalleryImages(editingMaterial.images);
       previousModelId.current = editingMaterial.modelId;
     } else if (!isEdit) {
       form.reset(materialDefaultValues);
+      setGalleryImages([]);
       previousModelId.current = '';
     }
   }, [editingMaterial, form, isEdit]);
@@ -83,8 +93,26 @@ export function MaterialEditorPage() {
     ) {
       previousModelId.current = selectedModelId;
       form.setValue('specificationOverrides', {}, { shouldDirty: true });
+      form.setValue('specificationOverrideLabels', {}, { shouldDirty: true });
+      const inheritedImages = (currentModel?.images ?? []).map((image) => ({
+        ...image,
+        storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
+      }));
+      const uploadedImages = galleryImages.filter(
+        (image) => image.storageBucket === MATERIAL_IMAGES_BUCKET,
+      );
+      const uploadedImageHasCover = uploadedImages.some(
+        (image) => image.isCover,
+      );
+      setGalleryImages([
+        ...inheritedImages.map((image) => ({
+          ...image,
+          isCover: uploadedImageHasCover ? false : image.isCover,
+        })),
+        ...uploadedImages,
+      ]);
     }
-  }, [form, isEdit, selectedModelId]);
+  }, [currentModel?.images, form, galleryImages, isEdit, selectedModelId]);
 
   const modelIdOptions = useMemo(
     () =>
@@ -139,28 +167,23 @@ export function MaterialEditorPage() {
       onBack: back,
       actions:
         canManage && !isLoading && (!isEdit || editingMaterial) ? (
-          <>
-            <Button type="button" variant="outline" size="md" onClick={back}>
-              {intl.formatMessage({ id: 'project.materials.actions.cancel' })}
-            </Button>
-            <Button
-              type="submit"
-              form={FORM_ID}
-              variant="primary"
-              size="md"
-              loading={isSaving}
-              disabled={
-                (!isEdit && ownerPartyIdOptions.length === 0) ||
-                Boolean(editingMaterial?.reservedHandoverId)
-              }
-              loadingText={intl.formatMessage({
-                id: 'project.materials.actions.saving',
-              })}
-            >
-              <Save />
-              {intl.formatMessage({ id: 'project.materials.actions.save' })}
-            </Button>
-          </>
+          <Button
+            type="submit"
+            form={FORM_ID}
+            variant="primary"
+            size="md"
+            loading={isSaving}
+            disabled={
+              (!isEdit && ownerPartyIdOptions.length === 0) ||
+              Boolean(editingMaterial?.reservedHandoverId)
+            }
+            loadingText={intl.formatMessage({
+              id: 'project.materials.actions.saving',
+            })}
+          >
+            <Save />
+            {intl.formatMessage({ id: 'project.materials.actions.save' })}
+          </Button>
         ) : null,
     }),
     [
@@ -179,6 +202,15 @@ export function MaterialEditorPage() {
 
   const handleSubmit = (values: MaterialFormSchemaValues) => {
     if (!canManage || (isEdit && !editingMaterial)) return;
+    if (
+      galleryImages.length > 0 &&
+      !galleryImages.some((image) => image.isCover)
+    ) {
+      toast.error(
+        intl.formatMessage({ id: 'project.materials.gallery.coverRequired' }),
+      );
+      return;
+    }
     const payload: MaterialFormValues = {
       ...values,
       condition: values.condition as MaterialCondition,
@@ -188,6 +220,8 @@ export function MaterialEditorPage() {
         id: isEdit ? id : null,
         expectedVersion: isEdit ? editingMaterial!.version : null,
         values: payload,
+        images: galleryImages,
+        previousImages: editingMaterial?.images ?? [],
       },
       {
         onSuccess: (savedId) => {
@@ -209,8 +243,14 @@ export function MaterialEditorPage() {
     );
   };
 
+  const handleInvalidSubmit: SubmitErrorHandler<MaterialFormSchemaValues> = (
+    errors,
+  ) => {
+    setActiveTab(errors.specificationOverrides ? 'technical' : 'general');
+  };
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-hidden p-4 lg:p-5">
       {!isPermissionsPending && (!canManage || (isEdit && !canView)) ? (
         <ErrorState
           title={intl.formatMessage({
@@ -221,11 +261,8 @@ export function MaterialEditorPage() {
           })}
         />
       ) : isLoading ? (
-        <Card
-          className="min-h-80 flex-1 animate-pulse"
-          aria-label={intl.formatMessage({
-            id: 'project.materials.states.loading',
-          })}
+        <PageLoading
+          label={intl.formatMessage({ id: 'common.state.loading' })}
         />
       ) : materialQuery.isError ||
         (!isEdit && (modelsQuery.isError || custodiansQuery.isError)) ? (
@@ -254,102 +291,155 @@ export function MaterialEditorPage() {
           })}
         />
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border bg-card p-5">
-          <div className="mx-auto w-full max-w-5xl">
-            {isEdit ? (
-              <div className="mb-5 grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
-                <span className="text-sm font-medium">
-                  {intl.formatMessage({ id: 'project.materials.fields.code' })}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  {editingMaterial?.code}
-                </span>
-              </div>
-            ) : null}
-            <MaterialForm
-              id={FORM_ID}
-              mode={isEdit ? 'edit' : 'create'}
-              form={form}
-              onSubmit={handleSubmit}
-              modelIdOptions={modelIdOptions}
-              ownerPartyIdOptions={ownerPartyIdOptions}
-            />
-            <p className="mt-2 text-xs text-muted-foreground">
-              {intl.formatMessage({
-                id: 'project.materials.form.imageUrlOnly',
-              })}
-            </p>
-            {!isEdit && ownerPartyIdOptions.length === 0 ? (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-admin-control border border-warning/40 bg-warning/5 p-4">
-                <p className="text-sm">
-                  {intl.formatMessage({
-                    id: 'project.materials.form.noRepresentedOwner',
-                  })}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(ROUTES.PROJECT.CUSTODIANS)}
-                >
-                  {intl.formatMessage({
-                    id: 'project.materials.actions.manageCustodians',
-                  })}
-                </Button>
-              </div>
-            ) : null}
-            <div className="mt-6">
-              {snapshot ? (
-                <MaterialSpecificationFields
-                  specifications={snapshot.specifications}
-                  modelName={snapshot.name}
-                  values={form.watch('specificationOverrides') ?? {}}
-                  onChange={(next) =>
-                    form.setValue('specificationOverrides', next, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                />
-              ) : (
-                <p className="rounded-admin-control border border-dashed border-border bg-admin-surface-alt px-3 py-6 text-center text-sm text-muted-foreground">
-                  {intl.formatMessage({
-                    id: 'project.materials.form.chooseModelHint',
-                  })}
-                </p>
-              )}
-            </div>
-            {imageOverride ? (
-              <div className="mt-6 flex flex-wrap items-start gap-4 rounded-admin-control border border-border p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="mb-2 text-sm font-medium">
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.imagePreview',
-                    })}
-                  </p>
-                  <img
-                    src={imageOverride}
-                    alt={intl.formatMessage({
-                      id: 'project.materials.fields.imagePreview',
-                    })}
-                    className="max-h-64 w-full rounded-lg bg-muted object-contain"
+        <form
+          id={FORM_ID}
+          onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
+          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] xl:overflow-hidden"
+        >
+          <MaterialModelGalleryCard
+            key={id ?? 'create'}
+            images={galleryImages}
+            messagePrefix="project.materials.gallery"
+            onImagesChange={(images) =>
+              setGalleryImages(
+                images.map((image) =>
+                  image.file
+                    ? { ...image, storageBucket: MATERIAL_IMAGES_BUCKET }
+                    : image,
+                ),
+              )
+            }
+          />
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex min-h-[32rem] min-w-0 flex-1 flex-col xl:overflow-hidden"
+          >
+            <TabsList variant="line" size="md" className="w-full">
+              <TabsTrigger value="general">
+                {intl.formatMessage({ id: 'project.materials.tabs.general' })}
+              </TabsTrigger>
+              <TabsTrigger
+                value="technical"
+                count={snapshot?.specifications.length ?? 0}
+              >
+                {intl.formatMessage({
+                  id: 'project.materials.tabs.specifications',
+                })}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent
+              value="general"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <Card className="min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5">
+                  {isEdit ? (
+                    <div className="mb-5 grid grid-cols-1 gap-3">
+                      <div className="grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
+                        <span className="text-sm font-medium">
+                          {intl.formatMessage({
+                            id: 'project.materials.fields.code',
+                          })}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {editingMaterial?.code}
+                        </span>
+                      </div>
+                      <div className="grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
+                        <span className="text-sm font-medium">
+                          {intl.formatMessage({
+                            id: 'project.materials.fields.model',
+                          })}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {editingMaterial?.modelSnapshot.name}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                  <MaterialForm
+                    id={FORM_ID}
+                    mode={isEdit ? 'edit' : 'create'}
+                    form={form}
+                    onSubmit={handleSubmit}
+                    modelIdOptions={modelIdOptions}
+                    ownerPartyIdOptions={ownerPartyIdOptions}
+                    renderFormElement={false}
                   />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    form.setValue('imageUrlOverride', '', { shouldDirty: true })
-                  }
-                >
-                  {intl.formatMessage({
-                    id: 'project.materials.actions.resetImage',
-                  })}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-        </div>
+                  {!isEdit && ownerPartyIdOptions.length === 0 ? (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-admin-control border border-warning/40 bg-warning/5 p-4">
+                      <p className="text-sm">
+                        {intl.formatMessage({
+                          id: 'project.materials.form.noRepresentedOwner',
+                        })}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => navigate(ROUTES.PROJECT.CUSTODIANS)}
+                      >
+                        {intl.formatMessage({
+                          id: 'project.materials.actions.manageCustodians',
+                        })}
+                      </Button>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent
+              value="technical"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <Card className="min-h-[32rem] min-w-0 flex-1 flex-col overflow-hidden">
+                {snapshot ? (
+                  <MaterialSpecificationsTable
+                    mode="material"
+                    specifications={snapshot.specifications}
+                    values={form.watch('specificationOverrides') ?? {}}
+                    valueLabels={
+                      form.watch('specificationOverrideLabels') ?? {}
+                    }
+                    onChange={(next) =>
+                      form.setValue('specificationOverrides', next, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    onValueLabelsChange={(next) =>
+                      form.setValue('specificationOverrideLabels', next, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                ) : (
+                  <MaterialSpecificationsTable
+                    mode="material"
+                    specifications={null}
+                    values={form.watch('specificationOverrides') ?? {}}
+                    valueLabels={
+                      form.watch('specificationOverrideLabels') ?? {}
+                    }
+                    onChange={(next) =>
+                      form.setValue('specificationOverrides', next, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    onValueLabelsChange={(next) =>
+                      form.setValue('specificationOverrideLabels', next, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                )}
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </form>
       )}
     </div>
   );
@@ -361,11 +451,13 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     modelId: material.modelId,
     nameOverride: material.nameOverride ?? '',
     descriptionOverride: material.descriptionOverride ?? '',
-    imageUrlOverride: material.imageUrlOverride ?? '',
     serialNumber: material.serialNumber ?? '',
     ownerPartyId: material.ownerPartyId,
     condition: material.condition,
-    conditionNote: material.conditionNote ?? '',
-    specificationOverrides: material.specificationOverrides,
+    note: material.note ?? '',
+    specificationOverrides: { ...material.specificationOverrides },
+    specificationOverrideLabels: {
+      ...material.specificationOverrideLabels,
+    },
   };
 }

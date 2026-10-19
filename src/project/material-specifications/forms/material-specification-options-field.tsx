@@ -73,7 +73,11 @@ export function MaterialSpecificationOptionsField({
                 {fields.map((field, index) => (
                   <div
                     key={field.id}
-                    className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-2"
+                    className={
+                      dataType === 'color'
+                        ? 'grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-2'
+                        : 'grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-2'
+                    }
                   >
                     <FormField
                       control={form.control}
@@ -137,6 +141,28 @@ export function MaterialSpecificationOptionsField({
                         </FormItem>
                       )}
                     />
+                    {dataType === 'color' ? (
+                      <FormField
+                        control={form.control}
+                        name={`options.${index}.name` as const}
+                        render={({ field: nameField }) => (
+                          <FormItem variant="compact" className="min-w-0">
+                            <FormControl>
+                              <Input
+                                {...nameField}
+                                value={nameField.value ?? ''}
+                                aria-label={`${intl.formatMessage({ id: 'materialModels.specifications.colorLabel' })} ${index + 1}`}
+                                placeholder={intl.formatMessage({
+                                  id: 'materialModels.specifications.colorLabel',
+                                })}
+                                variant="ghost-underline"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : null}
                     <Button
                       type="button"
                       variant="destructive"
@@ -165,6 +191,7 @@ export function MaterialSpecificationOptionsField({
                     append({
                       id: crypto.randomUUID(),
                       label: dataType === 'color' ? '#1677ff' : '',
+                      ...(dataType === 'color' ? { name: '' } : {}),
                     })
                   }
                 >

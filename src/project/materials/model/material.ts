@@ -1,5 +1,6 @@
 import type {
   MaterialModelImage,
+  MaterialModelImageDraft,
   MaterialModelSpecification,
 } from '@/project/material-models/model/material-model';
 
@@ -27,13 +28,14 @@ export interface Material {
   modelSnapshot: MaterialModelSnapshot;
   nameOverride: string | null;
   descriptionOverride: string | null;
-  imageUrlOverride: string | null;
+  images: MaterialImage[];
   specificationOverrides: Record<string, string[]>;
+  specificationOverrideLabels: Record<string, string[]>;
   serialNumber: string | null;
   ownerPartyId: string;
   borrowerPartyId: string | null;
   condition: MaterialCondition;
-  conditionNote: string | null;
+  note: string | null;
   status: MaterialStatus;
   reservedHandoverId: string | null;
   reservationStatus: MaterialReservationStatus | null;
@@ -48,19 +50,29 @@ export interface MaterialFormValues {
   modelId: string;
   nameOverride: string;
   descriptionOverride: string;
-  imageUrlOverride: string;
   specificationOverrides: Record<string, string[]>;
+  specificationOverrideLabels?: Record<string, string[]>;
   serialNumber: string;
   ownerPartyId: string;
   condition: MaterialCondition;
-  conditionNote: string;
+  note: string;
 }
 
 export type SaveMaterialInput = {
   id: string | null;
   expectedVersion: number | null;
   values: MaterialFormValues;
+  images: MaterialImageDraft[];
+  previousImages: MaterialImage[];
 };
+
+export interface MaterialImage extends MaterialModelImage {
+  storageBucket: string | null;
+}
+
+export interface MaterialImageDraft extends MaterialModelImageDraft {
+  storageBucket?: string | null;
+}
 
 export interface MaterialListFilters {
   search?: string;

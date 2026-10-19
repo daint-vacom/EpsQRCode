@@ -9,6 +9,7 @@ import type { Material } from '../model/material';
 
 const mocks = vi.hoisted(() => ({
   material: null as Material | null,
+  headerActions: null as ReactNode | null,
   createSignedStorageUrl: vi.fn(() =>
     Promise.resolve('https://example.test/signed-image'),
   ),
@@ -25,7 +26,9 @@ vi.mock('@/providers/workspace-provider', () => ({
   useWorkspace: () => ({ isPermissionsPending: false }),
 }));
 vi.mock('@/components/layouts/detail-entry-layout', () => ({
-  useDetailEntryLayoutHeader: vi.fn(),
+  useDetailEntryLayoutHeader: (header: { actions?: ReactNode }) => {
+    mocks.headerActions = header.actions ?? null;
+  },
 }));
 vi.mock('@/project/material-models/hooks/use-material-models', () => ({
   useMaterialModelsQuery: () => ({
@@ -140,6 +143,7 @@ const sample: Material = {
         dataType: 'text',
         name: 'Dải đo',
         isList: false,
+        valueLabels: [],
         values: ['0–100'],
       },
     ],
@@ -148,13 +152,14 @@ const sample: Material = {
   },
   nameOverride: null,
   descriptionOverride: null,
-  imageUrlOverride: null,
+  images: [],
   specificationOverrides: {},
+  specificationOverrideLabels: {},
   serialNumber: 'SER-1',
   ownerPartyId: 'party-1',
   borrowerPartyId: null,
   condition: 'good',
-  conditionNote: null,
+  note: null,
   status: 'available',
   reservedHandoverId: null,
   reservationStatus: null,
@@ -166,7 +171,20 @@ const sample: Material = {
 
 function renderPage(path: string, element: ReactNode) {
   return render(
-    <IntlProvider locale="vi" messages={materialMessagesVi}>
+    <IntlProvider
+      locale="vi"
+      messages={{
+        ...materialMessagesVi,
+        'materialModels.specifications.column': 'Thông số',
+        'materialModels.specifications.values': 'Giá trị',
+        'materialModels.specifications.count': '{count} thông số',
+        'materialModels.specifications.chooseSuggestion': 'Chọn giá trị gợi ý',
+        'materialModels.specifications.addValuePlaceholder': 'Nhập giá trị',
+        'materialModels.specifications.addValue': 'Thêm giá trị',
+        'materialModels.specifications.removeValue': 'Xóa giá trị {index}',
+        'materialModels.specifications.types.text': 'Văn bản',
+      }}
+    >
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/materials/:id" element={element} />
@@ -180,28 +198,72 @@ function renderPage(path: string, element: ReactNode) {
 describe('production material pages', () => {
   beforeEach(() => {
     mocks.material = sample;
+    mocks.headerActions = null;
     mocks.createSignedStorageUrl.mockClear();
   });
 
-  it('renders the create form without example-store dependencies', async () => {
+  it('renders the create form in the two-column gallery and tab layout', async () => {
+    const user = userEvent.setup();
     mocks.material = null;
     const { MaterialEditorPage } = await import('./material-editor-page');
     renderPage('/materials/new', <MaterialEditorPage />);
     expect(
       screen.getByRole('textbox', { name: /Mã vật tư/ }),
     ).toBeInTheDocument();
+    const headerActions = render(mocks.headerActions);
+    expect(
+      headerActions.getByRole('button', { name: 'Lưu vật tư' }),
+    ).toBeInTheDocument();
+    expect(
+      headerActions.queryByRole('button', { name: 'Hủy' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Thêm ảnh vật tư')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Thông tin chung' })).toBeVisible();
+    const specificationTab = screen.getByRole('tab', {
+      name: /Thông số kỹ thuật/,
+    });
+    await user.click(specificationTab);
     expect(
       screen.getByText('Chọn mẫu vật tư để xem thông tin được lưu khi tạo.'),
     ).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('renders the authenticated detail and its stable QR destination', async () => {
+    mocks.material = {
+      ...sample,
+      specificationOverrides: { 'spec-color': ['#f44336'] },
+      specificationOverrideLabels: { 'spec-color': ['Đỏ tùy chỉnh'] },
+      modelSnapshot: {
+        ...sample.modelSnapshot,
+        specifications: [
+          ...sample.modelSnapshot.specifications,
+          {
+            id: 'spec-list',
+            dataType: 'text',
+            name: 'Phụ kiện',
+            isList: true,
+            valueLabels: [],
+            values: ['Cable', 'Nozzle'],
+          },
+          {
+            id: 'spec-color',
+            dataType: 'color',
+            name: 'Màu sắc',
+            isList: false,
+            valueLabels: ['Xanh Huyền Bí'],
+            values: ['#1677ff'],
+          },
+        ],
+      },
+    };
     const { MaterialDetailPage } = await import('./material-detail-page');
     const { container } = renderPage(
       '/materials/material-1',
       <MaterialDetailPage />,
     );
     expect(screen.getAllByText('MAT-001').length).toBeGreaterThan(0);
+    expect(screen.getByText('Đỏ tùy chỉnh')).toBeInTheDocument();
+    expect(screen.queryByText('Cable')).not.toBeInTheDocument();
     expect(
       container.querySelector('svg[aria-label="QR MAT-001"]'),
     ).toHaveAttribute(
@@ -210,7 +272,7 @@ describe('production material pages', () => {
     );
   });
 
-  it('uses configured model values for material specification fields', async () => {
+  it('shares the model specification table and keeps material values editable', async () => {
     mocks.material = {
       ...sample,
       specificationOverrides: {
@@ -223,15 +285,17 @@ describe('production material pages', () => {
           {
             id: 'spec-fixed',
             dataType: 'text',
-            name: 'Dung tích',
+            name: 'Mã sản phẩm',
             isList: false,
-            values: ['4 kg'],
+            valueLabels: [],
+            values: ['ES2'],
           },
           {
             id: 'spec-choice',
             dataType: 'text',
             name: 'Màu sắc',
             isList: false,
+            valueLabels: [],
             values: ['Red', 'Blue'],
           },
           {
@@ -239,6 +303,7 @@ describe('production material pages', () => {
             dataType: 'text',
             name: 'Phụ kiện',
             isList: true,
+            valueLabels: [],
             values: ['Cable', 'Nozzle'],
           },
         ],
@@ -246,22 +311,70 @@ describe('production material pages', () => {
     };
 
     const { MaterialEditorPage } = await import('./material-editor-page');
+    const user = userEvent.setup();
     renderPage('/materials/material-1', <MaterialEditorPage />);
 
-    expect(screen.getByRole('textbox', { name: 'Dung tích' })).toHaveValue(
-      '4 kg',
-    );
-    expect(screen.getByRole('textbox', { name: 'Dung tích' })).toHaveAttribute(
-      'readonly',
-    );
-    expect(screen.getByRole('combobox', { name: 'Màu sắc' })).toHaveTextContent(
-      'Blue',
-    );
+    await user.click(screen.getByRole('tab', { name: /Thông số kỹ thuật/ }));
+
+    expect(screen.getByText('3 thông số')).toBeInTheDocument();
     expect(
-      screen.getByRole('combobox', { name: 'Phụ kiện' }),
-    ).toHaveTextContent('Cable');
-    expect(screen.queryByText('Thêm thông số')).not.toBeInTheDocument();
-  });
+      screen.getByRole('columnheader', { name: 'Thông số' }),
+    ).toBeVisible();
+    expect(screen.getByRole('columnheader', { name: 'Giá trị' })).toBeVisible();
+    expect(screen.getByText('ES2')).toBeInTheDocument();
+    const productCodeEdit = screen.getByRole('checkbox', {
+      name: 'Cho phép sửa thông số Mã sản phẩm',
+    });
+    expect(productCodeEdit).not.toBeChecked();
+    expect(screen.queryByRole('textbox', { name: 'Mã sản phẩm' })).toBeNull();
+    await user.click(productCodeEdit);
+    const editableProductCode = screen.getByRole('textbox', {
+      name: 'Mã sản phẩm',
+    });
+    expect(editableProductCode).toHaveValue('ES2');
+    expect(
+      screen.queryByRole('checkbox', { name: 'ES2' }),
+    ).not.toBeInTheDocument();
+    await user.clear(editableProductCode);
+    await user.type(editableProductCode, 'CUSTOM-1');
+    expect(editableProductCode).toHaveValue('CUSTOM-1');
+
+    expect(
+      screen.queryByRole('textbox', { name: 'Màu sắc' }),
+    ).not.toBeInTheDocument();
+    const redSuggestion = screen.getByRole('checkbox', { name: 'Red' });
+    const blueSuggestion = screen.getByRole('checkbox', { name: 'Blue' });
+    expect(blueSuggestion).toBeChecked();
+    expect(redSuggestion).not.toBeChecked();
+    await user.click(redSuggestion);
+    expect(redSuggestion).toBeChecked();
+    expect(blueSuggestion).not.toBeChecked();
+    const colorEdit = screen.getByRole('checkbox', {
+      name: 'Cho phép sửa thông số Màu sắc',
+    });
+    expect(colorEdit).not.toBeChecked();
+    await user.click(colorEdit);
+    const customColorInput = screen.getByRole('textbox', { name: 'Màu sắc' });
+    await user.type(customColorInput, 'Purple{Enter}');
+    expect(screen.getByText('Purple')).toBeInTheDocument();
+
+    const cableSuggestion = screen.getByRole('checkbox', { name: 'Cable' });
+    const nozzleSuggestion = screen.getByRole('checkbox', { name: 'Nozzle' });
+    expect(cableSuggestion).toBeChecked();
+    expect(nozzleSuggestion).not.toBeChecked();
+    expect(
+      screen.queryByRole('textbox', { name: 'Phụ kiện 1' }),
+    ).not.toBeInTheDocument();
+    await user.click(nozzleSuggestion);
+    expect(cableSuggestion).toBeChecked();
+    expect(nozzleSuggestion).toBeChecked();
+    expect(
+      screen.queryByRole('button', { name: /Chọn giá trị gợi ý/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Thêm thông số' }),
+    ).not.toBeInTheDocument();
+  }, 15000);
 
   it('keeps the selected gallery image when switching detail tabs', async () => {
     const user = userEvent.setup();

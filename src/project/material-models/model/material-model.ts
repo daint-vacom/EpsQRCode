@@ -7,6 +7,7 @@ export const materialModelSpecificationSchema = z
     dataType: materialSpecificationDataTypeSchema,
     name: z.string().trim().min(1, 'Vui lòng nhập tên thông số.'),
     isList: z.boolean(),
+    valueLabels: z.array(z.string().trim()).default([]),
     values: z
       .array(z.string().trim())
       .min(1, 'Mỗi thông số cần ít nhất một giá trị.')

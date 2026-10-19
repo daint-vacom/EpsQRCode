@@ -15,6 +15,7 @@ const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 interface MaterialModelGalleryCardProps {
   images: MaterialModelImageDraft[];
   onImagesChange: (images: MaterialModelImageDraft[]) => void;
+  messagePrefix?: string;
 }
 
 function imageSource(image: MaterialModelImageDraft) {
@@ -24,6 +25,7 @@ function imageSource(image: MaterialModelImageDraft) {
 export function MaterialModelGalleryCard({
   images,
   onImagesChange,
+  messagePrefix = 'materialModels.gallery',
 }: MaterialModelGalleryCardProps) {
   const intl = useIntl();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,19 +103,15 @@ export function MaterialModelGalleryCard({
 
     if (sawInvalidType) {
       setErrorMessage(
-        intl.formatMessage({ id: 'materialModels.gallery.invalidType' }),
+        intl.formatMessage({ id: `${messagePrefix}.invalidType` }),
       );
     } else if (sawTooLarge) {
-      setErrorMessage(
-        intl.formatMessage({ id: 'materialModels.gallery.tooLarge' }),
-      );
+      setErrorMessage(intl.formatMessage({ id: `${messagePrefix}.tooLarge` }));
     } else if (
       acceptedFiles.length < files.length &&
       availableSlots <= acceptedFiles.length
     ) {
-      setErrorMessage(
-        intl.formatMessage({ id: 'materialModels.gallery.limit' }),
-      );
+      setErrorMessage(intl.formatMessage({ id: `${messagePrefix}.limit` }));
     } else {
       setErrorMessage('');
     }
@@ -163,28 +161,28 @@ export function MaterialModelGalleryCard({
             <>
               <img
                 src={imageSource(selectedImage)}
-                alt={intl.formatMessage({ id: 'materialModels.gallery.title' })}
+                alt={intl.formatMessage({ id: `${messagePrefix}.title` })}
                 className="h-full max-h-[520px] w-full object-contain"
               />
               {selectedImage.isCover && (
                 <span className="absolute left-3 top-3 rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground">
-                  {intl.formatMessage({ id: 'materialModels.gallery.cover' })}
+                  {intl.formatMessage({ id: `${messagePrefix}.cover` })}
                 </span>
               )}
             </>
           ) : (
             <ImageDropzone
               title={intl.formatMessage({
-                id: 'materialModels.gallery.emptyTitle',
+                id: `${messagePrefix}.emptyTitle`,
               })}
               instruction={intl.formatMessage({
-                id: 'materialModels.gallery.dropInstruction',
+                id: `${messagePrefix}.dropInstruction`,
               })}
               activeInstruction={intl.formatMessage({
-                id: 'materialModels.gallery.dropActive',
+                id: `${messagePrefix}.dropActive`,
               })}
               buttonLabel={intl.formatMessage({
-                id: 'materialModels.gallery.chooseImages',
+                id: `${messagePrefix}.chooseImages`,
               })}
               onFilesDropped={handleFiles}
               className="py-4"
@@ -197,7 +195,7 @@ export function MaterialModelGalleryCard({
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
                 {intl.formatMessage(
-                  { id: 'materialModels.gallery.count' },
+                  { id: `${messagePrefix}.count` },
                   { count: images.length },
                 )}
               </p>
@@ -222,7 +220,7 @@ export function MaterialModelGalleryCard({
                 onClick={() => inputRef.current?.click()}
               >
                 <ImagePlus className="size-4" />
-                {intl.formatMessage({ id: 'materialModels.gallery.add' })}
+                {intl.formatMessage({ id: `${messagePrefix}.add` })}
               </Button>
             </div>
 
@@ -240,7 +238,7 @@ export function MaterialModelGalleryCard({
                     type="button"
                     className="size-full"
                     aria-label={intl.formatMessage(
-                      { id: 'materialModels.gallery.viewImage' },
+                      { id: `${messagePrefix}.viewImage` },
                       { index: index + 1 },
                     )}
                     aria-pressed={selectedId === image.id}
@@ -259,10 +257,10 @@ export function MaterialModelGalleryCard({
                       size="icon"
                       className="size-7 rounded-full bg-background/95 shadow-sm"
                       aria-label={intl.formatMessage({
-                        id: 'materialModels.gallery.setCover',
+                        id: `${messagePrefix}.setCover`,
                       })}
                       title={intl.formatMessage({
-                        id: 'materialModels.gallery.setCover',
+                        id: `${messagePrefix}.setCover`,
                       })}
                       onClick={() => setCover(image.id ?? '')}
                     >
@@ -279,10 +277,10 @@ export function MaterialModelGalleryCard({
                       size="icon"
                       className="size-7 rounded-full bg-background/95 text-destructive shadow-sm hover:bg-destructive/10 hover:text-destructive"
                       aria-label={intl.formatMessage({
-                        id: 'materialModels.gallery.remove',
+                        id: `${messagePrefix}.remove`,
                       })}
                       title={intl.formatMessage({
-                        id: 'materialModels.gallery.remove',
+                        id: `${messagePrefix}.remove`,
                       })}
                       onClick={() => removeImage(image)}
                     >
@@ -294,10 +292,10 @@ export function MaterialModelGalleryCard({
                       className="absolute left-0 top-0 flex size-7 items-start justify-start bg-[var(--color-success-accent,var(--color-green-600))] p-1 text-white [clip-path:polygon(0_0,100%_0,0_100%)]"
                       role="img"
                       aria-label={intl.formatMessage({
-                        id: 'materialModels.gallery.cover',
+                        id: `${messagePrefix}.cover`,
                       })}
                       title={intl.formatMessage({
-                        id: 'materialModels.gallery.cover',
+                        id: `${messagePrefix}.cover`,
                       })}
                     >
                       <Check className="size-3" aria-hidden="true" />

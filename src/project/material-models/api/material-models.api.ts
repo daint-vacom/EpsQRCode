@@ -113,6 +113,29 @@ async function uploadMaterialModelImage(file: File): Promise<string> {
   return path;
 }
 
+async function loadMaterialImageReferences(
+  paths: string[],
+): Promise<Set<string>> {
+  if (paths.length === 0) return new Set();
+
+  try {
+    const rows = await request<Array<{ storage_path: string }>>(
+      supabaseApi.get(
+        '/material_images',
+        queryParams({
+          select: 'storage_path',
+          storage_bucket: `eq.${MATERIAL_MODEL_IMAGES_BUCKET}`,
+          storage_path: `in.(${paths.join(',')})`,
+        }),
+      ),
+    );
+    return new Set(rows.map((row) => row.storage_path));
+  } catch {
+    // Preserve the model objects when material references cannot be checked.
+    return new Set(paths);
+  }
+}
+
 async function saveMaterialModel(
   id: string | null,
   values: MaterialModelFormValues,
@@ -159,10 +182,14 @@ async function saveMaterialModel(
       .filter(
         (path): path is string => path !== null && !retainedPaths.has(path),
       );
-    if (removedPaths.length > 0) {
+    const referencedPaths = await loadMaterialImageReferences(removedPaths);
+    const safeToRemovePaths = removedPaths.filter(
+      (path) => !referencedPaths.has(path),
+    );
+    if (safeToRemovePaths.length > 0) {
       await removeStorageObjects(
         MATERIAL_MODEL_IMAGES_BUCKET,
-        removedPaths,
+        safeToRemovePaths,
       ).catch(() => undefined);
     }
   } catch (error) {

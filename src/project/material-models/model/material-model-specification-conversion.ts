@@ -46,6 +46,27 @@ export function convertMaterialModelSpecificationValues(
     return values.length > 0 ? [convertBooleanValue(values[0])] : ['false'];
   }
 
+  if (toType === 'color') {
+    const colors = values
+      .map((value) => {
+        const normalized = value.trim().replace(/^([^#])/, '#$1');
+        const match = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (!match) return null;
+        const hex = match[1].toLowerCase();
+        return hex.length === 3
+          ? `#${hex
+              .split('')
+              .map((character) => `${character}${character}`)
+              .join('')}`
+          : `#${hex}`;
+      })
+      .filter((value): value is string => value !== null);
+
+    // ColorInput presents this default swatch when a color field is selected,
+    // so keep the form value in sync with what the editor displays.
+    return colors.length > 0 ? colors : ['#1677ff'];
+  }
+
   if (fromType === 'length' || fromType === 'weight') {
     return values.map((value) => convertMeasurementValue(value, fromType));
   }

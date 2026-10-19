@@ -75,6 +75,7 @@ export function mapMaterialModelToFormValues(
     requiresInspection: entity.requiresInspection,
     specifications: entity.specifications.map((specification) => ({
       ...specification,
+      valueLabels: [...specification.valueLabels],
       values: [...specification.values],
     })),
   };
