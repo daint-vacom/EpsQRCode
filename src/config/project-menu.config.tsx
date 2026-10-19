@@ -1,8 +1,11 @@
 import { ROUTES } from '@/constants/routes';
 import {
+  ArrowRightLeft,
   Boxes,
+  Building2,
   Folder,
   FolderOpen,
+  Package,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -16,6 +19,16 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   {
     title: 'Quản lý vật tư',
     items: [
+      {
+        label: 'Vật tư',
+        icon: Package,
+        path: ROUTES.PROJECT.MATERIALS,
+      },
+      {
+        label: 'Phiếu bàn giao',
+        icon: ArrowRightLeft,
+        path: ROUTES.PROJECT.HANDOVERS,
+      },
       {
         label: 'Mẫu vật tư',
         icon: Boxes,
@@ -36,6 +49,11 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   {
     title: 'Quản trị tổ chức',
     items: [
+      {
+        label: 'Chủ thể bàn giao',
+        icon: Building2,
+        path: ROUTES.PROJECT.CUSTODIANS,
+      },
       {
         label: 'Nhân viên',
         icon: Users,

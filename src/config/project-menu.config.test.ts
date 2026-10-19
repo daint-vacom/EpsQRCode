@@ -5,18 +5,21 @@ import {
 } from './project-menu.config';
 
 describe('PROJECT_MENU_GROUPS', () => {
-  it('keeps only shared administration surfaces in the product menu', () => {
+  it('includes material operations and shared administration surfaces', () => {
     expect(PROJECT_MENU_GROUPS.map((group) => group.title)).toEqual([
       'Quản lý vật tư',
       'Quản trị tổ chức',
       'Hệ thống',
     ]);
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
+      'Vật tư',
+      'Phiếu bàn giao',
       'Mẫu vật tư',
       'Nhóm vật tư',
       'Thông số VT',
     ]);
     expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
+      'Chủ thể bàn giao',
       'Nhân viên',
       'Tệp lưu trữ',
       'Phân quyền',

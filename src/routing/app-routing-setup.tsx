@@ -41,13 +41,20 @@ import { Layout37Page } from '@/pages/layout-37/page';
 import { Layout38Page } from '@/pages/layout-38/page';
 import { Layout39Page } from '@/pages/layout-39/page';
 import { NotFoundPage } from '@/pages/not-found/page';
+import { CustodiansPage } from '@/project/custodians/pages/custodians-page';
 import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
+import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
+import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
+import { HandoversPage } from '@/project/handover/pages/handovers-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { MaterialGroupsPage } from '@/project/material-groups/pages/material-groups-page';
 import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
 import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
 import { MaterialSpecificationsPage } from '@/project/material-specifications/pages/material-specifications-page';
+import { MaterialDetailPage } from '@/project/materials/pages/material-detail-page';
+import { MaterialEditorPage } from '@/project/materials/pages/material-editor-page';
+import { MaterialListPage } from '@/project/materials/pages/material-list-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
@@ -219,7 +226,20 @@ export function AppRoutingSetup() {
         <Route path="/layout-39" element={<Layout39Page />} />
       </Route>
       <Route element={<ProtectedRoute />}>
+        <Route
+          path={ROUTES.PROJECT.MATERIAL_DETAIL}
+          element={<MaterialDetailPage />}
+        />
         <Route element={<ProjectMainLayout />}>
+          <Route
+            path={ROUTES.PROJECT.MATERIALS}
+            element={<MaterialListPage />}
+          />
+          <Route path={ROUTES.PROJECT.HANDOVERS} element={<HandoversPage />} />
+          <Route
+            path={ROUTES.PROJECT.CUSTODIANS}
+            element={<CustodiansPage />}
+          />
           <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
           <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
           <Route
@@ -250,6 +270,26 @@ export function AppRoutingSetup() {
           />
         </Route>
         <Route element={<DetailEntryLayout />}>
+          <Route
+            path={ROUTES.PROJECT.HANDOVER_CREATE}
+            element={<HandoverEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.HANDOVER_EDIT}
+            element={<HandoverEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.HANDOVER_DETAIL}
+            element={<HandoverDetailPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_CREATE}
+            element={<MaterialEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_EDIT}
+            element={<MaterialEditorPage />}
+          />
           <Route
             path={ROUTES.PROJECT.MATERIAL_MODEL_CREATE}
             element={<MaterialModelEditorPage />}

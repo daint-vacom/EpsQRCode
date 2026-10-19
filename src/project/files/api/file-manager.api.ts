@@ -158,6 +158,36 @@ export async function listFileManagerItems(
   ];
 }
 
+export async function loadFileStorageReference(fileId: string): Promise<{
+  storageBucket: string;
+  storagePath: string;
+  fileName: string;
+  mimeType: string;
+}> {
+  assertSupabaseConfigured();
+  const rows = await request<FileRow[]>(
+    supabaseApi.get(
+      '/files',
+      queryParams({
+        select:
+          'id,storage_bucket,storage_path,file_name,mime_type,size_bytes,created_at',
+        id: `eq.${fileId}`,
+        status: 'eq.active',
+        limit: '1',
+      }),
+    ),
+  );
+  const row = rows[0];
+  if (!row)
+    throw new Error('Tệp không còn khả dụng hoặc bạn không có quyền truy cập.');
+  return {
+    storageBucket: row.storage_bucket,
+    storagePath: row.storage_path,
+    fileName: row.file_name,
+    mimeType: row.mime_type,
+  };
+}
+
 export async function createCustomFileFolder(
   parentId: string | null,
   name: string,
@@ -246,6 +276,7 @@ export async function uploadFilesToFolder(
     );
     throw error;
   }
+  return fileIds;
 }
 
 export async function renameFileManagerItem(

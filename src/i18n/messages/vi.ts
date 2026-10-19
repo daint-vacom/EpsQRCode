@@ -2,7 +2,15 @@
  * Message tiếng Việt. Key đặt theo namespace: `<feature>.<key>`.
  * UI mặc định là tiếng Việt nên đây là catalog gốc.
  */
+import { handoverMessagesVi } from '@/project/handover/messages';
+import { materialMessagesVi } from '@/project/materials/messages';
+
 export const vi: Record<string, string> = {
+  ...materialMessagesVi,
+  ...handoverMessagesVi,
+  'project.navigation.materials': 'Vật tư',
+  'project.navigation.handovers': 'Phiếu bàn giao',
+  'project.navigation.custodians': 'Chủ thể bàn giao',
   'common.actions.create': 'Thêm mới',
   'common.actions.save': 'Lưu',
   'common.actions.cancel': 'Hủy',
