@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Folder } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { getApiErrorMessage } from '@/lib/errors';
 import { OptionSelect } from '@/components/ui/option-select';
@@ -46,6 +47,9 @@ export function MaterialGroupSelect({
   ...props
 }: MaterialGroupSelectProps) {
   const intl = useIntl();
+  const selectPlaceholder =
+    placeholder ??
+    intl.formatMessage({ id: 'materialGroups.select.placeholder' });
   const query = useAvailableMaterialGroupsQuery();
   const options = useMemo<SelectOption<MaterialGroupSelectItem>[]>(
     () =>
@@ -71,10 +75,17 @@ export function MaterialGroupSelect({
       value={value}
       options={options}
       selectedOption={options.find((option) => option.value === value)}
-      placeholder={
-        placeholder ??
-        intl.formatMessage({ id: 'materialGroups.select.placeholder' })
-      }
+      placeholder={selectPlaceholder}
+      triggerContent={(option) => (
+        <span className="flex min-w-0 items-center gap-2">
+          <Folder className="size-4 shrink-0 text-muted-foreground" />
+          <span
+            className={option ? 'truncate' : 'truncate text-muted-foreground'}
+          >
+            {option?.label ?? selectPlaceholder}
+          </span>
+        </span>
+      )}
       searchPlaceholder={intl.formatMessage({
         id: 'materialGroups.select.search',
       })}

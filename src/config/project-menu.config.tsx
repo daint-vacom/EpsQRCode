@@ -1,9 +1,8 @@
 import { ROUTES } from '@/constants/routes';
 import {
   Boxes,
+  Folder,
   FolderOpen,
-  ListTree,
-  PackageOpen,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -18,35 +17,35 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     title: 'Quản lý vật tư',
     items: [
       {
-        label: 'Nhân viên',
-        icon: Users,
-        path: ROUTES.PROJECT.EMPLOYEES,
-      },
-      {
-        label: 'Nhóm vật tư',
-        icon: PackageOpen,
-        path: ROUTES.PROJECT.MATERIAL_GROUPS,
-      },
-      {
         label: 'Mẫu vật tư',
         icon: Boxes,
         path: ROUTES.PROJECT.MATERIAL_MODELS,
       },
       {
-        label: 'Danh mục thông số',
+        label: 'Nhóm vật tư',
+        icon: Folder,
+        path: ROUTES.PROJECT.MATERIAL_GROUPS,
+      },
+      {
+        label: 'Thông số VT',
         icon: SlidersHorizontal,
         path: ROUTES.PROJECT.MATERIAL_SPECIFICATIONS,
+      },
+    ],
+  },
+  {
+    title: 'Quản trị tổ chức',
+    items: [
+      {
+        label: 'Nhân viên',
+        icon: Users,
+        path: ROUTES.PROJECT.EMPLOYEES,
       },
       { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
       {
         label: 'Phân quyền',
         icon: ShieldCheck,
         path: ROUTES.PROJECT.ROLE_PERMISSIONS,
-      },
-      {
-        label: 'Cấu hình dữ liệu',
-        icon: ListTree,
-        path: ROUTES.PROJECT.DATA_CONFIGURATION,
       },
       { label: 'Danh mục', icon: Tags, path: ROUTES.PROJECT.TAGS },
     ],

@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import type { MaterialSpecificationDataType } from '@/project/material-specifications/model/material-specification';
 import { getMaterialSpecificationUnits } from '@/project/material-specifications/model/material-specification';
-import { Plus, X } from 'lucide-react';
+import { ChevronDown, Plus, X } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ColorInput } from '@/components/ui/color-input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import {
@@ -21,6 +27,7 @@ interface MaterialModelSpecificationValuesProps {
   dataType: MaterialSpecificationDataType;
   isList: boolean;
   values: string[];
+  suggestions?: string[];
   rowIndex: number;
   onChange: (values: string[]) => void;
 }
@@ -29,6 +36,7 @@ export function MaterialModelSpecificationValues({
   dataType,
   isList,
   values,
+  suggestions = [],
   rowIndex,
   onChange,
 }: MaterialModelSpecificationValuesProps) {
@@ -88,12 +96,52 @@ export function MaterialModelSpecificationValues({
   const serializeMeasurementValue = (amount: string, unit: string) =>
     amount.trim() ? `${amount.trim()} ${unit}` : '';
 
+  const suggestionMenu = (
+    onValueChange: (value: string) => void,
+    ariaLabel: string,
+  ) =>
+    suggestions.length > 0 ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            mode="icon"
+            size="sm"
+            className="shrink-0"
+            aria-label={`${ariaLabel} - ${intl.formatMessage({ id: 'materialModels.specifications.chooseSuggestion' })}`}
+          >
+            <ChevronDown />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {suggestions.map((suggestion) => (
+            <DropdownMenuItem
+              key={suggestion}
+              onSelect={() => onValueChange(suggestion)}
+            >
+              {suggestion}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null;
+
   const renderValueInput = (
     value: string,
     onValueChange: (value: string) => void,
     ariaLabel: string,
     isNewValue = false,
   ) => {
+    const handleSuggestionSelect = (suggestion: string) => {
+      if (isNewValue) {
+        onChange([...values, suggestion]);
+        setNewValue(dataType === 'boolean' ? 'false' : '');
+        return;
+      }
+      onValueChange(suggestion);
+    };
+
     if (dataType === 'boolean') {
       return (
         <label className="flex h-8.5 w-full min-w-0 items-center gap-2 text-sm">
@@ -139,18 +187,21 @@ export function MaterialModelSpecificationValues({
 
     if (dataType === 'color') {
       return (
-        <ColorInput
-          value={value}
-          onValueChange={onValueChange}
-          onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
-          onBlur={isNewValue ? addValue : undefined}
-          aria-label={ariaLabel}
-          pickerLabel={intl.formatMessage({
-            id: 'materialSpecifications.fields.colorPicker',
-          })}
-          variant="md"
-          className="w-full min-w-0"
-        />
+        <div className="flex w-full min-w-0 items-center">
+          <ColorInput
+            value={value}
+            onValueChange={onValueChange}
+            onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
+            onBlur={isNewValue ? addValue : undefined}
+            aria-label={ariaLabel}
+            pickerLabel={intl.formatMessage({
+              id: 'materialSpecifications.fields.colorPicker',
+            })}
+            variant="md"
+            className="w-full min-w-0"
+          />
+          {suggestionMenu(handleSuggestionSelect, ariaLabel)}
+        </div>
       );
     }
 
@@ -159,32 +210,38 @@ export function MaterialModelSpecificationValues({
       const measurement = parseMeasurementValue(value, measurementKey);
       return (
         <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] items-center gap-2">
-          <Input
-            type="number"
-            step="any"
-            inputMode="decimal"
-            value={measurement.amount}
-            onChange={(event) => {
-              setUnitDrafts((current) => ({
-                ...current,
-                [measurementKey]: measurement.unit,
-              }));
-              onValueChange(
-                serializeMeasurementValue(event.target.value, measurement.unit),
-              );
-            }}
-            onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
-            placeholder={
-              isNewValue
-                ? intl.formatMessage({
-                    id: 'materialModels.specifications.addValuePlaceholder',
-                  })
-                : undefined
-            }
-            aria-label={ariaLabel}
-            variant="ghost-underline"
-            className="w-full min-w-0"
-          />
+          <div className="flex min-w-0 items-center">
+            <Input
+              type="number"
+              step="any"
+              inputMode="decimal"
+              value={measurement.amount}
+              onChange={(event) => {
+                setUnitDrafts((current) => ({
+                  ...current,
+                  [measurementKey]: measurement.unit,
+                }));
+                onValueChange(
+                  serializeMeasurementValue(
+                    event.target.value,
+                    measurement.unit,
+                  ),
+                );
+              }}
+              onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
+              placeholder={
+                isNewValue
+                  ? intl.formatMessage({
+                      id: 'materialModels.specifications.addValuePlaceholder',
+                    })
+                  : undefined
+              }
+              aria-label={ariaLabel}
+              variant="ghost-underline"
+              className="w-full min-w-0 text-right tabular-nums"
+            />
+            {suggestionMenu(handleSuggestionSelect, ariaLabel)}
+          </div>
           <Select
             value={measurement.unit}
             onValueChange={(unit) => {
@@ -220,23 +277,26 @@ export function MaterialModelSpecificationValues({
     }
 
     return (
-      <Input
-        type="text"
-        value={value}
-        onChange={(event) => onValueChange(event.target.value)}
-        onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
-        onBlur={isNewValue ? addValue : undefined}
-        placeholder={
-          isNewValue
-            ? intl.formatMessage({
-                id: 'materialModels.specifications.addValuePlaceholder',
-              })
-            : undefined
-        }
-        aria-label={ariaLabel}
-        variant={dataType === 'text' ? 'ghost-underline' : 'md'}
-        className="w-full min-w-0"
-      />
+      <div className="flex w-full min-w-0 items-center">
+        <Input
+          type={dataType === 'number' ? 'number' : 'text'}
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          onKeyDown={isNewValue ? handleNewValueKeyDown : undefined}
+          onBlur={isNewValue ? addValue : undefined}
+          placeholder={
+            isNewValue
+              ? intl.formatMessage({
+                  id: 'materialModels.specifications.addValuePlaceholder',
+                })
+              : undefined
+          }
+          aria-label={ariaLabel}
+          variant={dataType === 'text' ? 'ghost-underline' : 'md'}
+          className={`w-full min-w-0 ${dataType === 'number' ? 'text-right tabular-nums' : ''}`}
+        />
+        {suggestionMenu(handleSuggestionSelect, ariaLabel)}
+      </div>
     );
   };
 

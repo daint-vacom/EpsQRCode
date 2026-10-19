@@ -6,7 +6,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { PackageOpen, Plus } from 'lucide-react';
+import { Folder, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -206,7 +206,7 @@ export function MaterialGroupsPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'materialGroups.page.header' })}
-        icon={PackageOpen}
+        icon={Folder}
         actions={
           canManage ? (
             <Button

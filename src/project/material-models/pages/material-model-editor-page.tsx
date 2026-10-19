@@ -10,11 +10,17 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import {
   mapMaterialModelToFormValues,
@@ -60,6 +66,13 @@ export function MaterialModelEditorPage() {
   );
   const [activeTab, setActiveTab] = useState('general');
   const requiresInspection = form.watch('requiresInspection');
+  const specificationCount = form.watch('specifications')?.length ?? 0;
+  const specificationErrorCount = countFormErrors(
+    form.formState.errors.specifications,
+  );
+  const generalErrorCount = Object.entries(form.formState.errors)
+    .filter(([field]) => field !== 'specifications')
+    .reduce((count, [, error]) => count + countFormErrors(error), 0);
   const editingModel = id
     ? (query.data?.find((model) => model.id === id) ?? null)
     : null;
@@ -240,10 +253,19 @@ export function MaterialModelEditorPage() {
             className="flex min-h-[32rem] min-w-0 flex-1 flex-col xl:overflow-hidden"
           >
             <TabsList variant="line" size="md" className="w-full">
-              <TabsTrigger value="general">
+              <TabsTrigger
+                value="general"
+                afterCount={<FormTabErrorBadge count={generalErrorCount} />}
+              >
                 {intl.formatMessage({ id: 'materialModels.tabs.general' })}
               </TabsTrigger>
-              <TabsTrigger value="technical">
+              <TabsTrigger
+                value="technical"
+                count={specificationCount}
+                afterCount={
+                  <FormTabErrorBadge count={specificationErrorCount} />
+                }
+              >
                 {intl.formatMessage({ id: 'materialModels.tabs.technical' })}
               </TabsTrigger>
               {requiresInspection && (
@@ -284,5 +306,42 @@ export function MaterialModelEditorPage() {
         </form>
       )}
     </div>
+  );
+}
+
+function countFormErrors(value: unknown): number {
+  if (!value || typeof value !== 'object') return 0;
+  const error = value as Record<string, unknown>;
+  if (typeof error.message === 'string' || error.type) return 1;
+  return Object.entries(error).reduce(
+    (count, [key, item]) =>
+      count + (key === 'ref' || key === 'types' ? 0 : countFormErrors(item)),
+    0,
+  );
+}
+
+function FormTabErrorBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="destructive"
+          size="xs"
+          shape="circle"
+          className="size-4 min-w-4 p-0.5"
+          tabIndex={0}
+          aria-label={`Tab có ${count} lỗi`}
+        >
+          <span className="text-xs font-bold leading-none text-destructive-foreground!">
+            !
+          </span>
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent variant="destructive">
+        Có {count} lỗi cần kiểm tra
+      </TooltipContent>
+    </Tooltip>
   );
 }

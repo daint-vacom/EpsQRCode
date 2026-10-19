@@ -7,19 +7,22 @@ import {
 describe('PROJECT_MENU_GROUPS', () => {
   it('keeps only shared administration surfaces in the product menu', () => {
     expect(PROJECT_MENU_GROUPS.map((group) => group.title)).toEqual([
+      'Quản lý vật tư',
       'Quản trị tổ chức',
       'Hệ thống',
     ]);
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
-      'Nhân viên',
-      'Nhóm vật tư',
       'Mẫu vật tư',
-      'Tệp lưu trữ',
-      'Phân quyền',
-      'Cấu hình dữ liệu',
-      'Danh mục',
+      'Nhóm vật tư',
+      'Thông số VT',
     ]);
     expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
+      'Nhân viên',
+      'Tệp lưu trữ',
+      'Phân quyền',
+      'Danh mục',
+    ]);
+    expect(PROJECT_MENU_GROUPS[2]?.items.map((item) => item.label)).toEqual([
       'Cài đặt',
     ]);
     expect(PROJECT_ENTITY_ORDER).toEqual(['employee']);

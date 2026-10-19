@@ -6,11 +6,15 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MaterialSpecificationDataTypeIcon } from '@/project/material-specifications/components/material-specification-data-type-icon';
+import { useMaterialSpecificationsQuery } from '@/project/material-specifications/hooks/use-material-specifications';
 import {
   MATERIAL_SPECIFICATION_DATA_TYPE_CONFIG,
   materialSpecificationDataTypeSchema,
 } from '@/project/material-specifications/model/material-specification';
-import type { MaterialSpecificationDataType } from '@/project/material-specifications/model/material-specification';
+import type {
+  MaterialSpecification,
+  MaterialSpecificationDataType,
+} from '@/project/material-specifications/model/material-specification';
 import {
   closestCenter,
   DndContext,
@@ -27,7 +31,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ListMinus, ListPlus, Plus, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  GripVertical,
+  ListMinus,
+  ListPlus,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -40,6 +51,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   Form,
   FormControl,
@@ -103,6 +115,7 @@ export function MaterialModelSpecificationsEditorTable({
   form,
 }: MaterialModelSpecificationsEditorTableProps) {
   const intl = useIntl();
+  const catalogQuery = useMaterialSpecificationsQuery();
   const { fields, append, remove, move } = useFieldArray({
     control: form.control,
     name: 'specifications',
@@ -227,7 +240,7 @@ export function MaterialModelSpecificationsEditorTable({
     <Form {...form}>
       <>
         <CardHeader className="border-b border-border">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm font-medium text-foreground">
             {intl.formatMessage(
               { id: 'materialModels.specifications.count' },
               { count: fields.length },
@@ -235,7 +248,7 @@ export function MaterialModelSpecificationsEditorTable({
           </span>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => handleAddRow()}
           >
@@ -243,7 +256,20 @@ export function MaterialModelSpecificationsEditorTable({
             {intl.formatMessage({ id: 'materialModels.specifications.add' })}
           </Button>
         </CardHeader>
-        <CardContent className="flex min-h-0 min-w-0 flex-1 overflow-hidden p-0">
+        <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0">
+          {catalogQuery.isError ? (
+            <div className="px-5 py-2">
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'materialSpecifications.errors.loadTitle',
+                })}
+                description={intl.formatMessage({
+                  id: 'materialModels.specifications.catalogLoadError',
+                })}
+                onRetry={() => void catalogQuery.refetch()}
+              />
+            </div>
+          ) : null}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -385,6 +411,58 @@ export function MaterialModelSpecificationsEditorTable({
                                           </FormItem>
                                         )}
                                       />
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            mode="icon"
+                                            size="sm"
+                                            aria-label={intl.formatMessage({
+                                              id: 'materialModels.specifications.chooseFromCatalog',
+                                            })}
+                                          >
+                                            <ChevronDown />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="start">
+                                          {(catalogQuery.data ?? []).map(
+                                            (definition) => (
+                                              <DropdownMenuItem
+                                                key={definition.id}
+                                                onSelect={() =>
+                                                  handleChooseCatalogSpecification(
+                                                    form,
+                                                    index,
+                                                    definition,
+                                                  )
+                                                }
+                                              >
+                                                <MaterialSpecificationDataTypeIcon
+                                                  dataType={definition.dataType}
+                                                />
+                                                {definition.name}
+                                              </DropdownMenuItem>
+                                            ),
+                                          )}
+                                          {!catalogQuery.isPending &&
+                                          (catalogQuery.data?.length ?? 0) ===
+                                            0 ? (
+                                            <DropdownMenuItem disabled>
+                                              {intl.formatMessage({
+                                                id: 'materialSpecifications.empty.list',
+                                              })}
+                                            </DropdownMenuItem>
+                                          ) : null}
+                                          {catalogQuery.isPending ? (
+                                            <DropdownMenuItem disabled>
+                                              {intl.formatMessage({
+                                                id: 'common.state.loading',
+                                              })}
+                                            </DropdownMenuItem>
+                                          ) : null}
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
                                   </TableCell>
                                   <TableCell className="px-2 py-2 align-top">
@@ -397,6 +475,13 @@ export function MaterialModelSpecificationsEditorTable({
                                             <MaterialModelSpecificationValues
                                               dataType={row?.dataType ?? 'text'}
                                               isList={row?.isList ?? false}
+                                              suggestions={findCatalogSpecification(
+                                                catalogQuery.data ?? [],
+                                                row?.name ?? '',
+                                                row?.dataType ?? 'text',
+                                              )?.options.map(
+                                                (option) => option.label,
+                                              )}
                                               values={valuesField.value ?? []}
                                               rowIndex={index}
                                               onChange={valuesField.onChange}
@@ -509,5 +594,42 @@ export function MaterialModelSpecificationsEditorTable({
         onConfirm={confirmSingleMode}
       />
     </Form>
+  );
+}
+
+function findCatalogSpecification(
+  definitions: MaterialSpecification[],
+  name: string,
+  dataType: MaterialSpecificationDataType,
+) {
+  return definitions.find(
+    (definition) =>
+      definition.name === name && definition.dataType === dataType,
+  );
+}
+
+function handleChooseCatalogSpecification(
+  form: UseFormReturn<MaterialModelFormValues>,
+  index: number,
+  definition: MaterialSpecification,
+) {
+  const base = `specifications.${index}` as const;
+  form.setValue(`${base}.id`, crypto.randomUUID(), { shouldDirty: true });
+  form.setValue(`${base}.name`, definition.name, {
+    shouldDirty: true,
+    shouldValidate: true,
+  });
+  form.setValue(`${base}.dataType`, definition.dataType, {
+    shouldDirty: true,
+    shouldValidate: true,
+  });
+  form.setValue(`${base}.isList`, false, {
+    shouldDirty: true,
+    shouldValidate: true,
+  });
+  form.setValue(
+    `${base}.values`,
+    definition.dataType === 'boolean' ? ['false'] : [],
+    { shouldDirty: true, shouldValidate: true },
   );
 }

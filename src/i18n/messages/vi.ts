@@ -88,6 +88,11 @@ export const vi: Record<string, string> = {
   'materialModels.tabs.inspection': 'Bảng kiểm tra',
   'materialModels.specifications.empty': 'Chưa có thông số kỹ thuật.',
   'materialModels.specifications.name': 'Tên thông số',
+  'materialModels.specifications.chooseFromCatalog':
+    'Chọn thông số từ danh mục',
+  'materialModels.specifications.chooseSuggestion': 'Chọn giá trị gợi ý',
+  'materialModels.specifications.catalogLoadError':
+    'Không tải được danh mục thông số. Bạn vẫn có thể nhập thông số thủ công.',
   'materialModels.specifications.column': 'Thông số',
   'materialModels.specifications.editValueTooltip': 'Nhấn để sửa',
   'materialModels.specifications.addValuePlaceholder':
