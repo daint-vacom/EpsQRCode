@@ -111,154 +111,156 @@ export function MaterialDetailPage() {
   );
 
   return (
-    <Tabs
-      value={activeTab}
-      onValueChange={(value) => setActiveTab(value as MaterialDetailTabValue)}
-      className="min-w-0 bg-muted"
-    >
-      <header className="sticky top-0 z-50 w-full border-b border-admin-neutral-100 bg-card">
-        <DetailShell>
-          <div className="flex items-center justify-between gap-4 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                shape="circle"
-                onClick={() => navigate(ROUTES.PROJECT.MATERIALS)}
+    <div className="fixed inset-0 flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-muted">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as MaterialDetailTabValue)}
+        className="flex min-h-0 min-w-0 flex-1 flex-col bg-muted"
+      >
+        <header className="z-10 w-full shrink-0 border-b border-admin-neutral-100 bg-card">
+          <DetailShell>
+            <div className="flex items-center justify-between gap-4 py-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  shape="circle"
+                  onClick={() => navigate(ROUTES.PROJECT.MATERIALS)}
+                  aria-label={intl.formatMessage({
+                    id: 'project.materials.actions.back',
+                  })}
+                >
+                  <ArrowLeft className="size-3.5" />
+                </Button>
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <PackageCheck className="size-3.5" />
+                </span>
+                <h1 className="truncate text-sm font-medium text-admin-neutral-800 md:text-base">
+                  {modelName}
+                </h1>
+              </div>
+              {material && canManage ? (
+                <Button
+                  type="button"
+                  size="md"
+                  className="shrink-0"
+                  onClick={() =>
+                    navigate(
+                      buildPath(ROUTES.PROJECT.MATERIAL_EDIT, {
+                        id: material.id,
+                      }),
+                    )
+                  }
+                >
+                  {intl.formatMessage({ id: 'project.materials.actions.edit' })}
+                </Button>
+              ) : null}
+            </div>
+            <TabsList
+              variant="line"
+              size="sm"
+              className="w-full min-w-0 overflow-x-auto border-b-0"
+            >
+              {MATERIAL_DETAIL_TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <TabsTrigger key={tab.value} value={tab.value}>
+                    <Icon className="size-3.5" />
+                    {intl.formatMessage({ id: tab.messageId })}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </DetailShell>
+        </header>
+
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain py-8">
+          <DetailShell>
+            {!isPermissionsPending && !canView ? (
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'project.materials.errors.authorizationTitle',
+                })}
+                description={intl.formatMessage({
+                  id: 'project.materials.errors.authorization',
+                })}
+              />
+            ) : isLoading ? (
+              <div
+                className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]"
+                role="status"
                 aria-label={intl.formatMessage({
-                  id: 'project.materials.actions.back',
+                  id: 'project.materials.states.loading',
                 })}
               >
-                <ArrowLeft className="size-3.5" />
-              </Button>
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <PackageCheck className="size-3.5" />
-              </span>
-              <h1 className="truncate text-sm font-medium text-admin-neutral-800 md:text-base">
-                {modelName}
-              </h1>
-            </div>
-            {material && canManage ? (
-              <Button
-                type="button"
-                size="md"
-                className="shrink-0"
-                onClick={() =>
-                  navigate(
-                    buildPath(ROUTES.PROJECT.MATERIAL_EDIT, {
-                      id: material.id,
-                    }),
-                  )
-                }
-              >
-                {intl.formatMessage({ id: 'project.materials.actions.edit' })}
-              </Button>
-            ) : null}
-          </div>
-          <TabsList
-            variant="line"
-            size="sm"
-            className="w-full min-w-0 overflow-x-auto border-b-0"
-          >
-            {MATERIAL_DETAIL_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  <Icon className="size-3.5" />
-                  {intl.formatMessage({ id: tab.messageId })}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-        </DetailShell>
-      </header>
-
-      <main className="min-w-0 py-8">
-        <DetailShell>
-          {!isPermissionsPending && !canView ? (
-            <ErrorState
-              title={intl.formatMessage({
-                id: 'project.materials.errors.authorizationTitle',
-              })}
-              description={intl.formatMessage({
-                id: 'project.materials.errors.authorization',
-              })}
-            />
-          ) : isLoading ? (
-            <div
-              className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]"
-              role="status"
-              aria-label={intl.formatMessage({
-                id: 'project.materials.states.loading',
-              })}
-            >
-              <Card className="aspect-4/3 animate-pulse sm:aspect-[16/10]" />
-              <Card className="min-h-80 animate-pulse" />
-            </div>
-          ) : materialQuery.isError ? (
-            <ErrorState
-              title={intl.formatMessage({
-                id: 'project.materials.errors.loadDetailTitle',
-              })}
-              description={getApiErrorMessage(materialQuery.error)}
-              onRetry={() => void materialQuery.refetch()}
-            />
-          ) : !material ? (
-            <ErrorState
-              title={intl.formatMessage({
-                id: 'project.materials.errors.notFoundTitle',
-              })}
-              description={intl.formatMessage({
-                id: 'project.materials.errors.notFound',
-              })}
-            />
-          ) : (
-            <>
-              <TabsContent value="general" className="mt-0">
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
-                  <div className="flex min-w-0 flex-col gap-6">
-                    <MaterialGalleryCard
+                <Card className="aspect-4/3 animate-pulse sm:aspect-[16/10]" />
+                <Card className="min-h-80 animate-pulse" />
+              </div>
+            ) : materialQuery.isError ? (
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'project.materials.errors.loadDetailTitle',
+                })}
+                description={getApiErrorMessage(materialQuery.error)}
+                onRetry={() => void materialQuery.refetch()}
+              />
+            ) : !material ? (
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'project.materials.errors.notFoundTitle',
+                })}
+                description={intl.formatMessage({
+                  id: 'project.materials.errors.notFound',
+                })}
+              />
+            ) : (
+              <>
+                <TabsContent value="general" className="mt-0">
+                  <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
+                    <div className="flex min-w-0 flex-col gap-6">
+                      <MaterialGalleryCard
+                        material={material}
+                        title={modelName}
+                      />
+                      <MaterialSpecificationsCard material={material} />
+                    </div>
+                    <MaterialSummarySidebar
                       material={material}
                       title={modelName}
+                      groupName={group?.name}
+                      groupLoading={groupsQuery.isPending}
+                      groupError={groupsQuery.isError}
+                      onRetryGroup={() => void groupsQuery.refetch()}
+                      ownerName={owner?.name}
+                      representativeName={owner?.representativeDisplayName}
+                      ownerLoading={custodiansQuery.isPending}
+                      ownerError={custodiansQuery.isError}
+                      onRetryOwner={() => void custodiansQuery.refetch()}
                     />
-                    <MaterialSpecificationsCard material={material} />
                   </div>
-                  <MaterialSummarySidebar
-                    material={material}
-                    title={modelName}
-                    groupName={group?.name}
-                    groupLoading={groupsQuery.isPending}
-                    groupError={groupsQuery.isError}
-                    onRetryGroup={() => void groupsQuery.refetch()}
-                    ownerName={owner?.name}
-                    representativeName={owner?.representativeDisplayName}
-                    ownerLoading={custodiansQuery.isPending}
-                    ownerError={custodiansQuery.isError}
-                    onRetryOwner={() => void custodiansQuery.refetch()}
+                </TabsContent>
+                {MATERIAL_DETAIL_TABS.filter(
+                  (tab) => tab.value !== 'general',
+                ).map((tab) => (
+                  <TabsContent
+                    key={tab.value}
+                    value={tab.value}
+                    className="mt-0"
                   />
-                </div>
-              </TabsContent>
-              {MATERIAL_DETAIL_TABS.filter(
-                (tab) => tab.value !== 'general',
-              ).map((tab) => (
-                <TabsContent
-                  key={tab.value}
-                  value={tab.value}
-                  className="mt-0"
-                />
-              ))}
-            </>
-          )}
-        </DetailShell>
-      </main>
-    </Tabs>
+                ))}
+              </>
+            )}
+          </DetailShell>
+        </main>
+      </Tabs>
+    </div>
   );
 }
 
 function DetailShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-none min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+    <div className="mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
       {children}
     </div>
   );
