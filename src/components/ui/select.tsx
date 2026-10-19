@@ -93,9 +93,15 @@ const selectTriggerVariants = cva(
         md: 'h-8.5 px-3 text-[0.8125rem] leading-(--text-sm--line-height) gap-1 rounded-md',
         lg: 'h-10 px-4 text-sm gap-1.5 rounded-md',
       },
+      variant: {
+        outline: '',
+        ghost:
+          'border-transparent bg-transparent shadow-none transition-colors hover:bg-muted/50 focus-visible:bg-transparent focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring/20 data-[state=open]:bg-transparent data-[state=open]:border-transparent data-[state=open]:ring-0',
+      },
     },
     defaultVariants: {
       size: 'md',
+      variant: 'outline',
     },
   },
 );
@@ -109,12 +115,13 @@ function SelectTrigger({
   className,
   children,
   size,
+  variant,
   ...props
 }: SelectTriggerProps) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
-      className={cn(selectTriggerVariants({ size }), className)}
+      className={cn(selectTriggerVariants({ size, variant }), className)}
       {...props}
     >
       {children}

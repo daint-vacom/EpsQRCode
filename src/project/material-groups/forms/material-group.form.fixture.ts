@@ -17,6 +17,7 @@ const spec: FormSpec = {
       width: 'full',
       layout: 'horizontal',
       labelWidth: 'md',
+      alignment: 'first-control',
       required: true,
     },
     {
@@ -37,6 +38,7 @@ const spec: FormSpec = {
       width: 'full',
       layout: 'horizontal',
       labelWidth: 'md',
+      alignment: 'start',
       rows: 3,
     },
   ],

@@ -63,15 +63,17 @@ function TableFooter({
   );
 }
 
-function TableRow({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLTableRowElement>) {
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  hoverable?: boolean;
+}
+
+function TableRow({ className, hoverable = true, ...props }: TableRowProps) {
   return (
     <tr
       data-slot="table-row"
       className={cn(
-        'border-b transition-colors [&:has(td):hover]:bg-muted/50 data-[state=selected]:bg-muted',
+        'border-b transition-colors data-[state=selected]:bg-muted',
+        hoverable && '[&:has(td):hover]:bg-muted/50',
         className,
       )}
       {...props}

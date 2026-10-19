@@ -14,6 +14,11 @@ import {
   getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
 import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { MaterialIdentity } from '@/components/material-identity';
 import type { MaterialModel } from '../model/material-model';
 
@@ -48,7 +53,7 @@ export function useMaterialModelColumns({
         header: intl.formatMessage({
           id: 'materialModels.fields.availability',
         }),
-        size: 110,
+        size: 80,
         enableSorting: false,
         cell: (row) => (
           <Switch
@@ -80,13 +85,29 @@ export function useMaterialModelColumns({
           />
         ),
       }),
-      col.text({
+      col.custom({
         id: 'description',
         header: intl.formatMessage({ id: 'materialModels.fields.description' }),
-        get: (row) => row.description,
+        cellClassName: 'align-top',
         size: 280,
         enableSorting: false,
-        tooltipOnTruncate: true,
+        cell: (row) => {
+          const description = row.description ?? '';
+          if (!description) return null;
+
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="line-clamp-3 whitespace-normal">
+                  {description}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-lg whitespace-normal break-words">
+                {description}
+              </TooltipContent>
+            </Tooltip>
+          );
+        },
       }),
     ];
 
@@ -102,12 +123,11 @@ export function useMaterialModelColumns({
             <div className="flex justify-end gap-1">
               <DataGridActionButton
                 action="edit"
-                tooltip={intl.formatMessage(
-                  { id: 'materialModels.columns.edit' },
-                  { name: row.name },
-                )}
+                tooltip={intl.formatMessage({
+                  id: 'materialModels.columns.edit',
+                })}
                 aria-label={intl.formatMessage(
-                  { id: 'materialModels.columns.edit' },
+                  { id: 'materialModels.columns.editAria' },
                   { name: row.name },
                 )}
                 type="button"
@@ -119,12 +139,11 @@ export function useMaterialModelColumns({
               </DataGridActionButton>
               <DataGridActionButton
                 action="delete"
-                tooltip={intl.formatMessage(
-                  { id: 'materialModels.columns.delete' },
-                  { name: row.name },
-                )}
+                tooltip={intl.formatMessage({
+                  id: 'materialModels.columns.delete',
+                })}
                 aria-label={intl.formatMessage(
-                  { id: 'materialModels.columns.delete' },
+                  { id: 'materialModels.columns.deleteAria' },
                   { name: row.name },
                 )}
                 type="button"

@@ -10,7 +10,7 @@ const spec: TableSpec = {
       id: 'availability',
       header: 'Sử dụng',
       headerMessageId: 'materialModels.fields.availability',
-      size: 110,
+      size: 80,
     },
     {
       kind: 'custom',
@@ -21,13 +21,12 @@ const spec: TableSpec = {
       headerClassName: 'min-w-[260px]',
     },
     {
-      kind: 'text',
+      kind: 'custom',
       id: 'description',
-      field: 'description',
       header: 'Mô tả',
       headerMessageId: 'materialModels.fields.description',
-      sizePreset: 'long',
-      tooltipOnTruncate: true,
+      size: 280,
+      cellClassName: 'align-top',
     },
     {
       kind: 'actions',

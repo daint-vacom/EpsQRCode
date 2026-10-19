@@ -21,6 +21,12 @@ chung thay vì tự viết lại grid ở từng form:
 `labelWidth` hỗ trợ `sm | md | lg` và `labelGap` hỗ trợ `sm | md | lg`; các preset được định nghĩa
 ở primitive `FormItem` để các form giữ cùng nhịp layout.
 
+Với `layout="horizontal"`, label và control mặc định được căn giữa theo chiều dọc. Dùng
+`alignment="start"` cho textarea hoặc control nhiều dòng để đưa label lên đầu vùng nội dung. Với
+control ghép có một hàng điều khiển đầu tiên (ví dụ radio chọn cách tạo mã), dùng
+`alignment="first-control"` để căn giữa label theo hàng đó. Không thêm padding căn chỉnh riêng cho
+checkbox.
+
 ---
 
 ## Input
@@ -42,9 +48,9 @@ import { Input, InputWrapper } from '@/components/ui/input';
 </InputWrapper>;
 ```
 
-Variant size: `sm | md | lg` (mặc định `md`). Variant `header` dành cho ô tìm kiếm chính trên header:
-rộng hơn, cùng chiều cao với control `md`, nền trong suốt và viền outline theo màu chữ nền. `onChange`
-giữ chữ ký HTML chuẩn `(e) => e.target.value`.
+Variant size: `sm | md | lg` (mặc định `md`). `header` dành cho ô tìm kiếm trên header;
+`ghost-underline` dùng nền trong suốt, không shadow và chỉ hiện đường viền dưới, nhấn mạnh đường viền
+khi focus. `onChange` giữ chữ ký HTML chuẩn `(e) => e.target.value`.
 
 ---
 
@@ -183,7 +189,7 @@ import { EntityMultiSelect } from '@/components/ui/entity-multi-select';
       searchText: `${employee.displayName} ${employee.employeeCode}`,
     },
   ]}
-/>
+/>;
 ```
 
 `size="md"` giữ hàng ở chiều cao 34px như select nhân viên, chỉ hiển thị title. `size="lg"` dùng hàng
@@ -233,6 +239,7 @@ import { NumericInput } from '@/components/ui/inputs/numeric-input';
 
 - `OptionSelect searchable={false}` cho dropdown ngắn cố định, không cần tìm kiếm; dùng `OptionSelect`
   với `searchable` mặc định cho danh sách dữ liệu cần tìm. `Select` thô chỉ dành cho composition đặc biệt.
+- `SelectTrigger` dùng `variant="outline"` mặc định; dùng `variant="ghost"` cho select gọn nằm trong cell hoặc inline editor.
 - `FilterToolbar` dùng `OptionSelect` với `triggerContent` để hiển thị nhãn và giá trị trong một
   control compact. `SelectValue` vẫn hỗ trợ `label` cho các composition low-level tùy biến.
 - `Textarea`, `Checkbox`, `Switch`, `RadioGroup`: dùng primitive cùng tên trong `@/components/ui/*`.

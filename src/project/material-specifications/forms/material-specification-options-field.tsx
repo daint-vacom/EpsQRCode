@@ -19,7 +19,10 @@ import type {
   MaterialSpecificationFormValues,
   MaterialSpecificationOption,
 } from '../model/material-specification';
-import { getMaterialSpecificationUnits } from '../model/material-specification';
+import {
+  getMaterialSpecificationUnits,
+  supportsMaterialSpecificationSuggestions,
+} from '../model/material-specification';
 
 const booleanOptions = [
   { value: 'true', label: 'Có' },
@@ -35,141 +38,146 @@ export function MaterialSpecificationOptionsField({
   const dataType = useWatch({ control: form.control, name: 'dataType' });
   const options = useWatch({ control: form.control, name: 'options' }) ?? [];
   const unit = useWatch({ control: form.control, name: 'unit' }) ?? '';
+  const supportsSuggestions =
+    dataType && supportsMaterialSpecificationSuggestions(dataType);
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'options',
   });
   return (
     <>
-      <FormField
-        control={form.control}
-        name="options"
-        render={() => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-          >
-            <FormLabel>
-              {intl.formatMessage({
-                id: 'materialSpecifications.fields.options',
-              })}
-            </FormLabel>
-            <div className="space-y-3">
-              {fields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {intl.formatMessage({
-                    id: 'materialSpecifications.fields.optionsEmpty',
-                  })}
-                </p>
-              ) : null}
-              {fields.map((field, index) => (
-                <div
-                  key={field.id}
-                  className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-2"
-                >
-                  <FormField
-                    control={form.control}
-                    name={`options.${index}.label` as const}
-                    render={({ field: optionField }) => (
-                      <FormItem variant="compact">
-                        <FormControl>
-                          {dataType === 'color' ? (
-                            <ColorInput
-                              value={optionField.value}
-                              onValueChange={optionField.onChange}
-                              onBlur={optionField.onBlur}
-                              aria-label={`${intl.formatMessage({
-                                id: 'materialSpecifications.fields.optionPlaceholder',
-                              })} ${index + 1}`}
-                              pickerLabel={intl.formatMessage({
-                                id: 'materialSpecifications.fields.colorPicker',
-                              })}
-                              variant="md"
-                            />
-                          ) : dataType === 'boolean' ? (
-                            <OptionSelect
-                              value={optionField.value}
-                              onChange={optionField.onChange}
-                              options={booleanOptions}
-                              searchable={false}
-                              aria-label={`${intl.formatMessage({
-                                id: 'materialSpecifications.fields.optionPlaceholder',
-                              })} ${index + 1}`}
-                            />
-                          ) : (
-                            <Input
-                              {...optionField}
-                              type={
-                                dataType === 'date'
-                                  ? 'date'
-                                  : ['number', 'length', 'weight'].includes(
-                                        dataType,
-                                      )
-                                    ? 'number'
-                                    : 'text'
-                              }
-                              step={
-                                ['number', 'length', 'weight'].includes(
-                                  dataType,
-                                )
-                                  ? 'any'
-                                  : undefined
-                              }
-                              aria-label={`${intl.formatMessage({
-                                id: 'materialSpecifications.fields.optionPlaceholder',
-                              })} ${index + 1}`}
-                              placeholder={intl.formatMessage({
-                                id: 'materialSpecifications.fields.optionPlaceholder',
-                              })}
-                              variant="md"
-                            />
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    appearance="ghost"
-                    mode="icon"
-                    size="sm"
-                    aria-label={intl.formatMessage({
-                      id: 'materialSpecifications.actions.removeOption',
-                    })}
-                    onClick={() => remove(index)}
-                  >
-                    <Trash2 className="size-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              {form.formState.errors.options?.message && (
-                <p className="text-xs text-destructive">
-                  {form.formState.errors.options.message}
-                </p>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  append({
-                    id: crypto.randomUUID(),
-                    label: dataType === 'color' ? '#1677ff' : '',
-                  })
-                }
-              >
-                <Plus />
+      {supportsSuggestions ? (
+        <FormField
+          control={form.control}
+          name="options"
+          render={() => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+              alignment="start"
+            >
+              <FormLabel>
                 {intl.formatMessage({
-                  id: 'materialSpecifications.actions.addOption',
+                  id: 'materialSpecifications.fields.options',
                 })}
-              </Button>
-            </div>
-          </FormItem>
-        )}
-      />
+              </FormLabel>
+              <div className="space-y-3">
+                {fields.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {intl.formatMessage({
+                      id: 'materialSpecifications.fields.optionsEmpty',
+                    })}
+                  </p>
+                ) : null}
+                {fields.map((field, index) => (
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-center gap-2"
+                  >
+                    <FormField
+                      control={form.control}
+                      name={`options.${index}.label` as const}
+                      render={({ field: optionField }) => (
+                        <FormItem variant="compact">
+                          <FormControl>
+                            {dataType === 'color' ? (
+                              <ColorInput
+                                value={optionField.value}
+                                onValueChange={optionField.onChange}
+                                onBlur={optionField.onBlur}
+                                aria-label={`${intl.formatMessage({
+                                  id: 'materialSpecifications.fields.optionPlaceholder',
+                                })} ${index + 1}`}
+                                pickerLabel={intl.formatMessage({
+                                  id: 'materialSpecifications.fields.colorPicker',
+                                })}
+                                variant="md"
+                              />
+                            ) : dataType === 'boolean' ? (
+                              <OptionSelect
+                                value={optionField.value}
+                                onChange={optionField.onChange}
+                                options={booleanOptions}
+                                searchable={false}
+                                aria-label={`${intl.formatMessage({
+                                  id: 'materialSpecifications.fields.optionPlaceholder',
+                                })} ${index + 1}`}
+                              />
+                            ) : (
+                              <Input
+                                {...optionField}
+                                type={
+                                  dataType === 'date'
+                                    ? 'date'
+                                    : ['number', 'length', 'weight'].includes(
+                                          dataType,
+                                        )
+                                      ? 'number'
+                                      : 'text'
+                                }
+                                step={
+                                  ['number', 'length', 'weight'].includes(
+                                    dataType,
+                                  )
+                                    ? 'any'
+                                    : undefined
+                                }
+                                aria-label={`${intl.formatMessage({
+                                  id: 'materialSpecifications.fields.optionPlaceholder',
+                                })} ${index + 1}`}
+                                placeholder={intl.formatMessage({
+                                  id: 'materialSpecifications.fields.optionPlaceholder',
+                                })}
+                                variant="md"
+                              />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      appearance="ghost"
+                      mode="icon"
+                      size="sm"
+                      aria-label={intl.formatMessage({
+                        id: 'materialSpecifications.actions.removeOption',
+                      })}
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2 className="size-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+                {form.formState.errors.options?.message && (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.options.message}
+                  </p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({
+                      id: crypto.randomUUID(),
+                      label: dataType === 'color' ? '#1677ff' : '',
+                    })
+                  }
+                >
+                  <Plus />
+                  {intl.formatMessage({
+                    id: 'materialSpecifications.actions.addOption',
+                  })}
+                </Button>
+              </div>
+            </FormItem>
+          )}
+        />
+      ) : null}
 
       <DefaultValueField
         form={form}

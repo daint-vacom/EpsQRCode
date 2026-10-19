@@ -100,6 +100,7 @@ export function MaterialSpecificationForm({
                 className="md:col-span-12"
                 layout="horizontal"
                 labelWidth="md"
+                alignment="first-control"
               >
                 <FormLabel>
                   {intl.formatMessage({
@@ -157,6 +158,7 @@ export function MaterialSpecificationForm({
                 className="md:col-span-12"
                 layout="horizontal"
                 labelWidth="md"
+                alignment="start"
               >
                 <FormLabel>
                   {intl.formatMessage({

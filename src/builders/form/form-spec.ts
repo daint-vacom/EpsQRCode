@@ -46,6 +46,7 @@ export const FORM_ITEM_LABEL_GAPS = ['sm', 'md', 'lg'] as const;
 const itemLayout = z.enum(FORM_ITEM_LAYOUTS).optional();
 const itemLabelWidth = z.enum(FORM_ITEM_LABEL_WIDTHS).optional();
 const itemLabelGap = z.enum(FORM_ITEM_LABEL_GAPS).optional();
+const itemAlignment = z.enum(['center', 'start', 'first-control']).optional();
 
 const base = {
   name: fieldName,
@@ -56,6 +57,7 @@ const base = {
   layout: itemLayout,
   labelWidth: itemLabelWidth,
   labelGap: itemLabelGap,
+  alignment: itemAlignment,
   /** Start this field at the first desktop grid column, leaving the previous row's remainder empty. */
   breakBefore: z.boolean().optional(),
   required: z.boolean().optional(),

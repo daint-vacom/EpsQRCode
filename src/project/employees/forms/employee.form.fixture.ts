@@ -80,6 +80,7 @@ const spec: FormSpec = {
       width: 'full',
       layout: 'horizontal',
       labelWidth: 'md',
+      alignment: 'start',
       rows: 3,
     },
     {

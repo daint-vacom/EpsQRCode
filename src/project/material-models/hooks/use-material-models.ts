@@ -9,6 +9,8 @@ import {
 import type {
   MaterialModel,
   MaterialModelFormValues,
+  MaterialModelImage,
+  MaterialModelImageDraft,
 } from '../model/material-model';
 
 export const materialModelKeys = {
@@ -28,8 +30,13 @@ export function useMaterialModelsQuery(enabled = true) {
 export function useCreateMaterialModelMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (values: MaterialModelFormValues) =>
-      createMaterialModel(values),
+    mutationFn: ({
+      values,
+      images,
+    }: {
+      values: MaterialModelFormValues;
+      images: MaterialModelImageDraft[];
+    }) => createMaterialModel(values, images),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
   });
@@ -41,10 +48,14 @@ export function useUpdateMaterialModelMutation() {
     mutationFn: ({
       id,
       values,
+      images,
+      previousImages,
     }: {
       id: string;
       values: MaterialModelFormValues;
-    }) => updateMaterialModel(id, values),
+      images: MaterialModelImageDraft[];
+      previousImages: MaterialModelImage[];
+    }) => updateMaterialModel(id, values, images, previousImages),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
   });

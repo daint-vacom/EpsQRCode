@@ -24,6 +24,23 @@ export async function loadMaterialGroups(
   return rows.map(mapMaterialGroupRow);
 }
 
+export async function loadAvailableMaterialGroups(
+  signal?: AbortSignal,
+): Promise<MaterialGroup[]> {
+  assertSupabaseConfigured();
+  const rows = await request<MaterialGroupRow[]>(
+    supabaseApi.get('/material_groups', {
+      ...queryParams({
+        select: 'id,code,name,description,is_active,created_at,updated_at',
+        is_active: 'eq.true',
+        order: 'name.asc,id.asc',
+      }),
+      signal,
+    }),
+  );
+  return rows.map(mapMaterialGroupRow);
+}
+
 export async function createMaterialGroup(
   values: MaterialGroupFormValues,
 ): Promise<void> {

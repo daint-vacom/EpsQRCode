@@ -54,6 +54,7 @@ import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
 import { Route, Routes } from 'react-router';
+import { DetailEntryLayout } from '@/components/layouts/detail-entry-layout';
 import { Layout1 } from '@/components/layouts/layout-1';
 import { Layout2 } from '@/components/layouts/layout-2';
 import { Layout3 } from '@/components/layouts/layout-3';
@@ -233,14 +234,6 @@ export function AppRoutingSetup() {
             path={ROUTES.PROJECT.MATERIAL_SPECIFICATIONS}
             element={<MaterialSpecificationsPage />}
           />
-          <Route
-            path={ROUTES.PROJECT.MATERIAL_MODEL_CREATE}
-            element={<MaterialModelEditorPage />}
-          />
-          <Route
-            path={ROUTES.PROJECT.MATERIAL_MODEL_EDIT}
-            element={<MaterialModelEditorPage />}
-          />
           <Route path={ROUTES.PROJECT.FILES} element={<FileManagerPage />} />
           <Route
             path={ROUTES.PROJECT.ROLE_PERMISSIONS}
@@ -254,6 +247,16 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.SETTINGS}
             element={<ProjectSettingsPage />}
+          />
+        </Route>
+        <Route element={<DetailEntryLayout />}>
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_MODEL_CREATE}
+            element={<MaterialModelEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_MODEL_EDIT}
+            element={<MaterialModelEditorPage />}
           />
         </Route>
       </Route>

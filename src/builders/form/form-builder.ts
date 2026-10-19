@@ -48,6 +48,7 @@ function itemProps(field: FormFieldSpec, classNameSuffix?: string): string {
     field.layout ? `layout="${field.layout}"` : undefined,
     field.labelWidth ? `labelWidth="${field.labelWidth}"` : undefined,
     field.labelGap ? `labelGap="${field.labelGap}"` : undefined,
+    field.alignment ? `alignment="${field.alignment}"` : undefined,
   ]
     .filter(Boolean)
     .join(' ');
@@ -65,11 +66,7 @@ type OptionFieldSpec = Extract<
   FormFieldSpec,
   {
     kind:
-      | 'select'
-      | 'combobox'
-      | 'autocomplete'
-      | 'searchSelect'
-      | 'multiselect';
+      'select' | 'combobox' | 'autocomplete' | 'searchSelect' | 'multiselect';
   }
 >;
 

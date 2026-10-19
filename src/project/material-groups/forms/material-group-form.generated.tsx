@@ -101,6 +101,7 @@ export function MaterialGroupForm({
                 className="md:col-span-12"
                 layout="horizontal"
                 labelWidth="md"
+                alignment="first-control"
               >
                 <FormLabel>
                   {intl.formatMessage({ id: 'materialGroups.fields.code' })}
@@ -160,6 +161,7 @@ export function MaterialGroupForm({
                 className="md:col-span-12"
                 layout="horizontal"
                 labelWidth="md"
+                alignment="start"
               >
                 <FormLabel>
                   {intl.formatMessage({

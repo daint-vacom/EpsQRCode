@@ -15,11 +15,11 @@ export function MaterialIdentity({
         <img
           src={imageUrl}
           alt=""
-          className="size-10 shrink-0 rounded-admin-control border border-border object-cover"
+          className="size-16 shrink-0 rounded-admin-control border border-border object-cover"
         />
       ) : (
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-admin-control border border-border bg-admin-surface-alt text-muted-foreground">
-          <Package className="size-5" aria-hidden="true" />
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-admin-control border border-border bg-admin-surface-alt text-muted-foreground">
+          <Package className="size-7" aria-hidden="true" />
         </span>
       )}
       <span className="flex min-w-0 flex-col">

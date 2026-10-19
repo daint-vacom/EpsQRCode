@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import { Boxes, Save } from 'lucide-react';
+import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -13,19 +14,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
-import { PageHeader } from '@/components/ui/page-header';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import {
   mapMaterialModelToFormValues,
   MaterialModelForm,
   useMaterialModelForm,
 } from '../forms/material-model-form.generated';
+import { MaterialModelGalleryCard } from '../forms/material-model-gallery-card';
 import {
   useCreateMaterialModelMutation,
   useMaterialModelsQuery,
   useUpdateMaterialModelMutation,
 } from '../hooks/use-material-models';
-import type { MaterialModelFormValues } from '../model/material-model';
+import type {
+  MaterialModelFormValues,
+  MaterialModelImageDraft,
+} from '../model/material-model';
 import { MATERIAL_MODEL_PERMISSION_CODES } from '../model/material-model-permissions';
+import { MaterialModelSpecificationsEditorTable } from '../table/material-model-specifications-editor-table.generated';
 
 export function MaterialModelEditorPage() {
   const intl = useIntl();
@@ -48,16 +55,47 @@ export function MaterialModelEditorPage() {
   const createMutation = useCreateMaterialModelMutation();
   const updateMutation = useUpdateMaterialModelMutation();
   const form = useMaterialModelForm();
+  const [galleryImages, setGalleryImages] = useState<MaterialModelImageDraft[]>(
+    [],
+  );
+  const [activeTab, setActiveTab] = useState('general');
+  const requiresInspection = form.watch('requiresInspection');
   const editingModel = id
     ? (query.data?.find((model) => model.id === id) ?? null)
     : null;
 
   useEffect(() => {
-    if (editingModel) form.reset(mapMaterialModelToFormValues(editingModel));
-  }, [editingModel, form]);
+    if (editingModel) {
+      form.reset(mapMaterialModelToFormValues(editingModel));
+      setGalleryImages(
+        editingModel.images.map((image) => ({
+          ...image,
+          sortOrder: image.sortOrder,
+        })),
+      );
+    } else if (!isEdit) {
+      form.reset();
+      setGalleryImages([]);
+    }
+  }, [editingModel, form, isEdit]);
+
+  useEffect(() => {
+    if (!requiresInspection && activeTab === 'inspection') {
+      setActiveTab('general');
+    }
+  }, [activeTab, requiresInspection]);
 
   const handleSubmit = (values: MaterialModelFormValues) => {
     if (!canManage) return;
+    if (
+      galleryImages.length > 0 &&
+      !galleryImages.some((image) => image.isCover)
+    ) {
+      toast.error(
+        intl.formatMessage({ id: 'materialModels.gallery.coverRequired' }),
+      );
+      return;
+    }
     if (values.codeMode === 'manual' && !values.code.trim()) {
       form.setError('code', {
         type: 'manual',
@@ -65,11 +103,20 @@ export function MaterialModelEditorPage() {
           id: 'materialModels.errors.codeRequired',
         }),
       });
+      setActiveTab('general');
+      toast.error(
+        intl.formatMessage({ id: 'materialModels.errors.codeRequired' }),
+      );
       return;
     }
     if (isEdit && id) {
       updateMutation.mutate(
-        { id, values },
+        {
+          id,
+          values,
+          images: galleryImages,
+          previousImages: editingModel?.images ?? [],
+        },
         {
           onSuccess: () => {
             toast.success(
@@ -82,15 +129,25 @@ export function MaterialModelEditorPage() {
       );
       return;
     }
-    createMutation.mutate(values, {
-      onSuccess: () => {
-        toast.success(
-          intl.formatMessage({ id: 'materialModels.toasts.created' }),
-        );
-        navigate(ROUTES.PROJECT.MATERIAL_MODELS);
+    createMutation.mutate(
+      { values, images: galleryImages },
+      {
+        onSuccess: () => {
+          toast.success(
+            intl.formatMessage({ id: 'materialModels.toasts.created' }),
+          );
+          navigate(ROUTES.PROJECT.MATERIAL_MODELS);
+        },
+        onError: (error) => toast.error(getApiErrorMessage(error)),
       },
-      onError: (error) => toast.error(getApiErrorMessage(error)),
-    });
+    );
+  };
+
+  const handleInvalidSubmit: SubmitErrorHandler<MaterialModelFormValues> = (
+    errors,
+  ) => {
+    setActiveTab(errors.specifications ? 'technical' : 'general');
+    toast.error(intl.formatMessage({ id: 'materialModels.errors.validation' }));
   };
 
   const isLoading =
@@ -101,42 +158,34 @@ export function MaterialModelEditorPage() {
       ? 'materialModels.dialogs.editTitle'
       : 'materialModels.dialogs.createTitle',
   });
+  const header = useMemo(
+    () => ({
+      title,
+      icon: Boxes,
+      showBackButton: true,
+      backLabel: intl.formatMessage({ id: 'materialModels.actions.back' }),
+      onBack: () => navigate(ROUTES.PROJECT.MATERIAL_MODELS),
+      actions:
+        canManage && (!isEdit || editingModel) ? (
+          <Button
+            type="submit"
+            form="materialModel-form"
+            variant="primary"
+            size="md"
+            loading={isSaving}
+            loadingText={intl.formatMessage({ id: 'common.state.saving' })}
+          >
+            <Save />
+            {intl.formatMessage({ id: 'common.actions.save' })}
+          </Button>
+        ) : null,
+    }),
+    [canManage, editingModel, intl, isEdit, isSaving, navigate, title],
+  );
+  useDetailEntryLayoutHeader(header);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
-      <PageHeader
-        title={title}
-        icon={Boxes}
-        showBackButton
-        backLabel={intl.formatMessage({ id: 'materialModels.actions.back' })}
-        onBack={() => navigate(ROUTES.PROJECT.MATERIAL_MODELS)}
-        actions={
-          canManage && (!isEdit || editingModel) ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() => navigate(ROUTES.PROJECT.MATERIAL_MODELS)}
-              >
-                {intl.formatMessage({ id: 'common.actions.cancel' })}
-              </Button>
-              <Button
-                type="submit"
-                form="materialModel-form"
-                variant="primary"
-                size="md"
-                loading={isSaving}
-                loadingText={intl.formatMessage({ id: 'common.state.saving' })}
-              >
-                <Save />
-                {intl.formatMessage({ id: 'common.actions.save' })}
-              </Button>
-            </>
-          ) : null
-        }
-      />
-
+    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-hidden p-4 lg:p-5">
       {isLoading ? (
         <PageLoading
           label={intl.formatMessage({ id: 'common.state.loading' })}
@@ -175,18 +224,64 @@ export function MaterialModelEditorPage() {
           })}
         />
       ) : (
-        <Card className="min-h-0 flex-1 overflow-hidden">
-          <CardContent className="min-h-0 overflow-y-auto">
-            <MaterialModelForm
-              form={form}
-              onSubmit={handleSubmit}
-              mode={isEdit ? 'edit' : 'create'}
-              id="materialModel-form"
-              codePattern={codePattern}
-              resetKey={id ?? 'create'}
-            />
-          </CardContent>
-        </Card>
+        <form
+          id="materialModel-form"
+          onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
+          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] xl:overflow-hidden"
+        >
+          <MaterialModelGalleryCard
+            key={id ?? 'create'}
+            images={galleryImages}
+            onImagesChange={setGalleryImages}
+          />
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex min-h-[32rem] min-w-0 flex-1 flex-col xl:overflow-hidden"
+          >
+            <TabsList variant="line" size="md" className="w-full">
+              <TabsTrigger value="general">
+                {intl.formatMessage({ id: 'materialModels.tabs.general' })}
+              </TabsTrigger>
+              <TabsTrigger value="technical">
+                {intl.formatMessage({ id: 'materialModels.tabs.technical' })}
+              </TabsTrigger>
+              {requiresInspection && (
+                <TabsTrigger value="inspection">
+                  {intl.formatMessage({ id: 'materialModels.tabs.inspection' })}
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent
+              value="general"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <Card className="min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5">
+                  <MaterialModelForm
+                    form={form}
+                    onSubmit={handleSubmit}
+                    renderFormElement={false}
+                    mode={isEdit ? 'edit' : 'create'}
+                    codePattern={codePattern}
+                    resetKey={id ?? 'create'}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent
+              value="technical"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              <Card className="min-h-[32rem] min-w-0 flex-1 flex-col overflow-hidden">
+                <MaterialModelSpecificationsEditorTable form={form} />
+              </Card>
+            </TabsContent>
+            {requiresInspection && (
+              <TabsContent value="inspection" className="min-h-0 flex-1" />
+            )}
+          </Tabs>
+        </form>
       )}
     </div>
   );

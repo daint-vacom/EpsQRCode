@@ -26,13 +26,14 @@ type FormLabelVariant = 'default' | 'compact';
 type FormItemLayout = 'stacked' | 'horizontal';
 type FormItemLabelWidth = 'sm' | 'md' | 'lg';
 type FormItemLabelGap = 'sm' | 'md' | 'lg';
+type FormItemAlignment = 'center' | 'start' | 'first-control';
 
 const formItemVariants = cva('', {
   variants: {
     layout: {
       stacked: 'flex flex-col',
       horizontal:
-        '[--form-item-label-width:8.75rem] grid items-start grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] gap-x-3 gap-y-1 [&>[data-slot=form-message]]:col-start-2 [&>[data-slot=form-description]]:col-start-2',
+        '[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] gap-x-3 gap-y-1 [&>[data-slot=form-message]]:col-start-2 [&>[data-slot=form-description]]:col-start-2',
     },
     variant: {
       default: 'gap-2.5',
@@ -97,7 +98,7 @@ const useFormField = () => {
     throw new Error('useFormField should be used within <FormField>');
   }
 
-  const { id, variant: itemVariant, layout } = itemContext;
+  const { id, variant: itemVariant, layout, alignment } = itemContext;
 
   return {
     id,
@@ -107,6 +108,7 @@ const useFormField = () => {
     formMessageId: `${id}-form-item-message`,
     itemVariant,
     layout,
+    alignment,
     ...fieldState,
   };
 };
@@ -115,12 +117,14 @@ type FormItemContextValue = {
   id: string;
   variant: FormLabelVariant;
   layout: FormItemLayout;
+  alignment: FormItemAlignment;
 };
 
 const FormItemContext = React.createContext<FormItemContextValue>({
   id: '',
   variant: 'default',
   layout: 'stacked',
+  alignment: 'center',
 });
 
 function FormItem({
@@ -129,22 +133,26 @@ function FormItem({
   layout = 'stacked',
   labelWidth,
   labelGap,
+  alignment = 'center',
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & {
   variant?: FormLabelVariant;
   layout?: FormItemLayout;
   labelWidth?: FormItemLabelWidth;
   labelGap?: FormItemLabelGap;
+  alignment?: FormItemAlignment;
 }) {
   const id = React.useId();
   const { error } = useFormField();
 
   return (
-    <FormItemContext.Provider value={{ id, variant, layout }}>
+    <FormItemContext.Provider value={{ id, variant, layout, alignment }}>
       <div
         data-slot="form-item"
         className={cn(
           formItemVariants({ layout, variant, labelWidth, labelGap }),
+          layout === 'horizontal' &&
+            (alignment === 'center' ? 'items-center' : 'items-start'),
           className,
         )}
         data-invalid={!!error}
@@ -160,14 +168,17 @@ function FormLabel({
   ...props
 }: React.ComponentProps<typeof LabelPrimitive.Root> &
   VariantProps<typeof formLabelVariants>) {
-  const { formItemId, itemVariant, layout } = useFormField();
+  const { formItemId, itemVariant, layout, alignment } = useFormField();
 
   return (
     <Label
       data-slot="form-label"
       className={cn(
         formLabelVariants({ variant: variant ?? itemVariant }),
-        layout === 'horizontal' && 'pt-2',
+        layout === 'horizontal' && alignment === 'start' && 'pt-2',
+        layout === 'horizontal' &&
+          alignment === 'first-control' &&
+          'pt-[calc((2.25rem-1em)/2)]',
         className,
       )}
       htmlFor={formItemId}
@@ -252,4 +263,9 @@ export {
   useFormField,
 };
 
-export type { FormItemLabelGap, FormItemLabelWidth, FormItemLayout };
+export type {
+  FormItemAlignment,
+  FormItemLabelGap,
+  FormItemLabelWidth,
+  FormItemLayout,
+};

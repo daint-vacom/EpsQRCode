@@ -27,6 +27,8 @@ const inputVariants = cva(
           'h-8.5 rounded-md border-current/25 bg-transparent px-3 text-[0.8125rem] text-inherit shadow-none focus-visible:!bg-transparent focus-visible:border-current/50 focus-visible:ring-current/20 file:pe-3 file:me-3',
         ghost:
           'h-8.5 rounded-md border-transparent bg-transparent px-2.5 text-[0.8125rem] leading-(--text-sm--line-height) shadow-none hover:bg-accent/60 focus-visible:bg-background file:pe-2.5 file:me-2.5',
+        'ghost-underline':
+          'h-8.5 rounded-none border-0 border-b border-input bg-transparent px-0 text-[0.8125rem] leading-(--text-sm--line-height) shadow-none hover:bg-transparent focus-visible:border-b-2 focus-visible:border-b-primary focus-visible:bg-transparent focus-visible:ring-0 aria-invalid:border-b-destructive aria-invalid:ring-0 file:pe-2.5 file:me-2.5',
       },
     },
     defaultVariants: {

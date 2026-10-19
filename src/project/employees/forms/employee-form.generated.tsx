@@ -298,6 +298,7 @@ export function EmployeeForm({
                       <FormItem
                         layout="horizontal"
                         labelWidth="md"
+                        alignment="start"
                         className="md:col-span-2"
                       >
                         <FormLabel>Ghi chú</FormLabel>

@@ -103,19 +103,6 @@ export const materialSpecificationFormSchema = z
     }
 
     if (
-      values.dataType === 'boolean' &&
-      values.options.some(
-        (option) => !['true', 'false'].includes(option.label.toLowerCase()),
-      )
-    ) {
-      context.addIssue({
-        code: 'custom',
-        path: ['options'],
-        message: 'Giá trị gợi ý phải là Có hoặc Không.',
-      });
-    }
-
-    if (
       (values.dataType === 'length' || values.dataType === 'weight') &&
       typeof values.defaultValue === 'object' &&
       values.defaultValue !== null &&
@@ -140,6 +127,32 @@ export type MaterialSpecificationOption = z.infer<
 >;
 export type MaterialSpecificationValue =
   string | boolean | string[] | { amount: number; unit?: string };
+
+export const MATERIAL_SPECIFICATION_DATA_TYPE_CONFIG: Record<
+  MaterialSpecificationDataType,
+  { supportsSuggestions: boolean; supportsMultipleValues: boolean }
+> = {
+  text: { supportsSuggestions: true, supportsMultipleValues: true },
+  number: { supportsSuggestions: true, supportsMultipleValues: true },
+  boolean: { supportsSuggestions: false, supportsMultipleValues: false },
+  date: { supportsSuggestions: false, supportsMultipleValues: false },
+  color: { supportsSuggestions: true, supportsMultipleValues: true },
+  length: { supportsSuggestions: true, supportsMultipleValues: true },
+  weight: { supportsSuggestions: true, supportsMultipleValues: true },
+};
+
+export function supportsMaterialSpecificationSuggestions(
+  dataType: MaterialSpecificationDataType,
+) {
+  return MATERIAL_SPECIFICATION_DATA_TYPE_CONFIG[dataType].supportsSuggestions;
+}
+
+export function supportsMultipleMaterialSpecificationValues(
+  dataType: MaterialSpecificationDataType,
+) {
+  return MATERIAL_SPECIFICATION_DATA_TYPE_CONFIG[dataType]
+    .supportsMultipleValues;
+}
 
 export interface MaterialSpecification {
   id: string;
@@ -212,6 +225,23 @@ export function mapMaterialSpecificationRow(
 export function mapMaterialSpecificationToFormValues(
   specification: MaterialSpecification,
 ): MaterialSpecificationFormValues {
+  const defaultValue = specification.defaultValue;
+  const mappedDefaultValue = supportsMaterialSpecificationSuggestions(
+    specification.dataType,
+  )
+    ? Array.isArray(defaultValue)
+      ? [...defaultValue]
+      : typeof defaultValue === 'object' && defaultValue !== null
+        ? { ...defaultValue }
+        : defaultValue
+    : specification.dataType === 'boolean'
+      ? typeof defaultValue === 'boolean'
+        ? defaultValue
+        : null
+      : typeof defaultValue === 'string'
+        ? defaultValue
+        : null;
+
   return {
     code: specification.code,
     name: specification.name,
@@ -230,13 +260,10 @@ export function mapMaterialSpecificationToFormValues(
           ? (getMaterialSpecificationUnits(specification.dataType)[0] ?? '')
           : specification.unit,
     description: specification.description,
-    options: specification.options.map((option) => ({ ...option })),
-    defaultValue: Array.isArray(specification.defaultValue)
-      ? [...specification.defaultValue]
-      : typeof specification.defaultValue === 'object' &&
-          specification.defaultValue !== null
-        ? { ...specification.defaultValue }
-        : specification.defaultValue,
+    options: supportsMaterialSpecificationSuggestions(specification.dataType)
+      ? specification.options.map((option) => ({ ...option }))
+      : [],
+    defaultValue: mappedDefaultValue,
     codeMode: 'manual',
   };
 }

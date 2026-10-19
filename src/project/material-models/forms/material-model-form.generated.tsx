@@ -9,11 +9,13 @@
  */
 import { useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
+import { MaterialGroupSelect } from '@/project/material-groups/components/material-group-select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -43,8 +45,10 @@ export const materialModelDefaultValues: MaterialModelFormValues = {
   code: '',
   codeMode: 'auto',
   name: '',
-  imageUrl: '',
+  groupId: '',
   description: '',
+  requiresInspection: false,
+  specifications: [],
 };
 
 type MaterialModelFormSource = MaterialModel;
@@ -66,14 +70,20 @@ export function mapMaterialModelToFormValues(
     code: entity.code,
     codeMode: 'manual',
     name: entity.name,
-    imageUrl: entity.imageUrl ?? '',
+    groupId: entity.groupId ?? '',
     description: entity.description,
+    requiresInspection: entity.requiresInspection,
+    specifications: entity.specifications.map((specification) => ({
+      ...specification,
+      values: [...specification.values],
+    })),
   };
 }
 
 interface MaterialModelFormProps {
   form: UseFormReturn<MaterialModelFormValues>;
   onSubmit: (values: MaterialModelFormValues) => void;
+  renderFormElement?: boolean;
   id?: string;
   mode: 'create' | 'edit';
   codePattern: string;
@@ -83,6 +93,7 @@ interface MaterialModelFormProps {
 export function MaterialModelForm({
   form,
   onSubmit,
+  renderFormElement = true,
   id = 'materialModel-form',
   mode,
   codePattern,
@@ -90,112 +101,157 @@ export function MaterialModelForm({
 }: MaterialModelFormProps) {
   const intl = useIntl();
   const codeMode = form.watch('codeMode');
+  const fields = (
+    <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
+      <FormField
+        control={form.control}
+        name="code"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="first-control"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'materialModels.fields.code' })}
+              {codeMode === 'manual' && (
+                <span className="text-destructive"> *</span>
+              )}
+            </FormLabel>
+            <FormControl>
+              <CodeInputField
+                variant="md"
+                {...field}
+                mode={mode}
+                codeMode={codeMode}
+                pattern={codePattern}
+                resetKey={resetKey}
+                showCodeModeSelector={mode === 'create'}
+                onCodeModeChange={(nextCodeMode) => {
+                  form.setValue('codeMode', nextCodeMode, {
+                    shouldDirty: true,
+                  });
+                  form.setValue('code', '');
+                  form.clearErrors('code');
+                }}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'materialModels.fields.name' })}
+              <span className="text-destructive"> *</span>
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="groupId"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'materialModels.fields.group' })}
+              <span className="text-destructive"> *</span>
+            </FormLabel>
+            <FormControl>
+              <MaterialGroupSelect
+                value={field.value}
+                onChange={field.onChange}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="start"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'materialModels.fields.description',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Textarea rows={3} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="requiresInspection"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'materialModels.fields.requiresInspection',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                onBlur={field.onBlur}
+                name={field.name}
+                ref={field.ref}
+                aria-label={intl.formatMessage({
+                  id: 'materialModels.fields.requiresInspection',
+                })}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+
   return (
     <Form {...form}>
-      <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'materialModels.fields.code' })}
-                  {codeMode === 'manual' && (
-                    <span className="text-destructive"> *</span>
-                  )}
-                </FormLabel>
-                <FormControl>
-                  <CodeInputField
-                    variant="md"
-                    {...field}
-                    mode={mode}
-                    codeMode={codeMode}
-                    pattern={codePattern}
-                    resetKey={resetKey}
-                    showCodeModeSelector={mode === 'create'}
-                    onCodeModeChange={(nextCodeMode) => {
-                      form.setValue('codeMode', nextCodeMode, {
-                        shouldDirty: true,
-                      });
-                      form.setValue('code', '');
-                      form.clearErrors('code');
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'materialModels.fields.name' })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="imageUrl"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'materialModels.fields.imageUrl' })}
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'materialModels.fields.description',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </form>
+      {renderFormElement ? (
+        <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
+          {fields}
+        </form>
+      ) : (
+        fields
+      )}
     </Form>
   );
 }

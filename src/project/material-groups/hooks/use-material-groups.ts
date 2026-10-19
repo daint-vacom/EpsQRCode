@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMaterialGroup,
   deleteMaterialGroup,
+  loadAvailableMaterialGroups,
   loadMaterialGroups,
   updateMaterialGroup,
   updateMaterialGroupAvailability,
@@ -14,12 +15,22 @@ import type {
 export const materialGroupKeys = {
   all: ['project', 'material-groups'] as const,
   list: () => [...materialGroupKeys.all, 'list'] as const,
+  available: () => [...materialGroupKeys.all, 'available'] as const,
 };
 
 export function useMaterialGroupsQuery(enabled = true) {
   return useQuery({
     queryKey: materialGroupKeys.list(),
     queryFn: ({ signal }) => loadMaterialGroups(signal),
+    enabled,
+    retry: 0,
+  });
+}
+
+export function useAvailableMaterialGroupsQuery(enabled = true) {
+  return useQuery({
+    queryKey: materialGroupKeys.available(),
+    queryFn: ({ signal }) => loadAvailableMaterialGroups(signal),
     enabled,
     retry: 0,
   });
