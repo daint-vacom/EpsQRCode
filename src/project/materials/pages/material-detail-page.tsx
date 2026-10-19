@@ -114,7 +114,7 @@ export function MaterialDetailPage() {
     <Tabs
       value={activeTab}
       onValueChange={(value) => setActiveTab(value as MaterialDetailTabValue)}
-      className="min-w-0 bg-background"
+      className="min-w-0 bg-muted"
     >
       <header className="sticky top-0 z-50 w-full border-b border-admin-neutral-100 bg-card">
         <DetailShell>
@@ -174,7 +174,7 @@ export function MaterialDetailPage() {
         </DetailShell>
       </header>
 
-      <main className="py-8">
+      <main className="min-w-0 py-8">
         <DetailShell>
           {!isPermissionsPending && !canView ? (
             <ErrorState
@@ -258,7 +258,7 @@ export function MaterialDetailPage() {
 
 function DetailShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-7xl min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
+    <div className="mx-auto w-full max-w-none min-w-0 px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
       {children}
     </div>
   );
@@ -465,7 +465,7 @@ function MaterialSpecificationsCard({ material }: { material: Material }) {
   );
 
   return (
-    <Card className="overflow-hidden rounded-[21px]">
+    <Card className="overflow-hidden">
       <CardHeader>
         <CardTitle>
           {intl.formatMessage({
@@ -721,25 +721,18 @@ function PublicInfoCard({
 }) {
   const toneClasses = {
     primary: {
-      card: 'border-admin-primary-foam',
-      header: 'border-admin-primary-bg text-admin-primary-dark',
+      header: 'text-admin-primary-dark',
       icon: 'bg-admin-primary-bg text-admin-primary-dark',
     },
     blue: {
-      card: 'border-admin-blue-border',
-      header: 'border-admin-blue-bg text-admin-blue-dark',
+      header: 'text-admin-blue-dark',
       icon: 'bg-admin-blue-primary text-white',
     },
   }[tone];
 
   return (
-    <Card className={cn('overflow-hidden rounded-[21px]', toneClasses.card)}>
-      <CardHeader
-        className={cn(
-          'min-h-0 justify-start gap-2 border-b px-5 py-3.5',
-          toneClasses.header,
-        )}
-      >
+    <Card className="overflow-hidden">
+      <CardHeader className={cn('justify-start gap-2', toneClasses.header)}>
         <span
           className={cn(
             'flex size-7 items-center justify-center rounded-lg',
@@ -752,7 +745,7 @@ function PublicInfoCard({
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4">{children}</CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
