@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -208,6 +209,7 @@ describe('production material pages', () => {
   });
 
   it('keeps the selected gallery image when switching detail tabs', async () => {
+    const user = userEvent.setup();
     mocks.material = {
       ...sample,
       modelSnapshot: {
@@ -242,10 +244,23 @@ describe('production material pages', () => {
 
     const signedUrlRequestCount =
       mocks.createSignedStorageUrl.mock.calls.length;
-    fireEvent.click(screen.getByRole('tab', { name: /Lịch sử kiểm kê/ }));
-    fireEvent.click(screen.getByRole('tab', { name: /Thông tin chung/ }));
+    const generalTab = screen.getByRole('tab', { name: /Thông tin chung/ });
+    const generalPanel = document.getElementById(
+      generalTab.getAttribute('aria-controls') ?? '',
+    );
+    const inventoryTab = screen.getByRole('tab', {
+      name: /Lịch sử kiểm kê/,
+    });
+    await user.click(inventoryTab);
+    await waitFor(() => {
+      expect(inventoryTab).toHaveAttribute('aria-selected', 'true');
+    });
+    expect(generalPanel).toHaveAttribute('data-state', 'inactive');
+    expect(generalPanel).toHaveClass('data-[state=inactive]:hidden');
+    await user.click(screen.getByRole('tab', { name: /Thông tin chung/ }));
 
     await waitFor(() => {
+      expect(generalPanel).toHaveAttribute('data-state', 'active');
       expect(
         screen.getAllByRole('button', { name: 'Xem ảnh Máy đo' })[1],
       ).toHaveAttribute('aria-current', 'true');
