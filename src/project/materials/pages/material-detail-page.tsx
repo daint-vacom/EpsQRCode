@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
-  ArrowLeft,
   Boxes,
   ClipboardCheck,
   ClipboardPenLine,
@@ -11,7 +10,6 @@ import {
   Info,
   Maximize2,
   MessageSquareWarning,
-  PackageCheck,
   QrCode,
   ShieldCheck,
   UserRound,
@@ -43,6 +41,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageBackButton } from '@/components/ui/page-back-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMaterialQuery } from '../hooks/use-materials';
 import type { Material } from '../model/material';
@@ -119,23 +118,14 @@ export function MaterialDetailPage() {
       >
         <header className="z-10 w-full shrink-0 border-b border-admin-neutral-100 bg-card">
           <DetailShell>
-            <div className="flex items-center justify-between gap-4 py-4">
+            <div className="flex items-center justify-between gap-4 pt-4 pb-1">
               <div className="flex min-w-0 items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  shape="circle"
+                <PageBackButton
                   onClick={() => navigate(ROUTES.PROJECT.MATERIALS)}
-                  aria-label={intl.formatMessage({
+                  label={intl.formatMessage({
                     id: 'project.materials.actions.back',
                   })}
-                >
-                  <ArrowLeft className="size-3.5" />
-                </Button>
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <PackageCheck className="size-3.5" />
-                </span>
+                />
                 <h1 className="truncate text-sm font-medium text-admin-neutral-800 md:text-base">
                   {modelName}
                 </h1>
@@ -159,14 +149,13 @@ export function MaterialDetailPage() {
             </div>
             <TabsList
               variant="line"
-              size="sm"
               className="w-full min-w-0 overflow-x-auto border-b-0"
             >
               {MATERIAL_DETAIL_TABS.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <TabsTrigger key={tab.value} value={tab.value}>
-                    <Icon className="size-3.5" />
+                    <Icon />
                     {intl.formatMessage({ id: tab.messageId })}
                   </TabsTrigger>
                 );
