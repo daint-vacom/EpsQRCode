@@ -114,6 +114,12 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.sections.qr': 'Mã QR vật tư',
   'project.materials.form.chooseModelHint':
     'Chọn mẫu vật tư để xem thông tin được lưu khi tạo.',
+  'project.materials.form.inheritedSpecifications':
+    'Thông số kế thừa ({count})',
+  'project.materials.form.chooseSpecificationValue': 'Chọn giá trị gợi ý',
+  'project.materials.form.chooseSpecificationValues':
+    'Chọn một hoặc nhiều giá trị',
+  'project.materials.form.searchSpecificationValues': 'Tìm giá trị',
   'project.materials.form.noRepresentedOwner':
     'Tài khoản hiện chưa được đại diện chủ thể nào. Hãy thiết lập người đại diện trước khi tạo vật tư.',
   'project.materials.form.imageUrlOnly':
@@ -265,6 +271,12 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.sections.qr': 'Material QR code',
   'project.materials.form.chooseModelHint':
     'Choose a material model to preview information captured when the material is created.',
+  'project.materials.form.inheritedSpecifications':
+    'Inherited specifications ({count})',
+  'project.materials.form.chooseSpecificationValue': 'Choose a suggested value',
+  'project.materials.form.chooseSpecificationValues':
+    'Choose one or more values',
+  'project.materials.form.searchSpecificationValues': 'Search values',
   'project.materials.form.noRepresentedOwner':
     'Your account does not represent a custodian yet. Assign a representative before creating a material.',
   'project.materials.form.imageUrlOnly':

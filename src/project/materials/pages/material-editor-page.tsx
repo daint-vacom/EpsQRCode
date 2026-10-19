@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
@@ -10,18 +10,10 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardHeading,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
-import { Textarea } from '@/components/ui/textarea';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
-import { MaterialModelImageView } from '../components/material-model-image';
+import { MaterialSpecificationFields } from '../components/material-specification-fields';
 import {
   materialDefaultValues,
   MaterialForm,
@@ -262,30 +254,33 @@ export function MaterialEditorPage() {
           })}
         />
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          {isEdit ? (
-            <div className="mb-4 rounded-lg border bg-muted/30 px-4 py-3 text-sm">
-              <span className="font-medium">
-                {intl.formatMessage({ id: 'project.materials.fields.code' })}
-                :{' '}
-              </span>
-              {editingMaterial?.code}
-            </div>
-          ) : null}
-          <MaterialForm
-            id={FORM_ID}
-            mode={isEdit ? 'edit' : 'create'}
-            form={form}
-            onSubmit={handleSubmit}
-            modelIdOptions={modelIdOptions}
-            ownerPartyIdOptions={ownerPartyIdOptions}
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            {intl.formatMessage({ id: 'project.materials.form.imageUrlOnly' })}
-          </p>
-          {!isEdit && ownerPartyIdOptions.length === 0 ? (
-            <Card className="mt-4 border-warning/40 bg-warning/5">
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border bg-card p-5">
+          <div className="mx-auto w-full max-w-5xl">
+            {isEdit ? (
+              <div className="mb-5 grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
+                <span className="text-sm font-medium">
+                  {intl.formatMessage({ id: 'project.materials.fields.code' })}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {editingMaterial?.code}
+                </span>
+              </div>
+            ) : null}
+            <MaterialForm
+              id={FORM_ID}
+              mode={isEdit ? 'edit' : 'create'}
+              form={form}
+              onSubmit={handleSubmit}
+              modelIdOptions={modelIdOptions}
+              ownerPartyIdOptions={ownerPartyIdOptions}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {intl.formatMessage({
+                id: 'project.materials.form.imageUrlOnly',
+              })}
+            </p>
+            {!isEdit && ownerPartyIdOptions.length === 0 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-admin-control border border-warning/40 bg-warning/5 p-4">
                 <p className="text-sm">
                   {intl.formatMessage({
                     id: 'project.materials.form.noRepresentedOwner',
@@ -300,99 +295,45 @@ export function MaterialEditorPage() {
                     id: 'project.materials.actions.manageCustodians',
                   })}
                 </Button>
-              </CardContent>
-            </Card>
-          ) : null}
-          {snapshot ? (
-            <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,420px)]">
-              <Card>
-                <CardHeader>
-                  <CardHeading>
-                    <CardTitle>
-                      {intl.formatMessage({
-                        id: 'project.materials.sections.modelSnapshot',
-                      })}
-                    </CardTitle>
-                    <CardDescription>
-                      {snapshot.code} · {snapshot.name}
-                    </CardDescription>
-                  </CardHeading>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <SpecificationOverrides
-                    specifications={snapshot.specifications}
-                    values={form.watch('specificationOverrides') ?? {}}
-                    onChange={(next) =>
-                      form.setValue('specificationOverrides', next, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
-                    }
-                    intl={intl}
-                  />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardHeading>
-                    <CardTitle>
-                      {intl.formatMessage({
-                        id: 'project.materials.fields.image',
-                      })}
-                    </CardTitle>
-                  </CardHeading>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <MaterialModelImageView
-                    image={snapshot.images[0]}
-                    alt={snapshot.name}
-                    className="max-h-64 w-full rounded-lg bg-muted object-contain"
-                  />
-                  {snapshot.description ? (
-                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                      {snapshot.description}
-                    </p>
-                  ) : null}
-                </CardContent>
-              </Card>
+              </div>
+            ) : null}
+            <div className="mt-6">
+              {snapshot ? (
+                <MaterialSpecificationFields
+                  specifications={snapshot.specifications}
+                  modelName={snapshot.name}
+                  values={form.watch('specificationOverrides') ?? {}}
+                  onChange={(next) =>
+                    form.setValue('specificationOverrides', next, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              ) : (
+                <p className="rounded-admin-control border border-dashed border-border bg-admin-surface-alt px-3 py-6 text-center text-sm text-muted-foreground">
+                  {intl.formatMessage({
+                    id: 'project.materials.form.chooseModelHint',
+                  })}
+                </p>
+              )}
             </div>
-          ) : (
-            <Card className="mt-5">
-              <CardHeader>
-                <CardHeading>
-                  <CardTitle>
-                    {intl.formatMessage({
-                      id: 'project.materials.sections.modelSnapshot',
-                    })}
-                  </CardTitle>
-                  <CardDescription>
-                    {intl.formatMessage({
-                      id: 'project.materials.form.chooseModelHint',
-                    })}
-                  </CardDescription>
-                </CardHeading>
-              </CardHeader>
-            </Card>
-          )}
-          {imageOverride ? (
-            <Card className="mt-5 max-w-xl">
-              <CardHeader>
-                <CardHeading>
-                  <CardTitle>
+            {imageOverride ? (
+              <div className="mt-6 flex flex-wrap items-start gap-4 rounded-admin-control border border-border p-3">
+                <div className="min-w-0 flex-1">
+                  <p className="mb-2 text-sm font-medium">
                     {intl.formatMessage({
                       id: 'project.materials.fields.imagePreview',
                     })}
-                  </CardTitle>
-                </CardHeading>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <img
-                  src={imageOverride}
-                  alt={intl.formatMessage({
-                    id: 'project.materials.fields.imagePreview',
-                  })}
-                  className="max-h-64 w-full rounded-lg bg-muted object-contain"
-                />
+                  </p>
+                  <img
+                    src={imageOverride}
+                    alt={intl.formatMessage({
+                      id: 'project.materials.fields.imagePreview',
+                    })}
+                    className="max-h-64 w-full rounded-lg bg-muted object-contain"
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="outline"
@@ -405,9 +346,9 @@ export function MaterialEditorPage() {
                     id: 'project.materials.actions.resetImage',
                   })}
                 </Button>
-              </CardContent>
-            </Card>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
     </div>
@@ -427,121 +368,4 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     conditionNote: material.conditionNote ?? '',
     specificationOverrides: material.specificationOverrides,
   };
-}
-
-function SpecificationOverrides({
-  specifications,
-  values,
-  onChange,
-  intl,
-}: {
-  specifications: Material['modelSnapshot']['specifications'];
-  values: Record<string, string[]>;
-  onChange: (values: Record<string, string[]>) => void;
-  intl: ReturnType<typeof useIntl>;
-}) {
-  const [editingIds, setEditingIds] = useState<Set<string>>(
-    () => new Set(Object.keys(values)),
-  );
-  useEffect(() => {
-    const resolved = new Set(specifications.map((item) => item.id));
-    setEditingIds(
-      (current) =>
-        new Set(
-          [...current].filter(
-            (key) =>
-              resolved.has(key) ||
-              Object.prototype.hasOwnProperty.call(values, key),
-          ),
-        ),
-    );
-  }, [specifications, values]);
-  return (
-    <section className="space-y-3">
-      <h2 className="text-sm font-semibold">
-        {intl.formatMessage({ id: 'project.materials.fields.specifications' })}
-      </h2>
-      {specifications.map((specification) => {
-        const isCustom = Object.prototype.hasOwnProperty.call(
-          values,
-          specification.id,
-        );
-        const value = isCustom
-          ? values[specification.id]
-          : specification.values;
-        const editing = editingIds.has(specification.id) || isCustom;
-        return (
-          <div
-            key={specification.id}
-            className="grid gap-2 border-b pb-3 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center"
-          >
-            <div>
-              <div className="text-sm font-medium">{specification.name}</div>
-              <div className="text-xs text-muted-foreground">
-                {specification.dataType}
-              </div>
-            </div>
-            {editing ? (
-              <div className="space-y-1.5">
-                <Textarea
-                  aria-label={specification.name}
-                  value={value.join('\n')}
-                  rows={Math.min(Math.max(value.length, 1), 4)}
-                  onChange={(event) =>
-                    onChange({
-                      ...values,
-                      [specification.id]: event.target.value.split('\n'),
-                    })
-                  }
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const next = { ...values };
-                    delete next[specification.id];
-                    onChange(next);
-                    setEditingIds((current) => {
-                      const copy = new Set(current);
-                      copy.delete(specification.id);
-                      return copy;
-                    });
-                  }}
-                >
-                  {intl.formatMessage({
-                    id: 'project.materials.actions.useModelValue',
-                  })}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3">
-                <span className="whitespace-pre-wrap text-sm">
-                  {value.join(', ')}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    onChange({
-                      ...values,
-                      [specification.id]: [...specification.values],
-                    });
-                    setEditingIds((current) =>
-                      new Set(current).add(specification.id),
-                    );
-                  }}
-                >
-                  {intl.formatMessage({
-                    id: 'project.materials.actions.customize',
-                  })}
-                </Button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </section>
-  );
 }

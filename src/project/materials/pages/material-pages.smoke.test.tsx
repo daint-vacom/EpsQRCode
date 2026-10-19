@@ -190,7 +190,9 @@ describe('production material pages', () => {
     expect(
       screen.getByRole('textbox', { name: /Mã vật tư/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Thông tin mẫu đã lưu')).toBeInTheDocument();
+    expect(
+      screen.getByText('Chọn mẫu vật tư để xem thông tin được lưu khi tạo.'),
+    ).toBeInTheDocument();
   });
 
   it('renders the authenticated detail and its stable QR destination', async () => {
@@ -206,6 +208,59 @@ describe('production material pages', () => {
       'data-qr-value',
       `${window.location.origin}/materials/material-1`,
     );
+  });
+
+  it('uses configured model values for material specification fields', async () => {
+    mocks.material = {
+      ...sample,
+      specificationOverrides: {
+        'spec-choice': ['Blue'],
+        'spec-list': ['Cable'],
+      },
+      modelSnapshot: {
+        ...sample.modelSnapshot,
+        specifications: [
+          {
+            id: 'spec-fixed',
+            dataType: 'text',
+            name: 'Dung tích',
+            isList: false,
+            values: ['4 kg'],
+          },
+          {
+            id: 'spec-choice',
+            dataType: 'text',
+            name: 'Màu sắc',
+            isList: false,
+            values: ['Red', 'Blue'],
+          },
+          {
+            id: 'spec-list',
+            dataType: 'text',
+            name: 'Phụ kiện',
+            isList: true,
+            values: ['Cable', 'Nozzle'],
+          },
+        ],
+      },
+    };
+
+    const { MaterialEditorPage } = await import('./material-editor-page');
+    renderPage('/materials/material-1', <MaterialEditorPage />);
+
+    expect(screen.getByRole('textbox', { name: 'Dung tích' })).toHaveValue(
+      '4 kg',
+    );
+    expect(screen.getByRole('textbox', { name: 'Dung tích' })).toHaveAttribute(
+      'readonly',
+    );
+    expect(screen.getByRole('combobox', { name: 'Màu sắc' })).toHaveTextContent(
+      'Blue',
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Phụ kiện' }),
+    ).toHaveTextContent('Cable');
+    expect(screen.queryByText('Thêm thông số')).not.toBeInTheDocument();
   });
 
   it('keeps the selected gallery image when switching detail tabs', async () => {
