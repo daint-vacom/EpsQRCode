@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
-import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -33,8 +32,6 @@ import {
   useHandoverDocumentColumns,
 } from '../table/handover.columns.generated';
 
-const EMPTY_FILTERS: HandoverListFilters = {};
-
 function isAuthorizationError(error: unknown) {
   if (typeof error !== 'object' || error === null) return false;
   const value = error as { status?: unknown; response?: { status?: unknown } };
@@ -52,12 +49,7 @@ export function HandoversPage() {
   const canView = hasPermission(HANDOVER_PERMISSION_CODES.view);
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
-  const [type, setType] = useState('');
   const [status, setStatus] = useState('');
-  const [senderPartyId, setSenderPartyId] = useState('');
-  const [recipientPartyId, setRecipientPartyId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -65,35 +57,14 @@ export function HandoversPage() {
   const { pageIndex, pageSize } = pagination;
   const filters = useMemo<HandoverListFilters>(
     () => ({
-      ...EMPTY_FILTERS,
       search: search.trim() || undefined,
-      type: (type || undefined) as HandoverListFilters['type'],
       status: (status || undefined) as HandoverListFilters['status'],
-      senderPartyId: senderPartyId || undefined,
-      recipientPartyId: recipientPartyId || undefined,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
       page: pageIndex + 1,
       pageSize,
     }),
-    [
-      search,
-      type,
-      status,
-      senderPartyId,
-      recipientPartyId,
-      dateFrom,
-      dateTo,
-      pageIndex,
-      pageSize,
-    ],
+    [search, status, pageIndex, pageSize],
   );
   const query = useHandoversQuery(filters, isPermissionsPending || canView);
-  const custodiansQuery = useCustodiansQuery(
-    false,
-    isPermissionsPending || canView,
-  );
-  const custodians = custodiansQuery.data ?? [];
   const records = query.data?.items ?? [];
   const columns = useHandoverDocumentColumns({
     onView: (row) =>
@@ -113,13 +84,6 @@ export function HandoversPage() {
     },
     onPaginationChange: setPagination,
   });
-  const partyOptions = [
-    { value: '', label: 'Tất cả chủ thể' },
-    ...custodians.map((party) => ({
-      value: party.id,
-      label: `${party.name} · ${party.code}`,
-    })),
-  ];
   const emptyMessage = search.trim()
     ? intl.formatMessage({ id: 'project.handover.empty.search' })
     : intl.formatMessage({ id: 'project.handover.empty.list' });
@@ -163,86 +127,65 @@ export function HandoversPage() {
               id: 'project.handover.labels.listCount',
             })}
             stats={
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Input
                   aria-label={intl.formatMessage({
                     id: 'project.handover.labels.search',
                   })}
+                  placeholder={intl.formatMessage({
+                    id: 'project.handover.labels.search',
+                  })}
                   value={search}
                   onChange={(event) => setFilter(setSearch)(event.target.value)}
-                  className="w-64"
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.handover.labels.filterSender',
-                  })}
-                  value={senderPartyId}
-                  onChange={setFilter(setSenderPartyId)}
-                  options={partyOptions}
-                  searchable
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.handover.labels.filterRecipient',
-                  })}
-                  value={recipientPartyId}
-                  onChange={setFilter(setRecipientPartyId)}
-                  options={partyOptions}
-                  searchable
-                />
-                <Input
-                  aria-label="Từ ngày"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) =>
-                    setFilter(setDateFrom)(event.target.value)
-                  }
-                  className="w-40"
-                />
-                <Input
-                  aria-label="Đến ngày"
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setFilter(setDateTo)(event.target.value)}
-                  className="w-40"
-                />
-              </div>
-            }
-            toolbar={
-              <div className="flex items-center gap-2">
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.handover.labels.filterType',
-                  })}
-                  value={type}
-                  onChange={setFilter(setType)}
-                  options={[
-                    { value: '', label: 'Tất cả loại phiếu' },
-                    { value: 'transfer', label: 'Chuyển sở hữu' },
-                    { value: 'loan', label: 'Cho mượn' },
-                    { value: 'return', label: 'Trả lại' },
-                  ]}
-                  searchable={false}
+                  className="w-64 shrink-0"
                 />
                 <OptionSelect
                   aria-label={intl.formatMessage({
                     id: 'project.handover.labels.filterStatus',
                   })}
+                  placeholder={intl.formatMessage({
+                    id: 'project.handover.labels.filterStatusPlaceholder',
+                  })}
                   value={status}
                   onChange={setFilter(setStatus)}
                   options={[
-                    { value: '', label: 'Tất cả trạng thái' },
-                    { value: 'draft', label: 'Bản nháp' },
-                    { value: 'pending', label: 'Chờ xác nhận' },
-                    { value: 'completed', label: 'Hoàn tất' },
-                    { value: 'rejected', label: 'Đã từ chối' },
-                    { value: 'cancelled', label: 'Đã hủy' },
+                    {
+                      value: 'draft',
+                      label: intl.formatMessage({
+                        id: 'project.handover.status.draft',
+                      }),
+                    },
+                    {
+                      value: 'pending',
+                      label: intl.formatMessage({
+                        id: 'project.handover.status.pending',
+                      }),
+                    },
+                    {
+                      value: 'completed',
+                      label: intl.formatMessage({
+                        id: 'project.handover.status.completed',
+                      }),
+                    },
+                    {
+                      value: 'rejected',
+                      label: intl.formatMessage({
+                        id: 'project.handover.status.rejected',
+                      }),
+                    },
+                    {
+                      value: 'cancelled',
+                      label: intl.formatMessage({
+                        id: 'project.handover.status.cancelled',
+                      }),
+                    },
                   ]}
                   searchable={false}
+                  className="w-52 shrink-0"
                 />
-                <DataGridHeaderMenu table={table} />
               </div>
             }
+            toolbar={<DataGridHeaderMenu table={table} />}
           />
           <CardTable className="min-h-0 flex-1">
             {!isPermissionsPending && !canView ? (

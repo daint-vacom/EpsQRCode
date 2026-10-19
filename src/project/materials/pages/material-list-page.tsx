@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
-import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
-import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -28,11 +26,7 @@ import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useMaterialsQuery } from '../hooks/use-materials';
-import type {
-  MaterialCondition,
-  MaterialListFilters,
-  MaterialStatus,
-} from '../model/material';
+import type { MaterialListFilters, MaterialStatus } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import {
   MATERIAL_COLUMN_PINNING,
@@ -49,12 +43,7 @@ export function MaterialListPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
-  const [modelId, setModelId] = useState('');
-  const [ownerPartyId, setOwnerPartyId] = useState('');
-  const [borrowerPartyId, setBorrowerPartyId] = useState('');
-  const [groupId, setGroupId] = useState('');
   const [status, setStatus] = useState('');
-  const [condition, setCondition] = useState('');
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -62,40 +51,19 @@ export function MaterialListPage() {
   const filters = useMemo<MaterialListFilters>(
     () => ({
       search: search.trim() || undefined,
-      modelId: modelId || undefined,
-      ownerPartyId: ownerPartyId || undefined,
-      borrowerPartyId: borrowerPartyId || undefined,
-      groupId: groupId || undefined,
       status: (status || undefined) as MaterialStatus | undefined,
-      condition: (condition || undefined) as MaterialCondition | undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [
-      borrowerPartyId,
-      condition,
-      groupId,
-      modelId,
-      ownerPartyId,
-      pagination.pageIndex,
-      pagination.pageSize,
-      search,
-      status,
-    ],
+    [pagination.pageIndex, pagination.pageSize, search, status],
   );
   const queryEnabled = isPermissionsPending || canView;
   const query = useMaterialsQuery(
     filters,
     queryEnabled && !isPermissionsPending,
   );
-  const modelsQuery = useMaterialModelsQuery(
-    queryEnabled && !isPermissionsPending,
-  );
   const partiesQuery = useCustodiansQuery(
     false,
-    queryEnabled && !isPermissionsPending,
-  );
-  const groupsQuery = useMaterialGroupsQuery(
     queryEnabled && !isPermissionsPending,
   );
   const items = query.data?.items ?? [];
@@ -128,71 +96,7 @@ export function MaterialListPage() {
     state: { pagination, columnPinning: MATERIAL_COLUMN_PINNING },
     onPaginationChange: setPagination,
   });
-  const modelOptions = useMemo<SelectOption[]>(
-    () => [
-      {
-        value: '',
-        label: intl.formatMessage({ id: 'project.materials.filters.model' }),
-      },
-      ...(modelsQuery.data ?? [])
-        .filter((model) => model.isActive)
-        .map((model) => ({
-          value: model.id,
-          label: `${model.code} · ${model.name}`,
-        })),
-    ],
-    [intl, modelsQuery.data],
-  );
-  const ownerOptions = useMemo<SelectOption[]>(
-    () => [
-      {
-        value: '',
-        label: intl.formatMessage({ id: 'project.materials.filters.owner' }),
-      },
-      ...(partiesQuery.data ?? [])
-        .filter((party) => party.isActive)
-        .map((party) => ({
-          value: party.id,
-          label: `${party.name} · ${party.code}`,
-        })),
-    ],
-    [intl, partiesQuery.data],
-  );
-  const borrowerOptions = useMemo<SelectOption[]>(
-    () => [
-      {
-        value: '',
-        label: intl.formatMessage({ id: 'project.materials.filters.borrower' }),
-      },
-      ...(partiesQuery.data ?? [])
-        .filter((party) => party.isActive)
-        .map((party) => ({
-          value: party.id,
-          label: `${party.name} · ${party.code}`,
-        })),
-    ],
-    [intl, partiesQuery.data],
-  );
-  const groupOptions = useMemo<SelectOption[]>(
-    () => [
-      {
-        value: '',
-        label: intl.formatMessage({ id: 'project.materials.filters.group' }),
-      },
-      ...(groupsQuery.data ?? [])
-        .filter((group) => group.isActive)
-        .map((group) => ({
-          value: group.id,
-          label: `${group.code} · ${group.name}`,
-        })),
-    ],
-    [groupsQuery.data, intl],
-  );
   const statusOptions: SelectOption[] = [
-    {
-      value: '',
-      label: intl.formatMessage({ id: 'project.materials.filters.status' }),
-    },
     {
       value: 'available',
       label: intl.formatMessage({ id: 'project.materials.status.available' }),
@@ -200,20 +104,6 @@ export function MaterialListPage() {
     {
       value: 'loaned',
       label: intl.formatMessage({ id: 'project.materials.status.loaned' }),
-    },
-  ];
-  const conditionOptions: SelectOption[] = [
-    {
-      value: '',
-      label: intl.formatMessage({ id: 'project.materials.filters.condition' }),
-    },
-    {
-      value: 'good',
-      label: intl.formatMessage({ id: 'project.materials.condition.good' }),
-    },
-    {
-      value: 'damaged',
-      label: intl.formatMessage({ id: 'project.materials.condition.damaged' }),
     },
   ];
   const handleFilterChange =
@@ -260,7 +150,7 @@ export function MaterialListPage() {
               id: 'project.materials.list.recordCountLabel',
             })}
             stats={
-              <>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Input
                   aria-label={intl.formatMessage({
                     id: 'project.materials.filters.search',
@@ -269,47 +159,26 @@ export function MaterialListPage() {
                     id: 'project.materials.filters.search',
                   })}
                   value={search}
-                  className="w-full sm:w-64"
+                  className="w-64 shrink-0"
                   onChange={(event) => {
                     setSearch(event.target.value);
                     setPagination((current) => ({ ...current, pageIndex: 0 }));
                   }}
                 />
                 <OptionSelect
-                  options={modelOptions}
-                  value={modelId}
-                  onChange={handleFilterChange(setModelId)}
-                  searchable
-                />
-                <OptionSelect
-                  options={groupOptions}
-                  value={groupId}
-                  onChange={handleFilterChange(setGroupId)}
-                  searchable
-                />
-                <OptionSelect
-                  options={ownerOptions}
-                  value={ownerPartyId}
-                  onChange={handleFilterChange(setOwnerPartyId)}
-                  searchable
-                />
-                <OptionSelect
-                  options={borrowerOptions}
-                  value={borrowerPartyId}
-                  onChange={handleFilterChange(setBorrowerPartyId)}
-                  searchable
-                />
-                <OptionSelect
+                  aria-label={intl.formatMessage({
+                    id: 'project.materials.filters.status',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'project.materials.filters.statusPlaceholder',
+                  })}
                   options={statusOptions}
                   value={status}
                   onChange={handleFilterChange(setStatus)}
+                  searchable={false}
+                  className="w-52 shrink-0"
                 />
-                <OptionSelect
-                  options={conditionOptions}
-                  value={condition}
-                  onChange={handleFilterChange(setCondition)}
-                />
-              </>
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />
@@ -323,10 +192,7 @@ export function MaterialListPage() {
                   id: 'project.materials.errors.authorization',
                 })}
               />
-            ) : query.isError ||
-              modelsQuery.isError ||
-              partiesQuery.isError ||
-              groupsQuery.isError ? (
+            ) : query.isError || partiesQuery.isError ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: query.isError
@@ -334,16 +200,11 @@ export function MaterialListPage() {
                     : 'project.materials.errors.loadFiltersTitle',
                 })}
                 description={getApiErrorMessage(
-                  query.error ??
-                    modelsQuery.error ??
-                    partiesQuery.error ??
-                    groupsQuery.error,
+                  query.error ?? partiesQuery.error,
                 )}
                 onRetry={() => {
                   void query.refetch();
-                  void modelsQuery.refetch();
                   void partiesQuery.refetch();
-                  void groupsQuery.refetch();
                 }}
               />
             ) : (
@@ -357,9 +218,7 @@ export function MaterialListPage() {
             {canView &&
             !isPermissionsPending &&
             !query.isError &&
-            !modelsQuery.isError &&
-            !partiesQuery.isError &&
-            !groupsQuery.isError ? (
+            !partiesQuery.isError ? (
               <DataGridPagination />
             ) : null}
           </CardFooter>
