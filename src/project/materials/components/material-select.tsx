@@ -66,12 +66,6 @@ function materialName(material: Material) {
   return material.nameOverride || material.modelSnapshot.name;
 }
 
-function materialDescription(material: Material) {
-  return (
-    material.descriptionOverride?.trim() || material.modelSnapshot.description
-  );
-}
-
 function renderMaterialImage(material: Material, size: MaterialSelectSize) {
   const imageUrl = materialImageUrl(material);
   const imageClassName = size === 'lg' ? 'size-9' : 'size-7';
@@ -107,13 +101,7 @@ function renderMaterialOption(
         </span>
         <span className="block truncate text-xs text-muted-foreground">
           {material.code}
-          {material.serialNumber ? ` · ${material.serialNumber}` : ''}
         </span>
-        {size === 'lg' && materialDescription(material) ? (
-          <span className="block truncate text-xs text-muted-foreground">
-            {materialDescription(material)}
-          </span>
-        ) : null}
       </span>
     </span>
   );
@@ -139,10 +127,6 @@ function renderMaterialTrigger(
         {size === 'lg' ? (
           <span className="block min-w-0 truncate text-xs text-muted-foreground">
             {material.code}
-            {material.serialNumber ? ` · ${material.serialNumber}` : ''}
-            {materialDescription(material)
-              ? ` · ${materialDescription(material)}`
-              : ''}
           </span>
         ) : null}
       </span>

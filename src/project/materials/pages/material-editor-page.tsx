@@ -67,6 +67,7 @@ export function MaterialEditorPage() {
   const editingMaterial = materialQuery.data;
   const selectedModelId = form.watch('modelId');
   const previousModelId = useRef('');
+  const hydratedModelId = useRef('');
   const currentModel = modelsQuery.data?.find(
     (model) =>
       model.id === (isEdit ? editingMaterial?.modelId : selectedModelId),
@@ -82,19 +83,26 @@ export function MaterialEditorPage() {
       form.reset(materialDefaultValues);
       setGalleryImages([]);
       previousModelId.current = '';
+      hydratedModelId.current = '';
     }
   }, [editingMaterial, form, isEdit]);
 
   useEffect(() => {
-    if (
-      !isEdit &&
-      selectedModelId &&
-      previousModelId.current !== selectedModelId
-    ) {
-      previousModelId.current = selectedModelId;
+    if (isEdit || !selectedModelId || !currentModel) return;
+
+    const selectionChanged = previousModelId.current !== selectedModelId;
+    const shouldHydrateModelValues =
+      hydratedModelId.current !== selectedModelId;
+    if (!selectionChanged && !shouldHydrateModelValues) return;
+    const previousModel = modelsQuery.data?.find(
+      (model) => model.id === previousModelId.current,
+    );
+
+    if (selectionChanged) {
       form.setValue('specificationOverrides', {}, { shouldDirty: true });
       form.setValue('specificationOverrideLabels', {}, { shouldDirty: true });
-      const inheritedImages = (currentModel?.images ?? []).map((image) => ({
+
+      const inheritedImages = (currentModel.images ?? []).map((image) => ({
         ...image,
         storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
       }));
@@ -112,7 +120,34 @@ export function MaterialEditorPage() {
         ...uploadedImages,
       ]);
     }
-  }, [currentModel?.images, form, galleryImages, isEdit, selectedModelId]);
+
+    if (shouldHydrateModelValues) {
+      const currentName = form.getValues('nameOverride');
+      if (!currentName || currentName === previousModel?.name) {
+        form.setValue('nameOverride', currentModel.name, {
+          shouldDirty: true,
+        });
+      }
+      const currentDescription = form.getValues('descriptionOverride');
+      if (
+        !currentDescription ||
+        currentDescription === previousModel?.description
+      ) {
+        form.setValue('descriptionOverride', currentModel.description, {
+          shouldDirty: true,
+        });
+      }
+      hydratedModelId.current = selectedModelId;
+    }
+    previousModelId.current = selectedModelId;
+  }, [
+    currentModel,
+    form,
+    galleryImages,
+    isEdit,
+    modelsQuery.data,
+    selectedModelId,
+  ]);
 
   const availableModels = useMemo(
     () =>
@@ -206,8 +241,19 @@ export function MaterialEditorPage() {
       );
       return;
     }
+    const selectedModel = modelsQuery.data?.find(
+      (model) => model.id === values.modelId,
+    );
     const payload: MaterialFormValues = {
       ...values,
+      nameOverride:
+        values.nameOverride.trim() === selectedModel?.name.trim()
+          ? ''
+          : values.nameOverride,
+      descriptionOverride:
+        values.descriptionOverride.trim() === selectedModel?.description.trim()
+          ? ''
+          : values.descriptionOverride,
       condition: values.condition as MaterialCondition,
     };
     saveMutation.mutate(

@@ -127,11 +127,11 @@ thô cho các menu cần tự compose layout.
 
 ### Nội dung option và giá trị đã chọn
 
-- `renderOption` có thể hiển thị thông tin nhận diện bổ sung như mã hoặc mô tả để người dùng phân biệt các lựa chọn.
-- `triggerContent` trong ô đã chọn chỉ hiển thị tên chính; không lặp lại mã hoặc mô tả của option. Có thể kèm ảnh đại diện khi kích thước cho phép, theo mẫu `CustomerSelect`.
+- `renderOption` có thể hiển thị thông tin nhận diện bổ sung như mã để người dùng phân biệt các lựa chọn; chỉ thêm mô tả khi domain yêu cầu rõ.
+- `triggerContent` mặc định chỉ hiển thị tên chính; nếu domain cần metadata phụ thì chỉ hiển thị đúng trường được yêu cầu, không tự ghép mô tả hoặc trường khác. Có thể kèm ảnh đại diện khi kích thước cho phép, theo mẫu `CustomerSelect`.
 - Với select có ảnh, ẩn ảnh ở `size="sm"`. Ở `size="md"`, giới hạn ảnh trong chiều cao control (thường `size-7`); không để ảnh làm trigger tràn hoặc cao hơn select bên cạnh.
 - `variant="ghost"` là kiểu select không viền/nền mặc định, phù hợp với ô trong editor table hoặc inline editor; trạng thái hover vẫn có thể dùng nền accent nhẹ.
-- Dùng `size="lg"` khi trigger cần thêm một dòng thông tin phụ; select vật tư hiển thị tên, mã và mô tả ở kích thước này.
+- Dùng `size="lg"` khi trigger cần thêm một dòng thông tin phụ; select vật tư hiển thị tên và mã, không hiển thị mô tả hoặc số serial.
 - `Textarea` mặc định dùng `variant="md"`. Bật `autoResize` cho nội dung theo dòng để chiều cao ban đầu gọn và tự tăng khi người dùng nhập nhiều dòng.
 
 ---
