@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ReactNode, UIEventHandler } from 'react';
+import type { ReactNode, Ref, UIEventHandler } from 'react';
 import { Check, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { searchMatch } from '@/lib/search';
 import { cn } from '@/lib/utils';
@@ -59,6 +59,8 @@ export interface SelectSearchProps<T = unknown> {
   className?: string;
   optionContentClassName?: string;
   size?: 'sm' | 'md' | 'lg';
+  variant?: 'normal' | 'ghost';
+  triggerRef?: Ref<HTMLButtonElement>;
   'aria-invalid'?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSearchChange?: (query: string) => void;
@@ -138,9 +140,11 @@ export function SelectSearch<T = unknown>({
   triggerContent,
   triggerContentClassName,
   triggerMode = 'full',
+  variant = 'normal',
   className,
   optionContentClassName,
   size = 'md',
+  triggerRef,
   'aria-invalid': ariaInvalid,
   onOpenChange,
   onSearchChange,
@@ -230,6 +234,7 @@ export function SelectSearch<T = unknown>({
             {triggerContentNode}
             <PopoverTrigger asChild>
               <Button
+                ref={triggerRef}
                 type="button"
                 aria-expanded={isOpen}
                 aria-label={ariaLabel ?? 'Mở lựa chọn'}
@@ -249,6 +254,7 @@ export function SelectSearch<T = unknown>({
       ) : (
         <PopoverTrigger asChild>
           <Button
+            ref={triggerRef}
             type="button"
             role="combobox"
             aria-expanded={isOpen}
@@ -257,11 +263,13 @@ export function SelectSearch<T = unknown>({
             disabled={disabled}
             size={size}
             aria-invalid={ariaInvalid}
-            variant="outline"
+            variant={variant === 'ghost' ? 'ghost' : 'outline'}
             mode="input"
             placeholder={!selectedOption}
             className={cn(
               'w-full justify-between border-input bg-background shadow-xs shadow-black/5',
+              variant === 'ghost' &&
+                'border-transparent bg-transparent shadow-none hover:bg-accent data-[state=open]:bg-accent',
               className,
             )}
           >

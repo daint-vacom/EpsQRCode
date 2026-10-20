@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ImageIcon } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useUser } from '@/providers/user-provider';
 import { ApiOptionSelect, OptionSelect } from '@/components/ui/option-select';
@@ -13,6 +14,10 @@ import type { Material, MaterialListFilters } from '../model/material';
 interface MaterialSelectItem {
   material: Material;
 }
+
+type MaterialSelectSize = NonNullable<
+  OptionSelectProps<MaterialSelectItem>['size']
+>;
 
 type MaterialSelectBaseProps = Omit<
   OptionSelectProps<MaterialSelectItem>,
@@ -61,18 +66,85 @@ function materialName(material: Material) {
   return material.nameOverride || material.modelSnapshot.name;
 }
 
-function renderMaterialOption(option: SelectOption<MaterialSelectItem>) {
+function materialDescription(material: Material) {
+  return (
+    material.descriptionOverride?.trim() || material.modelSnapshot.description
+  );
+}
+
+function renderMaterialImage(material: Material, size: MaterialSelectSize) {
+  const imageUrl = materialImageUrl(material);
+  const imageClassName = size === 'lg' ? 'size-9' : 'size-7';
+  return (
+    <span
+      className={`flex ${imageClassName} shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted`}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt="" className="size-full object-cover" />
+      ) : (
+        <ImageIcon
+          aria-hidden="true"
+          className="size-4 text-muted-foreground"
+        />
+      )}
+    </span>
+  );
+}
+
+function renderMaterialOption(
+  option: SelectOption<MaterialSelectItem>,
+  size: MaterialSelectSize,
+) {
   const material = option.data?.material;
   if (!material) return option.label;
 
   return (
-    <span className="flex min-w-0 flex-col gap-0.5 text-start">
-      <span className="block truncate text-sm font-medium text-foreground">
-        {material.code} · {materialName(material)}
+    <span className="flex min-w-0 items-center gap-2 text-start">
+      {size !== 'sm' ? renderMaterialImage(material, size) : null}
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="block truncate text-sm font-medium text-foreground">
+          {materialName(material)}
+        </span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {material.code}
+          {material.serialNumber ? ` · ${material.serialNumber}` : ''}
+        </span>
+        {size === 'lg' && materialDescription(material) ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            {materialDescription(material)}
+          </span>
+        ) : null}
       </span>
-      <span className="block truncate text-xs text-muted-foreground">
-        {material.modelSnapshot.code}
-        {material.serialNumber ? ` · ${material.serialNumber}` : ''}
+    </span>
+  );
+}
+
+function materialImageUrl(material: Material) {
+  return material.images?.find((image) => image.isCover)?.url || undefined;
+}
+
+function renderMaterialTrigger(
+  option: SelectOption<MaterialSelectItem> | undefined,
+  size: MaterialSelectSize,
+) {
+  const material = option?.data?.material;
+  if (!material) return null;
+  return (
+    <span className="flex min-w-0 items-center gap-2 text-start">
+      {size !== 'sm' ? renderMaterialImage(material, size) : null}
+      <span className="flex min-w-0 flex-col">
+        <span className="block min-w-0 truncate text-sm font-medium text-foreground">
+          {materialName(material)}
+        </span>
+        {size === 'lg' ? (
+          <span className="block min-w-0 truncate text-xs text-muted-foreground">
+            {material.code}
+            {material.serialNumber ? ` · ${material.serialNumber}` : ''}
+            {materialDescription(material)
+              ? ` · ${materialDescription(material)}`
+              : ''}
+          </span>
+        ) : null}
       </span>
     </span>
   );
@@ -99,6 +171,7 @@ function MaterialOptionsSelect({
   ...props
 }: MaterialSelectBaseProps & { materials?: readonly Material[] }) {
   const intl = useIntl();
+  const size = props.size ?? 'md';
   const options = useMemo(() => materials.map(materialOption), [materials]);
   const selectedOption =
     options.find((option) => option.value === value) ??
@@ -119,13 +192,10 @@ function MaterialOptionsSelect({
       searchPlaceholder={intl.formatMessage({
         id: 'project.materials.select.search',
       })}
-      renderOption={renderMaterialOption}
+      renderOption={(option) => renderMaterialOption(option, size)}
+      triggerContentClassName="overflow-hidden"
       triggerContent={(option) =>
-        option?.data?.material ? (
-          <span className="truncate">
-            {option.data.material.code} · {materialName(option.data.material)}
-          </span>
-        ) : (
+        renderMaterialTrigger(option, size) ?? (
           <span className="truncate text-muted-foreground">
             {props.placeholder ??
               intl.formatMessage({
@@ -156,6 +226,7 @@ function MaterialFetchSelect({
 }) {
   const intl = useIntl();
   const { userId } = useUser();
+  const size = props.size ?? 'md';
   const selectedQuery = useMaterialQuery(
     selectedMaterial?.id === value ? '' : value,
     !selectedMaterial || selectedMaterial.id !== value,
@@ -209,13 +280,10 @@ function MaterialFetchSelect({
       searchPlaceholder={intl.formatMessage({
         id: 'project.materials.select.search',
       })}
-      renderOption={renderMaterialOption}
+      renderOption={(option) => renderMaterialOption(option, size)}
+      triggerContentClassName="overflow-hidden"
       triggerContent={(option) =>
-        option?.data?.material ? (
-          <span className="truncate">
-            {option.data.material.code} · {materialName(option.data.material)}
-          </span>
-        ) : (
+        renderMaterialTrigger(option, size) ?? (
           <span className="truncate text-muted-foreground">
             {props.placeholder ??
               intl.formatMessage({

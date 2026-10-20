@@ -515,7 +515,7 @@ export function HandoverEditorPage() {
           </Card>
         }
       >
-        <div className="mt-admin-page-section flex min-h-[360px] min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="mt-admin-page-section flex h-fit min-w-0 overflow-hidden rounded-lg border border-border bg-card">
           <HandoverItemsEditorTable
             form={form}
             materials={[...materialById.values()]}

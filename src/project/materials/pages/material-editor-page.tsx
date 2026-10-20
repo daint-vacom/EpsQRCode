@@ -114,16 +114,11 @@ export function MaterialEditorPage() {
     }
   }, [currentModel?.images, form, galleryImages, isEdit, selectedModelId]);
 
-  const modelIdOptions = useMemo(
+  const availableModels = useMemo(
     () =>
-      (modelsQuery.data ?? [])
-        .filter(
-          (model) => model.isActive || model.id === editingMaterial?.modelId,
-        )
-        .map((model) => ({
-          value: model.id,
-          label: `${model.code} · ${model.name}`,
-        })),
+      (modelsQuery.data ?? []).filter(
+        (model) => model.isActive || model.id === editingMaterial?.modelId,
+      ),
     [editingMaterial?.modelId, modelsQuery.data],
   );
   const ownerPartyIdOptions = useMemo(
@@ -363,7 +358,7 @@ export function MaterialEditorPage() {
                     mode={isEdit ? 'edit' : 'create'}
                     form={form}
                     onSubmit={handleSubmit}
-                    modelIdOptions={modelIdOptions}
+                    models={availableModels}
                     ownerPartyIdOptions={ownerPartyIdOptions}
                     renderFormElement={false}
                   />

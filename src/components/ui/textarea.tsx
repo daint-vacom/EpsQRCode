@@ -29,12 +29,65 @@ const textareaVariants = cva(
 function Textarea({
   className,
   variant,
+  autoResize = false,
+  onInput,
+  ref,
   ...props
-}: React.ComponentProps<'textarea'> & VariantProps<typeof textareaVariants>) {
+}: React.ComponentProps<'textarea'> &
+  VariantProps<typeof textareaVariants> & { autoResize?: boolean }) {
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const baseScrollHeightRef = React.useRef<number | null>(null);
+
+  const resizeToContent = React.useCallback(
+    (textarea: HTMLTextAreaElement | null = textareaRef.current) => {
+      if (!textarea) return;
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const computedStyle = window.getComputedStyle(textarea);
+      const minHeight = Number.parseFloat(computedStyle.minHeight) || 0;
+      const borderHeight =
+        (Number.parseFloat(computedStyle.borderTopWidth) || 0) +
+        (Number.parseFloat(computedStyle.borderBottomWidth) || 0);
+
+      if (baseScrollHeightRef.current === null) {
+        baseScrollHeightRef.current = scrollHeight;
+      }
+
+      const hasMultipleLines = scrollHeight > baseScrollHeightRef.current + 1;
+      textarea.style.height = hasMultipleLines
+        ? `${scrollHeight + borderHeight}px`
+        : `${minHeight}px`;
+    },
+    [],
+  );
+
+  const setTextareaRef = React.useCallback(
+    (textarea: HTMLTextAreaElement | null) => {
+      textareaRef.current = textarea;
+      if (typeof ref === 'function') ref(textarea);
+      else if (ref) ref.current = textarea;
+      if (autoResize) resizeToContent(textarea);
+    },
+    [autoResize, ref, resizeToContent],
+  );
+
+  React.useLayoutEffect(() => {
+    if (autoResize) resizeToContent();
+  }, [autoResize, props.value, props.defaultValue, resizeToContent]);
+
   return (
     <textarea
       data-slot="textarea"
-      className={cn(textareaVariants({ variant }), className)}
+      ref={setTextareaRef}
+      className={cn(
+        textareaVariants({ variant }),
+        autoResize && 'resize-none',
+        className,
+      )}
+      onInput={(event) => {
+        onInput?.(event);
+        if (autoResize) resizeToContent(event.currentTarget);
+      }}
       {...props}
     />
   );

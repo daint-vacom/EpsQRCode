@@ -105,18 +105,15 @@ export function SelectWithAvatar<T>({
   className,
   ...props
 }: SelectWithAvatarProps<T>) {
-  const variantClassName =
-    variant === 'ghost'
-      ? 'border-transparent bg-transparent shadow-none hover:bg-accent data-[state=open]:bg-accent'
-      : undefined;
   const sizeClassName = size === 'lg' ? 'h-auto min-h-14 py-2' : undefined;
 
   return (
     <OptionSelect<T>
       {...props}
       size={size}
+      variant={variant}
       optionContentClassName="overflow-visible"
-      className={cn(variantClassName, sizeClassName, className)}
+      className={cn(sizeClassName, className)}
       renderOption={(option) => (
         <SelectWithAvatarIdentity
           option={option as SelectWithAvatarOption<T>}

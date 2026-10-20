@@ -111,6 +111,8 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.events.rejected': 'Từ chối phiếu',
   'project.handover.events.cancelled': 'Hủy phiếu',
   'project.handover.table.materialCount': '{count} vật tư',
+  'project.handover.table.paginationSizeDescription': 'vật tư',
+  'project.handover.table.paginationInfo': '{from} - {to} / {count} vật tư',
   'project.handover.custodians.page.title': 'Danh mục chủ thể bàn giao',
   'project.handover.custodians.page.description':
     'Quản lý các bên sở hữu, mượn và đại diện xác nhận.',
@@ -251,6 +253,8 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.events.rejected': 'Rejected',
   'project.handover.events.cancelled': 'Cancelled',
   'project.handover.table.materialCount': '{count} materials',
+  'project.handover.table.paginationSizeDescription': 'materials',
+  'project.handover.table.paginationInfo': '{from} - {to} / {count} materials',
   'project.handover.custodians.page.title': 'Handover custodians',
   'project.handover.custodians.page.description':
     'Manage owners, borrowers, and confirmation representatives.',

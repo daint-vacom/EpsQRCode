@@ -117,11 +117,22 @@ const options: SelectOption[] = [
 | `placeholder` / `searchPlaceholder` / `emptyMessage` | `string`                                      | `Chọn...` / `Tìm...` / `Không có kết quả` |
 | `searchable`                                         | `boolean`                                     | `true` — ẩn ô tìm kiếm khi đặt `false`    |
 | `manualFilter`                                       | `boolean`                                     | `false` — bật khi tự lọc (async/server)   |
+| `size`                                               | `sm \| md \| lg`                             | `md`                                      |
+| `variant`                                            | `normal \| ghost`                             | `normal`                                  |
 | `renderOption` / `triggerContent`                    | render fn                                     | —                                         |
 
 Chọn lại đúng giá trị đang chọn = bỏ chọn (`''`). Dùng `canDeselect={false}` cho field bắt buộc phải
 giữ giá trị. Dùng `OptionSelect` thay cho `Select` thô khi danh sách là dữ liệu; chỉ giữ `Select`
 thô cho các menu cần tự compose layout.
+
+### Nội dung option và giá trị đã chọn
+
+- `renderOption` có thể hiển thị thông tin nhận diện bổ sung như mã hoặc mô tả để người dùng phân biệt các lựa chọn.
+- `triggerContent` trong ô đã chọn chỉ hiển thị tên chính; không lặp lại mã hoặc mô tả của option. Có thể kèm ảnh đại diện khi kích thước cho phép, theo mẫu `CustomerSelect`.
+- Với select có ảnh, ẩn ảnh ở `size="sm"`. Ở `size="md"`, giới hạn ảnh trong chiều cao control (thường `size-7`); không để ảnh làm trigger tràn hoặc cao hơn select bên cạnh.
+- `variant="ghost"` là kiểu select không viền/nền mặc định, phù hợp với ô trong editor table hoặc inline editor; trạng thái hover vẫn có thể dùng nền accent nhẹ.
+- Dùng `size="lg"` khi trigger cần thêm một dòng thông tin phụ; select vật tư hiển thị tên, mã và mô tả ở kích thước này.
+- `Textarea` mặc định dùng `variant="md"`. Bật `autoResize` cho nội dung theo dòng để chiều cao ban đầu gọn và tự tăng khi người dùng nhập nhiều dòng.
 
 ---
 

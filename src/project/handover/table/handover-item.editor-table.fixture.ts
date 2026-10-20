@@ -11,6 +11,7 @@ const spec: EditorTableSpec = {
   specPath: 'src/project/handover/table/handover-item.editor-table.fixture.ts',
   tableMinWidthClass: 'min-w-[920px]',
   viewport: { mode: 'natural' },
+  pagination: { pageSize: 10, sizes: [10, 25, 50] },
   toolbar: {
     title: 'Danh sách vật tư bàn giao',
     addLabel: 'Thêm vật tư',

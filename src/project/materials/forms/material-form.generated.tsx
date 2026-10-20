@@ -8,6 +8,8 @@
  * bypassed builder.
  */
 import { useState, type KeyboardEvent } from 'react';
+import { MaterialModelSelect } from '@/project/material-models/components/material-model-select';
+import type { MaterialModel } from '@/project/material-models/model/material-model';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
@@ -82,7 +84,7 @@ interface MaterialFormProps {
   id?: string;
   renderFormElement?: boolean;
   mode: 'create' | 'edit';
-  modelIdOptions: SelectOption[];
+  models: MaterialModel[];
   ownerPartyIdOptions: SelectOption[];
 }
 
@@ -92,7 +94,7 @@ export function MaterialForm({
   id = 'material-form',
   renderFormElement = true,
   mode,
-  modelIdOptions,
+  models,
   ownerPartyIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
@@ -140,11 +142,11 @@ export function MaterialForm({
                 <span className="text-destructive"> *</span>
               </FormLabel>
               <FormControl>
-                <OptionSelect
+                <MaterialModelSelect
+                  sourceMode="options"
+                  models={models}
                   value={field.value}
                   onChange={field.onChange}
-                  options={modelIdOptions}
-                  searchable
                 />
               </FormControl>
               <FormMessage />
@@ -322,7 +324,7 @@ interface MaterialFormDialogProps {
   onSubmit: (values: MaterialFormSchemaValues) => void;
   isSaving?: boolean;
   title?: string;
-  modelIdOptions: SelectOption[];
+  models: MaterialModel[];
   ownerPartyIdOptions: SelectOption[];
 }
 
@@ -334,7 +336,7 @@ export function MaterialFormDialog({
   onSubmit,
   isSaving = false,
   title,
-  modelIdOptions,
+  models,
   ownerPartyIdOptions,
 }: MaterialFormDialogProps) {
   const intl = useIntl();
@@ -387,7 +389,7 @@ export function MaterialFormDialog({
               onSubmit={onSubmit}
               id="material-form"
               mode={mode}
-              modelIdOptions={modelIdOptions}
+              models={models}
               ownerPartyIdOptions={ownerPartyIdOptions}
             />
           </div>

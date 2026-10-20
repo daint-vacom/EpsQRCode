@@ -432,6 +432,41 @@ ${cases}
 `;
 }
 
+function emitPaginationSetup(spec: NormalizedEditorTableSpec) {
+  if (!spec.pagination) return '';
+  return `
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: ${spec.pagination.pageSize},
+  });
+  const paginationTable = useReactTable({
+    data: fields,
+    columns: [],
+    autoResetPageIndex: false,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    state: { pagination },
+    onPaginationChange: setPagination,
+  });
+  const pageStartIndex = pagination.pageIndex * pagination.pageSize;
+  const visibleFields = fields.slice(
+    pageStartIndex,
+    pageStartIndex + pagination.pageSize,
+  );
+  useEffect(() => {
+    setPagination((current) => {
+      const lastPageIndex = Math.max(
+        0,
+        Math.ceil(fields.length / current.pageSize) - 1,
+      );
+      return current.pageIndex > lastPageIndex
+        ? { ...current, pageIndex: lastPageIndex }
+        : current;
+    });
+  }, [fields.length]);
+`;
+}
+
 function emitBulkActionBar() {
   const dateControl = buildFormFieldControl({
     kind: 'date',
@@ -572,7 +607,7 @@ function emitCells(spec: NormalizedEditorTableSpec): string {
       appearance="ghost"
       mode="icon"
       size="sm"
-      onClick={() => remove(index)}
+      onClick={() => ${spec.pagination ? 'handleDeleteRow(index)' : 'remove(index)'}}
     >
       <Trash2 />
     </Button>`);
@@ -690,6 +725,7 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const formattedNumber = hasFormattedNumberColumn(spec);
   const date = hasDateColumn(spec);
   const multiEdit = hasMultiEdit(spec);
+  const pagination = Boolean(spec.pagination);
   const toolbarShortcut = Boolean(spec.toolbar?.addShortcut);
   const icons = [
     ...(hasRowActions(spec) && spec.actions.duplicate ? ['Copy'] : []),
@@ -707,7 +743,15 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
     ...(toolbarShortcut
       ? ["import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';"]
       : []),
-    ...(multiEdit ? ["import { useMemo, useState } from 'react';"] : []),
+    ...(multiEdit || pagination
+      ? [
+          `import { ${[
+            ...(pagination ? ['useEffect'] : []),
+            ...(multiEdit ? ['useMemo'] : []),
+            'useState',
+          ].join(', ')} } from 'react';`,
+        ]
+      : []),
     ...(icons.length > 0
       ? [`import { ${icons.join(', ')} } from 'lucide-react';`]
       : []),
@@ -724,6 +768,14 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   }
   if (multiEdit)
     lines.push("import { Checkbox } from '@/components/ui/checkbox';");
+  if (pagination) {
+    lines.push(
+      "import { getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';",
+      "import type { PaginationState } from '@tanstack/react-table';",
+      "import { DataGridProvider } from '@/components/ui/data-grid';",
+      "import { DataGridPagination } from '@/components/ui/data-grid-pagination';",
+    );
+  }
   if (plainInput || multiEdit)
     lines.push("import { Input } from '@/components/ui/input';");
   if (autocomplete) {
@@ -782,6 +834,7 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
     (multiEdit ? 1 : 0);
   const rowPrelude = emitRowPrelude(spec);
   const bulkEditSetup = emitBulkEditSetup(spec);
+  const paginationSetup = emitPaginationSetup(spec);
   const scrollClass = scrollAreaClass(spec);
   const scrollAreaOpen = scrollClass
     ? `<ScrollArea type="always" className="${scrollClass}" viewportClassName="h-full min-w-0 overflow-y-auto">`
@@ -802,14 +855,55 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
   const actionHandlerLines: string[] = [];
   if (hasRowActions(spec) && spec.actions.insert) {
     actionHandlerLines.push(`  const handleAddRowBelow = (index: number) => {
-    insert(index + 1, ${createRowProp}());
+    ${
+      spec.pagination
+        ? `const insertIndex = index + 1;
+    insert(insertIndex, ${createRowProp}());`
+        : `insert(index + 1, ${createRowProp}());`
+    }${
+      spec.pagination
+        ? `
+    setPagination((current) => ({
+      ...current,
+      pageIndex: Math.floor(insertIndex / current.pageSize),
+    }));`
+        : ''
+    }
   };
 `);
   }
   if (hasRowActions(spec) && spec.actions.duplicate) {
     actionHandlerLines.push(`  const handleDuplicateRow = (index: number) => {
     const currentRow = form.getValues(\`${spec.arrayName}.\${index}\`);
-    insert(index + 1, { ...currentRow, id: crypto.randomUUID() });
+    ${
+      spec.pagination
+        ? `const insertIndex = index + 1;
+    insert(insertIndex, { ...currentRow, id: crypto.randomUUID() });`
+        : `insert(index + 1, { ...currentRow, id: crypto.randomUUID() });`
+    }${
+      spec.pagination
+        ? `
+    setPagination((current) => ({
+      ...current,
+      pageIndex: Math.floor(insertIndex / current.pageSize),
+    }));`
+        : ''
+    }
+  };
+`);
+  }
+  if (spec.pagination && hasRowActions(spec) && spec.actions.delete) {
+    actionHandlerLines.push(`  const handleDeleteRow = (index: number) => {
+    remove(index);
+    setPagination((current) => {
+      const lastPageIndex = Math.max(
+        0,
+        Math.ceil((fields.length - 1) / current.pageSize) - 1,
+      );
+      return current.pageIndex > lastPageIndex
+        ? { ...current, pageIndex: lastPageIndex }
+        : current;
+    });
   };
 `);
   }
@@ -833,6 +927,11 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
   const errorsLine = hasEditableColumn(spec)
     ? `\n              const errors = form.formState.errors.${spec.arrayName}?.[index];`
     : '';
+  const visibleFieldsName = spec.pagination ? 'visibleFields' : 'fields';
+  const rowMapExpression = spec.pagination
+    ? `${visibleFieldsName}.map((field, pageOffset) => {
+              const index = pageStartIndex + pageOffset;`
+    : `${visibleFieldsName}.map((field, index) => {`;
 
   // Optional self-contained toolbar (title + row count + add button) driven by
   // the component's own `fields` / `handleAddRow`, so a consumer never needs a
@@ -876,13 +975,27 @@ ${toolbarActions}
   const toolbarClose = toolbar ? `    </div>\n` : '';
   const bulkActionBar =
     multiEdit && spec.multiEdit.actionBar ? `\n${emitBulkActionBar()}` : '';
-  const returnOpen = bulkActionBar
+  const paginationFooter = spec.pagination
+    ? `      {fields.length > 0 ? (
+        <div className="shrink-0 border-t border-border px-4 py-2">
+        <DataGridPagination
+          sizes={[${spec.pagination.sizes.join(', ')}]}
+          sizesDescription="dòng"
+          info="{from} - {to} / {count} dòng"
+        />
+        </div>
+      ) : null}
+`
+    : '';
+  const returnFragment = Boolean(
+    bulkActionBar || (spec.pagination && !toolbar),
+  );
+  const returnOpen = returnFragment
     ? `    <>\n${toolbarOpen}      ${scrollAreaOpen}`
     : `${toolbarOpen}    ${scrollAreaOpen}`;
-  const returnClose = bulkActionBar
-    ? `${toolbarClose}${bulkActionBar}
-    </>`
-    : toolbarClose;
+  const returnClose = `${paginationFooter}${toolbarClose}${bulkActionBar}${
+    returnFragment ? '\n    </>' : ''
+  }`;
 
   const sortableRow = spec.reorder.enabled
     ? `
@@ -904,6 +1017,7 @@ function ${componentName}SortableRow({
       ref={sortable.setNodeRef}
       style={style}
       data-dragging={sortable.isDragging || undefined}
+      hoverable={false}
     >
       {renderCells(sortable)}
     </TableRow>
@@ -934,17 +1048,26 @@ export function ${componentName}({
   const watchedRows = form.watch('${spec.arrayName}') ?? [];
 
   const handleAddRow = () => {
-    append(${createRowProp}());
+    append(${createRowProp}());${
+      spec.pagination
+        ? `
+    setPagination((current) => ({
+      ...current,
+      pageIndex: Math.floor(fields.length / current.pageSize),
+    }));`
+        : ''
+    }
   };
-${actionHandlers ? `\n${actionHandlers}` : ''}${reorderHandlers}${bulkEditSetup}
+${actionHandlers ? `\n${actionHandlers}` : ''}${reorderHandlers}${bulkEditSetup}${paginationSetup}
   return (
+${spec.pagination ? `    <DataGridProvider table={paginationTable} recordCount={fields.length}>\n` : ''}
 ${returnOpen}
       <div className="${spec.tableMinWidthClass}">
 ${
   spec.reorder.enabled
     ? `        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
-            items={fields.map((field) => field.fieldId)}
+            items={${visibleFieldsName}.map((field) => field.fieldId)}
             strategy={verticalListSortingStrategy}
           >
 `
@@ -957,7 +1080,7 @@ ${indent(emitHeaders(spec), 12)}
         </TableHeader>
         <TableBody>
           {fields.length === 0 ? (
-            <TableRow>
+            <TableRow hoverable={false}>
               <TableCell colSpan={${columnCount}} className="h-28 text-center">
                 <div className="flex flex-col items-center gap-3">
                   <span className="text-muted-foreground">Chưa có dữ liệu</span>
@@ -969,7 +1092,7 @@ ${indent(emitHeaders(spec), 12)}
               </TableCell>
             </TableRow>
           ) : (
-            fields.map((field, index) => {
+            ${rowMapExpression}
               const row = watchedRows[index] as ${spec.entity} | undefined;${errorsLine}
 ${rowPrelude ? indent(rowPrelude, 14) : '              void row;'}
 
@@ -988,7 +1111,7 @@ ${indent(emitCells(spec), 22)}
                 />
               );`
     : `              return (
-                <TableRow key={field.fieldId}>
+                <TableRow key={field.fieldId} hoverable={false}>
 ${indent(emitCells(spec), 18)}
                 </TableRow>
               );`
@@ -1007,6 +1130,7 @@ ${
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
 ${returnClose}
+${spec.pagination ? '    </DataGridProvider>\n' : ''}
   );
 }`;
 

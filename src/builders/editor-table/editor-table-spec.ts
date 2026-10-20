@@ -133,6 +133,12 @@ export const editorTableSpecSchema = z.object({
       className: z.string().optional(),
     })
     .default({ mode: 'fixed', height: 'lg' }),
+  pagination: z
+    .object({
+      pageSize: z.number().int().positive().default(10),
+      sizes: z.array(z.number().int().positive()).min(1).default([10, 25, 50]),
+    })
+    .optional(),
   multiEdit: z
     .object({
       enabled: z.boolean().default(false),

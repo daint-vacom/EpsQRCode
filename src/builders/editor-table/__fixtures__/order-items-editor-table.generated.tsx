@@ -90,7 +90,7 @@ export function OrderItemsEditorTable({
           </TableHeader>
           <TableBody>
             {fields.length === 0 ? (
-              <TableRow>
+              <TableRow hoverable={false}>
                 <TableCell colSpan={8} className="h-28 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <span className="text-muted-foreground">
@@ -116,7 +116,7 @@ export function OrderItemsEditorTable({
                 // TODO(scaffold): replace lineTotal with the real computed value for this row.
 
                 return (
-                  <TableRow key={field.fieldId}>
+                  <TableRow key={field.fieldId} hoverable={false}>
                     <TableCell className="px-4 py-2 text-muted-foreground">
                       {index + 1}
                     </TableCell>

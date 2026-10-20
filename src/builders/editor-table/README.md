@@ -8,6 +8,12 @@ This builder is not a page layout builder. The page owns the header, toolbar
 actions, surrounding cards, submit mutation, totals, and any general-information
 forms above the table.
 
+Editor-table rows keep a stable background while the pointer moves over cells:
+disable `TableRow` hover backgrounds with `hoverable={false}` on empty, data,
+and sortable body rows. Do not add background-color changes on row hover; use
+explicit states such as dragging or validation when those are part of the
+interaction.
+
 ## Workflow
 
 1. Ensure the row type and RHF values type exist.
@@ -53,6 +59,12 @@ The builder emits default row actions: duplicate, insert below, and delete. The
 action column is pinned to the right so it remains visible during horizontal
 scroll. Set `actions.duplicate`, `actions.insert`, or `actions.delete` to
 `false` when an editor needs only a subset of those actions.
+
+For a large form field array, set `pagination: { pageSize: 10, sizes: [10, 25, 50] }`
+to paginate rows locally while keeping every row in the same React Hook Form
+array. Row numbering, validation, and row actions continue to use full-array
+indexes. This option is for editable form rows; server-paginated read-only list
+tables should use the `table` builder.
 
 The optional toolbar add button uses the primary variant by default. Set
 `toolbar.addVariant` for a different button treatment, and set

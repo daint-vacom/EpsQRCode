@@ -62,6 +62,7 @@ export const vi: Record<string, string> = {
     'Nhóm “{name}” sẽ bị xóa khỏi danh mục.',
   'materialGroups.dialogs.deleteConfirm': 'Xóa nhóm',
   'materialModels.filters.searchPlaceholder': 'Tìm mã hoặc tên mẫu',
+  'materialModels.select.placeholder': 'Chọn mẫu vật tư',
   'materialModels.page.header': 'Quản lý mẫu vật tư',
   'materialModels.actions.create': 'Thêm mẫu',
   'materialModels.actions.back': 'Quay lại danh sách mẫu vật tư',
