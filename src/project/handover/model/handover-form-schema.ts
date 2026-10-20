@@ -3,7 +3,7 @@ import { z } from 'zod';
 const itemSchema = z.object({
   materialId: z.string().uuid('Chọn vật tư hợp lệ.'),
   condition: z.enum(['good', 'damaged']),
-  conditionNote: z.string().trim(),
+  note: z.string().trim(),
 });
 
 export const handoverFormSchema = z
@@ -44,13 +44,6 @@ export const handoverFormSchema = z
         });
       }
       seen.add(item.materialId);
-      if (item.condition === 'damaged' && !item.conditionNote.trim()) {
-        context.addIssue({
-          code: 'custom',
-          path: ['items', index, 'conditionNote'],
-          message: 'Ghi chú tình trạng bắt buộc khi vật tư bị hỏng.',
-        });
-      }
     });
   });
 

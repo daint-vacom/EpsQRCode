@@ -84,6 +84,9 @@ Dùng `variant="header"` khi đặt ô tìm kiếm trên header; variant này ch
 
 ## OptionSelect — Select dữ liệu (single-select)
 
+Async/server selects, cache/filter contracts and catalog-vs-pagination rules:
+[Server-side selects](./server-selects.md).
+
 Khác `Select` thô ở chỗ **có ô tìm kiếm bỏ dấu** (qua `searchMatch`). Generic theo `T`.
 `OptionSelect` là API single-select dùng cho dữ liệu; `@/components/ui/combobox` vẫn được giữ làm
 alias tương thích.

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
+import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import { useMaterialTableMainColumnWidth } from '@/project/materials/table/use-material-table-main-column-width';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -56,6 +58,7 @@ export function MaterialModelsPage() {
   const canView = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.manage);
   const query = useMaterialModelsQuery(isPermissionsPending || canView);
+  const groupsQuery = useMaterialGroupsQuery(isPermissionsPending || canView);
   const availabilityMutation = useUpdateMaterialModelAvailabilityMutation();
   const deleteMutation = useDeleteMaterialModelMutation();
   const [keyword, setKeyword] = useState('');
@@ -66,6 +69,11 @@ export function MaterialModelsPage() {
     null,
   );
   const models = query.data ?? EMPTY_MATERIAL_MODELS;
+  const groupNameById = useMemo(
+    () =>
+      new Map((groupsQuery.data ?? []).map((group) => [group.id, group.name])),
+    [groupsQuery.data],
+  );
   const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
     if (!normalizedKeyword) return models;
@@ -82,6 +90,7 @@ export function MaterialModelsPage() {
     onDelete: (model) => setDeletingModel(model),
     canManage,
     pendingAvailabilityIds,
+    groupNameById,
     onAvailabilityChange: async (model, isActive) => {
       if (!canManage || pendingAvailabilityIds.has(model.id)) return;
       setPendingAvailabilityIds((current) => new Set(current).add(model.id));
@@ -114,6 +123,7 @@ export function MaterialModelsPage() {
     getPaginationRowModel: getPaginationRowModel(),
     state: { columnPinning: MATERIAL_MODEL_COLUMN_PINNING },
   });
+  const tableViewportRef = useMaterialTableMainColumnWidth(table);
 
   const handleDelete = () => {
     if (!canManage || !deletingModel) return;
@@ -154,8 +164,11 @@ export function MaterialModelsPage() {
       <DataGrid
         table={table}
         recordCount={filteredModels.length}
-        isLoading={isPermissionsPending || (canView && query.isPending)}
-        isFetching={query.isFetching}
+        isLoading={
+          isPermissionsPending ||
+          (canView && (query.isPending || groupsQuery.isPending))
+        }
+        isFetching={query.isFetching || groupsQuery.isFetching}
         emptyMessage={intl.formatMessage({
           id: keyword
             ? 'materialModels.empty.search'
@@ -196,22 +209,25 @@ export function MaterialModelsPage() {
                   id: 'materialModels.errors.authorization',
                 })}
               />
-            ) : query.isError ? (
+            ) : query.isError || groupsQuery.isError ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: 'materialModels.errors.loadTitle',
                 })}
                 description={
-                  isAuthorizationError(query.error)
+                  isAuthorizationError(query.error ?? groupsQuery.error)
                     ? intl.formatMessage({
                         id: 'materialModels.errors.authorization',
                       })
-                    : getApiErrorMessage(query.error)
+                    : getApiErrorMessage(query.error ?? groupsQuery.error)
                 }
-                onRetry={() => void query.refetch()}
+                onRetry={() => {
+                  void query.refetch();
+                  void groupsQuery.refetch();
+                }}
               />
             ) : (
-              <ScrollArea className="h-full">
+              <ScrollArea className="h-full" viewportRef={tableViewportRef}>
                 <DataGridTable />
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
@@ -219,7 +235,10 @@ export function MaterialModelsPage() {
           </CardTable>
 
           <CardFooter className="justify-between">
-            {canView && !isPermissionsPending && !query.isError ? (
+            {canView &&
+            !isPermissionsPending &&
+            !query.isError &&
+            !groupsQuery.isError ? (
               <DataGridPagination />
             ) : null}
           </CardFooter>

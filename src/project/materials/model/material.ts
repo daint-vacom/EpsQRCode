@@ -37,6 +37,7 @@ export interface Material {
   condition: MaterialCondition;
   note: string | null;
   status: MaterialStatus;
+  isActive: boolean;
   reservedHandoverId: string | null;
   reservationStatus: MaterialReservationStatus | null;
   activeLoanHandoverId: string | null;
@@ -75,6 +76,9 @@ export interface MaterialImageDraft extends MaterialModelImageDraft {
 }
 
 export interface MaterialListFilters {
+  id?: string;
+  excludeReserved?: boolean;
+  allowReservedByHandoverId?: string;
   search?: string;
   modelId?: string;
   groupId?: string;

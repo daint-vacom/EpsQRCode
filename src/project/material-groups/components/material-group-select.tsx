@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Folder } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -52,11 +52,14 @@ export function MaterialGroupSelect({
   ...props
 }: MaterialGroupSelectProps) {
   const intl = useIntl();
+  const [open, setOpen] = useState(false);
   const selectPlaceholder =
     placeholder ??
     intl.formatMessage({ id: 'materialGroups.select.placeholder' });
   const shouldFetch = sourceMode === 'fetch';
-  const query = useAvailableMaterialGroupsQuery(shouldFetch);
+  const query = useAvailableMaterialGroupsQuery(
+    shouldFetch && !props.disabled && (open || Boolean(value)),
+  );
   const options = useMemo<SelectOption<MaterialGroupSelectItem>[]>(
     () =>
       (sourceMode === 'options' ? (groups ?? []) : (query.data ?? [])).map(
@@ -97,7 +100,17 @@ export function MaterialGroupSelect({
       searchPlaceholder={intl.formatMessage({
         id: 'materialGroups.select.search',
       })}
-      loading={shouldFetch && query.isPending}
+      loading={shouldFetch && query.isPending && query.isFetching}
+      errorMessage={
+        shouldFetch && query.isError
+          ? getApiErrorMessage(query.error)
+          : undefined
+      }
+      retryLabel={intl.formatMessage({ id: 'common.actions.retry' })}
+      onRetry={() => {
+        if (shouldFetch && !query.isFetching)
+          void query.refetch({ cancelRefetch: false });
+      }}
       loadingMessage={intl.formatMessage({ id: 'common.state.loading' })}
       emptyMessage={
         shouldFetch && query.isError
@@ -110,8 +123,8 @@ export function MaterialGroupSelect({
         option.data ? <MaterialGroupOption item={option.data} /> : option.label
       }
       onOpenChange={(open) => {
+        setOpen(open);
         onOpenChange?.(open);
-        if (shouldFetch && open && query.isError) void query.refetch();
       }}
     />
   );

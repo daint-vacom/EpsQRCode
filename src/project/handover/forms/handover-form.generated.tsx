@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -33,7 +34,6 @@ import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { Textarea } from '@/components/ui/textarea';
 import type { HandoverDocument } from '../model/handover';
 import {
   handoverFormSchema,
@@ -88,7 +88,7 @@ export function mapHandoverToFormValues(
     items: entity.items.map((item) => ({
       materialId: item.materialId,
       condition: item.senderCondition,
-      conditionNote: item.senderConditionNote ?? '',
+      note: item.note ?? '',
     })),
     attachmentFileIds: entity.attachments.map(
       (attachment) => attachment.fileId,
@@ -98,6 +98,7 @@ export function mapHandoverToFormValues(
 
 interface HandoverFormProps {
   children?: ReactNode;
+  sideContent?: ReactNode;
   form: UseFormReturn<HandoverFormValues>;
   onSubmit: (values: HandoverFormValues) => void;
   id?: string;
@@ -109,6 +110,7 @@ interface HandoverFormProps {
 
 export function HandoverForm({
   children,
+  sideContent,
   form,
   onSubmit,
   id = 'handover-form',
@@ -121,220 +123,210 @@ export function HandoverForm({
   return (
     <Form {...form}>
       <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.handover.fields.type' })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    options={typeOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="grid grid-cols-1 items-stretch gap-admin-page-section xl:grid-cols-2">
+          <Card className="h-full min-w-0">
+            <CardContent>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.type',
+                        })}
+                        <span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <OptionSelect
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          options={typeOptions}
+                          searchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="senderPartyId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.handover.fields.sender' })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    options={senderPartyIdOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="senderPartyId"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.sender',
+                        })}
+                        <span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <OptionSelect
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          options={senderPartyIdOptions}
+                          searchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="recipientPartyId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.recipient',
-                  })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={recipientPartyIdOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="recipientPartyId"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.recipient',
+                        })}
+                        <span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <OptionSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          options={recipientPartyIdOptions}
+                          searchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="senderRepresentativeUserId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.senderRepresentative',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    options={senderRepresentativeUserIdOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="senderRepresentativeUserId"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.senderRepresentative',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <OptionSelect
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          options={senderRepresentativeUserIdOptions}
+                          searchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="recipientRepresentativeUserId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.recipientRepresentative',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value ?? ''}
-                    onChange={field.onChange}
-                    options={recipientRepresentativeUserIdOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="recipientRepresentativeUserId"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.recipientRepresentative',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <OptionSelect
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          options={recipientRepresentativeUserIdOptions}
+                          searchable={false}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="plannedDate"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.plannedDate',
-                  })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn ngày dự kiến"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="plannedDate"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.plannedDate',
+                        })}
+                        <span className="text-destructive"> *</span>
+                      </FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          calendarLabel="Chọn ngày dự kiến"
+                          valueMode="iso-date"
+                          variant="md"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <FormField
-            control={form.control}
-            name="dueDate"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.dueDate',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    calendarLabel="Chọn hạn trả"
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="note"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-                alignment="start"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.handover.fields.note' })}
-                </FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                <FormField
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
+                    <FormItem
+                      className="md:col-span-12"
+                      layout="horizontal"
+                      labelWidth="md"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.dueDate',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          calendarLabel="Chọn hạn trả"
+                          valueMode="iso-date"
+                          variant="md"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          {sideContent}
         </div>
         {children}
       </form>

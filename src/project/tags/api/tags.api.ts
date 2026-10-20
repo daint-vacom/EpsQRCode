@@ -166,6 +166,7 @@ interface SubjectTagAssignmentRow {
 export async function loadTagSelectOptions(
   userId: string,
   config: TagSelectConfig = {},
+  signal?: AbortSignal,
 ): Promise<TagSelectOption[]> {
   assertSupabaseConfigured();
   void userId;
@@ -178,7 +179,7 @@ export async function loadTagSelectOptions(
 
   if (!allowCustomGroups && moduleCodes.length === 0) return [];
 
-  const groupFilterParams = allowCustomGroups
+  const groupFilterParams: Record<string, string> = allowCustomGroups
     ? {
         or:
           moduleCodes.length > 0
@@ -188,29 +189,29 @@ export async function loadTagSelectOptions(
     : { module_code: `in.(${moduleCodes.join(',')})` };
 
   const groups = await request<TagGroupRow[]>(
-    supabaseApi.get(
-      '/tag_groups',
-      queryParams({
+    supabaseApi.get('/tag_groups', {
+      signal,
+      ...queryParams({
         select: 'id,code,name,module_code,is_system,is_active,kind',
         kind: 'eq.tag',
         is_active: 'eq.true',
         ...groupFilterParams,
         order: 'sort_order.asc,name.asc',
       }),
-    ),
+    }),
   );
   const groupIds = groups.map((group) => group.id);
   if (groupIds.length === 0) return [];
 
   const tags = await request<TagRow[]>(
-    supabaseApi.get(
-      '/tags',
-      queryParams({
+    supabaseApi.get('/tags', {
+      signal,
+      ...queryParams({
         select: 'id,group_id,name,color,is_active,sort_order',
         group_id: `in.(${groupIds.join(',')})`,
         order: 'sort_order.asc,name.asc',
       }),
-    ),
+    }),
   );
   const groupById = new Map(groups.map((group) => [group.id, group]));
 
@@ -249,7 +250,7 @@ export async function loadSubjectTagFilter(
     return { options: [], tagsBySubjectId: {} };
   }
 
-  const groupFilterParams = allowCustomGroups
+  const groupFilterParams: Record<string, string> = allowCustomGroups
     ? {
         or:
           moduleCodes.length > 0

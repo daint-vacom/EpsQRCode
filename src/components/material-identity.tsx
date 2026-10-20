@@ -23,7 +23,9 @@ export function MaterialIdentity({
         </span>
       )}
       <span className="flex min-w-0 flex-col">
-        <span className="truncate font-medium text-foreground">{name}</span>
+        <span className="line-clamp-3 whitespace-normal break-words font-medium text-foreground">
+          {name}
+        </span>
         <span className="text-xs text-muted-foreground">{code}</span>
       </span>
     </div>

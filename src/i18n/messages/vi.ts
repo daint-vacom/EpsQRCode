@@ -6,6 +6,11 @@ import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
 
 export const vi: Record<string, string> = {
+  'common.actions.retry': 'Thử lại',
+  'common.actions.loadMore': 'Tải thêm',
+  'common.select.loadingMore': 'Đang tải thêm',
+  'common.select.loadError': 'Không thể tải dữ liệu',
+  'common.select.minSearch': 'Nhập ít nhất {count} ký tự để tìm kiếm',
   ...materialMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.materials': 'Vật tư',
@@ -29,6 +34,7 @@ export const vi: Record<string, string> = {
   'materialGroups.page.header': 'Quản lý nhóm vật tư',
   'materialGroups.actions.create': 'Thêm nhóm',
   'materialGroups.columns.group': 'Nhóm vật tư',
+  'materialGroups.columns.groupShort': 'Nhóm VT',
   'materialGroups.fields.code': 'Mã nhóm',
   'materialGroups.errors.codeRequired': 'Vui lòng nhập mã nhóm.',
   'materialGroups.fields.name': 'Tên nhóm',

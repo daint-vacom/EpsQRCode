@@ -14,7 +14,7 @@ const valid = {
     {
       materialId: '33333333-3333-4333-8333-333333333333',
       condition: 'good' as const,
-      conditionNote: '',
+      note: '',
     },
   ],
   attachmentFileIds: [],
@@ -41,7 +41,7 @@ describe('handoverFormSchema', () => {
     ).toBe(true);
   });
 
-  it('rejects identical parties, duplicate materials, and damaged items without a note', () => {
+  it('rejects identical parties and duplicate materials', () => {
     expect(
       handoverFormSchema.safeParse({
         ...valid,
@@ -57,15 +57,7 @@ describe('handoverFormSchema', () => {
     expect(
       handoverFormSchema.safeParse({
         ...valid,
-        items: [{ ...valid.items[0], condition: 'damaged' }],
-      }).success,
-    ).toBe(false);
-    expect(
-      handoverFormSchema.safeParse({
-        ...valid,
-        items: [
-          { ...valid.items[0], condition: 'damaged', conditionNote: 'Nứt vỏ' },
-        ],
+        items: [{ ...valid.items[0], condition: 'damaged', note: '' }],
       }).success,
     ).toBe(true);
   });

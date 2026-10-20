@@ -130,5 +130,6 @@ const table = useReactTable({
 ## Ghi chú
 
 - Width/căn lề cột đặt qua `meta.headerClassName` / `meta.cellClassName`, **không** style trực tiếp `<th>/<td>`.
+- Nội dung cell tự xuống dòng và giới hạn tối đa 3 dòng; chỉ thêm kiểu hiển thị riêng khi cột có yêu cầu nghiệp vụ khác.
 - Empty/loading của bảng có default tiếng Việt (`Không có dữ liệu` / `Đang tải...`) — không cần truyền.
 - Tham chiếu sống: `src/examples/employees/` (DataGrid + column factory + persist + React Query mock).

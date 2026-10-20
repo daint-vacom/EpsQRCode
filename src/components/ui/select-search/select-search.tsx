@@ -12,6 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   Popover,
   PopoverAnchor,
@@ -40,7 +41,11 @@ export interface SelectSearchProps<T = unknown> {
   loadingMessage?: string;
   loadingMore?: boolean;
   loadingMoreMessage?: string;
-  loadMoreErrorMessage?: string;
+  onLoadMore?: () => void;
+  loadMoreLabel?: string;
+  errorMessage?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
   onOptionsScroll?: UIEventHandler<HTMLDivElement>;
   selectedOption?: SearchSelectOption<T>;
   renderOption?: (
@@ -49,6 +54,7 @@ export interface SelectSearchProps<T = unknown> {
   ) => ReactNode;
   triggerContent?:
     ReactNode | ((option: SearchSelectOption<T> | undefined) => ReactNode);
+  triggerContentClassName?: string;
   triggerMode?: 'full' | 'chevron';
   className?: string;
   optionContentClassName?: string;
@@ -56,6 +62,7 @@ export interface SelectSearchProps<T = unknown> {
   'aria-invalid'?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSearchChange?: (query: string) => void;
+  searchValue?: string;
 }
 
 export function getSearchSelectOptionText<T>(
@@ -119,11 +126,17 @@ export function SelectSearch<T = unknown>({
   loading = false,
   loadingMessage = 'Đang tải...',
   loadingMore = false,
-  loadingMoreMessage = 'Đang tải thêm...',
-  loadMoreErrorMessage,
+  loadingMoreMessage = loadingMessage,
+  onLoadMore,
+  loadMoreLabel,
+  errorMessage,
+  onRetry,
+  retryLabel,
+  onOptionsScroll,
   selectedOption: selectedOptionProp,
   renderOption,
   triggerContent,
+  triggerContentClassName,
   triggerMode = 'full',
   className,
   optionContentClassName,
@@ -131,10 +144,11 @@ export function SelectSearch<T = unknown>({
   'aria-invalid': ariaInvalid,
   onOpenChange,
   onSearchChange,
-  onOptionsScroll,
+  searchValue,
 }: SelectSearchProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState('');
+  const [localQuery, setQuery] = useState('');
+  const query = searchValue ?? localQuery;
 
   const selectedOption = useMemo(() => {
     if (selectedOptionProp?.value === value) {
@@ -192,6 +206,7 @@ export function SelectSearch<T = unknown>({
     <span
       className={cn(
         'min-w-0 truncate text-start',
+        triggerContentClassName,
         !selectedOption && triggerContent === undefined
           ? 'text-muted-foreground'
           : undefined,
@@ -270,7 +285,10 @@ export function SelectSearch<T = unknown>({
               placeholder={searchPlaceholder}
             />
           ) : null}
-          <CommandList onScroll={onOptionsScroll}>
+          <CommandList
+            onScroll={onOptionsScroll}
+            aria-busy={loading || loadingMore}
+          >
             {loading ? (
               <div
                 role="status"
@@ -278,68 +296,79 @@ export function SelectSearch<T = unknown>({
               >
                 {loadingMessage}
               </div>
-            ) : groupedOptions.length === 0 ? (
+            ) : groupedOptions.length === 0 && !errorMessage ? (
               <CommandEmpty>{emptyMessage}</CommandEmpty>
             ) : (
-              <>
-                {groupedOptions.map(([group, groupItems]) => (
-                  <CommandGroup
-                    key={group || 'ungrouped'}
-                    heading={group || undefined}
-                  >
-                    {groupItems.map((option) => {
-                      const isSelected = option.value === value;
+              groupedOptions.map(([group, groupItems]) => (
+                <CommandGroup
+                  key={group || 'ungrouped'}
+                  heading={group || undefined}
+                >
+                  {groupItems.map((option) => {
+                    const isSelected = option.value === value;
 
-                      return (
-                        <CommandItem
-                          key={option.value}
-                          value={getSearchSelectOptionText(option)}
-                          disabled={option.disabled}
-                          onSelect={() => handleSelect(option)}
+                    return (
+                      <CommandItem
+                        key={option.value}
+                        value={option.value}
+                        disabled={option.disabled}
+                        onSelect={() => handleSelect(option)}
+                        className={cn(
+                          'min-h-8 text-foreground',
+                          option.disabled && 'text-disabled-foreground',
+                        )}
+                      >
+                        <span
                           className={cn(
-                            'min-h-8 text-foreground',
-                            option.disabled && 'text-disabled-foreground',
+                            'min-w-0 flex-1 truncate',
+                            optionContentClassName,
                           )}
                         >
-                          <span
-                            className={cn(
-                              'min-w-0 flex-1 truncate',
-                              optionContentClassName,
-                            )}
-                          >
-                            {renderOption
-                              ? renderOption(option, isSelected)
-                              : option.label}
-                          </span>
-                          <Check
-                            className={cn(
-                              'size-4 text-foreground',
-                              isSelected ? 'opacity-100' : 'opacity-0',
-                            )}
-                          />
-                        </CommandItem>
-                      );
-                    })}
-                  </CommandGroup>
-                ))}
-                {loadingMore ? (
-                  <div
-                    role="status"
-                    className="px-3 py-2 text-center text-xs text-muted-foreground"
-                  >
-                    {loadingMoreMessage}
-                  </div>
-                ) : null}
-                {loadMoreErrorMessage ? (
-                  <div
-                    role="alert"
-                    className="px-3 py-2 text-center text-xs text-destructive"
-                  >
-                    {loadMoreErrorMessage}
-                  </div>
-                ) : null}
-              </>
+                          {renderOption
+                            ? renderOption(option, isSelected)
+                            : option.label}
+                        </span>
+                        <Check
+                          className={cn(
+                            'size-4 text-foreground',
+                            isSelected ? 'opacity-100' : 'opacity-0',
+                          )}
+                        />
+                      </CommandItem>
+                    );
+                  })}
+                </CommandGroup>
+              ))
             )}
+            {loadingMore ? (
+              <div
+                role="status"
+                className="px-3 py-2 text-center text-xs text-muted-foreground"
+              >
+                {loadingMoreMessage}
+              </div>
+            ) : null}
+            {!loading && !loadingMore && !errorMessage && onLoadMore ? (
+              <div className="p-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full"
+                  onClick={onLoadMore}
+                >
+                  {loadMoreLabel}
+                </Button>
+              </div>
+            ) : null}
+            {!loading && errorMessage ? (
+              <ErrorState
+                title={errorMessage}
+                onRetry={onRetry}
+                retryLabel={retryLabel}
+                className="min-h-0 gap-2 px-3 py-3 [&_svg]:size-4"
+              />
+            ) : null}
           </CommandList>
         </Command>
       </PopoverContent>

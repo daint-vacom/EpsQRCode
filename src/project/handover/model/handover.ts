@@ -25,9 +25,8 @@ export interface HandoverItem {
   modelName: string;
   serialNumber: string | null;
   condition: MaterialCondition;
-  conditionNote: string | null;
+  note: string | null;
   senderCondition: MaterialCondition;
-  senderConditionNote: string | null;
 }
 
 export interface HandoverAttachment {
@@ -61,7 +60,7 @@ export interface HandoverDocument {
 export interface HandoverItemInput {
   materialId: string;
   condition: MaterialCondition;
-  conditionNote: string;
+  note: string;
 }
 
 export interface HandoverFormValues {

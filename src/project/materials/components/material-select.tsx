@@ -1,12 +1,12 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useIntl } from 'react-intl';
+import { useUser } from '@/providers/user-provider';
 import { ApiOptionSelect, OptionSelect } from '@/components/ui/option-select';
 import type {
-  ApiOptionSelectLoadOptions,
   OptionSelectProps,
   SelectOption,
 } from '@/components/ui/option-select';
-import { loadMaterial, loadMaterials } from '../api/materials.api';
+import { loadMaterials } from '../api/materials.api';
 import { materialKeys, useMaterialQuery } from '../hooks/use-materials';
 import type { Material, MaterialListFilters } from '../model/material';
 
@@ -91,33 +91,6 @@ function normalizeMaterialSearch(value: string) {
   return value.trim();
 }
 
-function matchesFilters(
-  material: Material,
-  filters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>,
-  allowReservedByHandoverId?: string,
-) {
-  if (filters.modelId && material.modelId !== filters.modelId) return false;
-  if (filters.groupId && material.modelSnapshot.groupId !== filters.groupId)
-    return false;
-  if (filters.ownerPartyId && material.ownerPartyId !== filters.ownerPartyId)
-    return false;
-  if (
-    filters.borrowerPartyId &&
-    material.borrowerPartyId !== filters.borrowerPartyId
-  )
-    return false;
-  if (filters.status && material.status !== filters.status) return false;
-  if (filters.condition && material.condition !== filters.condition)
-    return false;
-  if (
-    material.reservedHandoverId &&
-    material.reservedHandoverId !== allowReservedByHandoverId
-  ) {
-    return false;
-  }
-  return true;
-}
-
 function MaterialOptionsSelect({
   materials = [],
   selectedMaterial,
@@ -182,15 +155,7 @@ function MaterialFetchSelect({
   allowReservedByHandoverId?: string;
 }) {
   const intl = useIntl();
-  const filtersKey = JSON.stringify(filters);
-  const stableFilters = useMemo(
-    () =>
-      JSON.parse(filtersKey) as Omit<
-        MaterialListFilters,
-        'search' | 'page' | 'pageSize'
-      >,
-    [filtersKey],
-  );
+  const { userId } = useUser();
   const selectedQuery = useMaterialQuery(
     selectedMaterial?.id === value ? '' : value,
     !selectedMaterial || selectedMaterial.id !== value,
@@ -198,57 +163,42 @@ function MaterialFetchSelect({
   const selected =
     selectedMaterial?.id === value ? selectedMaterial : selectedQuery.data;
   const selectedOption = selected ? materialOption(selected) : undefined;
-  const loadOptions = useCallback<
-    ApiOptionSelectLoadOptions<MaterialSelectItem>
-  >(
-    async ({ search, page, pageSize: requestedPageSize, signal }) => {
-      const normalizedSearch = normalizeMaterialSearch(search);
-      const isId =
-        /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
-          normalizedSearch,
-        );
-      if (isId) {
-        const material = await loadMaterial(normalizedSearch);
-        return {
-          options: matchesFilters(
-            material,
-            stableFilters,
-            allowReservedByHandoverId,
-          )
-            ? [materialOption(material)]
-            : [],
-          hasMore: false,
-        };
-      }
-
-      const result = await loadMaterials(
-        {
-          ...stableFilters,
-          search: normalizedSearch || undefined,
-          page,
-          pageSize: requestedPageSize,
-        },
-        signal,
-      );
-      const materials = result.items.filter((material) =>
-        matchesFilters(material, stableFilters, allowReservedByHandoverId),
-      );
-      return {
-        options: materials.map(materialOption),
-        total: result.total,
-        hasMore: result.page * result.pageSize < result.total,
-      };
-    },
-    [allowReservedByHandoverId, stableFilters],
-  );
-
   return (
-    <ApiOptionSelect<MaterialSelectItem>
+    <ApiOptionSelect<
+      MaterialSelectItem,
+      Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>
+    >
       {...props}
       value={value}
-      cacheKey={materialKeys.select(stableFilters)}
-      loadOptions={loadOptions}
-      reloadKey={filtersKey}
+      cacheKey={[...materialKeys.all, 'select', userId]}
+      filters={{ ...filters, excludeReserved: true, allowReservedByHandoverId }}
+      loadOptions={async ({
+        search,
+        filters: requestFilters,
+        page,
+        pageSize: size,
+        signal,
+      }) => {
+        const normalized = normalizeMaterialSearch(search);
+        const isId =
+          /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
+            normalized,
+          );
+        const result = await loadMaterials(
+          {
+            ...requestFilters,
+            id: isId ? normalized : undefined,
+            search: isId ? undefined : normalized || undefined,
+            page,
+            pageSize: size,
+          },
+          signal,
+        );
+        return {
+          options: result.items.map(materialOption),
+          hasMore: result.page * result.pageSize < result.total,
+        };
+      }}
       initialQuery={initialSearch}
       pageSize={pageSize}
       selectedOption={selectedOption}

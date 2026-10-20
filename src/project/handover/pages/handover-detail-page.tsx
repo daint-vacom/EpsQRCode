@@ -193,7 +193,7 @@ export function HandoverDetailPage() {
                     items.map((item) => ({
                       materialId: item.materialId,
                       condition: item.condition,
-                      conditionNote: item.conditionNote ?? '',
+                      note: item.note ?? '',
                     })),
                   );
                   setConfirmOpen(true);
@@ -349,6 +349,9 @@ export function HandoverDetailPage() {
               <th className="py-2">Số sê-ri</th>
               <th className="py-2">Lúc giao</th>
               <th className="py-2">Khi nhận</th>
+              <th className="py-2">
+                {intl.formatMessage({ id: 'project.handover.fields.note' })}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -368,22 +371,13 @@ export function HandoverDetailPage() {
                   {intl.formatMessage({
                     id: `project.handover.condition.${item.senderCondition}`,
                   })}
-                  {item.senderConditionNote ? (
-                    <span className="block text-xs text-muted-foreground">
-                      {item.senderConditionNote}
-                    </span>
-                  ) : null}
                 </td>
                 <td className="py-3">
                   {intl.formatMessage({
                     id: `project.handover.condition.${item.condition}`,
                   })}
-                  {item.conditionNote ? (
-                    <span className="block text-xs text-muted-foreground">
-                      {item.conditionNote}
-                    </span>
-                  ) : null}
                 </td>
+                <td className="py-3">{item.note ?? ''}</td>
               </tr>
             ))}
           </tbody>
@@ -600,13 +594,13 @@ export function HandoverDetailPage() {
                   />
                   <Textarea
                     rows={1}
-                    aria-label={`Ghi chú tình trạng nhận ${index + 1}`}
-                    value={condition.conditionNote}
+                    aria-label={`${intl.formatMessage({ id: 'project.handover.fields.note' })} ${index + 1}`}
+                    value={condition.note}
                     onChange={(event) =>
                       setReceiverConditions((current) =>
                         current.map((entry) =>
                           entry.materialId === condition.materialId
-                            ? { ...entry, conditionNote: event.target.value }
+                            ? { ...entry, note: event.target.value }
                             : entry,
                         ),
                       )
@@ -631,10 +625,6 @@ export function HandoverDetailPage() {
               loadingText={intl.formatMessage({
                 id: 'project.handover.labels.confirming',
               })}
-              disabled={receiverConditions.some(
-                (entry) =>
-                  entry.condition === 'damaged' && !entry.conditionNote.trim(),
-              )}
               onClick={() => void runAction('confirm')}
             >
               {intl.formatMessage({ id: 'project.handover.actions.confirm' })}

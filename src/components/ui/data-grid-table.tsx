@@ -398,12 +398,12 @@ function DataGridTableBodyRowCell<TData>({
         isLastLeftPinned ? 'left' : isFirstRightPinned ? 'right' : undefined
       }
       className={cn(
-        'align-middle',
+        'align-middle whitespace-normal break-words',
         bodyCellSpacing,
         props.tableLayout?.cellBorder && 'border-e',
         props.tableLayout?.columnsResizable &&
           column.getCanResize() &&
-          'truncate',
+          'min-w-0',
         cell.column.columnDef.meta?.cellClassName,
         isPinned &&
           '[&[data-pinned=left][data-last-col=left]]:border-e! [&[data-pinned=right][data-last-col=right]]:border-s! [&[data-pinned][data-last-col]]:border-border data-pinned:bg-background/90 data-pinned:backdrop-blur-xs"',
@@ -413,7 +413,9 @@ function DataGridTableBodyRowCell<TData>({
           : '',
       )}
     >
-      {children}
+      <div className="line-clamp-3 min-w-0 whitespace-normal break-words">
+        {children}
+      </div>
     </td>
   );
 }

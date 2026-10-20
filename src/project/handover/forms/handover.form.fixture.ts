@@ -81,16 +81,6 @@ const spec: FormSpec = {
       modes: ['create', 'edit'],
       format: 'iso',
     },
-    {
-      kind: 'textarea',
-      name: 'note',
-      label: 'Ghi chú',
-      labelMessageId: 'project.handover.fields.note',
-      layout: 'horizontal',
-      labelWidth: 'md',
-      alignment: 'start',
-      rows: 3,
-    },
   ],
 };
 

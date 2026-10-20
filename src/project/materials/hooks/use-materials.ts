@@ -1,14 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   applyMaterialModelSync,
+  deleteMaterials,
   loadMaterial,
   loadMaterialHistory,
   loadMaterials,
   previewMaterialModelSync,
   saveMaterial,
+  updateMaterialAvailability,
 } from '../api/materials.api';
 import type {
   ApplyMaterialModelSyncInput,
+  Material,
   MaterialListFilters,
   SaveMaterialInput,
 } from '../model/material';
@@ -42,9 +50,19 @@ export function useMaterialsQuery(
 export function useMaterialQuery(id: string, enabled = true) {
   return useQuery({
     queryKey: materialKeys.detail(id),
-    queryFn: () => loadMaterial(id),
+    queryFn: ({ signal }) => loadMaterial(id, signal),
     enabled: Boolean(id) && enabled,
     retry: 0,
+  });
+}
+export function useMaterialsByIdsQuery(ids: string[], enabled = true) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: materialKeys.detail(id),
+      queryFn: ({ signal }) => loadMaterial(id, signal),
+      enabled: Boolean(id) && enabled,
+      retry: 0,
+    })),
   });
 }
 
@@ -69,6 +87,78 @@ export function useSaveMaterialMutation() {
     }: SaveMaterialInput) =>
       saveMaterial(id, expectedVersion, values, images, previousImages),
     onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+  });
+}
+export function useUpdateMaterialAvailabilityMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      updateMaterialAvailability(id, isActive),
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: materialKeys.lists() });
+      const previousLists = queryClient.getQueriesData<{
+        items: Material[];
+        total: number;
+        page: number;
+        pageSize: number;
+      }>({ queryKey: materialKeys.lists() });
+      queryClient.setQueriesData<{
+        items: Material[];
+        total: number;
+        page: number;
+        pageSize: number;
+      }>({ queryKey: materialKeys.lists() }, (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((material) =>
+                material.id === id ? { ...material, isActive } : material,
+              ),
+            }
+          : current,
+      );
+      return { previousLists };
+    },
+    onError: (_error, _variables, context) => {
+      context?.previousLists.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSuccess: (result) => {
+      queryClient.setQueriesData<{
+        items: Material[];
+        total: number;
+        page: number;
+        pageSize: number;
+      }>({ queryKey: materialKeys.lists() }, (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((material) =>
+                material.id === result.id
+                  ? {
+                      ...material,
+                      isActive: result.isActive,
+                      updatedAt: result.updatedAt,
+                      version: result.version,
+                    }
+                  : material,
+              ),
+            }
+          : current,
+      );
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+  });
+}
+
+export function useDeleteMaterialMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (materials: Material[]) => deleteMaterials(materials),
+    onSettled: () =>
       queryClient.invalidateQueries({ queryKey: materialKeys.all }),
   });
 }

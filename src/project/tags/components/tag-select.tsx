@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, X } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { getApiErrorMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/providers/user-provider';
@@ -60,14 +61,17 @@ export function TagSelect({
   disabled = false,
   className,
   onChange,
+  onOpenChange,
   ...props
 }: TagSelectProps) {
+  const intl = useIntl();
   const { userId } = useUser();
+  const [open, setOpen] = useState(false);
   const normalizedModuleCodes = useMemo(
     () =>
       Array.from(
         new Set(moduleCodes.map((code) => code.trim()).filter(Boolean)),
-      ),
+      ).sort(),
     [moduleCodes],
   );
   const query = useQuery({
@@ -79,14 +83,22 @@ export function TagSelect({
       normalizedModuleCodes,
       allowCustomGroups,
     ],
-    queryFn: () => {
-      return loadTagSelectOptions(userId, {
-        moduleCodes: normalizedModuleCodes,
-        allowCustomGroups,
-      });
+    queryFn: ({ signal }) => {
+      return loadTagSelectOptions(
+        userId!,
+        {
+          moduleCodes: normalizedModuleCodes,
+          allowCustomGroups,
+        },
+        signal,
+      );
     },
-    enabled: sourceMode === 'fetch' && Boolean(userId && enabled),
+    enabled:
+      sourceMode === 'fetch' &&
+      Boolean(userId && enabled && !disabled && (open || value.length > 0)),
     staleTime: 5 * 60 * 1000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const options = useMemo<MultiSelectOption<TagSelectOption>[]>(
@@ -173,12 +185,26 @@ export function TagSelect({
         }
         searchPlaceholder={searchPlaceholder}
         searchMode="popover"
+        onOpenChange={(next) => {
+          setOpen(next);
+          onOpenChange?.(next);
+        }}
+        errorMessage={
+          sourceMode === 'fetch' && query.isError
+            ? getApiErrorMessage(query.error)
+            : undefined
+        }
+        onRetry={() => {
+          if (sourceMode === 'fetch' && !query.isFetching)
+            void query.refetch({ cancelRefetch: false });
+        }}
+        retryLabel={intl.formatMessage({ id: 'common.actions.retry' })}
         emptyMessage={
           sourceMode === 'fetch' && query.isError
             ? getApiErrorMessage(query.error)
             : emptyMessage
         }
-        loading={sourceMode === 'fetch' && query.isPending}
+        loading={sourceMode === 'fetch' && query.isPending && query.isFetching}
         loadingMessage="Đang tải danh sách nhãn..."
         disabled={disabled || (sourceMode === 'fetch' && (!userId || !enabled))}
         className={cn(useButtonVariant && BUTTON_TRIGGER_CLASS, className)}

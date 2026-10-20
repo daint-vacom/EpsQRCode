@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Badge, BadgeButton } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandInput } from '@/components/ui/command';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   Popover,
   PopoverContent,
@@ -50,6 +51,10 @@ export interface MultiSelectProps<T = unknown> {
   emptyMessage?: string;
   loading?: boolean;
   loadingMessage?: string;
+  errorMessage?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
+  onOpenChange?: (open: boolean) => void;
   renderSelectedOption?: (
     option: MultiSelectOption<T>,
     onRemove: () => void,
@@ -101,6 +106,10 @@ export function MultiSelect<T = unknown>({
   emptyMessage = 'Không có kết quả',
   loading = false,
   loadingMessage = 'Đang tải...',
+  errorMessage,
+  onRetry,
+  retryLabel,
+  onOpenChange,
   renderSelectedOption,
   disabled = false,
   maxChips = 2,
@@ -148,6 +157,7 @@ export function MultiSelect<T = unknown>({
 
   const handleOpenChange = (nextOpen: boolean) => {
     setIsOpen(nextOpen);
+    onOpenChange?.(nextOpen);
 
     if (!nextOpen) {
       setQuery('');
@@ -393,7 +403,7 @@ export function MultiSelect<T = unknown>({
             >
               {loadingMessage}
             </div>
-          ) : nestedOptions ? (
+          ) : errorMessage && options.length === 0 ? null : nestedOptions ? (
             <NestedMultiSelectList
               options={nestedOptions}
               selectedValues={value}
@@ -411,6 +421,14 @@ export function MultiSelect<T = unknown>({
               onToggle={handleToggle}
             />
           )}
+          {!loading && errorMessage ? (
+            <ErrorState
+              title={errorMessage}
+              onRetry={onRetry}
+              retryLabel={retryLabel}
+              className="min-h-0 gap-2 px-3 py-3 [&_svg]:size-4"
+            />
+          ) : null}
         </Command>
       </PopoverContent>
     </Popover>

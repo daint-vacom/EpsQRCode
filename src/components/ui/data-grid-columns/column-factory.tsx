@@ -192,10 +192,11 @@ export function createColumnHelpers<TRow extends object>(
     text(options: TextColumnOptions<TRow>): ColumnDef<TRow> {
       return createAccessorColumn({
         ...options,
-        cellClassName: cn('truncate', options.cellClassName),
         cell: (value) => {
           const label = value ?? '';
-          const content = <span className="truncate">{label}</span>;
+          const content = (
+            <span className="whitespace-normal break-words">{label}</span>
+          );
 
           if (!options.tooltipOnTruncate || !label) {
             return content;

@@ -1,31 +1,31 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
-import {
-  useMaterialQuery,
-  useMaterialsQuery,
-} from '@/project/materials/hooks/use-materials';
-import type { Material } from '@/project/materials/model/material';
-import { FilePlus2, Plus, Save, Send, Trash2 } from 'lucide-react';
-import { useFieldArray } from 'react-hook-form';
+import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
+import { HandoverItemsEditorTable } from '@/project/handover/table/handover-items-editor-table.generated';
+import { useMaterialsByIdsQuery } from '@/project/materials/hooks/use-materials';
+import type {
+  Material,
+  MaterialListFilters,
+} from '@/project/materials/model/material';
+import { FilePlus2, Save, Send } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { Textarea } from '@/components/ui/textarea';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import {
@@ -38,24 +38,9 @@ import {
   useHandoverQuery,
   useSaveHandoverMutation,
 } from '../hooks/use-handovers';
-import type { HandoverDocument } from '../model/handover';
+import type { HandoverAttachment, HandoverDocument } from '../model/handover';
 import type { HandoverFormValues } from '../model/handover-form-schema';
 import { HANDOVER_PERMISSION_CODES } from '../model/handover-permissions';
-
-function normalizeMaterialSearch(value: string) {
-  try {
-    const parsed = new URL(value);
-    const segments = parsed.pathname.split('/').filter(Boolean);
-    const materialIndex = segments.findIndex(
-      (segment) => segment === 'materials',
-    );
-    if (materialIndex >= 0 && segments[materialIndex + 1])
-      return segments[materialIndex + 1];
-  } catch {
-    // Treat non-URLs as material code/name searches.
-  }
-  return value.trim();
-}
 
 function isUuid(value: string) {
   return /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
@@ -65,6 +50,7 @@ function isUuid(value: string) {
 
 export function HandoverEditorPage() {
   const intl = useIntl();
+  const location = useLocation();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
@@ -77,10 +63,36 @@ export function HandoverEditorPage() {
   const actionMutation = useHandoverActionMutation();
   const { mutateAsync: saveHandover, isPending: isSaving } = saveMutation;
   const { mutateAsync: actOnHandover, isPending: isActing } = actionMutation;
-  const [materialSearch, setMaterialSearch] = useState('');
+  const initialMaterialSearch =
+    new URLSearchParams(location.search).get('materialId') ?? '';
+  const bulkMaterialIds = useMemo(() => {
+    const values = new URLSearchParams(location.search)
+      .get('materialIds')
+      ?.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return [...new Set(values ?? [])];
+  }, [location.search]);
+  const bulkMaterialsQuery = useMaterialsByIdsQuery(
+    bulkMaterialIds,
+    canManage && !isEdit,
+  );
+  const processedBulkMaterialIds = useRef(new Set<string>());
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<File[]>(
+    [],
+  );
+  const [uploadedAttachments, setUploadedAttachments] = useState<
+    HandoverAttachment[]
+  >([]);
   const form = useHandoverForm();
-  const items = useFieldArray({ control: form.control, name: 'items' });
+  const selectedMaterialIds = (form.watch('items') ?? [])
+    .map((item) => item.materialId)
+    .filter(isUuid);
+  const selectedMaterialsQuery = useMaterialsByIdsQuery(
+    [...new Set(selectedMaterialIds)],
+    canManage,
+  );
   const document = documentQuery.data;
   const custodianList = custodiansQuery.data ?? [];
   const sender = custodianList.find(
@@ -90,14 +102,10 @@ export function HandoverEditorPage() {
     (party) => party.id === form.watch('recipientPartyId'),
   );
   const handoverType = form.watch('type');
-  const normalizedSearch = normalizeMaterialSearch(materialSearch);
-  const searchLooksLikeId = isUuid(normalizedSearch);
-  const byIdQuery = useMaterialQuery(
-    normalizedSearch,
-    canManage && searchLooksLikeId,
-  );
-  const materialFilters = {
-    search: normalizedSearch || undefined,
+  const materialFilters: Omit<
+    MaterialListFilters,
+    'search' | 'page' | 'pageSize'
+  > = {
     ownerPartyId:
       handoverType === 'return'
         ? undefined
@@ -108,26 +116,26 @@ export function HandoverEditorPage() {
         : undefined,
     status:
       handoverType === 'return' ? ('loaned' as const) : ('available' as const),
-    page: 1,
-    pageSize: 50,
   };
-  const materialsQuery = useMaterialsQuery(
-    materialFilters,
-    canManage &&
-      normalizedSearch.length >= 2 &&
-      Boolean(form.watch('senderPartyId')),
-  );
   const materialOptions = useMemo(() => {
-    const byIdMaterial = byIdQuery.data;
-    const list = materialsQuery.data?.items ?? [];
-    const candidates = byIdMaterial ? [byIdMaterial, ...list] : list;
+    const bulkMaterials = bulkMaterialsQuery.flatMap((result) =>
+      result.data ? [result.data] : [],
+    );
+    const selectedMaterials = selectedMaterialsQuery.flatMap((result) =>
+      result.data ? [result.data] : [],
+    );
+    const candidates = [...bulkMaterials, ...selectedMaterials];
     return candidates.filter(
       (material, index) =>
         candidates.findIndex((candidate) => candidate.id === material.id) ===
           index &&
         (!material.reservedHandoverId || material.reservedHandoverId === id),
     );
-  }, [byIdQuery.data, materialsQuery.data?.items, id]);
+  }, [bulkMaterialsQuery, selectedMaterialsQuery, id]);
+  const materialById = useMemo(
+    () => new Map(materialOptions.map((material) => [material.id, material])),
+    [materialOptions],
+  );
   const representativeOptions = (partyId: string) => {
     const party = custodianList.find((item) => item.id === partyId);
     return party?.representativeUserId
@@ -163,29 +171,122 @@ export function HandoverEditorPage() {
     form.reset(mapHandoverToFormValues(document));
   }, [document, form]);
 
-  const addMaterial = (material: Material) => {
-    if (items.fields.some((item) => item.materialId === material.id)) {
+  useEffect(() => {
+    if (isEdit || !bulkMaterialIds.length) return;
+    for (const [index, result] of bulkMaterialsQuery.entries()) {
+      const requestedId = bulkMaterialIds[index];
+      if (
+        result.isError &&
+        requestedId &&
+        !processedBulkMaterialIds.current.has(requestedId)
+      ) {
+        processedBulkMaterialIds.current.add(requestedId);
+        toast.error(getApiErrorMessage(result.error));
+        continue;
+      }
+      const material = result.data;
+      if (!material || processedBulkMaterialIds.current.has(material.id))
+        continue;
+      processedBulkMaterialIds.current.add(material.id);
+      if (material.reservedHandoverId) {
+        toast.error(
+          intl.formatMessage({ id: 'project.materials.states.reserved' }),
+        );
+        continue;
+      }
+      const currentItems = form.getValues('items');
+      if (currentItems.some((item) => item.materialId === material.id))
+        continue;
+      form.setValue(
+        'items',
+        [
+          ...currentItems,
+          {
+            materialId: material.id,
+            condition: material.condition,
+            note: material.note ?? '',
+          },
+        ],
+        { shouldDirty: true, shouldValidate: true },
+      );
+    }
+  }, [bulkMaterialIds, bulkMaterialsQuery, form, intl, isEdit]);
+
+  const handleMaterialSelect = (index: number, material: Material) => {
+    const duplicate = form
+      .getValues('items')
+      .some(
+        (item, itemIndex) =>
+          itemIndex !== index && item.materialId === material.id,
+      );
+    if (duplicate) {
       toast.error(
         intl.formatMessage({ id: 'project.handover.errors.duplicateMaterial' }),
       );
       return;
     }
-    items.append({
-      materialId: material.id,
-      condition: material.condition,
-      conditionNote: material.conditionNote ?? '',
+    form.setValue(`items.${index}.materialId`, material.id, {
+      shouldDirty: true,
+      shouldValidate: true,
     });
-    setMaterialSearch('');
+    form.setValue(`items.${index}.condition`, material.condition, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    form.setValue(`items.${index}.note`, material.note ?? '', {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
 
   const onSave = useCallback(
     async (values: HandoverFormValues, sendAfterSave = false) => {
       let savedId: string | null = null;
       try {
+        let attachmentFileIds = values.attachmentFileIds;
+        if (pendingAttachmentFiles.length > 0) {
+          if (!userId) {
+            throw new Error(
+              intl.formatMessage({
+                id: 'project.handover.errors.missingUploader',
+              }),
+            );
+          }
+          setIsUploading(true);
+          try {
+            const fileIds = await uploadFilesToFolder(
+              null,
+              userId,
+              pendingAttachmentFiles,
+            );
+            if (fileIds.length !== pendingAttachmentFiles.length) {
+              throw new Error(
+                intl.formatMessage({
+                  id: 'project.handover.errors.uploadIncomplete',
+                }),
+              );
+            }
+            const uploaded = pendingAttachmentFiles.map((file, index) => ({
+              fileId: fileIds[index],
+              fileName: file.name,
+              mimeType: file.type || 'application/octet-stream',
+              sizeBytes: file.size,
+            }));
+            attachmentFileIds = [...attachmentFileIds, ...fileIds];
+            form.setValue('attachmentFileIds', attachmentFileIds, {
+              shouldDirty: true,
+            });
+            setUploadedAttachments((current) => [...current, ...uploaded]);
+            setPendingAttachmentFiles([]);
+          } finally {
+            setIsUploading(false);
+          }
+        }
         const persistedId = await saveHandover({
           id: id || null,
           values: {
             ...values,
+            attachmentFileIds,
             ...(isEdit ? { expectedVersion: document?.version } : {}),
           },
         });
@@ -223,7 +324,10 @@ export function HandoverEditorPage() {
       intl,
       isEdit,
       navigate,
+      pendingAttachmentFiles,
+      form,
       saveHandover,
+      userId,
     ],
   );
 
@@ -284,24 +388,15 @@ export function HandoverEditorPage() {
   );
   useDetailEntryLayoutHeader(header);
 
-  const handleUpload = async (files: FileList | null) => {
-    if (!files?.length || !userId) return;
-    setIsUploading(true);
-    try {
-      const upload = await uploadFilesToFolder(null, userId, Array.from(files));
-      const fileIds = upload;
-      if (!fileIds.length)
-        throw new Error('Không nhận được mã tệp đã tải lên.');
-      form.setValue(
-        'attachmentFileIds',
-        [...form.getValues('attachmentFileIds'), ...fileIds],
-        { shouldDirty: true },
-      );
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setIsUploading(false);
-    }
+  const handleRemoveAttachment = (fileId: string) => {
+    form.setValue(
+      'attachmentFileIds',
+      form.getValues('attachmentFileIds').filter((id) => id !== fileId),
+      { shouldDirty: true },
+    );
+    setUploadedAttachments((current) =>
+      current.filter((attachment) => attachment.fileId !== fileId),
+    );
   };
 
   if (isPermissionsPending)
@@ -356,239 +451,92 @@ export function HandoverEditorPage() {
   }
 
   const attachmentFileIds = form.watch('attachmentFileIds');
+  const attachmentsById = new Map(
+    [...(document?.attachments ?? []), ...uploadedAttachments].map(
+      (attachment) => [attachment.fileId, attachment],
+    ),
+  );
+  const selectedAttachments = attachmentFileIds.flatMap((fileId) => {
+    const attachment = attachmentsById.get(fileId);
+    return attachment ? [attachment] : [];
+  });
   const formView = (
-    <HandoverForm
-      form={form}
-      onSubmit={(values) => void onSave(values)}
-      senderPartyIdOptions={representedSenderOptions}
-      recipientPartyIdOptions={activePartyOptions}
-      senderRepresentativeUserIdOptions={representativeOptions(
-        sender?.id ?? '',
-      )}
-      recipientRepresentativeUserIdOptions={representativeOptions(
-        recipient?.id ?? '',
-      )}
-    >
-      <div className="mt-6 space-y-5">
-        {representedSenderOptions.length === 0 ? (
-          <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-            Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu hình
-            người đại diện trong danh mục chủ thể trước khi lập phiếu.
+    <div className="space-y-4">
+      {representedSenderOptions.length === 0 ? (
+        <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+          Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu hình
+          người đại diện trong danh mục chủ thể trước khi lập phiếu.
+        </p>
+      ) : null}
+      <HandoverForm
+        form={form}
+        onSubmit={(values) => void onSave(values)}
+        senderPartyIdOptions={representedSenderOptions}
+        recipientPartyIdOptions={activePartyOptions}
+        senderRepresentativeUserIdOptions={representativeOptions(
+          sender?.id ?? '',
+        )}
+        recipientRepresentativeUserIdOptions={representativeOptions(
+          recipient?.id ?? '',
+        )}
+        sideContent={
+          <Card className="h-full min-w-0">
+            <CardContent className="space-y-5">
+              <FormField
+                control={form.control}
+                name="note"
+                render={({ field }) => (
+                  <FormItem
+                    layout="horizontal"
+                    labelWidth="md"
+                    alignment="start"
+                  >
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.fields.note',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea rows={4} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <HandoverAttachmentsField
+                attachments={selectedAttachments}
+                files={pendingAttachmentFiles}
+                onFilesChange={setPendingAttachmentFiles}
+                onRemove={handleRemoveAttachment}
+                disabled={isSaving || isActing || isUploading}
+                isUploading={isUploading}
+              />
+            </CardContent>
+          </Card>
+        }
+      >
+        <div className="mt-admin-page-section flex min-h-[360px] min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+          <HandoverItemsEditorTable
+            form={form}
+            materials={[...materialById.values()]}
+            materialFilters={materialFilters}
+            initialMaterialSearch={initialMaterialSearch}
+            allowReservedByHandoverId={id || undefined}
+            onMaterialSelect={handleMaterialSelect}
+            createRow={() => ({
+              materialId: '',
+              condition: 'good',
+              note: '',
+            })}
+          />
+        </div>
+        {form.formState.errors.items?.message ? (
+          <p className="mt-2 text-xs text-destructive" role="alert">
+            {form.formState.errors.items.message}
           </p>
         ) : null}
-        <FormField
-          control={form.control}
-          name="items"
-          render={({ fieldState }) => (
-            <FormItem layout="horizontal" labelWidth="md" alignment="start">
-              <FormLabel>
-                {intl.formatMessage({ id: 'project.handover.fields.material' })}
-                <span className="text-destructive"> *</span>
-              </FormLabel>
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Input
-                    aria-label={intl.formatMessage({
-                      id: 'project.handover.labels.materialSearch',
-                    })}
-                    value={materialSearch}
-                    onChange={(event) => setMaterialSearch(event.target.value)}
-                    className="min-w-64 flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={!materialOptions.length}
-                    onClick={() => addMaterial(materialOptions[0])}
-                  >
-                    <Plus />
-                    {intl.formatMessage({
-                      id: 'project.handover.actions.addItem',
-                    })}
-                  </Button>
-                </div>
-                {normalizedSearch.length >= 2 && materialOptions.length ? (
-                  <div className="max-h-48 overflow-auto rounded-lg border border-border">
-                    {materialOptions.map((material) => (
-                      <button
-                        key={material.id}
-                        type="button"
-                        className="flex w-full items-center justify-between gap-3 border-b border-border px-3 py-2 text-left last:border-0 hover:bg-muted/60"
-                        onClick={() => addMaterial(material)}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">
-                            {material.code} ·{' '}
-                            {material.nameOverride ||
-                              material.modelSnapshot.name}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {material.modelSnapshot.code}
-                            {material.serialNumber
-                              ? ` · ${material.serialNumber}`
-                              : ''}
-                          </span>
-                        </span>
-                        <Plus className="size-4 shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                ) : normalizedSearch.length >= 2 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Không có vật tư phù hợp với bên giao hoặc vật tư đang được
-                    giữ trên phiếu khác.
-                  </p>
-                ) : null}
-                {items.fields.length ? (
-                  <div className="overflow-x-auto rounded-lg border border-border">
-                    <table className="w-full min-w-[700px] text-sm">
-                      <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
-                        <tr>
-                          <th className="px-3 py-2">Vật tư</th>
-                          <th className="w-40 px-3 py-2">Tình trạng</th>
-                          <th className="px-3 py-2">Ghi chú tình trạng</th>
-                          <th className="w-12 px-2 py-2" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.fields.map((item, index) => {
-                          const material = materialOptions.find(
-                            (option) => option.id === item.materialId,
-                          );
-                          const errorMessage =
-                            form.formState.errors.items?.[index]?.conditionNote
-                              ?.message;
-                          return (
-                            <tr
-                              key={item.id}
-                              className="border-t border-border align-top"
-                            >
-                              <td className="px-3 py-2">
-                                <span className="font-medium">
-                                  {material?.code ?? item.materialId}
-                                </span>
-                                <span className="block text-xs text-muted-foreground">
-                                  {material?.nameOverride ||
-                                    material?.modelSnapshot.name}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2">
-                                <OptionSelect
-                                  value={form.watch(`items.${index}.condition`)}
-                                  onChange={(value) =>
-                                    form.setValue(
-                                      `items.${index}.condition`,
-                                      value as 'good' | 'damaged',
-                                      {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                      },
-                                    )
-                                  }
-                                  options={[
-                                    { value: 'good', label: 'Tốt' },
-                                    { value: 'damaged', label: 'Hỏng' },
-                                  ]}
-                                  searchable={false}
-                                />
-                              </td>
-                              <td className="px-3 py-2">
-                                <Textarea
-                                  rows={1}
-                                  value={form.watch(
-                                    `items.${index}.conditionNote`,
-                                  )}
-                                  onChange={(event) =>
-                                    form.setValue(
-                                      `items.${index}.conditionNote`,
-                                      event.target.value,
-                                      {
-                                        shouldDirty: true,
-                                        shouldValidate: true,
-                                      },
-                                    )
-                                  }
-                                  aria-label={`Ghi chú tình trạng ${index + 1}`}
-                                />
-                                {errorMessage ? (
-                                  <p className="mt-1 text-xs text-destructive">
-                                    {String(errorMessage)}
-                                  </p>
-                                ) : null}
-                              </td>
-                              <td className="px-2 py-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  aria-label={intl.formatMessage({
-                                    id: 'project.handover.labels.removeMaterial',
-                                  })}
-                                  onClick={() => items.remove(index)}
-                                >
-                                  <Trash2 className="size-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Chưa thêm vật tư.
-                  </p>
-                )}
-                {fieldState.error?.message ? (
-                  <p className="text-xs text-destructive">
-                    {fieldState.error.message}
-                  </p>
-                ) : null}
-              </div>
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="attachmentFileIds"
-          render={() => (
-            <FormItem layout="horizontal" labelWidth="md" alignment="start">
-              <FormLabel>
-                {intl.formatMessage({
-                  id: 'project.handover.fields.attachments',
-                })}
-              </FormLabel>
-              <FormControl>
-                <div className="space-y-2">
-                  <Input
-                    type="file"
-                    multiple
-                    aria-label={intl.formatMessage({
-                      id: 'project.handover.fields.attachments',
-                    })}
-                    disabled={isUploading}
-                    onChange={(event) => {
-                      void handleUpload(event.target.files);
-                      event.currentTarget.value = '';
-                    }}
-                  />
-                  {isUploading ? (
-                    <p className="text-xs text-muted-foreground">
-                      Đang tải tệp lên
-                    </p>
-                  ) : attachmentFileIds.length ? (
-                    <p className="text-xs text-muted-foreground">
-                      Đã đính kèm {attachmentFileIds.length} tệp.
-                    </p>
-                  ) : null}
-                </div>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-      </div>
-    </HandoverForm>
+      </HandoverForm>
+    </div>
   );
 
   return (
@@ -604,18 +552,7 @@ export function HandoverEditorPage() {
           onRetry={() => void custodiansQuery.refetch()}
         />
       ) : (
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>
-              {intl.formatMessage({
-                id: isEdit
-                  ? 'project.handover.dialogs.editTitle'
-                  : 'project.handover.dialogs.createTitle',
-              })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>{formView}</CardContent>
-        </Card>
+        formView
       )}
     </div>
   );

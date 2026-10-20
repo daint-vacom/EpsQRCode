@@ -6,7 +6,7 @@
  */
 import { useMemo } from 'react';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Folder, Pencil, Trash2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import {
   createColumnHelpers,
@@ -31,6 +31,7 @@ export interface UseMaterialModelColumnsParams {
   onDelete: (row: MaterialModel) => void;
   canManage: boolean;
   pendingAvailabilityIds: ReadonlySet<string>;
+  groupNameById: ReadonlyMap<string, string>;
   onAvailabilityChange: (row: MaterialModel, isActive: boolean) => void;
 }
 
@@ -39,6 +40,7 @@ export function useMaterialModelColumns({
   onDelete,
   canManage,
   pendingAvailabilityIds,
+  groupNameById,
   onAvailabilityChange,
 }: UseMaterialModelColumnsParams): ColumnDef<MaterialModel>[] {
   const intl = useIntl();
@@ -86,10 +88,29 @@ export function useMaterialModelColumns({
         ),
       }),
       col.custom({
+        id: 'group',
+        header: intl.formatMessage({ id: 'materialGroups.columns.groupShort' }),
+        size: 220,
+        enableSorting: false,
+        cell: (row) => {
+          const groupName = row.groupId ? groupNameById.get(row.groupId) : null;
+          if (!groupName) return null;
+
+          return (
+            <span className="flex min-w-0 items-center gap-2">
+              <Folder className="size-4 shrink-0 text-muted-foreground" />
+              <span className="whitespace-normal break-words" title={groupName}>
+                {groupName}
+              </span>
+            </span>
+          );
+        },
+      }),
+      col.custom({
         id: 'description',
         header: intl.formatMessage({ id: 'materialModels.fields.description' }),
         cellClassName: 'align-top',
-        size: 280,
+        size: 240,
         enableSorting: false,
         cell: (row) => {
           const description = row.description ?? '';
@@ -98,9 +119,7 @@ export function useMaterialModelColumns({
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="line-clamp-3 whitespace-normal">
-                  {description}
-                </span>
+                <span>{description}</span>
               </TooltipTrigger>
               <TooltipContent className="max-w-lg whitespace-normal break-words">
                 {description}
@@ -166,6 +185,7 @@ export function useMaterialModelColumns({
     onDelete,
     canManage,
     pendingAvailabilityIds,
+    groupNameById,
     onAvailabilityChange,
   ]);
 }

@@ -22,10 +22,17 @@ const spec: TableSpec = {
     },
     {
       kind: 'custom',
+      id: 'group',
+      header: 'Nhóm VT',
+      headerMessageId: 'materialGroups.columns.groupShort',
+      size: 220,
+    },
+    {
+      kind: 'custom',
       id: 'description',
       header: 'Mô tả',
       headerMessageId: 'materialModels.fields.description',
-      size: 280,
+      size: 240,
       cellClassName: 'align-top',
     },
     {

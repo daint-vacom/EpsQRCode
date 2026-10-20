@@ -47,7 +47,7 @@ describe('handovers API RPC contract', () => {
         {
           materialId: 'material-1',
           condition: 'good' as const,
-          conditionNote: '',
+          note: '',
         },
       ],
       attachmentFileIds: ['file-1'],
@@ -62,7 +62,7 @@ describe('handovers API RPC contract', () => {
     });
   });
 
-  it('sends receiver condition evidence and the document version on confirmation', async () => {
+  it('sends receiver condition and material note with the document version on confirmation', async () => {
     post.mockResolvedValue('handover-1');
 
     await actOnHandover({
@@ -73,7 +73,7 @@ describe('handovers API RPC contract', () => {
         {
           materialId: 'material-1',
           condition: 'damaged',
-          conditionNote: 'Vỏ bị nứt',
+          note: 'Vỏ bị nứt',
         },
       ],
     });
@@ -87,7 +87,7 @@ describe('handovers API RPC contract', () => {
         {
           materialId: 'material-1',
           condition: 'damaged',
-          conditionNote: 'Vỏ bị nứt',
+          note: 'Vỏ bị nứt',
         },
       ],
     });

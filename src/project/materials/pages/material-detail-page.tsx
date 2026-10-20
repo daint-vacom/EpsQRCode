@@ -26,7 +26,6 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
-import { QRCodeSVG } from 'qrcode.react';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -45,6 +44,7 @@ import {
 import { ErrorState } from '@/components/ui/error-state';
 import { PageBackButton } from '@/components/ui/page-back-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MaterialQrCode } from '../components/material-qr-code';
 import { useMaterialQuery } from '../hooks/use-materials';
 import type { Material } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
@@ -589,7 +589,6 @@ function MaterialSummarySidebar({
   onRetryOwner: () => void;
 }) {
   const intl = useIntl();
-  const qrUrl = getMaterialUrl(material.id);
   const statusText = intl.formatMessage({
     id: `project.materials.status.${material.status}`,
   });
@@ -613,13 +612,10 @@ function MaterialSummarySidebar({
               className="flex min-w-0 flex-1 flex-col"
             />
             <span className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-admin-primary-foam bg-white p-1">
-              <QRCodeSVG
-                aria-label={`QR ${material.code}`}
-                data-qr-value={qrUrl}
-                value={qrUrl}
+              <MaterialQrCode
+                materialId={material.id}
+                materialCode={material.code}
                 size={56}
-                marginSize={1}
-                level="M"
               />
             </span>
           </div>
@@ -667,10 +663,10 @@ function MaterialSummarySidebar({
       </PublicInfoCard>
 
       <MaterialQrLabelCard
+        materialId={material.id}
         title={title}
         code={material.code}
         issuedDate={formatDate(material.createdAt)}
-        qrUrl={qrUrl}
       />
 
       <PublicInfoCard
@@ -703,15 +699,15 @@ function MaterialSummarySidebar({
 }
 
 function MaterialQrLabelCard({
+  materialId,
   title,
   code,
   issuedDate,
-  qrUrl,
 }: {
+  materialId: string;
   title: string;
   code: string;
   issuedDate: string;
-  qrUrl: string;
 }) {
   const intl = useIntl();
   return (
@@ -721,14 +717,11 @@ function MaterialQrLabelCard({
     >
       <div className="grid min-h-24 grid-cols-[88px_minmax(0,1fr)_minmax(124px,0.8fr)] overflow-hidden rounded-lg border border-admin-neutral-300 bg-white text-admin-neutral-950 max-sm:grid-cols-[76px_minmax(0,1fr)]">
         <div className="row-span-2 flex items-center justify-center border-r border-admin-neutral-300 p-2">
-          <QRCodeSVG
-            aria-label={`QR ${code}`}
-            data-qr-value={qrUrl}
-            value={qrUrl}
+          <MaterialQrCode
+            materialId={materialId}
+            materialCode={code}
             className="size-16 shrink-0"
             size={64}
-            marginSize={1}
-            level="M"
           />
         </div>
         <div className="col-span-2 flex min-w-0 items-center justify-center border-b border-admin-neutral-300 px-2.5 py-3 max-sm:col-span-1">
@@ -882,11 +875,6 @@ function Fact({
       </span>
     </span>
   );
-}
-
-function getMaterialUrl(id: string) {
-  if (typeof window === 'undefined') return id;
-  return `${window.location.origin}${buildPath(ROUTES.PROJECT.MATERIAL_DETAIL, { id })}`;
 }
 
 function formatDate(value: string | null | undefined) {

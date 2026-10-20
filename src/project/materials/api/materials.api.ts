@@ -39,35 +39,43 @@ export async function loadMaterials(
   );
   return {
     ...result,
-    items: result.items.map((material) => ({
-      ...material,
-      images: material.images.map((image) => ({ ...image, url: '' })),
-    })),
+    items: await Promise.all(
+      result.items.map((material) => resolveMaterialImages(material, true)),
+    ),
   };
 }
 
-export async function loadMaterial(id: string): Promise<Material> {
+export async function loadMaterial(
+  id: string,
+  signal?: AbortSignal,
+): Promise<Material> {
   assertSupabaseConfigured();
   const material = await request<Material>(
-    supabaseApi.post('/rpc/get_material', { p_id: id }),
+    supabaseApi.post('/rpc/get_material', { p_id: id }, { signal }),
   );
   return resolveMaterialImages(material);
 }
 
-async function resolveMaterialImages(material: Material): Promise<Material> {
+async function resolveMaterialImages(
+  material: Material,
+  coverOnly = false,
+): Promise<Material> {
   const images = await Promise.all(
-    material.images.map(async (image) => ({
-      ...image,
-      url:
-        image.externalUrl ??
-        (image.storageBucket && image.storagePath
-          ? await createSignedStorageUrl(
-              image.storageBucket,
-              image.storagePath,
-              3600,
-            )
-          : ''),
-    })),
+    material.images.map(async (image) => {
+      if (coverOnly && !image.isCover) return { ...image, url: '' };
+      return {
+        ...image,
+        url:
+          image.externalUrl ??
+          (image.storageBucket && image.storagePath
+            ? await createSignedStorageUrl(
+                image.storageBucket,
+                image.storagePath,
+                3600,
+              )
+            : ''),
+      };
+    }),
   );
   return { ...material, images };
 }
@@ -177,6 +185,43 @@ export async function applyMaterialModelSync(
       p_expected_model_updated_at: expectedModelUpdatedAt,
     }),
   );
+}
+
+export async function updateMaterialAvailability(
+  id: string,
+  isActive: boolean,
+): Promise<Pick<Material, 'id' | 'isActive' | 'updatedAt' | 'version'>> {
+  assertSupabaseConfigured();
+  return request<Pick<Material, 'id' | 'isActive' | 'updatedAt' | 'version'>>(
+    supabaseApi.post('/rpc/set_material_availability', {
+      p_id: id,
+      p_is_active: isActive,
+    }),
+  );
+}
+
+export async function deleteMaterial(material: Material): Promise<void> {
+  assertSupabaseConfigured();
+  await request(
+    supabaseApi.post('/rpc/delete_material', { p_id: material.id }),
+  );
+  const imagePaths = material.images
+    .filter((image) => image.storageBucket === MATERIAL_IMAGES_BUCKET)
+    .map((image) => image.storagePath)
+    .filter((path): path is string => Boolean(path));
+  if (imagePaths.length > 0) {
+    await removeStorageObjects(MATERIAL_IMAGES_BUCKET, imagePaths).catch(
+      () => undefined,
+    );
+  }
+}
+
+export async function deleteMaterials(materials: Material[]): Promise<void> {
+  const results = await Promise.allSettled(materials.map(deleteMaterial));
+  const failure = results.find(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+  if (failure) throw failure.reason;
 }
 
 export async function loadMaterialHistory(

@@ -33,6 +33,8 @@ export function useAvailableMaterialGroupsQuery(enabled = true) {
     queryFn: ({ signal }) => loadAvailableMaterialGroups(signal),
     enabled,
     retry: 0,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
