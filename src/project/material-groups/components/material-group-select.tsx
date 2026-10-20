@@ -25,7 +25,10 @@ export type MaterialGroupSelectProps = Omit<
   | 'loading'
   | 'loadingMessage'
   | 'emptyMessage'
->;
+> & {
+  sourceMode?: 'fetch' | 'options';
+  groups?: readonly MaterialGroup[];
+};
 
 function MaterialGroupOption({ item }: { item: MaterialGroupSelectItem }) {
   return (
@@ -44,29 +47,34 @@ export function MaterialGroupSelect({
   value = '',
   placeholder,
   onOpenChange,
+  sourceMode = 'fetch',
+  groups,
   ...props
 }: MaterialGroupSelectProps) {
   const intl = useIntl();
   const selectPlaceholder =
     placeholder ??
     intl.formatMessage({ id: 'materialGroups.select.placeholder' });
-  const query = useAvailableMaterialGroupsQuery();
+  const shouldFetch = sourceMode === 'fetch';
+  const query = useAvailableMaterialGroupsQuery(shouldFetch);
   const options = useMemo<SelectOption<MaterialGroupSelectItem>[]>(
     () =>
-      (query.data ?? []).map((group) => {
-        const item = {
-          title: group.name,
-          description: group.code,
-          group,
-        };
-        return {
-          value: group.id,
-          label: item.title,
-          searchableText: `${item.title} ${item.description}`,
-          data: item,
-        };
-      }),
-    [query.data],
+      (sourceMode === 'options' ? (groups ?? []) : (query.data ?? [])).map(
+        (group) => {
+          const item = {
+            title: group.name,
+            description: group.code,
+            group,
+          };
+          return {
+            value: group.id,
+            label: item.title,
+            searchableText: `${item.title} ${item.description}`,
+            data: item,
+          };
+        },
+      ),
+    [groups, query.data, sourceMode],
   );
 
   return (
@@ -89,10 +97,10 @@ export function MaterialGroupSelect({
       searchPlaceholder={intl.formatMessage({
         id: 'materialGroups.select.search',
       })}
-      loading={query.isPending}
+      loading={shouldFetch && query.isPending}
       loadingMessage={intl.formatMessage({ id: 'common.state.loading' })}
       emptyMessage={
-        query.isError
+        shouldFetch && query.isError
           ? getApiErrorMessage(query.error)
           : intl.formatMessage({ id: 'materialGroups.select.empty' })
       }
@@ -103,7 +111,7 @@ export function MaterialGroupSelect({
       }
       onOpenChange={(open) => {
         onOpenChange?.(open);
-        if (open && query.isError) void query.refetch();
+        if (shouldFetch && open && query.isError) void query.refetch();
       }}
     />
   );

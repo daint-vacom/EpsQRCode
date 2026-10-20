@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, UIEventHandler } from 'react';
 import { Check, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { searchMatch } from '@/lib/search';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,10 @@ export interface SelectSearchProps<T = unknown> {
   canDeselect?: boolean;
   loading?: boolean;
   loadingMessage?: string;
+  loadingMore?: boolean;
+  loadingMoreMessage?: string;
+  loadMoreErrorMessage?: string;
+  onOptionsScroll?: UIEventHandler<HTMLDivElement>;
   selectedOption?: SearchSelectOption<T>;
   renderOption?: (
     option: SearchSelectOption<T>,
@@ -114,6 +118,9 @@ export function SelectSearch<T = unknown>({
   canDeselect = true,
   loading = false,
   loadingMessage = 'Đang tải...',
+  loadingMore = false,
+  loadingMoreMessage = 'Đang tải thêm...',
+  loadMoreErrorMessage,
   selectedOption: selectedOptionProp,
   renderOption,
   triggerContent,
@@ -124,6 +131,7 @@ export function SelectSearch<T = unknown>({
   'aria-invalid': ariaInvalid,
   onOpenChange,
   onSearchChange,
+  onOptionsScroll,
 }: SelectSearchProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -262,7 +270,7 @@ export function SelectSearch<T = unknown>({
               placeholder={searchPlaceholder}
             />
           ) : null}
-          <CommandList>
+          <CommandList onScroll={onOptionsScroll}>
             {loading ? (
               <div
                 role="status"
@@ -273,46 +281,64 @@ export function SelectSearch<T = unknown>({
             ) : groupedOptions.length === 0 ? (
               <CommandEmpty>{emptyMessage}</CommandEmpty>
             ) : (
-              groupedOptions.map(([group, groupItems]) => (
-                <CommandGroup
-                  key={group || 'ungrouped'}
-                  heading={group || undefined}
-                >
-                  {groupItems.map((option) => {
-                    const isSelected = option.value === value;
+              <>
+                {groupedOptions.map(([group, groupItems]) => (
+                  <CommandGroup
+                    key={group || 'ungrouped'}
+                    heading={group || undefined}
+                  >
+                    {groupItems.map((option) => {
+                      const isSelected = option.value === value;
 
-                    return (
-                      <CommandItem
-                        key={option.value}
-                        value={getSearchSelectOptionText(option)}
-                        disabled={option.disabled}
-                        onSelect={() => handleSelect(option)}
-                        className={cn(
-                          'min-h-8 text-foreground',
-                          option.disabled && 'text-disabled-foreground',
-                        )}
-                      >
-                        <span
+                      return (
+                        <CommandItem
+                          key={option.value}
+                          value={getSearchSelectOptionText(option)}
+                          disabled={option.disabled}
+                          onSelect={() => handleSelect(option)}
                           className={cn(
-                            'min-w-0 flex-1 truncate',
-                            optionContentClassName,
+                            'min-h-8 text-foreground',
+                            option.disabled && 'text-disabled-foreground',
                           )}
                         >
-                          {renderOption
-                            ? renderOption(option, isSelected)
-                            : option.label}
-                        </span>
-                        <Check
-                          className={cn(
-                            'size-4 text-foreground',
-                            isSelected ? 'opacity-100' : 'opacity-0',
-                          )}
-                        />
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              ))
+                          <span
+                            className={cn(
+                              'min-w-0 flex-1 truncate',
+                              optionContentClassName,
+                            )}
+                          >
+                            {renderOption
+                              ? renderOption(option, isSelected)
+                              : option.label}
+                          </span>
+                          <Check
+                            className={cn(
+                              'size-4 text-foreground',
+                              isSelected ? 'opacity-100' : 'opacity-0',
+                            )}
+                          />
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                ))}
+                {loadingMore ? (
+                  <div
+                    role="status"
+                    className="px-3 py-2 text-center text-xs text-muted-foreground"
+                  >
+                    {loadingMoreMessage}
+                  </div>
+                ) : null}
+                {loadMoreErrorMessage ? (
+                  <div
+                    role="alert"
+                    className="px-3 py-2 text-center text-xs text-destructive"
+                  >
+                    {loadMoreErrorMessage}
+                  </div>
+                ) : null}
+              </>
             )}
           </CommandList>
         </Command>

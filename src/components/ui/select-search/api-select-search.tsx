@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { UIEvent } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import type { QueryKey } from '@tanstack/react-query';
 import type { OptionSelectProps, SelectOption } from './select-search';
 import { OptionSelect } from './select-search';
 
@@ -6,10 +16,14 @@ export type ApiSelectSearchResult<T = unknown> =
   | Array<SelectOption<T>>
   | {
       options: Array<SelectOption<T>>;
+      total?: number;
+      hasMore?: boolean;
     };
 
 export type ApiSelectSearchLoadOptions<T = unknown> = (params: {
   search: string;
+  page: number;
+  pageSize: number;
   signal: AbortSignal;
 }) => Promise<ApiSelectSearchResult<T>>;
 
@@ -18,12 +32,19 @@ export interface ApiSelectSearchProps<T = unknown> extends Omit<
   'options' | 'loading' | 'loadingMessage' | 'selectedOption' | 'onSearchChange'
 > {
   loadOptions: ApiSelectSearchLoadOptions<T>;
+  /** Include the loader's data scope and filters; omitted keys are cached per instance. */
+  cacheKey?: QueryKey;
   selectedOption?: SelectOption<T>;
+  initialQuery?: string;
+  reloadKey?: string;
+  pageSize?: number;
   debounceMs?: number;
   minSearchLength?: number;
   minSearchMessage?: string;
   loadingMessage?: string;
   errorMessage?: string;
+  staleTime?: number;
+  gcTime?: number;
 }
 
 export type ApiOptionSelectResult<T = unknown> = ApiSelectSearchResult<T>;
@@ -33,31 +54,47 @@ export type ApiOptionSelectProps<T = unknown> = ApiSelectSearchProps<T>;
 
 function normalizeResult<T>(
   result: ApiSelectSearchResult<T>,
-): Array<SelectOption<T>> {
-  return Array.isArray(result) ? result : result.options;
+  page: number,
+  pageSize: number,
+): { options: Array<SelectOption<T>>; hasMore: boolean } {
+  if (Array.isArray(result)) return { options: result, hasMore: false };
+
+  const hasMore =
+    result.hasMore ??
+    (result.total !== undefined ? page * pageSize < result.total : false);
+  return { options: result.options, hasMore };
 }
 
 export function ApiSelectSearch<T = unknown>({
   loadOptions,
+  cacheKey,
   selectedOption,
+  initialQuery = '',
+  reloadKey,
+  pageSize = 30,
   debounceMs = 300,
   minSearchLength = 0,
   minSearchMessage,
   loadingMessage = 'Đang tải...',
   errorMessage: errorMessageProp = 'Không thể tải dữ liệu',
+  staleTime = 60_000,
+  gcTime = 5 * 60_000,
   onSelect,
   onOpenChange,
   ...props
 }: ApiSelectSearchProps<T>) {
+  const instanceId = useId();
+  const stableCacheKey = cacheKey ?? [
+    'api-select-search',
+    'instance',
+    instanceId,
+  ];
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [options, setOptions] = useState<Array<SelectOption<T>>>([]);
+  const [query, setQuery] = useState(initialQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [selectedOptionState, setSelectedOptionState] = useState<
     SelectOption<T> | undefined
   >(selectedOption);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>();
-  const requestIdRef = useRef(0);
   const loadOptionsRef = useRef(loadOptions);
 
   useEffect(() => {
@@ -69,58 +106,66 @@ export function ApiSelectSearch<T = unknown>({
   }, [selectedOption]);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    setQuery(initialQuery);
+    setDebouncedQuery(initialQuery);
+  }, [initialQuery, reloadKey]);
 
-    const search = query.trim();
+  useEffect(() => {
+    const timeout = setTimeout(
+      () => setDebouncedQuery(query.trim()),
+      debounceMs,
+    );
+    return () => clearTimeout(timeout);
+  }, [debounceMs, query]);
 
-    if (search.length < minSearchLength) {
-      setOptions([]);
-      setIsLoading(false);
-      setErrorMessage(undefined);
-      return;
-    }
+  const search = debouncedQuery.trim();
+  const searchQuery = useInfiniteQuery({
+    queryKey: [
+      ...stableCacheKey,
+      'options',
+      reloadKey ?? null,
+      search,
+      pageSize,
+    ],
+    queryFn: async ({ pageParam, signal }) => {
+      const result = await loadOptionsRef.current({
+        search,
+        page: pageParam,
+        pageSize,
+        signal,
+      });
+      return normalizeResult(result, pageParam, pageSize);
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.hasMore ? pages.length + 1 : undefined,
+    enabled: isOpen && search.length >= minSearchLength,
+    staleTime,
+    gcTime,
+  });
 
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    const controller = new AbortController();
-    const timeout = setTimeout(async () => {
-      setIsLoading(true);
-      setErrorMessage(undefined);
-
-      try {
-        const result = await loadOptionsRef.current({
-          search,
-          signal: controller.signal,
-        });
-
-        if (requestId !== requestIdRef.current || controller.signal.aborted) {
-          return;
-        }
-
-        setOptions(normalizeResult(result));
-      } catch (error) {
-        if (requestId !== requestIdRef.current || controller.signal.aborted) {
-          return;
-        }
-
-        setOptions([]);
-        setErrorMessage(
-          error instanceof Error ? error.message : errorMessageProp,
-        );
-      } finally {
-        if (requestId === requestIdRef.current && !controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }, debounceMs);
-
-    return () => {
-      clearTimeout(timeout);
-      controller.abort();
-    };
-  }, [debounceMs, isOpen, minSearchLength, query, errorMessageProp]);
+  const currentQueryMatches = query.trim() === search;
+  const options = useMemo(() => {
+    const uniqueOptions = new Map<string, SelectOption<T>>();
+    const visiblePages = currentQueryMatches
+      ? (searchQuery.data?.pages ?? [])
+      : [];
+    visiblePages.forEach((page) =>
+      page.options.forEach((option) => uniqueOptions.set(option.value, option)),
+    );
+    return [...uniqueOptions.values()];
+  }, [currentQueryMatches, searchQuery.data?.pages]);
+  const isDebouncing = query.trim() !== search;
+  const isLoading =
+    isOpen &&
+    query.trim().length >= minSearchLength &&
+    (isDebouncing || (currentQueryMatches && searchQuery.isPending));
+  const visibleError =
+    currentQueryMatches && searchQuery.isError && !searchQuery.data
+      ? searchQuery.error instanceof Error
+        ? searchQuery.error.message
+        : errorMessageProp
+      : undefined;
 
   const mergedOptions = useMemo(() => {
     const uniqueOptions = new Map<string, SelectOption<T>>();
@@ -142,8 +187,30 @@ export function ApiSelectSearch<T = unknown>({
 
     if (!nextOpen) {
       setQuery('');
+      setDebouncedQuery('');
     }
   };
+
+  const handleSearchChange = (nextQuery: string) => setQuery(nextQuery);
+
+  const handleOptionsScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      const list = event.currentTarget;
+      const isNearBottom =
+        list.scrollTop + list.clientHeight >= list.scrollHeight - 32;
+      if (
+        !isOpen ||
+        !currentQueryMatches ||
+        !searchQuery.hasNextPage ||
+        !isNearBottom ||
+        searchQuery.isFetchingNextPage
+      ) {
+        return;
+      }
+      void searchQuery.fetchNextPage();
+    },
+    [currentQueryMatches, isOpen, searchQuery],
+  );
 
   const handleSelect: NonNullable<OptionSelectProps<T>['onSelect']> = (
     option,
@@ -154,11 +221,11 @@ export function ApiSelectSearch<T = unknown>({
 
   const shortQueryMessage =
     minSearchMessage ?? `Nhập ít nhất ${minSearchLength} ký tự để tìm kiếm`;
-  const visibleErrorMessage = errorMessage
-    ? errorMessage
+  const visibleEmptyMessage = visibleError
+    ? visibleError
     : query.trim().length < minSearchLength
       ? shortQueryMessage
-      : undefined;
+      : props.emptyMessage;
 
   return (
     <OptionSelect
@@ -167,10 +234,16 @@ export function ApiSelectSearch<T = unknown>({
       selectedOption={selectedOptionState}
       loading={isLoading}
       loadingMessage={loadingMessage}
-      emptyMessage={visibleErrorMessage ?? props.emptyMessage}
+      loadingMore={searchQuery.isFetchingNextPage}
+      loadingMoreMessage={loadingMessage}
+      loadMoreErrorMessage={
+        searchQuery.isFetchNextPageError ? errorMessageProp : undefined
+      }
+      emptyMessage={visibleEmptyMessage}
       onSelect={handleSelect}
       onOpenChange={handleOpenChange}
-      onSearchChange={setQuery}
+      onSearchChange={handleSearchChange}
+      onOptionsScroll={handleOptionsScroll}
     />
   );
 }

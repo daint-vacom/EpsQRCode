@@ -18,6 +18,9 @@ export const materialKeys = {
   lists: () => [...materialKeys.all, 'list'] as const,
   list: (filters: MaterialListFilters) =>
     [...materialKeys.lists(), filters] as const,
+  select: (
+    filters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>,
+  ) => [...materialKeys.all, 'select', filters] as const,
   detail: (id: string) => [...materialKeys.all, 'detail', id] as const,
   history: (id: string) => [...materialKeys.all, 'history', id] as const,
   syncPreview: (id: string) =>

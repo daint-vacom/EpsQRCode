@@ -18,6 +18,7 @@ import { TagBadge } from './tag-badge';
 import { TagGroupIcon } from './tag-group-icon';
 
 export type TagSelectVariant = 'input' | 'button';
+export type TagSelectSourceMode = 'fetch' | 'options';
 
 export interface TagSelectProps
   extends
@@ -36,6 +37,8 @@ export interface TagSelectProps
     >,
     TagSelectConfig {
   variant?: TagSelectVariant;
+  sourceMode?: TagSelectSourceMode;
+  providedOptions?: readonly TagSelectOption[];
   emptySelectionMessage?: ReactNode;
 }
 
@@ -48,6 +51,8 @@ export function TagSelect({
   allowCustomGroups = true,
   enabled = true,
   variant = 'input',
+  sourceMode = 'fetch',
+  providedOptions,
   placeholder,
   searchPlaceholder = 'Tìm danh mục...',
   emptyMessage = 'Không tìm thấy danh mục',
@@ -80,13 +85,13 @@ export function TagSelect({
         allowCustomGroups,
       });
     },
-    enabled: Boolean(userId && enabled),
+    enabled: sourceMode === 'fetch' && Boolean(userId && enabled),
     staleTime: 5 * 60 * 1000,
   });
 
   const options = useMemo<MultiSelectOption<TagSelectOption>[]>(
     () =>
-      (query.data ?? [])
+      (sourceMode === 'options' ? (providedOptions ?? []) : (query.data ?? []))
         .filter((tag) => tag.isActive || value.includes(tag.id))
         .map((tag) => ({
           value: tag.id,
@@ -97,7 +102,7 @@ export function TagSelect({
           disabled: !tag.isActive,
           data: tag,
         })),
-    [query.data, value],
+    [providedOptions, query.data, sourceMode, value],
   );
 
   const nestedOptions = useMemo(() => {
@@ -169,11 +174,13 @@ export function TagSelect({
         searchPlaceholder={searchPlaceholder}
         searchMode="popover"
         emptyMessage={
-          query.isError ? getApiErrorMessage(query.error) : emptyMessage
+          sourceMode === 'fetch' && query.isError
+            ? getApiErrorMessage(query.error)
+            : emptyMessage
         }
-        loading={query.isPending}
+        loading={sourceMode === 'fetch' && query.isPending}
         loadingMessage="Đang tải danh sách nhãn..."
-        disabled={disabled || !userId || !enabled}
+        disabled={disabled || (sourceMode === 'fetch' && (!userId || !enabled))}
         className={cn(useButtonVariant && BUTTON_TRIGGER_CLASS, className)}
         showSelectedOptionsInTrigger={!useButtonVariant}
         triggerVariant={useButtonVariant ? 'ghost' : 'outline'}
@@ -250,7 +257,7 @@ export function TagSelect({
             </div>
           ) : null}
 
-          {query.isError ? (
+          {sourceMode === 'fetch' && query.isError ? (
             <div className="space-y-2">
               <p role="alert" className="text-sm text-destructive">
                 {getApiErrorMessage(query.error)}
