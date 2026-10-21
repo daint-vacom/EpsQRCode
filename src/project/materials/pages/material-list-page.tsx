@@ -26,7 +26,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -274,7 +274,7 @@ export function MaterialListPage() {
             })}
             stats={
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Input
+                <SearchInput
                   aria-label={intl.formatMessage({
                     id: 'project.materials.filters.search',
                   })}
@@ -283,8 +283,8 @@ export function MaterialListPage() {
                   })}
                   value={search}
                   className="w-64 shrink-0"
-                  onChange={(event) => {
-                    setSearch(event.target.value);
+                  onSearch={(value) => {
+                    setSearch(value);
                     setPagination((current) => ({ ...current, pageIndex: 0 }));
                   }}
                 />

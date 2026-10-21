@@ -20,7 +20,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -128,7 +128,7 @@ export function HandoversPage() {
             })}
             stats={
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <Input
+                <SearchInput
                   aria-label={intl.formatMessage({
                     id: 'project.handover.labels.search',
                   })}
@@ -136,7 +136,7 @@ export function HandoversPage() {
                     id: 'project.handover.labels.search',
                   })}
                   value={search}
-                  onChange={(event) => setFilter(setSearch)(event.target.value)}
+                  onSearch={setFilter(setSearch)}
                   className="w-64 shrink-0"
                 />
                 <OptionSelect

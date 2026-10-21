@@ -49,6 +49,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { FileIcon } from '@/components/ui/files/file-icon';
 import { FileThumbnail } from '@/components/ui/files/file-thumbnail';
 import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { Progress } from '@/components/ui/progress';
@@ -870,21 +871,18 @@ export function FileManagerPage() {
         actions={
           isSearchOpen ? (
             <div className="flex w-48 min-w-0 items-center gap-1 sm:w-56">
-              <div className="relative min-w-0 flex-1">
-                <Search className="absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  autoFocus
-                  value={keyword}
-                  onChange={(event) => setKeyword(event.target.value)}
-                  placeholder={intl.formatMessage({
-                    id: 'files.filters.searchContents',
-                  })}
-                  className="h-9 ps-8"
-                  aria-label={intl.formatMessage({
-                    id: 'files.filters.searchContents',
-                  })}
-                />
-              </div>
+              <SearchInput
+                autoFocus
+                value={keyword}
+                onSearch={setKeyword}
+                placeholder={intl.formatMessage({
+                  id: 'files.filters.searchContents',
+                })}
+                className="h-9 min-w-0 flex-1"
+                aria-label={intl.formatMessage({
+                  id: 'files.filters.searchContents',
+                })}
+              />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

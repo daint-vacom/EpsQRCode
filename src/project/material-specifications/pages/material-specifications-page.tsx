@@ -21,7 +21,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -200,7 +200,7 @@ export function MaterialSpecificationsPage() {
             variant="stats"
             recordCountLabel="thông số"
             stats={
-              <Input
+              <SearchInput
                 aria-label={intl.formatMessage({
                   id: 'materialSpecifications.filters.searchPlaceholder',
                 })}
@@ -208,8 +208,8 @@ export function MaterialSpecificationsPage() {
                   id: 'materialSpecifications.filters.searchPlaceholder',
                 })}
                 value={keyword}
-                onChange={(event) => {
-                  setKeyword(event.target.value);
+                onSearch={(value) => {
+                  setKeyword(value);
                   table.setPageIndex(0);
                 }}
                 className="w-full sm:w-72"

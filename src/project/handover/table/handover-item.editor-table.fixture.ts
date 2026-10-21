@@ -7,7 +7,6 @@ const spec: EditorTableSpec = {
   valuesType: 'HandoverFormValues',
   valuesImport: '../model/handover-form-schema',
   arrayName: 'items',
-  createRowProp: 'createRow',
   specPath: 'src/project/handover/table/handover-item.editor-table.fixture.ts',
   tableMinWidthClass: 'min-w-[920px]',
   viewport: { mode: 'natural' },

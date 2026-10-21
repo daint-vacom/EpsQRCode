@@ -25,7 +25,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import type { CustodianFormValues as CustodianEditorValues } from '../../custodians/model/custodian-form-schema';
@@ -185,11 +185,11 @@ export function CustodiansPage() {
               id: 'project.handover.labels.custodianCount',
             })}
             stats={
-              <Input
+              <SearchInput
                 aria-label="Tìm mã, tên hoặc người đại diện"
                 value={keyword}
-                onChange={(event) => {
-                  setKeyword(event.target.value);
+                onSearch={(value) => {
+                  setKeyword(value);
                   table.setPageIndex(0);
                 }}
                 className="w-72"

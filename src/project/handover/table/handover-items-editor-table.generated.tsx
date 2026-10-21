@@ -4,8 +4,8 @@
  * columns or viewport behavior, edit the spec and re-gen to a scratch path, then reconcile your edits.
  */
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { MaterialSelect } from '@/project/materials/components/material-select';
+import { useEffect, useState } from 'react';
+import { MaterialSelectionDialog } from '@/project/materials/components/material-selection-dialog';
 import type {
   Material,
   MaterialListFilters,
@@ -16,7 +16,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { Plus, Trash2 } from 'lucide-react';
+import { ListPlus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
+import { MaterialIdentity } from '@/components/material-identity';
 import type { HandoverItemInput } from '../model/handover';
 import type { HandoverFormValues } from '../model/handover-form-schema';
 
@@ -41,49 +42,7 @@ interface HandoverItemsEditorTableProps {
   materialFilters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>;
   initialMaterialSearch: string;
   allowReservedByHandoverId?: string;
-  onMaterialSelect: (index: number, material: Material) => void;
-  createRow: () => HandoverItemInput;
   toolbarContent?: ReactNode;
-}
-
-interface HandoverMaterialSelectCellProps {
-  material?: Material;
-  filters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>;
-  initialSearch: string;
-  allowReservedByHandoverId?: string;
-  index: number;
-  onSelect: (index: number, material: Material) => void;
-  triggerRef?: (element: HTMLButtonElement | null) => void;
-}
-
-function HandoverMaterialSelectCell({
-  material,
-  filters,
-  initialSearch,
-  allowReservedByHandoverId,
-  index,
-  onSelect,
-  triggerRef,
-}: HandoverMaterialSelectCellProps) {
-  const intl = useIntl();
-
-  return (
-    <MaterialSelect
-      value={material?.id ?? ''}
-      selectedMaterial={material}
-      filters={filters}
-      initialSearch={initialSearch}
-      allowReservedByHandoverId={allowReservedByHandoverId}
-      ariaLabel={`${intl.formatMessage({ id: 'project.handover.fields.material' })} ${index + 1}`}
-      triggerRef={triggerRef}
-      size="lg"
-      variant="ghost"
-      canDeselect={false}
-      onSelect={(selected) => {
-        if (selected) onSelect(index, selected);
-      }}
-    />
-  );
 }
 
 export function HandoverItemsEditorTable({
@@ -92,8 +51,6 @@ export function HandoverItemsEditorTable({
   materialFilters,
   initialMaterialSearch,
   allowReservedByHandoverId,
-  onMaterialSelect,
-  createRow,
   toolbarContent,
 }: HandoverItemsEditorTableProps) {
   const intl = useIntl();
@@ -103,7 +60,8 @@ export function HandoverItemsEditorTable({
     keyName: 'fieldId',
   });
   const watchedRows = form.watch('items') ?? [];
-  const pendingMaterialFocusIndex = useRef<number | null>(null);
+  const [dialogMaterials, setDialogMaterials] = useState<Material[]>([]);
+  const [isMaterialDialogOpen, setIsMaterialDialogOpen] = useState(false);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
@@ -136,18 +94,11 @@ export function HandoverItemsEditorTable({
   }, [fields.length]);
 
   const materialById = new Map(
-    materials.map((material) => [material.id, material]),
+    [...materials, ...dialogMaterials].map((material) => [
+      material.id,
+      material,
+    ]),
   );
-
-  const handleAddRow = () => {
-    const newIndex = fields.length;
-    pendingMaterialFocusIndex.current = newIndex;
-    append(createRow(), { shouldFocus: false });
-    setPagination((current) => ({
-      ...current,
-      pageIndex: Math.floor(fields.length / current.pageSize),
-    }));
-  };
 
   const handleDeleteRow = (index: number) => {
     remove(index);
@@ -159,6 +110,47 @@ export function HandoverItemsEditorTable({
       return current.pageIndex > lastPageIndex
         ? { ...current, pageIndex: lastPageIndex }
         : current;
+    });
+  };
+
+  const selectedMaterialIds = watchedRows
+    .map((row) => row.materialId)
+    .filter(Boolean);
+  const handleMaterialConfirm = (
+    selectedIds: string[],
+    addedMaterials: Material[],
+  ) => {
+    const selectedIdSet = new Set(selectedIds);
+    const removeIndices = fields
+      .map((_field, index) => index)
+      .filter(
+        (index) => !selectedIdSet.has(watchedRows[index]?.materialId ?? ''),
+      )
+      .reverse();
+    removeIndices.forEach(remove);
+
+    const currentIds = new Set(
+      watchedRows
+        .map((row) => row.materialId)
+        .filter((id) => selectedIdSet.has(id)),
+    );
+    const newMaterials = addedMaterials.filter(
+      (material) =>
+        selectedIdSet.has(material.id) && !currentIds.has(material.id),
+    );
+    setDialogMaterials((current) => {
+      const knownIds = new Set(current.map((material) => material.id));
+      return [
+        ...current,
+        ...newMaterials.filter((material) => !knownIds.has(material.id)),
+      ];
+    });
+    newMaterials.forEach((material) => {
+      append({
+        materialId: material.id,
+        condition: material.condition,
+        note: material.note ?? '',
+      });
     });
   };
 
@@ -179,8 +171,12 @@ export function HandoverItemsEditorTable({
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {toolbarContent}
-            <Button type="button" variant="primary" onClick={handleAddRow}>
-              <Plus />
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => setIsMaterialDialogOpen(true)}
+            >
+              <ListPlus />
               {intl.formatMessage({ id: 'project.handover.actions.addItem' })}
             </Button>
           </div>
@@ -233,29 +229,19 @@ export function HandoverItemsEditorTable({
                         </TableCell>
                         <TableCell className="px-2 py-2 align-middle">
                           <div className="flex min-w-0">
-                            <HandoverMaterialSelectCell
-                              material={material}
-                              filters={materialFilters}
-                              initialSearch={
-                                index === 0 && !material
-                                  ? initialMaterialSearch
-                                  : ''
-                              }
-                              allowReservedByHandoverId={
-                                allowReservedByHandoverId
-                              }
-                              index={index}
-                              triggerRef={(element) => {
-                                if (
-                                  element &&
-                                  pendingMaterialFocusIndex.current === index
-                                ) {
-                                  element.focus();
-                                  pendingMaterialFocusIndex.current = null;
+                            {material ? (
+                              <MaterialIdentity
+                                name={
+                                  material.nameOverride?.trim() ||
+                                  material.modelSnapshot.name
                                 }
-                              }}
-                              onSelect={onMaterialSelect}
-                            />
+                                code={material.code}
+                                imageUrl={
+                                  material.images.find((image) => image.isCover)
+                                    ?.url
+                                }
+                              />
+                            ) : null}
                             {rowErrors?.materialId?.message ? (
                               <p className="mt-1 text-xs text-destructive">
                                 {rowErrors.materialId.message}
@@ -356,6 +342,18 @@ export function HandoverItemsEditorTable({
           </div>
         ) : null}
       </div>
+      <MaterialSelectionDialog
+        open={isMaterialDialogOpen}
+        onOpenChange={setIsMaterialDialogOpen}
+        title={intl.formatMessage({
+          id: 'project.handover.materialSelection.title',
+        })}
+        filters={materialFilters}
+        initialSearch={initialMaterialSearch}
+        allowReservedByHandoverId={allowReservedByHandoverId}
+        selectedMaterialIds={selectedMaterialIds}
+        onConfirm={handleMaterialConfirm}
+      />
     </DataGridProvider>
   );
 }

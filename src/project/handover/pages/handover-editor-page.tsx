@@ -5,10 +5,7 @@ import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
 import { HandoverItemsEditorTable } from '@/project/handover/table/handover-items-editor-table.generated';
 import { useMaterialsByIdsQuery } from '@/project/materials/hooks/use-materials';
-import type {
-  Material,
-  MaterialListFilters,
-} from '@/project/materials/model/material';
+import type { MaterialListFilters } from '@/project/materials/model/material';
 import { FilePlus2, Save, Send } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -211,33 +208,6 @@ export function HandoverEditorPage() {
       );
     }
   }, [bulkMaterialIds, bulkMaterialsQuery, form, intl, isEdit]);
-
-  const handleMaterialSelect = (index: number, material: Material) => {
-    const duplicate = form
-      .getValues('items')
-      .some(
-        (item, itemIndex) =>
-          itemIndex !== index && item.materialId === material.id,
-      );
-    if (duplicate) {
-      toast.error(
-        intl.formatMessage({ id: 'project.handover.errors.duplicateMaterial' }),
-      );
-      return;
-    }
-    form.setValue(`items.${index}.materialId`, material.id, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-    form.setValue(`items.${index}.condition`, material.condition, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-    form.setValue(`items.${index}.note`, material.note ?? '', {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-  };
 
   const onSave = useCallback(
     async (values: HandoverFormValues, sendAfterSave = false) => {
@@ -522,12 +492,6 @@ export function HandoverEditorPage() {
             materialFilters={materialFilters}
             initialMaterialSearch={initialMaterialSearch}
             allowReservedByHandoverId={id || undefined}
-            onMaterialSelect={handleMaterialSelect}
-            createRow={() => ({
-              materialId: '',
-              condition: 'good',
-              note: '',
-            })}
           />
         </div>
         {form.formState.errors.items?.message ? (
