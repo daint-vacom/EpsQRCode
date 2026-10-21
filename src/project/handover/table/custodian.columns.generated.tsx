@@ -20,7 +20,9 @@ export const CUSTODIAN_COLUMN_PINNING: ColumnPinningState = {
   right: ['actions'],
 };
 
-export function useCustodianColumns(params: {
+export function useCustodianColumns({
+  onEdit,
+}: {
   onEdit: (custodian: Custodian) => void;
 }): ColumnDef<Custodian>[] {
   const intl = useIntl();
@@ -106,7 +108,7 @@ export function useCustodianColumns(params: {
               aria-label={intl.formatMessage({
                 id: 'project.handover.custodians.actions.edit',
               })}
-              onClick={() => params.onEdit(row)}
+              onClick={() => onEdit(row)}
             >
               <Pencil className="size-4" />
             </DataGridActionButton>
@@ -114,5 +116,5 @@ export function useCustodianColumns(params: {
         ),
       }),
     ];
-  }, [intl, params]);
+  }, [intl, onEdit]);
 }

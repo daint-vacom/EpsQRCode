@@ -14,7 +14,6 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import {
   FormControl,
@@ -434,16 +433,11 @@ export function HandoverEditorPage() {
     return attachment ? [attachment] : [];
   });
   const formView = (
-    <div className="space-y-4">
-      {representedSenderOptions.length === 0 ? (
-        <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-          Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu hình
-          người đại diện trong danh mục chủ thể trước khi lập phiếu.
-        </p>
-      ) : null}
+    <div className="xl:h-full xl:min-h-0">
       <HandoverForm
         form={form}
         onSubmit={(values) => void onSave(values)}
+        editorLayout
         senderPartyIdOptions={representedSenderOptions}
         recipientPartyIdOptions={activePartyOptions}
         senderRepresentativeUserIdOptions={representativeOptions(
@@ -453,61 +447,67 @@ export function HandoverEditorPage() {
           recipient?.id ?? '',
         )}
         sideContent={
-          <Card className="h-full min-w-0">
-            <CardContent className="space-y-5">
-              <FormField
-                control={form.control}
-                name="note"
-                render={({ field }) => (
-                  <FormItem
-                    layout="horizontal"
-                    labelWidth="md"
-                    alignment="start"
-                  >
-                    <FormLabel>
-                      {intl.formatMessage({
-                        id: 'project.handover.fields.note',
-                      })}
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea rows={4} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <HandoverAttachmentsField
-                attachments={selectedAttachments}
-                files={pendingAttachmentFiles}
-                onFilesChange={setPendingAttachmentFiles}
-                onRemove={handleRemoveAttachment}
-                disabled={isSaving || isActing || isUploading}
-                isUploading={isUploading}
-              />
-            </CardContent>
-          </Card>
+          <div className="mt-5 space-y-5 border-t border-border pt-5">
+            {representedSenderOptions.length === 0 ? (
+              <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu
+                hình người đại diện trong danh mục chủ thể trước khi lập phiếu.
+              </p>
+            ) : null}
+            <FormField
+              control={form.control}
+              name="note"
+              render={({ field }) => (
+                <FormItem layout="horizontal" labelWidth="md" alignment="start">
+                  <FormLabel>
+                    {intl.formatMessage({
+                      id: 'project.handover.fields.note',
+                    })}
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea rows={4} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <HandoverAttachmentsField
+              attachments={selectedAttachments}
+              files={pendingAttachmentFiles}
+              onFilesChange={setPendingAttachmentFiles}
+              onRemove={handleRemoveAttachment}
+              disabled={isSaving || isActing || isUploading}
+              isUploading={isUploading}
+            />
+          </div>
         }
       >
-        <div className="mt-admin-page-section flex h-fit min-w-0 overflow-hidden rounded-lg border border-border bg-card">
-          <HandoverItemsEditorTable
-            form={form}
-            materials={[...materialById.values()]}
-            materialFilters={materialFilters}
-            initialMaterialSearch={initialMaterialSearch}
-            allowReservedByHandoverId={id || undefined}
-          />
+        <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
+          <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+            <HandoverItemsEditorTable
+              form={form}
+              materials={[...materialById.values()]}
+              materialFilters={materialFilters}
+              initialMaterialSearch={initialMaterialSearch}
+              allowReservedByHandoverId={id || undefined}
+              fillHeight
+            />
+          </div>
+          {form.formState.errors.items?.message ? (
+            <p
+              className="shrink-0 border-t border-border px-4 py-2 text-xs text-destructive"
+              role="alert"
+            >
+              {form.formState.errors.items.message}
+            </p>
+          ) : null}
         </div>
-        {form.formState.errors.items?.message ? (
-          <p className="mt-2 text-xs text-destructive" role="alert">
-            {form.formState.errors.items.message}
-          </p>
-        ) : null}
       </HandoverForm>
     </div>
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
+    <div className="h-full min-h-0 overflow-y-auto p-4 lg:p-5 xl:overflow-hidden">
       {custodiansQuery.isPending ? (
         <div className="h-40 animate-pulse rounded-xl bg-muted" />
       ) : custodiansQuery.isError ? (

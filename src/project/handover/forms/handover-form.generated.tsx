@@ -98,6 +98,7 @@ export function mapHandoverToFormValues(
 
 interface HandoverFormProps {
   children?: ReactNode;
+  editorLayout?: boolean;
   sideContent?: ReactNode;
   form: UseFormReturn<HandoverFormValues>;
   onSubmit: (values: HandoverFormValues) => void;
@@ -110,6 +111,7 @@ interface HandoverFormProps {
 
 export function HandoverForm({
   children,
+  editorLayout = false,
   sideContent,
   form,
   onSubmit,
@@ -122,10 +124,32 @@ export function HandoverForm({
   const intl = useIntl();
   return (
     <Form {...form}>
-      <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 items-stretch gap-admin-page-section xl:grid-cols-2">
-          <Card className="h-full min-w-0">
-            <CardContent>
+      <form
+        id={id}
+        onSubmit={form.handleSubmit(onSubmit)}
+        className={editorLayout ? 'xl:h-full xl:min-h-0' : undefined}
+      >
+        <div
+          className={
+            editorLayout
+              ? 'grid grid-cols-1 items-stretch gap-admin-page-section xl:h-full xl:min-h-0 xl:grid-rows-[minmax(0,1fr)] xl:grid-cols-[minmax(20rem,24rem)_minmax(0,1fr)]'
+              : 'grid grid-cols-1 items-stretch gap-admin-page-section xl:grid-cols-2'
+          }
+        >
+          <Card
+            className={
+              editorLayout
+                ? 'min-w-0 overflow-hidden xl:flex xl:h-full xl:min-h-0 xl:flex-col'
+                : 'h-full min-w-0'
+            }
+          >
+            <CardContent
+              className={
+                editorLayout
+                  ? 'xl:min-h-0 xl:flex-1 xl:overflow-y-auto'
+                  : undefined
+              }
+            >
               <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
                 <FormField
                   control={form.control}
@@ -324,11 +348,17 @@ export function HandoverForm({
                   )}
                 />
               </div>
+              {editorLayout ? sideContent : null}
             </CardContent>
           </Card>
-          {sideContent}
+          {!editorLayout ? sideContent : null}
+          {editorLayout ? (
+            <div className="min-h-[28rem] min-w-0 overflow-hidden xl:h-full xl:min-h-0">
+              {children}
+            </div>
+          ) : null}
         </div>
-        {children}
+        {!editorLayout ? children : null}
       </form>
     </Form>
   );

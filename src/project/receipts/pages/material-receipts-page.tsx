@@ -15,7 +15,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -120,14 +120,16 @@ export function MaterialReceiptsPage() {
             recordCountLabel={intl.formatMessage({ id: 'receipts.page.title' })}
             stats={
               <div className="flex flex-wrap gap-2">
-                <Input
+                <SearchInput
                   aria-label={intl.formatMessage({
                     id: 'receipts.search.label',
                   })}
-                  title={intl.formatMessage({ id: 'receipts.search.label' })}
+                  placeholder={intl.formatMessage({
+                    id: 'receipts.search.label',
+                  })}
                   value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
+                  onSearch={(value) => {
+                    setSearch(value);
                     setPageIndex(0);
                   }}
                   className="w-72 shrink-0"
@@ -136,18 +138,15 @@ export function MaterialReceiptsPage() {
                   aria-label={intl.formatMessage({
                     id: 'receipts.fields.status',
                   })}
+                  placeholder={intl.formatMessage({
+                    id: 'receipts.filters.allStatus',
+                  })}
                   value={status}
                   onChange={(value) => {
                     setStatus(value as MaterialReceiptStatus | '');
                     setPageIndex(0);
                   }}
                   options={[
-                    {
-                      value: '',
-                      label: intl.formatMessage({
-                        id: 'receipts.filters.allStatus',
-                      }),
-                    },
                     ...(
                       ['draft', 'handover', 'completed', 'cancelled'] as const
                     ).map((value) => ({

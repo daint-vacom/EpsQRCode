@@ -42,6 +42,7 @@ interface HandoverItemsEditorTableProps {
   materialFilters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>;
   initialMaterialSearch: string;
   allowReservedByHandoverId?: string;
+  fillHeight?: boolean;
   toolbarContent?: ReactNode;
 }
 
@@ -51,6 +52,7 @@ export function HandoverItemsEditorTable({
   materialFilters,
   initialMaterialSearch,
   allowReservedByHandoverId,
+  fillHeight = false,
   toolbarContent,
 }: HandoverItemsEditorTableProps) {
   const intl = useIntl();
@@ -156,7 +158,13 @@ export function HandoverItemsEditorTable({
 
   return (
     <DataGridProvider table={paginationTable} recordCount={fields.length}>
-      <div className="flex h-fit min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden">
+      <div
+        className={
+          fillHeight
+            ? 'flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden'
+            : 'flex h-fit min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden'
+        }
+      >
         <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="text-sm font-semibold text-foreground">
@@ -181,7 +189,13 @@ export function HandoverItemsEditorTable({
             </Button>
           </div>
         </div>
-        <div className="max-h-[70dvh] min-w-0 overflow-auto">
+        <div
+          className={
+            fillHeight
+              ? 'min-h-0 min-w-0 flex-1 overflow-auto'
+              : 'max-h-[70dvh] min-w-0 overflow-auto'
+          }
+        >
           <div className="min-w-[920px]">
             <table className="w-full caption-bottom text-foreground text-sm">
               <TableHeader>
@@ -192,7 +206,7 @@ export function HandoverItemsEditorTable({
                   <TableHead className="sticky top-0 z-20 bg-muted min-w-64">
                     Vật tư
                   </TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted w-48">
+                  <TableHead className="sticky top-0 z-20 bg-muted w-32 max-w-32">
                     Tình trạng
                   </TableHead>
                   <TableHead className="sticky top-0 z-20 bg-muted min-w-72">
@@ -249,7 +263,7 @@ export function HandoverItemsEditorTable({
                             ) : null}
                           </div>
                         </TableCell>
-                        <TableCell className="px-2 py-2 align-middle">
+                        <TableCell className="w-32 max-w-32 px-2 py-2 align-middle">
                           <Controller
                             control={form.control}
                             name={`items.${index}.condition`}

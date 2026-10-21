@@ -19,7 +19,7 @@ import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -159,13 +159,16 @@ export function WarehousesPage() {
               id: 'warehouses.page.title',
             })}
             stats={
-              <Input
+              <SearchInput
                 aria-label={intl.formatMessage({
                   id: 'warehouses.search.placeholder',
                 })}
+                placeholder={intl.formatMessage({
+                  id: 'warehouses.search.placeholder',
+                })}
                 value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
+                onSearch={(value) => {
+                  setSearch(value);
                   table.setPageIndex(0);
                 }}
                 className="w-72 shrink-0"

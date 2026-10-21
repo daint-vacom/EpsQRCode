@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   useCustodianAccountOptionsQuery,
   useCustodiansQuery,
@@ -66,8 +66,12 @@ export function CustodiansPage() {
     defaultValues: custodianDefaultValues,
   });
   const editForm = useCustodianForm({ defaultValues: custodianDefaultValues });
-  const custodians = (query.data ?? EMPTY_CUSTODIANS).filter(
-    (party) => party.type !== 'warehouse',
+  const custodians = useMemo(
+    () =>
+      (query.data ?? EMPTY_CUSTODIANS).filter(
+        (party) => party.type !== 'warehouse',
+      ),
+    [query.data],
   );
   const filtered = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi');
@@ -78,14 +82,16 @@ export function CustodiansPage() {
       ),
     );
   }, [custodians, keyword]);
-  const columns = useCustodianColumns({
-    onEdit: (custodian) => {
+  const handleEditCustodian = useCallback(
+    (custodian: Custodian) => {
       if (custodian.type === 'warehouse') return;
       setEditingCustodian(custodian);
       editForm.reset(mapCustodianToFormValues(custodian));
       setEditOpen(true);
     },
-  });
+    [editForm],
+  );
+  const columns = useCustodianColumns({ onEdit: handleEditCustodian });
   const table = useReactTable({
     data: filtered,
     columns,
@@ -94,18 +100,26 @@ export function CustodiansPage() {
     getPaginationRowModel: getPaginationRowModel(),
     state: { columnPinning: CUSTODIAN_COLUMN_PINNING },
   });
-  const partyOptions = custodians
-    .filter((party) => party.isActive && party.type !== 'warehouse')
-    .map((party) => ({
-      value: party.id,
-      label: `${party.name} · ${party.code}`,
-    }));
-  const accountOptions = (accountsQuery.data ?? []).map((account) => ({
-    value: account.id,
-    label: account.username
-      ? `${account.displayName} · ${account.username}`
-      : account.displayName,
-  }));
+  const partyOptions = useMemo(
+    () =>
+      custodians
+        .filter((party) => party.isActive && party.type !== 'warehouse')
+        .map((party) => ({
+          value: party.id,
+          label: `${party.name} · ${party.code}`,
+        })),
+    [custodians],
+  );
+  const accountOptions = useMemo(
+    () =>
+      (accountsQuery.data ?? []).map((account) => ({
+        value: account.id,
+        label: account.username
+          ? `${account.displayName} · ${account.username}`
+          : account.displayName,
+      })),
+    [accountsQuery.data],
+  );
 
   const submit = (
     id: string | null,

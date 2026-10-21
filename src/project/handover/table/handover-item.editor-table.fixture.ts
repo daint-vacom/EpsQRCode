@@ -35,7 +35,7 @@ const spec: EditorTableSpec = {
       kind: 'custom',
       id: 'condition',
       header: 'Tình trạng',
-      widthClass: 'w-48',
+      widthClass: 'w-32',
     },
     {
       kind: 'custom',
