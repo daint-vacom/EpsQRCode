@@ -164,6 +164,7 @@ const sample: Material = {
   reservedHandoverId: null,
   reservationStatus: null,
   activeLoanHandoverId: null,
+  isActive: true,
   version: 1,
   createdAt: '2026-10-01T00:00:00Z',
   updatedAt: '2026-10-01T00:00:00Z',

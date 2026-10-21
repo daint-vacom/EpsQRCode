@@ -4,6 +4,8 @@
  */
 import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
+import { receiptMessagesVi } from '@/project/receipts/messages';
+import { warehouseMessagesVi } from '@/project/warehouses/messages';
 
 export const vi: Record<string, string> = {
   'common.actions.retry': 'Thử lại',
@@ -12,9 +14,13 @@ export const vi: Record<string, string> = {
   'common.select.loadError': 'Không thể tải dữ liệu',
   'common.select.minSearch': 'Nhập ít nhất {count} ký tự để tìm kiếm',
   ...materialMessagesVi,
+  ...warehouseMessagesVi,
+  ...receiptMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.materials': 'Vật tư',
   'project.navigation.handovers': 'Phiếu bàn giao',
+  'project.navigation.warehouses': 'Kho',
+  'project.navigation.receipts': 'Phiếu nhập vật tư',
   'project.navigation.custodians': 'Chủ thể bàn giao',
   'common.actions.create': 'Thêm mới',
   'common.actions.save': 'Lưu',

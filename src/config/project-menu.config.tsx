@@ -3,6 +3,7 @@ import {
   ArrowRightLeft,
   Boxes,
   Building2,
+  ClipboardPlus,
   Folder,
   FolderOpen,
   Package,
@@ -28,6 +29,16 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         label: 'Phiếu bàn giao',
         icon: ArrowRightLeft,
         path: ROUTES.PROJECT.HANDOVERS,
+      },
+      {
+        label: 'Kho',
+        icon: Building2,
+        path: ROUTES.PROJECT.WAREHOUSES,
+      },
+      {
+        label: 'Phiếu nhập vật tư',
+        icon: ClipboardPlus,
+        path: ROUTES.PROJECT.RECEIPTS,
       },
       {
         label: 'Mẫu vật tư',

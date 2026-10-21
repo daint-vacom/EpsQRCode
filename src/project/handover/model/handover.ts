@@ -2,13 +2,20 @@ import type { MaterialCondition } from '@/project/materials/model/material';
 
 export type HandoverType = 'transfer' | 'loan' | 'return';
 export type HandoverStatus =
-  'draft' | 'pending' | 'completed' | 'rejected' | 'cancelled';
+  | 'draft'
+  | 'awaiting_warehouse_approval'
+  | 'pending'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled';
+export type HandoverMode =
+  'standard' | 'warehouse_allocation' | 'warehouse_request';
 
 export interface HandoverPartySnapshot {
   id: string;
   code: string;
   name: string;
-  type: 'department' | 'team' | 'person' | 'external';
+  type: 'department' | 'team' | 'person' | 'external' | 'warehouse';
 }
 
 export interface HandoverRepresentativeSnapshot {
@@ -27,6 +34,7 @@ export interface HandoverItem {
   condition: MaterialCondition;
   note: string | null;
   senderCondition: MaterialCondition;
+  receiverOutcome: 'pending' | 'received' | 'not_received';
 }
 
 export interface HandoverAttachment {
@@ -41,6 +49,8 @@ export interface HandoverDocument {
   code: string;
   type: HandoverType;
   status: HandoverStatus;
+  mode: HandoverMode;
+  receiptId: string | null;
   senderParty: HandoverPartySnapshot;
   recipientParty: HandoverPartySnapshot;
   senderRepresentative: HandoverRepresentativeSnapshot | null;
@@ -61,6 +71,20 @@ export interface HandoverItemInput {
   materialId: string;
   condition: MaterialCondition;
   note: string;
+}
+
+export interface WarehouseHandoverSaveInput {
+  id: string | null;
+  values: {
+    mode: Exclude<HandoverMode, 'standard'>;
+    warehouseId: string;
+    recipientPartyId: string;
+    receiptId: string | null;
+    plannedDate: string;
+    note: string;
+    items: HandoverItemInput[];
+    expectedVersion?: number;
+  };
 }
 
 export interface HandoverFormValues {
@@ -92,7 +116,13 @@ export interface HandoverHistoryEntry {
   actorUserId: string;
   actorDisplayName: string | null;
   action:
-    'created' | 'updated' | 'sent' | 'confirmed' | 'rejected' | 'cancelled';
+    | 'created'
+    | 'updated'
+    | 'sent'
+    | 'warehouse_approved'
+    | 'confirmed'
+    | 'rejected'
+    | 'cancelled';
   note: string | null;
   fromStatus: HandoverStatus | null;
   toStatus: HandoverStatus;
@@ -108,6 +138,7 @@ export interface HandoverListFilters {
   senderPartyId?: string;
   recipientPartyId?: string;
   materialId?: string;
+  receiptId?: string;
   dateFrom?: string;
   dateTo?: string;
 }

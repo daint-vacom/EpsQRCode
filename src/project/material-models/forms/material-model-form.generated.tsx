@@ -47,6 +47,7 @@ export const materialModelDefaultValues: MaterialModelFormValues = {
   name: '',
   groupId: '',
   description: '',
+  externalCodesText: '',
   requiresInspection: false,
   specifications: [],
 };
@@ -72,6 +73,7 @@ export function mapMaterialModelToFormValues(
     name: entity.name,
     groupId: entity.groupId ?? '',
     description: entity.description,
+    externalCodesText: entity.externalCodes.join('\n'),
     requiresInspection: entity.requiresInspection,
     specifications: entity.specifications.map((specification) => ({
       ...specification,
@@ -213,6 +215,29 @@ export function MaterialModelForm({
 
       <FormField
         control={form.control}
+        name="externalCodesText"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="start"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'materialModels.fields.externalCodes',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Textarea rows={3} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
         name="requiresInspection"
         render={({ field }) => (
           <FormItem
@@ -266,6 +291,7 @@ interface MaterialModelFormDialogProps {
   isSaving?: boolean;
   title?: string;
   codePattern: string;
+  resetKey?: string;
 }
 
 export function MaterialModelFormDialog({
@@ -277,6 +303,7 @@ export function MaterialModelFormDialog({
   isSaving = false,
   title,
   codePattern,
+  resetKey,
 }: MaterialModelFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -337,6 +364,7 @@ export function MaterialModelFormDialog({
               id="materialModel-form"
               mode={mode}
               codePattern={codePattern}
+              resetKey={resetKey ?? mode}
             />
           </div>
 

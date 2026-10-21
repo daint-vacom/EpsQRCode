@@ -35,7 +35,7 @@ function modelOption(
   return {
     value: model.id,
     label: model.name,
-    searchableText: `${model.name} ${model.code}`,
+    searchableText: `${model.name} ${model.code} ${(model.externalCodes ?? []).join(' ')}`,
     data: { model },
   };
 }

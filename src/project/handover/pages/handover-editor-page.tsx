@@ -91,7 +91,9 @@ export function HandoverEditorPage() {
     canManage,
   );
   const document = documentQuery.data;
-  const custodianList = custodiansQuery.data ?? [];
+  const custodianList = (custodiansQuery.data ?? []).filter(
+    (party) => party.type !== 'warehouse',
+  );
   const sender = custodianList.find(
     (party) => party.id === form.watch('senderPartyId'),
   );
@@ -150,6 +152,7 @@ export function HandoverEditorPage() {
         party.isActive &&
         userId &&
         (party.accountUserId === userId ||
+          party.accountUserIds.includes(userId) ||
           party.representativeUserId === userId),
     )
     .map((party) => ({

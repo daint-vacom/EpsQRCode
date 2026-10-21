@@ -84,6 +84,8 @@ export interface MaterialListFilters {
   groupId?: string;
   ownerPartyId?: string;
   borrowerPartyId?: string;
+  receiptId?: string;
+  isActive?: boolean;
   status?: MaterialStatus;
   condition?: MaterialCondition;
   page?: number;

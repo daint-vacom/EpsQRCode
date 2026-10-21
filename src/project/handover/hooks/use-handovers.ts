@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actOnHandover,
+  actOnWarehouseHandover,
   loadHandover,
   loadHandoverHistory,
   loadHandovers,
   saveHandover,
+  saveWarehouseHandover,
 } from '../api/handovers.api';
 import type {
   HandoverFormValues,
@@ -67,6 +69,24 @@ export function useSaveHandoverMutation() {
   });
 }
 
+export function useSaveWarehouseHandoverMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveWarehouseHandover,
+    onSuccess: (_result, input) => {
+      queryClient.invalidateQueries({ queryKey: handoverKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
+      queryClient.invalidateQueries({
+        queryKey: ['project', 'material-receipts'],
+      });
+      if (input.id)
+        queryClient.invalidateQueries({
+          queryKey: handoverKeys.detail(input.id),
+        });
+    },
+  });
+}
+
 export function useHandoverActionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -79,6 +99,26 @@ export function useHandoverActionMutation() {
       });
       queryClient.invalidateQueries({
         queryKey: handoverKeys.history(input.id),
+      });
+    },
+  });
+}
+
+export function useWarehouseHandoverActionMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: actOnWarehouseHandover,
+    onSuccess: (_result, input) => {
+      queryClient.invalidateQueries({ queryKey: handoverKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
+      queryClient.invalidateQueries({
+        queryKey: handoverKeys.detail(input.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: handoverKeys.history(input.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['project', 'material-receipts'],
       });
     },
   });

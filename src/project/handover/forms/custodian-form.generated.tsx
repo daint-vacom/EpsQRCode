@@ -73,6 +73,9 @@ export function useCustodianForm(
 export function mapCustodianToFormValues(
   entity: CustodianFormSource,
 ): CustodianFormValues {
+  if (entity.type === 'warehouse') {
+    throw new Error('Warehouse records cannot be edited as custodians.');
+  }
   return {
     type: entity.type,
     code: entity.code,

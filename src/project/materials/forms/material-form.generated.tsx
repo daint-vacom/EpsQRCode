@@ -55,6 +55,7 @@ export const materialDefaultValues: MaterialFormSchemaValues = {
   ownerPartyId: '',
   condition: 'good',
   note: '',
+  specificationOverrides: {},
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.

@@ -66,7 +66,9 @@ export function CustodiansPage() {
     defaultValues: custodianDefaultValues,
   });
   const editForm = useCustodianForm({ defaultValues: custodianDefaultValues });
-  const custodians = query.data ?? EMPTY_CUSTODIANS;
+  const custodians = (query.data ?? EMPTY_CUSTODIANS).filter(
+    (party) => party.type !== 'warehouse',
+  );
   const filtered = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi');
     if (!normalized) return custodians;
@@ -78,6 +80,7 @@ export function CustodiansPage() {
   }, [custodians, keyword]);
   const columns = useCustodianColumns({
     onEdit: (custodian) => {
+      if (custodian.type === 'warehouse') return;
       setEditingCustodian(custodian);
       editForm.reset(mapCustodianToFormValues(custodian));
       setEditOpen(true);
@@ -92,7 +95,7 @@ export function CustodiansPage() {
     state: { columnPinning: CUSTODIAN_COLUMN_PINNING },
   });
   const partyOptions = custodians
-    .filter((party) => party.isActive)
+    .filter((party) => party.isActive && party.type !== 'warehouse')
     .map((party) => ({
       value: party.id,
       label: `${party.name} · ${party.code}`,

@@ -53,6 +53,17 @@ const spec: FormSpec = {
       alignment: 'start',
       rows: 3,
     },
+    {
+      kind: 'textarea',
+      name: 'externalCodesText',
+      label: 'Mã liên kết ngoài',
+      labelMessageId: 'materialModels.fields.externalCodes',
+      width: 'full',
+      layout: 'horizontal',
+      labelWidth: 'md',
+      alignment: 'start',
+      rows: 3,
+    },
   ],
 };
 

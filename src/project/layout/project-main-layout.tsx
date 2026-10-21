@@ -2,6 +2,8 @@ import { ROUTES } from '@/constants/routes';
 import { CUSTODIAN_PERMISSION_CODES } from '@/project/custodians/model/custodian-permissions';
 import { HANDOVER_PERMISSION_CODES } from '@/project/handover/model/handover-permissions';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
+import { MATERIAL_RECEIPT_PERMISSION_CODES } from '@/project/receipts/model/material-receipt';
+import { WAREHOUSE_PERMISSION_CODES } from '@/project/warehouses/model/warehouse';
 import { useTheme } from 'next-themes';
 import { useIntl } from 'react-intl';
 import { useLocation } from 'react-router-dom';
@@ -25,6 +27,14 @@ const OPERATION_MENU_ACCESS: Record<
   [ROUTES.PROJECT.CUSTODIANS]: {
     permission: CUSTODIAN_PERMISSION_CODES.view,
     messageId: 'project.navigation.custodians',
+  },
+  [ROUTES.PROJECT.WAREHOUSES]: {
+    permission: WAREHOUSE_PERMISSION_CODES.view,
+    messageId: 'project.navigation.warehouses',
+  },
+  [ROUTES.PROJECT.RECEIPTS]: {
+    permission: MATERIAL_RECEIPT_PERMISSION_CODES.view,
+    messageId: 'project.navigation.receipts',
   },
 };
 

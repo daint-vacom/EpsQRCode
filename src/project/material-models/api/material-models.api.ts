@@ -169,6 +169,10 @@ async function saveMaterialModel(
         p_requires_inspection: values.requiresInspection,
         p_specifications: values.specifications,
         p_images: imagePayload,
+        p_external_codes: values.externalCodesText
+          .split(/\r?\n/)
+          .map((value) => value.trim())
+          .filter(Boolean),
       }),
     );
 

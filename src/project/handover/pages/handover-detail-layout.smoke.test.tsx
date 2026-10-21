@@ -12,6 +12,8 @@ const pendingDocument: HandoverDocument = {
   code: 'BB-2026-001',
   type: 'loan',
   status: 'pending',
+  mode: 'standard',
+  receiptId: null,
   senderParty: {
     id: 'sender-1',
     code: 'S-1',
@@ -41,6 +43,7 @@ const pendingDocument: HandoverDocument = {
       condition: 'good',
       note: null,
       senderCondition: 'good',
+      receiverOutcome: 'pending',
     },
   ],
   attachments: [],
@@ -69,6 +72,7 @@ vi.mock('@/project/custodians/hooks/use-custodians', () => ({
         type: 'department',
         isActive: true,
         accountUserId: 'user-sender',
+        accountUserIds: ['user-sender'],
         representativeUserId: null,
       },
       {
@@ -78,6 +82,7 @@ vi.mock('@/project/custodians/hooks/use-custodians', () => ({
         type: 'department',
         isActive: true,
         accountUserId: 'user-receiver',
+        accountUserIds: ['user-receiver'],
         representativeUserId: null,
       },
     ],
@@ -100,6 +105,10 @@ vi.mock('../hooks/use-handovers', () => ({
     refetch: vi.fn(),
   }),
   useHandoverActionMutation: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useWarehouseHandoverActionMutation: () => ({
+    isPending: false,
+    mutateAsync: vi.fn(),
+  }),
 }));
 
 describe('handover detail inside the real detail-entry layout', () => {

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { loadFileStorageReference } from '@/project/files/api/file-manager.api';
+import { MATERIAL_RECEIPT_PERMISSION_CODES } from '@/project/receipts/model/material-receipt';
 import { Boxes, CircleCheck, Pencil, X } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -12,6 +13,7 @@ import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +30,7 @@ import {
   useHandoverActionMutation,
   useHandoverHistoryQuery,
   useHandoverQuery,
+  useWarehouseHandoverActionMutation,
 } from '../hooks/use-handovers';
 import type {
   HandoverAction,
@@ -37,6 +40,7 @@ import type {
 import { HANDOVER_PERMISSION_CODES } from '../model/handover-permissions';
 
 type ReasonAction = 'reject' | 'cancel';
+type PageAction = HandoverAction | 'approve';
 const EMPTY_ITEMS: HandoverDocument['items'] = [];
 
 export function HandoverDetailPage() {
@@ -47,24 +51,32 @@ export function HandoverDetailPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(HANDOVER_PERMISSION_CODES.view);
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
-  const query = useHandoverQuery(id, isPermissionsPending || canView);
+  const canViewReceipt =
+    hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.view) ||
+    hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
+  const canViewDocument = canView || canManage || canViewReceipt;
+  const query = useHandoverQuery(id, isPermissionsPending || canViewDocument);
   const historyQuery = useHandoverHistoryQuery(
     id,
-    isPermissionsPending || canView,
+    isPermissionsPending || canViewDocument,
   );
   const custodiansQuery = useCustodiansQuery(
     true,
-    isPermissionsPending || canView,
+    isPermissionsPending || canViewDocument,
   );
   const mutation = useHandoverActionMutation();
-  const { mutateAsync: mutateHandoverAction, isPending: isActionPending } =
-    mutation;
+  const warehouseMutation = useWarehouseHandoverActionMutation();
+  const { mutateAsync: mutateHandoverAction } = mutation;
+  const isActionPending = mutation.isPending || warehouseMutation.isPending;
   const [reasonAction, setReasonAction] = useState<ReasonAction | null>(null);
   const [reason, setReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [receiverConditions, setReceiverConditions] = useState<
     HandoverItemInput[]
   >([]);
+  const [receiverOutcomes, setReceiverOutcomes] = useState<
+    Record<string, boolean>
+  >({});
   const document = query.data;
   const custodianList = custodiansQuery.data ?? [];
   const senderParty = custodianList.find(
@@ -76,40 +88,73 @@ export function HandoverDetailPage() {
   const isSender = Boolean(
     userId &&
     (senderParty?.accountUserId === userId ||
+      senderParty?.accountUserIds.includes(userId) ||
       senderParty?.representativeUserId === userId),
   );
   const isReceiver = Boolean(
     userId &&
     (recipientParty?.accountUserId === userId ||
+      recipientParty?.accountUserIds.includes(userId) ||
       recipientParty?.representativeUserId === userId),
   );
   const items = document?.items ?? EMPTY_ITEMS;
+  const isWarehouseHandover = Boolean(document && document.mode !== 'standard');
   const canEditOrSend = Boolean(
-    canManage && isSender && document?.status === 'draft',
+    canManage &&
+    document?.status === 'draft' &&
+    (document.mode === 'warehouse_request' ? isReceiver : isSender),
   );
   const canCancel = Boolean(
     canManage &&
-    isSender &&
-    ['draft', 'pending'].includes(document?.status ?? ''),
+    document &&
+    (isWarehouseHandover
+      ? (document.mode === 'warehouse_request' &&
+          document.status === 'draft' &&
+          isReceiver) ||
+        (document.mode === 'warehouse_allocation' &&
+          document.status === 'draft' &&
+          isSender) ||
+        (document.status === 'pending' && isSender)
+      : isSender && ['draft', 'pending'].includes(document.status)),
   );
   const canReceive = Boolean(
     canManage && isReceiver && document?.status === 'pending',
   );
 
   const runAction = useCallback(
-    async (action: HandoverAction, note?: string) => {
+    async (action: PageAction, note?: string) => {
       if (!document) return;
       try {
-        await mutateHandoverAction({
-          id: document.id,
-          action,
-          expectedVersion: document.version,
-          note,
-          ...(action === 'confirm'
-            ? { itemConditions: receiverConditions }
-            : {}),
-        });
-        const key = `project.handover.toasts.${action === 'send' ? 'sent' : action === 'confirm' ? 'confirmed' : action === 'reject' ? 'rejected' : 'cancelled'}`;
+        if (document.mode === 'standard') {
+          if (action === 'approve') return;
+          await mutateHandoverAction({
+            id: document.id,
+            action,
+            expectedVersion: document.version,
+            note,
+            ...(action === 'confirm'
+              ? { itemConditions: receiverConditions }
+              : {}),
+          });
+        } else {
+          await warehouseMutation.mutateAsync({
+            id: document.id,
+            action,
+            expectedVersion: document.version,
+            note,
+            ...(action === 'confirm'
+              ? {
+                  itemResults: receiverConditions.map((entry) => ({
+                    ...entry,
+                    outcome: receiverOutcomes[entry.materialId]
+                      ? ('received' as const)
+                      : ('not_received' as const),
+                  })),
+                }
+              : {}),
+          });
+        }
+        const key = `project.handover.toasts.${action === 'send' ? 'sent' : action === 'confirm' ? 'confirmed' : action === 'approve' ? 'warehouseApproved' : action === 'reject' ? 'rejected' : 'cancelled'}`;
         toast.success(intl.formatMessage({ id: key }));
         setReasonAction(null);
         setReason('');
@@ -118,7 +163,14 @@ export function HandoverDetailPage() {
         toast.error(getApiErrorMessage(error));
       }
     },
-    [document, intl, mutateHandoverAction, receiverConditions],
+    [
+      document,
+      intl,
+      mutateHandoverAction,
+      receiverConditions,
+      receiverOutcomes,
+      warehouseMutation,
+    ],
   );
 
   const openAttachment = async (fileId: string) => {
@@ -153,7 +205,11 @@ export function HandoverDetailPage() {
                 variant="secondary"
                 size="md"
                 onClick={() =>
-                  navigate(ROUTES.PROJECT.HANDOVER_EDIT.replace(':id', id))
+                  navigate(
+                    document.mode === 'standard'
+                      ? ROUTES.PROJECT.HANDOVER_EDIT.replace(':id', id)
+                      : `${ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}?mode=${document.mode}&id=${id}`,
+                  )
                 }
               >
                 <Pencil className="size-4" />
@@ -168,6 +224,35 @@ export function HandoverDetailPage() {
               >
                 <CircleCheck className="size-4" />
                 {intl.formatMessage({ id: 'project.handover.actions.send' })}
+              </Button>
+            </>
+          ) : null}
+          {document.mode === 'warehouse_request' &&
+          document.status === 'awaiting_warehouse_approval' &&
+          canManage &&
+          isSender ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  setReasonAction('reject');
+                  setReason('');
+                }}
+              >
+                {intl.formatMessage({ id: 'project.handover.actions.reject' })}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                disabled={isActionPending}
+                onClick={() => void runAction('approve')}
+              >
+                {intl.formatMessage({
+                  id: 'project.handover.actions.approveWarehouse',
+                })}
               </Button>
             </>
           ) : null}
@@ -195,6 +280,14 @@ export function HandoverDetailPage() {
                       condition: item.condition,
                       note: item.note ?? '',
                     })),
+                  );
+                  setReceiverOutcomes(
+                    Object.fromEntries(
+                      items.map((item) => [
+                        item.materialId,
+                        item.receiverOutcome !== 'not_received',
+                      ]),
+                    ),
                   );
                   setConfirmOpen(true);
                 }}
@@ -224,10 +317,12 @@ export function HandoverDetailPage() {
       canCancel,
       canEditOrSend,
       canReceive,
+      canManage,
       document,
       id,
       intl,
       items,
+      isSender,
       isActionPending,
       navigate,
       runAction,
@@ -248,7 +343,7 @@ export function HandoverDetailPage() {
 
   if (isPermissionsPending)
     return <div className="h-full animate-pulse bg-muted" />;
-  if (!canView)
+  if (!canViewDocument)
     return (
       <div className="p-4">
         <ErrorState
@@ -352,6 +447,13 @@ export function HandoverDetailPage() {
               <th className="py-2">
                 {intl.formatMessage({ id: 'project.handover.fields.note' })}
               </th>
+              {isWarehouseHandover ? (
+                <th className="py-2">
+                  {intl.formatMessage({
+                    id: 'project.handover.fields.receiptOutcome',
+                  })}
+                </th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -378,6 +480,13 @@ export function HandoverDetailPage() {
                   })}
                 </td>
                 <td className="py-3">{item.note ?? ''}</td>
+                {isWarehouseHandover ? (
+                  <td className="py-3">
+                    {intl.formatMessage({
+                      id: `project.handover.receiptOutcome.${item.receiverOutcome}`,
+                    })}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
@@ -489,7 +598,7 @@ export function HandoverDetailPage() {
       <Dialog
         open={reasonAction !== null}
         onOpenChange={(open) =>
-          !open && !mutation.isPending && setReasonAction(null)
+          !open && !isActionPending && setReasonAction(null)
         }
       >
         <DialogContent>
@@ -522,7 +631,7 @@ export function HandoverDetailPage() {
             <Button
               type="button"
               variant="destructive"
-              loading={mutation.isPending}
+              loading={isActionPending}
               loadingText={intl.formatMessage({
                 id: 'project.handover.labels.processing',
               })}
@@ -541,7 +650,7 @@ export function HandoverDetailPage() {
       <Dialog
         open={confirmOpen}
         onOpenChange={(open) =>
-          !open && !mutation.isPending && setConfirmOpen(false)
+          !open && !isActionPending && setConfirmOpen(false)
         }
       >
         <DialogContent className="max-w-3xl">
@@ -570,8 +679,30 @@ export function HandoverDetailPage() {
                     <p className="text-sm font-medium">
                       {item?.materialCode} · {item?.materialName}
                     </p>
+                    {isWarehouseHandover ? (
+                      <label className="mt-2 flex items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={
+                            receiverOutcomes[condition.materialId] ?? true
+                          }
+                          onCheckedChange={(checked) =>
+                            setReceiverOutcomes((current) => ({
+                              ...current,
+                              [condition.materialId]: checked === true,
+                            }))
+                          }
+                        />
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.itemReceived',
+                        })}
+                      </label>
+                    ) : null}
                   </div>
                   <OptionSelect
+                    disabled={
+                      isWarehouseHandover &&
+                      !receiverOutcomes[condition.materialId]
+                    }
                     value={condition.condition}
                     onChange={(value) =>
                       setReceiverConditions((current) =>
@@ -593,6 +724,10 @@ export function HandoverDetailPage() {
                     searchable={false}
                   />
                   <Textarea
+                    disabled={
+                      isWarehouseHandover &&
+                      !receiverOutcomes[condition.materialId]
+                    }
                     rows={1}
                     aria-label={`${intl.formatMessage({ id: 'project.handover.fields.note' })} ${index + 1}`}
                     value={condition.note}
@@ -621,7 +756,7 @@ export function HandoverDetailPage() {
             <Button
               type="button"
               variant="primary"
-              loading={mutation.isPending}
+              loading={isActionPending}
               loadingText={intl.formatMessage({
                 id: 'project.handover.labels.confirming',
               })}

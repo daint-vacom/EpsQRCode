@@ -6,6 +6,7 @@ import type {
   HandoverHistoryEntry,
   HandoverListFilters,
   HandoverListResult,
+  WarehouseHandoverSaveInput,
 } from '../model/handover';
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -37,6 +38,19 @@ export async function saveHandover(
   );
 }
 
+export async function saveWarehouseHandover({
+  id,
+  values,
+}: WarehouseHandoverSaveInput) {
+  assertSupabaseConfigured();
+  return request<string>(
+    supabaseApi.post('/rpc/save_warehouse_handover', {
+      p_id: id,
+      p_values: values,
+    }),
+  );
+}
+
 export async function actOnHandover(
   input: HandoverActionInput,
 ): Promise<string> {
@@ -48,6 +62,34 @@ export async function actOnHandover(
       p_expected_version: input.expectedVersion,
       p_note: input.note ?? null,
       p_item_conditions: input.itemConditions ?? [],
+    }),
+  );
+}
+
+export interface WarehouseHandoverActionInput {
+  id: string;
+  action: 'send' | 'approve' | 'confirm' | 'reject' | 'cancel';
+  expectedVersion: number;
+  note?: string;
+  itemResults?: Array<{
+    materialId: string;
+    outcome: 'received' | 'not_received';
+    condition: 'good' | 'damaged';
+    note: string;
+  }>;
+}
+
+export async function actOnWarehouseHandover(
+  input: WarehouseHandoverActionInput,
+): Promise<string> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post('/rpc/act_on_warehouse_handover', {
+      p_id: input.id,
+      p_action: input.action,
+      p_expected_version: input.expectedVersion,
+      p_note: input.note ?? null,
+      p_item_results: input.itemResults ?? [],
     }),
   );
 }

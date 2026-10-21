@@ -7,7 +7,7 @@ export const materialModelSpecificationSchema = z
     dataType: materialSpecificationDataTypeSchema,
     name: z.string().trim().min(1, 'Vui lòng nhập tên thông số.'),
     isList: z.boolean(),
-    valueLabels: z.array(z.string().trim()).default([]),
+    valueLabels: z.array(z.string().trim()),
     values: z
       .array(z.string().trim())
       .min(1, 'Mỗi thông số cần ít nhất một giá trị.')
@@ -31,6 +31,7 @@ export const materialModelFormSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên mẫu.'),
   groupId: z.string().min(1, 'Vui lòng chọn nhóm vật tư.'),
   description: z.string().trim(),
+  externalCodesText: z.string(),
   requiresInspection: z.boolean(),
   specifications: z.array(materialModelSpecificationSchema),
 });
@@ -48,6 +49,7 @@ export interface MaterialModel {
   images: MaterialModelImage[];
   imageUrl: string | null;
   description: string;
+  externalCodes: string[];
   requiresInspection: boolean;
   specifications: MaterialModelSpecification[];
   isActive: boolean;
@@ -81,6 +83,7 @@ export interface MaterialModelRow {
   name: string;
   group_id: string | null;
   description: string | null;
+  external_codes: string[];
   requires_inspection: boolean;
   specifications: MaterialModelSpecification[];
   is_active: boolean;
@@ -101,6 +104,7 @@ export function mapMaterialModelRow(
     images,
     imageUrl: cover?.url ?? null,
     description: row.description ?? '',
+    externalCodes: row.external_codes ?? [],
     requiresInspection: row.requires_inspection,
     specifications: row.specifications,
     isActive: row.is_active,

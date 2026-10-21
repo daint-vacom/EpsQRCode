@@ -47,6 +47,7 @@ import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
 import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
 import { HandoversPage } from '@/project/handover/pages/handovers-page';
+import { WarehouseHandoverEditorPage } from '@/project/handover/pages/warehouse-handover-editor-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { MaterialGroupsPage } from '@/project/material-groups/pages/material-groups-page';
 import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
@@ -60,6 +61,10 @@ import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
+import { MaterialReceiptDetailPage } from '@/project/receipts/pages/material-receipt-detail-page';
+import { MaterialReceiptEditorPage } from '@/project/receipts/pages/material-receipt-editor-page';
+import { MaterialReceiptsPage } from '@/project/receipts/pages/material-receipts-page';
+import { WarehousesPage } from '@/project/warehouses/pages/warehouses-page';
 import { Route, Routes } from 'react-router';
 import { DetailEntryLayout } from '@/components/layouts/detail-entry-layout';
 import { Layout1 } from '@/components/layouts/layout-1';
@@ -237,6 +242,14 @@ export function AppRoutingSetup() {
           />
           <Route path={ROUTES.PROJECT.HANDOVERS} element={<HandoversPage />} />
           <Route
+            path={ROUTES.PROJECT.WAREHOUSES}
+            element={<WarehousesPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.RECEIPTS}
+            element={<MaterialReceiptsPage />}
+          />
+          <Route
             path={ROUTES.PROJECT.CUSTODIANS}
             element={<CustodiansPage />}
           />
@@ -279,6 +292,10 @@ export function AppRoutingSetup() {
             element={<HandoverEditorPage />}
           />
           <Route
+            path={ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}
+            element={<WarehouseHandoverEditorPage />}
+          />
+          <Route
             path={ROUTES.PROJECT.HANDOVER_DETAIL}
             element={<HandoverDetailPage />}
           />
@@ -297,6 +314,18 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIAL_MODEL_EDIT}
             element={<MaterialModelEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.RECEIPT_CREATE}
+            element={<MaterialReceiptEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.RECEIPT_EDIT}
+            element={<MaterialReceiptEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.RECEIPT_DETAIL}
+            element={<MaterialReceiptDetailPage />}
           />
         </Route>
       </Route>

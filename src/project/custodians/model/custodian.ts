@@ -1,12 +1,14 @@
 export type CustodianType = 'department' | 'team' | 'person' | 'external';
+export type CustodianPartyType = CustodianType | 'warehouse';
 
 export interface Custodian {
   id: string;
-  type: CustodianType;
+  type: CustodianPartyType;
   code: string;
   name: string;
   parentId: string | null;
   accountUserId: string | null;
+  accountUserIds: string[];
   representativeUserId: string | null;
   representativeDisplayName: string | null;
   isActive: boolean;
