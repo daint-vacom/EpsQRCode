@@ -55,6 +55,7 @@ export interface HandoverDocument {
   recipientParty: HandoverPartySnapshot;
   senderRepresentative: HandoverRepresentativeSnapshot | null;
   recipientRepresentative: HandoverRepresentativeSnapshot | null;
+  recipientHasQrAccount: boolean;
   plannedDate: string | null;
   dueDate: string | null;
   note: string | null;
@@ -121,6 +122,7 @@ export interface HandoverHistoryEntry {
     | 'sent'
     | 'warehouse_approved'
     | 'confirmed'
+    | 'confirmed_offline'
     | 'rejected'
     | 'cancelled';
   note: string | null;

@@ -21,8 +21,10 @@ export const CUSTODIAN_COLUMN_PINNING: ColumnPinningState = {
 };
 
 export function useCustodianColumns({
+  canManage,
   onEdit,
 }: {
+  canManage: boolean;
   onEdit: (custodian: Custodian) => void;
 }): ColumnDef<Custodian>[] {
   const intl = useIntl();
@@ -96,25 +98,26 @@ export function useCustodianColumns({
         cellClassName: 'text-right',
         size: getDataGridActionsColumnSize(1),
         enableSorting: false,
-        cell: (row) => (
-          <div className="flex justify-end">
-            <DataGridActionButton
-              action="edit"
-              mode="icon"
-              size="sm"
-              tooltip={intl.formatMessage({
-                id: 'project.handover.custodians.actions.edit',
-              })}
-              aria-label={intl.formatMessage({
-                id: 'project.handover.custodians.actions.edit',
-              })}
-              onClick={() => onEdit(row)}
-            >
-              <Pencil className="size-4" />
-            </DataGridActionButton>
-          </div>
-        ),
+        cell: (row) =>
+          canManage ? (
+            <div className="flex justify-end">
+              <DataGridActionButton
+                action="edit"
+                mode="icon"
+                size="sm"
+                tooltip={intl.formatMessage({
+                  id: 'project.handover.custodians.actions.edit',
+                })}
+                aria-label={intl.formatMessage({
+                  id: 'project.handover.custodians.actions.edit',
+                })}
+                onClick={() => onEdit(row)}
+              >
+                <Pencil className="size-4" />
+              </DataGridActionButton>
+            </div>
+          ) : null,
       }),
     ];
-  }, [intl, onEdit]);
+  }, [canManage, intl, onEdit]);
 }

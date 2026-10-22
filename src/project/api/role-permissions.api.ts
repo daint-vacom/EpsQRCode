@@ -8,6 +8,7 @@ import {
   type PermissionItem,
   type PermissionModule,
   type PermissionModuleRow,
+  type PermissionScope,
   type RolePermissionRow,
   type RoleRow,
   type RoleSummary,
@@ -19,7 +20,6 @@ interface CreateRoleInput {
   name: string;
   color: RoleColor;
   description?: string | null;
-  scope?: 'self' | 'department' | 'all';
   is_system?: boolean;
 }
 
@@ -91,7 +91,7 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
         supabaseApi.get(
           '/role_permissions',
           queryParams({
-            select: 'role_id,permission_code',
+            select: 'role_id,permission_code,scope',
           }),
         ),
       ),
@@ -105,17 +105,20 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
       ),
     ]);
 
-  const permissionCodesByRoleId = new Map<string, Set<string>>();
+  const permissionGrantsByRoleId = new Map<
+    string,
+    Map<string, PermissionScope | null>
+  >();
   const permissionCodes = new Set(
     definitions.map((definition) => definition.code),
   );
 
   for (const rolePermission of rolePermissions) {
     if (!permissionCodes.has(rolePermission.permission_code)) continue;
-    const codes =
-      permissionCodesByRoleId.get(rolePermission.role_id) ?? new Set();
-    codes.add(rolePermission.permission_code);
-    permissionCodesByRoleId.set(rolePermission.role_id, codes);
+    const grants =
+      permissionGrantsByRoleId.get(rolePermission.role_id) ?? new Map();
+    grants.set(rolePermission.permission_code, rolePermission.scope);
+    permissionGrantsByRoleId.set(rolePermission.role_id, grants);
   }
 
   const userCountByRoleId = new Map<string, number>();
@@ -133,7 +136,6 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
     color: role.color,
     description: role.description ?? '',
     userCount: userCountByRoleId.get(role.id) ?? 0,
-    scope: role.scope,
     isSystem: role.is_system,
     isActive: role.is_active,
     customerAssignable: role.customer_assignable,
@@ -154,6 +156,14 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
             code: definition.code,
             name: definition.name,
             selected: false,
+            scope: null,
+            scopeOptions: definition.scope_options.filter(
+              (scope): scope is PermissionScope =>
+                scope === 'team' ||
+                scope === 'department' ||
+                scope === 'assigned_warehouses' ||
+                scope === 'all',
+            ),
             tags: definition.tags.filter(
               (tag): tag is (typeof PERMISSION_TAGS)[number] =>
                 PERMISSION_TAGS.includes(tag),
@@ -168,7 +178,7 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
       role.id,
       applySelectedPermissionCodes(
         permissionModules,
-        permissionCodesByRoleId.get(role.id) ?? new Set<string>(),
+        permissionGrantsByRoleId.get(role.id) ?? new Map(),
       ),
     ]),
   );
@@ -181,14 +191,17 @@ export async function loadRolePermissionsWorkspace(): Promise<RolePermissionsWor
 
 export async function replaceRolePermissions(
   roleId: string,
-  selectedPermissionCodes: string[],
+  selectedGrants: Array<{ code: string; scope: PermissionScope | null }>,
 ): Promise<void> {
   assertSupabaseConfigured();
 
   await request<void>(
-    supabaseApi.post('/rpc/replace_role_permissions', {
+    supabaseApi.post('/rpc/replace_role_permission_grants', {
       target_role_id: roleId,
-      selected_permission_codes: selectedPermissionCodes,
+      selected_grants: selectedGrants.map((grant) => ({
+        code: grant.code,
+        scope: grant.scope,
+      })),
     }),
   );
 }

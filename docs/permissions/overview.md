@@ -7,6 +7,16 @@ Then read one focused guide:
 - [`backend.md`](./backend.md): JWT, permission enforcement, and scoped queries.
 - [`admin-ui.md`](./admin-ui.md): role, module, and assignment screens.
 
+## Approved Design Direction — 22/10/2026
+
+For the EPS account and scope implementation, use
+[`EPS accounts, parties and permission scopes plan`](../plans/2026-10-22-eps-accounts-parties-and-permission-scopes.md).
+It moves scope to each role-permission grant, resolves current EPS organization at the backend,
+and adds assigned-warehouse scope. The role-wide scope model below describes the existing
+implementation and must not be copied into the new design. The implementation and migration are
+applied to the QRCode development project; see section 11 of the plan for checks and remaining
+runtime acceptance work.
+
 ## Model
 
 - A **permission** authorizes one action on one resource.

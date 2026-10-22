@@ -8,6 +8,7 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.actions.saveDraft': 'Lưu bản nháp',
   'project.handover.actions.send': 'Gửi xác nhận',
   'project.handover.actions.confirm': 'Xác nhận nhận đủ',
+  'project.handover.actions.completeOffline': 'Hoàn tất giao ngoài QRCode',
   'project.handover.actions.approveWarehouse': 'Duyệt xuất kho',
   'project.handover.actions.reject': 'Từ chối',
   'project.handover.actions.cancel': 'Hủy phiếu',
@@ -65,6 +66,8 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.errors.loadTitle': 'Không tải được danh sách phiếu',
   'project.handover.errors.loadDetailTitle': 'Không tải được phiếu bàn giao',
   'project.handover.errors.loadPartiesTitle': 'Không tải được danh mục chủ thể',
+  'project.handover.errors.loadCounterpartiesTitle':
+    'Không tải được danh sách bên nhận',
   'project.handover.errors.noViewPermission':
     'Không có quyền xem phiếu bàn giao',
   'project.handover.errors.noManagePermission':
@@ -102,15 +105,23 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.labels.saving': 'Đang lưu',
   'project.handover.labels.processing': 'Đang xử lý',
   'project.handover.labels.confirming': 'Đang xác nhận',
+  'project.handover.labels.receiverWithoutQrAccount':
+    'Bên nhận chưa có tài khoản QRCode; bên giao có thể hoàn tất sau khi bàn giao trực tiếp.',
   'project.handover.dialogs.createTitle': 'Lập phiếu bàn giao',
   'project.handover.dialogs.editTitle': 'Sửa bản nháp bàn giao',
   'project.handover.dialogs.cancelTitle': 'Hủy phiếu bàn giao',
   'project.handover.dialogs.rejectTitle': 'Từ chối phiếu bàn giao',
   'project.handover.dialogs.confirmTitle': 'Xác nhận toàn bộ vật tư',
+  'project.handover.dialogs.completeOfflineTitle':
+    'Hoàn tất bàn giao trực tiếp',
+  'project.handover.dialogs.completeOfflineDescription':
+    'Xác nhận đã bàn giao trực tiếp phiếu {code}. Thao tác này hoàn tất phiếu mà không cần bên nhận xác nhận trên QRCode.',
   'project.handover.dialogs.reasonRequired': 'Nhập lý do để tiếp tục.',
   'project.handover.toasts.saved': 'Đã lưu bản nháp.',
   'project.handover.toasts.sent': 'Đã gửi phiếu chờ xác nhận.',
   'project.handover.toasts.confirmed': 'Đã xác nhận và hoàn tất phiếu.',
+  'project.handover.toasts.confirmedOffline':
+    'Đã ghi nhận bàn giao trực tiếp và hoàn tất phiếu.',
   'project.handover.toasts.rejected': 'Đã từ chối phiếu.',
   'project.handover.toasts.cancelled': 'Đã hủy phiếu.',
   'project.handover.toasts.warehouseApproved':
@@ -119,6 +130,8 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.events.updated': 'Cập nhật bản nháp',
   'project.handover.events.sent': 'Gửi xác nhận',
   'project.handover.events.confirmed': 'Xác nhận hoàn tất',
+  'project.handover.events.confirmed_offline':
+    'Bên giao hoàn tất bàn giao trực tiếp',
   'project.handover.events.warehouse_approved': 'Kho đã duyệt xuất vật tư',
   'project.handover.events.rejected': 'Từ chối phiếu',
   'project.handover.events.cancelled': 'Hủy phiếu',
@@ -132,6 +145,7 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.custodians.actions.create': 'Thêm chủ thể',
   'project.handover.custodians.actions.edit': 'Sửa chủ thể',
   'project.handover.custodians.fields.type': 'Loại chủ thể',
+  'project.handover.custodians.fields.epsSource': 'Dữ liệu EPS',
   'project.handover.custodians.fields.code': 'Mã chủ thể',
   'project.handover.custodians.fields.name': 'Tên chủ thể',
   'project.handover.custodians.fields.parent': 'Chủ thể cấp trên',
@@ -146,6 +160,13 @@ export const handoverMessagesVi: Record<string, string> = {
     'Không tải được danh mục chủ thể',
   'project.handover.custodians.errors.accountsTitle':
     'Không tải được danh sách tài khoản',
+  'project.handover.custodians.errors.epsDirectoryTitle':
+    'Không tải được danh mục EPS giả lập',
+  'project.handover.custodians.errors.selectEpsSource':
+    'Chọn một đơn vị, tổ hoặc nhân viên từ danh mục EPS giả lập.',
+  'project.handover.custodians.sourceType.eps_department': 'Đơn vị EPS',
+  'project.handover.custodians.sourceType.eps_team': 'Tổ/nhóm EPS',
+  'project.handover.custodians.sourceType.eps_person': 'Nhân viên EPS',
   'project.handover.custodians.type.department': 'Phòng ban',
   'project.handover.custodians.type.team': 'Tổ nhóm',
   'project.handover.custodians.type.person': 'Cá nhân',
@@ -163,6 +184,7 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.actions.saveDraft': 'Save draft',
   'project.handover.actions.send': 'Send for confirmation',
   'project.handover.actions.confirm': 'Confirm all items',
+  'project.handover.actions.completeOffline': 'Complete direct handover',
   'project.handover.actions.approveWarehouse': 'Approve warehouse release',
   'project.handover.actions.reject': 'Reject',
   'project.handover.actions.cancel': 'Cancel handover',
@@ -221,6 +243,8 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.errors.loadTitle': 'Could not load handovers',
   'project.handover.errors.loadDetailTitle': 'Could not load handover',
   'project.handover.errors.loadPartiesTitle': 'Could not load custodians',
+  'project.handover.errors.loadCounterpartiesTitle':
+    'Could not load recipient options',
   'project.handover.errors.noViewPermission':
     'You do not have permission to view handovers.',
   'project.handover.errors.noManagePermission':
@@ -258,15 +282,22 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.labels.saving': 'Saving',
   'project.handover.labels.processing': 'Processing',
   'project.handover.labels.confirming': 'Confirming',
+  'project.handover.labels.receiverWithoutQrAccount':
+    'The receiver has no QRCode account. The sender can complete the handover after delivering it directly.',
   'project.handover.dialogs.createTitle': 'Create handover',
   'project.handover.dialogs.editTitle': 'Edit handover draft',
   'project.handover.dialogs.cancelTitle': 'Cancel handover',
   'project.handover.dialogs.rejectTitle': 'Reject handover',
   'project.handover.dialogs.confirmTitle': 'Confirm all materials',
+  'project.handover.dialogs.completeOfflineTitle': 'Complete direct handover',
+  'project.handover.dialogs.completeOfflineDescription':
+    'Confirm that handover {code} was delivered directly. This completes the handover without a receiver confirmation in QRCode.',
   'project.handover.dialogs.reasonRequired': 'Enter a reason to continue.',
   'project.handover.toasts.saved': 'Draft saved.',
   'project.handover.toasts.sent': 'Handover sent for confirmation.',
   'project.handover.toasts.confirmed': 'Handover confirmed and completed.',
+  'project.handover.toasts.confirmedOffline':
+    'Direct handover recorded and completed.',
   'project.handover.toasts.rejected': 'Handover rejected.',
   'project.handover.toasts.cancelled': 'Handover cancelled.',
   'project.handover.toasts.warehouseApproved':
@@ -275,6 +306,8 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.events.updated': 'Draft updated',
   'project.handover.events.sent': 'Sent for confirmation',
   'project.handover.events.confirmed': 'Confirmed',
+  'project.handover.events.confirmed_offline':
+    'Sender completed a direct handover',
   'project.handover.events.warehouse_approved': 'Warehouse approved release',
   'project.handover.events.rejected': 'Rejected',
   'project.handover.events.cancelled': 'Cancelled',
@@ -288,6 +321,7 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.custodians.actions.create': 'Add custodian',
   'project.handover.custodians.actions.edit': 'Edit custodian',
   'project.handover.custodians.fields.type': 'Custodian type',
+  'project.handover.custodians.fields.epsSource': 'EPS directory record',
   'project.handover.custodians.fields.code': 'Custodian code',
   'project.handover.custodians.fields.name': 'Custodian name',
   'project.handover.custodians.fields.parent': 'Parent custodian',
@@ -300,6 +334,13 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.custodians.empty.search': 'No matching custodians found.',
   'project.handover.custodians.errors.loadTitle': 'Could not load custodians',
   'project.handover.custodians.errors.accountsTitle': 'Could not load accounts',
+  'project.handover.custodians.errors.epsDirectoryTitle':
+    'Could not load the mock EPS directory',
+  'project.handover.custodians.errors.selectEpsSource':
+    'Select a department, team, or employee from the mock EPS directory.',
+  'project.handover.custodians.sourceType.eps_department': 'EPS department',
+  'project.handover.custodians.sourceType.eps_team': 'EPS team',
+  'project.handover.custodians.sourceType.eps_person': 'EPS employee',
   'project.handover.custodians.type.department': 'Department',
   'project.handover.custodians.type.team': 'Team',
   'project.handover.custodians.type.person': 'Person',

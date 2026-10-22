@@ -1,13 +1,8 @@
 import { z } from 'zod';
 
 export const custodianFormSchema = z.object({
-  type: z.enum(['department', 'team', 'person', 'external']),
-  code: z.string().trim().min(1, 'Nhập mã chủ thể.'),
-  name: z.string().trim().min(1, 'Nhập tên chủ thể.'),
-  parentId: z.string(),
-  accountUserId: z.string(),
+  sourceKey: z.string().min(1, 'Chọn dữ liệu từ danh mục EPS giả lập.'),
   representativeUserId: z.string(),
-  isActive: z.boolean(),
 });
 
 export type CustodianFormValues = z.infer<typeof custodianFormSchema>;

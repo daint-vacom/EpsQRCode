@@ -1,5 +1,11 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
-import type { Custodian, CustodianFormValues } from '../model/custodian';
+import type {
+  Custodian,
+  EpsCustodianSourceType,
+  FakeEpsParty,
+  HandoverCounterpartyOption,
+  SaveCustodianValues,
+} from '../model/custodian';
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
   return (await promise) as T;
@@ -21,7 +27,7 @@ export async function loadCustodians(
 
 export async function saveCustodian(
   id: string | null,
-  values: CustodianFormValues,
+  values: SaveCustodianValues,
 ): Promise<string> {
   assertSupabaseConfigured();
   return request(
@@ -42,4 +48,40 @@ export async function loadCustodianAccountOptions(
   return request(
     supabaseApi.post('/rpc/list_custodian_account_options', {}, { signal }),
   );
+}
+
+export async function loadFakeEpsParties(
+  signal?: AbortSignal,
+): Promise<FakeEpsParty[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post('/rpc/list_fake_eps_parties', {}, { signal }),
+  );
+}
+
+export async function loadHandoverCounterpartyOptions(
+  partyId: string,
+  signal?: AbortSignal,
+): Promise<HandoverCounterpartyOption[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_handover_counterparty_options',
+      { p_party_id: partyId },
+      { signal },
+    ),
+  );
+}
+
+export function custodianTypeFromSourceType(
+  sourceType: EpsCustodianSourceType,
+): SaveCustodianValues['type'] {
+  switch (sourceType) {
+    case 'eps_department':
+      return 'department' as const;
+    case 'eps_team':
+      return 'team' as const;
+    case 'eps_person':
+      return 'person' as const;
+  }
 }

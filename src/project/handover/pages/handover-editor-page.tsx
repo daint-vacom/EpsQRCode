@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
-import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import {
+  useCustodiansQuery,
+  useHandoverCounterpartyOptionsQuery,
+} from '@/project/custodians/hooks/use-custodians';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
 import { HandoverItemsEditorTable } from '@/project/handover/table/handover-items-editor-table.generated';
@@ -96,6 +99,11 @@ export function HandoverEditorPage() {
   const sender = custodianList.find(
     (party) => party.id === form.watch('senderPartyId'),
   );
+  const selectedSenderPartyId = form.watch('senderPartyId');
+  const counterpartiesQuery = useHandoverCounterpartyOptionsQuery(
+    selectedSenderPartyId,
+    canManage,
+  );
   const recipient = custodianList.find(
     (party) => party.id === form.watch('recipientPartyId'),
   );
@@ -146,24 +154,15 @@ export function HandoverEditorPage() {
       : [];
   };
   const representedSenderOptions = custodianList
-    .filter(
-      (party) =>
-        party.isActive &&
-        userId &&
-        (party.accountUserId === userId ||
-          party.accountUserIds.includes(userId) ||
-          party.representativeUserId === userId),
-    )
+    .filter((party) => party.isActive && party.canRepresent)
     .map((party) => ({
       value: party.id,
       label: `${party.name} · ${party.code}`,
     }));
-  const activePartyOptions = custodianList
-    .filter((party) => party.isActive)
-    .map((party) => ({
-      value: party.id,
-      label: `${party.name} · ${party.code}`,
-    }));
+  const activePartyOptions = (counterpartiesQuery.data ?? []).map((party) => ({
+    value: party.id,
+    label: `${party.name} · ${party.code}`,
+  }));
 
   useEffect(() => {
     if (!document) return;
@@ -448,6 +447,15 @@ export function HandoverEditorPage() {
         )}
         sideContent={
           <div className="mt-5 space-y-5 border-t border-border pt-5">
+            {counterpartiesQuery.isError ? (
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'project.handover.errors.loadCounterpartiesTitle',
+                })}
+                description={getApiErrorMessage(counterpartiesQuery.error)}
+                onRetry={() => void counterpartiesQuery.refetch()}
+              />
+            ) : null}
             {representedSenderOptions.length === 0 ? (
               <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
                 Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu

@@ -14,6 +14,7 @@ import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { HandoverDetailLayout } from '../detail/handover-detail-layout.generated';
 import {
+  useCompleteHandoverOfflineMutation,
   useHandoverActionMutation,
   useHandoverHistoryQuery,
   useHandoverQuery,
@@ -65,12 +67,17 @@ export function HandoverDetailPage() {
     isPermissionsPending || canViewDocument,
   );
   const mutation = useHandoverActionMutation();
+  const offlineMutation = useCompleteHandoverOfflineMutation();
   const warehouseMutation = useWarehouseHandoverActionMutation();
   const { mutateAsync: mutateHandoverAction } = mutation;
-  const isActionPending = mutation.isPending || warehouseMutation.isPending;
+  const isActionPending =
+    mutation.isPending ||
+    warehouseMutation.isPending ||
+    offlineMutation.isPending;
   const [reasonAction, setReasonAction] = useState<ReasonAction | null>(null);
   const [reason, setReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [offlineConfirmOpen, setOfflineConfirmOpen] = useState(false);
   const [receiverConditions, setReceiverConditions] = useState<
     HandoverItemInput[]
   >([]);
@@ -85,18 +92,8 @@ export function HandoverDetailPage() {
   const recipientParty = custodianList.find(
     (party) => party.id === document?.recipientParty.id,
   );
-  const isSender = Boolean(
-    userId &&
-    (senderParty?.accountUserId === userId ||
-      senderParty?.accountUserIds.includes(userId) ||
-      senderParty?.representativeUserId === userId),
-  );
-  const isReceiver = Boolean(
-    userId &&
-    (recipientParty?.accountUserId === userId ||
-      recipientParty?.accountUserIds.includes(userId) ||
-      recipientParty?.representativeUserId === userId),
-  );
+  const isSender = Boolean(userId && senderParty?.canRepresent);
+  const isReceiver = Boolean(userId && recipientParty?.canRepresent);
   const items = document?.items ?? EMPTY_ITEMS;
   const isWarehouseHandover = Boolean(document && document.mode !== 'standard');
   const canEditOrSend = Boolean(
@@ -119,6 +116,14 @@ export function HandoverDetailPage() {
   );
   const canReceive = Boolean(
     canManage && isReceiver && document?.status === 'pending',
+  );
+  const canCompleteOffline = Boolean(
+    canManage &&
+    isSender &&
+    document?.mode === 'standard' &&
+    document.status === 'pending' &&
+    document.recipientHasQrAccount === false &&
+    !isReceiver,
   );
 
   const runAction = useCallback(
@@ -172,6 +177,24 @@ export function HandoverDetailPage() {
       warehouseMutation,
     ],
   );
+
+  const completeOffline = useCallback(async () => {
+    if (!document) return;
+    try {
+      await offlineMutation.mutateAsync({
+        id: document.id,
+        expectedVersion: document.version,
+      });
+      toast.success(
+        intl.formatMessage({
+          id: 'project.handover.toasts.confirmedOffline',
+        }),
+      );
+      setOfflineConfirmOpen(false);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    }
+  }, [document, intl, offlineMutation]);
 
   const openAttachment = async (fileId: string) => {
     const targetWindow = window.open('', '_blank');
@@ -297,6 +320,20 @@ export function HandoverDetailPage() {
               </Button>
             </>
           ) : null}
+          {canCompleteOffline ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              disabled={isActionPending}
+              onClick={() => setOfflineConfirmOpen(true)}
+            >
+              <CircleCheck className="size-4" />
+              {intl.formatMessage({
+                id: 'project.handover.actions.completeOffline',
+              })}
+            </Button>
+          ) : null}
           {canCancel ? (
             <Button
               type="button"
@@ -324,6 +361,7 @@ export function HandoverDetailPage() {
       items,
       isSender,
       isActionPending,
+      canCompleteOffline,
       navigate,
       runAction,
     ],
@@ -394,6 +432,13 @@ export function HandoverDetailPage() {
           <p className="font-medium">{document.senderParty.name}</p>
           <p className="mt-3 text-muted-foreground">Bên nhận</p>
           <p className="font-medium">{document.recipientParty.name}</p>
+          {document.recipientHasQrAccount === false ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {intl.formatMessage({
+                id: 'project.handover.labels.receiverWithoutQrAccount',
+              })}
+            </p>
+          ) : null}
         </div>
       </CardContent>
     </Card>
@@ -767,6 +812,22 @@ export function HandoverDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={offlineConfirmOpen}
+        onOpenChange={setOfflineConfirmOpen}
+        title={intl.formatMessage({
+          id: 'project.handover.dialogs.completeOfflineTitle',
+        })}
+        description={intl.formatMessage(
+          { id: 'project.handover.dialogs.completeOfflineDescription' },
+          { code: document.code },
+        )}
+        confirmLabel={intl.formatMessage({
+          id: 'project.handover.actions.completeOffline',
+        })}
+        isConfirming={offlineMutation.isPending}
+        onConfirm={() => void completeOffline()}
+      />
     </div>
   );
 }

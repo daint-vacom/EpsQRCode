@@ -66,9 +66,14 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.CUSTODIANS,
       },
       {
-        label: 'Nhân viên',
+        label: 'Quản lý tài khoản',
         icon: Users,
-        path: ROUTES.PROJECT.EMPLOYEES,
+        path: ROUTES.PROJECT.ACCOUNTS,
+      },
+      {
+        label: 'Đơn vị ngoài',
+        icon: Building2,
+        path: ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS,
       },
       { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
       {
@@ -90,7 +95,7 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
 export type ProjectEntity = 'employee';
 
 const PROJECT_ENTITY_BY_MENU_PATH: Readonly<Record<string, ProjectEntity>> = {
-  [ROUTES.PROJECT.EMPLOYEES]: 'employee',
+  [ROUTES.PROJECT.ACCOUNTS]: 'employee',
 };
 
 /** Entity order follows the project menu and currently contains shared employee data only. */

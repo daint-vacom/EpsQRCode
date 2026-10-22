@@ -13,7 +13,12 @@ export type { RoleColor } from './role-color';
 
 export type PermissionTag = (typeof PERMISSION_TAGS)[number];
 export type SummaryState = 'all' | 'partial' | 'none' | 'na';
-export const PERMISSION_SCOPES = ['self', 'department', 'all'] as const;
+export const PERMISSION_SCOPES = [
+  'team',
+  'department',
+  'assigned_warehouses',
+  'all',
+] as const;
 export type PermissionScope = (typeof PERMISSION_SCOPES)[number];
 
 export const roleFormSchema = z.object({
@@ -32,7 +37,6 @@ export interface RoleSummary {
   color: RoleColor;
   description: string;
   userCount: number;
-  scope?: PermissionScope;
   isSystem?: boolean;
   isActive?: boolean;
   customerAssignable?: boolean;
@@ -44,6 +48,8 @@ export interface PermissionItem {
   name: string;
   description?: string;
   selected: boolean;
+  scope: PermissionScope | null;
+  scopeOptions: PermissionScope[];
   tags: PermissionTag[];
   sensitive?: boolean;
 }
@@ -71,6 +77,7 @@ export interface PermissionDefinitionRow {
   sensitive: boolean;
   sort_order: number;
   is_active: boolean;
+  scope_options: string[];
 }
 
 export interface PermissionModuleRow {
@@ -97,7 +104,6 @@ export interface RoleRow {
   name: string;
   color: RoleColor;
   description: string | null;
-  scope: PermissionScope;
   is_system: boolean;
   is_active: boolean;
   sort_order: number;
@@ -110,6 +116,7 @@ export interface RoleRow {
 export interface RolePermissionRow {
   role_id: string;
   permission_code: string;
+  scope: PermissionScope | null;
 }
 
 export interface UserRoleRow {
@@ -119,7 +126,7 @@ export interface UserRoleRow {
 
 export function applySelectedPermissionCodes(
   modules: PermissionModule[],
-  selectedCodes: ReadonlySet<string>,
+  grants: ReadonlyMap<string, PermissionScope | null>,
 ): PermissionModule[] {
   return modules.map((module) => ({
     ...module,
@@ -127,7 +134,8 @@ export function applySelectedPermissionCodes(
       ...group,
       permissions: group.permissions.map((permission) => ({
         ...permission,
-        selected: selectedCodes.has(permission.code),
+        selected: grants.has(permission.code),
+        scope: grants.get(permission.code) ?? null,
       })),
     })),
   }));

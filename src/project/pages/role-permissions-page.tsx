@@ -50,6 +50,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
+import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -72,6 +73,7 @@ import {
   ROLE_COLOR_SWATCH_CLASSES,
   type PermissionItem,
   type PermissionModule,
+  type PermissionScope,
   type PermissionTag,
   type RoleFormValues,
   type RoleSummary,
@@ -125,6 +127,7 @@ function flattenSelected(modules: PermissionModule[]) {
         group.permissions.map((permission) => ({
           code: permission.code,
           selected: permission.selected,
+          scope: permission.selected ? permission.scope : null,
         })),
       ),
     )
@@ -141,7 +144,8 @@ function countChanges(
   return current.filter(
     (item, index) =>
       item.code !== saved[index]?.code ||
-      item.selected !== saved[index]?.selected,
+      item.selected !== saved[index]?.selected ||
+      item.scope !== saved[index]?.scope,
   ).length;
 }
 
@@ -211,7 +215,6 @@ export function RolePermissionsPage() {
       color: 'blue',
       description: '',
       userCount: 0,
-      scope: 'all',
     });
   };
 
@@ -327,6 +330,27 @@ export function RolePermissionsPage() {
     );
   };
 
+  const handlePermissionScope = (
+    code: string,
+    scope: PermissionScope | null,
+  ) => {
+    if (selectedRoleIsSystem) return;
+
+    setModules((current) =>
+      current.map((module) => ({
+        ...module,
+        groups: module.groups.map((group) => ({
+          ...group,
+          permissions: group.permissions.map((permission) =>
+            permission.code === code
+              ? { ...permission, scope, selected: scope !== null }
+              : permission,
+          ),
+        })),
+      })),
+    );
+  };
+
   const handleReset = () => {
     setModules(structuredClone(savedModules));
   };
@@ -345,7 +369,10 @@ export function RolePermissionsPage() {
           module.groups.flatMap((group) =>
             group.permissions
               .filter((permission) => permission.selected)
-              .map((permission) => permission.code),
+              .map((permission) => ({
+                code: permission.code,
+                scope: permission.scope,
+              })),
           ),
         ),
       );
@@ -402,7 +429,6 @@ export function RolePermissionsPage() {
         name: values.name.trim(),
         color: values.color,
         description: values.description.trim() || null,
-        scope: role.scope ?? 'all',
       });
     },
     onSuccess: async (role) => {
@@ -685,6 +711,7 @@ export function RolePermissionsPage() {
                     disabled={selectedRoleIsSystem}
                     onToggle={() => handleToggleModule(module.code)}
                     onTogglePermission={handleTogglePermission}
+                    onPermissionScopeChange={handlePermissionScope}
                   />
                 ))}
               </div>
@@ -773,6 +800,10 @@ interface ModulePermissionSectionProps {
   disabled: boolean;
   onToggle: () => void;
   onTogglePermission: (code: string, checked: boolean) => void;
+  onPermissionScopeChange: (
+    code: string,
+    scope: PermissionScope | null,
+  ) => void;
 }
 
 function ModulePermissionSection({
@@ -781,6 +812,7 @@ function ModulePermissionSection({
   disabled,
   onToggle,
   onTogglePermission,
+  onPermissionScopeChange,
 }: ModulePermissionSectionProps) {
   const intl = useIntl();
 
@@ -833,6 +865,7 @@ function ModulePermissionSection({
                 group={group}
                 disabled={disabled}
                 onTogglePermission={onTogglePermission}
+                onPermissionScopeChange={onPermissionScopeChange}
               />
             ))}
           </div>
@@ -946,12 +979,17 @@ interface PermissionGroupCardProps {
   group: PermissionModule['groups'][number];
   disabled: boolean;
   onTogglePermission: (code: string, checked: boolean) => void;
+  onPermissionScopeChange: (
+    code: string,
+    scope: PermissionScope | null,
+  ) => void;
 }
 
 function PermissionGroupCard({
   group,
   disabled,
   onTogglePermission,
+  onPermissionScopeChange,
 }: PermissionGroupCardProps) {
   const intl = useIntl();
   const selectedCount = group.permissions.filter(
@@ -982,6 +1020,7 @@ function PermissionGroupCard({
             permission={permission}
             disabled={disabled}
             onTogglePermission={onTogglePermission}
+            onPermissionScopeChange={onPermissionScopeChange}
           />
         ))}
       </div>
@@ -993,15 +1032,30 @@ interface PermissionRowProps {
   permission: PermissionItem;
   disabled: boolean;
   onTogglePermission: (code: string, checked: boolean) => void;
+  onPermissionScopeChange: (
+    code: string,
+    scope: PermissionScope | null,
+  ) => void;
 }
 
 function PermissionRow({
   permission,
   disabled,
   onTogglePermission,
+  onPermissionScopeChange,
 }: PermissionRowProps) {
+  const intl = useIntl();
+  const scopeLabels: Record<PermissionScope, string> = {
+    team: intl.formatMessage({ id: 'permissions.scopes.team' }),
+    department: intl.formatMessage({ id: 'permissions.scopes.department' }),
+    assigned_warehouses: intl.formatMessage({
+      id: 'permissions.scopes.assignedWarehouses',
+    }),
+    all: intl.formatMessage({ id: 'permissions.scopes.all' }),
+  };
+
   return (
-    <label
+    <div
       className={cn(
         'flex items-center justify-between gap-4 px-4 py-3 hover:bg-field',
         disabled ? 'cursor-not-allowed opacity-70' : 'cursor-pointer',
@@ -1015,15 +1069,46 @@ function PermissionRow({
           <PermissionTagIcon key={tag} tag={tag} />
         ))}
         {permission.sensitive && <SensitiveIcon />}
-        <Checkbox
-          checked={permission.selected}
-          disabled={disabled}
-          onCheckedChange={(checked) =>
-            onTogglePermission(permission.code, checked === true)
-          }
-        />
+        {permission.scopeOptions.length > 0 ? (
+          <OptionSelect
+            ariaLabel={intl.formatMessage(
+              { id: 'permissions.scopes.selectLabel' },
+              { permission: permission.name },
+            )}
+            value={permission.scope ?? 'none'}
+            options={[
+              {
+                value: 'none',
+                label: intl.formatMessage({ id: 'permissions.scopes.none' }),
+              },
+              ...permission.scopeOptions.map((scope) => ({
+                value: scope,
+                label: scopeLabels[scope],
+              })),
+            ]}
+            placeholder={intl.formatMessage({ id: 'permissions.scopes.none' })}
+            disabled={disabled}
+            canDeselect={false}
+            className="w-44"
+            onChange={(value) =>
+              onPermissionScopeChange(
+                permission.code,
+                value === 'none' ? null : (value as PermissionScope),
+              )
+            }
+          />
+        ) : (
+          <Checkbox
+            checked={permission.selected}
+            disabled={disabled}
+            aria-label={permission.name}
+            onCheckedChange={(checked) =>
+              onTogglePermission(permission.code, checked === true)
+            }
+          />
+        )}
       </div>
-    </label>
+    </div>
   );
 }
 

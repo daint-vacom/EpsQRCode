@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
+import { custodianTypeFromSourceType } from '@/project/custodians/api/custodians.api';
 import {
   useCustodianAccountOptionsQuery,
   useCustodiansQuery,
+  useFakeEpsPartiesQuery,
   useSaveCustodianMutation,
 } from '@/project/custodians/hooks/use-custodians';
 import type { Custodian } from '@/project/custodians/model/custodian';
@@ -55,6 +57,9 @@ export function CustodiansPage() {
   const accountsQuery = useCustodianAccountOptionsQuery(
     !isPermissionsPending && canManage,
   );
+  const fakeEpsPartiesQuery = useFakeEpsPartiesQuery(
+    !isPermissionsPending && canManage,
+  );
   const saveMutation = useSaveCustodianMutation();
   const [keyword, setKeyword] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -69,7 +74,7 @@ export function CustodiansPage() {
   const custodians = useMemo(
     () =>
       (query.data ?? EMPTY_CUSTODIANS).filter(
-        (party) => party.type !== 'warehouse',
+        (party) => party.type !== 'warehouse' && party.type !== 'external',
       ),
     [query.data],
   );
@@ -91,7 +96,10 @@ export function CustodiansPage() {
     },
     [editForm],
   );
-  const columns = useCustodianColumns({ onEdit: handleEditCustodian });
+  const columns = useCustodianColumns({
+    canManage,
+    onEdit: handleEditCustodian,
+  });
   const table = useReactTable({
     data: filtered,
     columns,
@@ -100,16 +108,6 @@ export function CustodiansPage() {
     getPaginationRowModel: getPaginationRowModel(),
     state: { columnPinning: CUSTODIAN_COLUMN_PINNING },
   });
-  const partyOptions = useMemo(
-    () =>
-      custodians
-        .filter((party) => party.isActive && party.type !== 'warehouse')
-        .map((party) => ({
-          value: party.id,
-          label: `${party.name} · ${party.code}`,
-        })),
-    [custodians],
-  );
   const accountOptions = useMemo(
     () =>
       (accountsQuery.data ?? []).map((account) => ({
@@ -120,6 +118,31 @@ export function CustodiansPage() {
       })),
     [accountsQuery.data],
   );
+  const sourceOptions = useMemo(() => {
+    const sources = fakeEpsPartiesQuery.data ?? [];
+    const selectedSource =
+      editingCustodian?.sourceId && editingCustodian.sourceType
+        ? {
+            source_type: editingCustodian.sourceType,
+            source_id: editingCustodian.sourceId,
+            code: editingCustodian.code,
+            name: editingCustodian.name,
+          }
+        : null;
+    const records =
+      selectedSource &&
+      !sources.some(
+        (source) =>
+          source.source_id === selectedSource.source_id &&
+          source.source_type === selectedSource.source_type,
+      )
+        ? [...sources, selectedSource]
+        : sources;
+    return records.map((source) => ({
+      value: `${source.source_type}:${source.source_id}`,
+      label: `${intl.formatMessage({ id: `project.handover.custodians.sourceType.${source.source_type}` })} · ${source.name} · ${source.code}`,
+    }));
+  }, [editingCustodian, fakeEpsPartiesQuery.data, intl]);
 
   const submit = (
     id: string | null,
@@ -127,13 +150,24 @@ export function CustodiansPage() {
     close: (open: boolean) => void,
   ) => {
     if (!canManage) return;
+    const source = fakeEpsPartiesQuery.data?.find(
+      (party) => `${party.source_type}:${party.source_id}` === values.sourceKey,
+    );
+    const sourceType = source?.source_type ?? editingCustodian?.sourceType;
+    if (!sourceType) {
+      toast.error(
+        intl.formatMessage({
+          id: 'project.handover.custodians.errors.selectEpsSource',
+        }),
+      );
+      return;
+    }
     saveMutation.mutate(
       {
         id,
         values: {
-          ...values,
-          parentId: values.parentId || null,
-          accountUserId: values.accountUserId || null,
+          sourceId: source?.source_id ?? editingCustodian?.sourceId ?? '',
+          type: custodianTypeFromSourceType(sourceType),
           representativeUserId: values.representativeUserId || null,
         },
       },
@@ -159,7 +193,7 @@ export function CustodiansPage() {
         })}
         icon={Building2}
         actions={
-          canManage ? (
+          canManage && (fakeEpsPartiesQuery.data?.length ?? 0) > 0 ? (
             <Button
               type="button"
               variant="primary"
@@ -181,6 +215,15 @@ export function CustodiansPage() {
           })}
           description={getApiErrorMessage(accountsQuery.error)}
           onRetry={() => void accountsQuery.refetch()}
+        />
+      ) : null}
+      {fakeEpsPartiesQuery.isError && canManage ? (
+        <ErrorState
+          title={intl.formatMessage({
+            id: 'project.handover.custodians.errors.epsDirectoryTitle',
+          })}
+          description={getApiErrorMessage(fakeEpsPartiesQuery.error)}
+          onRetry={() => void fakeEpsPartiesQuery.refetch()}
         />
       ) : null}
       <DataGrid
@@ -254,8 +297,7 @@ export function CustodiansPage() {
         title={intl.formatMessage({
           id: 'project.handover.custodians.dialogs.createTitle',
         })}
-        parentIdOptions={partyOptions}
-        accountUserIdOptions={accountOptions}
+        sourceKeyOptions={sourceOptions}
         representativeUserIdOptions={accountOptions}
       />
       <CustodianFormDialog
@@ -270,10 +312,15 @@ export function CustodiansPage() {
         title={intl.formatMessage({
           id: 'project.handover.custodians.dialogs.editTitle',
         })}
-        parentIdOptions={partyOptions.filter(
-          (party) => party.value !== editingCustodian?.id,
-        )}
-        accountUserIdOptions={accountOptions}
+        sourceKeyOptions={
+          editingCustodian?.sourceId && editingCustodian.sourceType
+            ? sourceOptions.filter(
+                (source) =>
+                  source.value ===
+                  `${editingCustodian.sourceType}:${editingCustodian.sourceId}`,
+              )
+            : sourceOptions
+        }
         representativeUserIdOptions={accountOptions}
       />
     </div>

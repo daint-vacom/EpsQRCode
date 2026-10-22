@@ -2,6 +2,7 @@
  * Message tiếng Việt. Key đặt theo namespace: `<feature>.<key>`.
  * UI mặc định là tiếng Việt nên đây là catalog gốc.
  */
+import { accountMessagesVi } from '@/project/accounts/messages';
 import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
 import { receiptMessagesVi } from '@/project/receipts/messages';
@@ -15,6 +16,7 @@ export const vi: Record<string, string> = {
   'common.select.minSearch': 'Nhập ít nhất {count} ký tự để tìm kiếm',
   ...materialMessagesVi,
   ...warehouseMessagesVi,
+  ...accountMessagesVi,
   ...receiptMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.materials': 'Vật tư',
@@ -22,6 +24,8 @@ export const vi: Record<string, string> = {
   'project.navigation.warehouses': 'Kho',
   'project.navigation.receipts': 'Phiếu nhập vật tư',
   'project.navigation.custodians': 'Chủ thể bàn giao',
+  'project.navigation.accounts': 'Quản lý tài khoản',
+  'project.navigation.externalOrganizations': 'Đơn vị ngoài',
   'common.actions.create': 'Thêm mới',
   'common.actions.save': 'Lưu',
   'common.actions.cancel': 'Hủy',
@@ -332,6 +336,12 @@ export const vi: Record<string, string> = {
   'permissions.tags.sensitive': 'Nhạy cảm',
   'permissions.tags.notApplicable': 'N/A',
   'permissions.groups.enabledCount': '{selected}/{total} quyền đang bật',
+  'permissions.scopes.selectLabel': 'Phạm vi quyền {permission}',
+  'permissions.scopes.none': 'Không',
+  'permissions.scopes.team': 'Tổ/nhóm EPS',
+  'permissions.scopes.department': 'Đơn vị',
+  'permissions.scopes.assignedWarehouses': 'Kho được phân công',
+  'permissions.scopes.all': 'Toàn EPS',
   'permissions.modules.expand': 'Mở module',
   'permissions.modules.collapse': 'Thu gọn module',
   'dataConfiguration.page.title': 'Cấu hình dữ liệu',

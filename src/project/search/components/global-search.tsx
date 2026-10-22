@@ -33,7 +33,7 @@ interface FlattenedSearchItem {
 }
 
 const SOURCE_ICONS: Record<GlobalSearchSource, typeof Users> = {
-  employees: Users,
+  accounts: Users,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -199,9 +199,9 @@ export function GlobalSearch() {
     () =>
       [
         {
-          source: 'employees',
-          label: 'Nhân viên',
-          items: search.data.employees,
+          source: 'accounts',
+          label: 'Tài khoản',
+          items: search.data.accounts,
         },
       ].filter((section) => section.items.length > 0),
     [search.data],

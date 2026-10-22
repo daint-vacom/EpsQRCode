@@ -41,8 +41,9 @@ import { Layout37Page } from '@/pages/layout-37/page';
 import { Layout38Page } from '@/pages/layout-38/page';
 import { Layout39Page } from '@/pages/layout-39/page';
 import { NotFoundPage } from '@/pages/not-found/page';
+import { AccountsPage } from '@/project/accounts/pages/accounts-page';
+import { ExternalOrganizationsPage } from '@/project/accounts/pages/external-organizations-page';
 import { CustodiansPage } from '@/project/custodians/pages/custodians-page';
-import { EmployeesPage } from '@/project/employees/pages/employees-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
 import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
@@ -254,7 +255,11 @@ export function AppRoutingSetup() {
             element={<CustodiansPage />}
           />
           <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
-          <Route path={ROUTES.PROJECT.EMPLOYEES} element={<EmployeesPage />} />
+          <Route path={ROUTES.PROJECT.ACCOUNTS} element={<AccountsPage />} />
+          <Route
+            path={ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS}
+            element={<ExternalOrganizationsPage />}
+          />
           <Route
             path={ROUTES.PROJECT.MATERIAL_GROUPS}
             element={<MaterialGroupsPage />}

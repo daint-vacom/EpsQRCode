@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   actOnHandover,
   actOnWarehouseHandover,
+  completeHandoverOffline,
   loadHandover,
   loadHandoverHistory,
   loadHandovers,
@@ -91,6 +92,23 @@ export function useHandoverActionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: actOnHandover,
+    onSuccess: (_result, input) => {
+      queryClient.invalidateQueries({ queryKey: handoverKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
+      queryClient.invalidateQueries({
+        queryKey: handoverKeys.detail(input.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: handoverKeys.history(input.id),
+      });
+    },
+  });
+}
+
+export function useCompleteHandoverOfflineMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: completeHandoverOffline,
     onSuccess: (_result, input) => {
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });

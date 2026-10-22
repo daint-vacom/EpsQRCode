@@ -66,6 +66,19 @@ export async function actOnHandover(
   );
 }
 
+export async function completeHandoverOffline(input: {
+  id: string;
+  expectedVersion: number;
+}): Promise<string> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post('/rpc/complete_handover_offline', {
+      p_id: input.id,
+      p_expected_version: input.expectedVersion,
+    }),
+  );
+}
+
 export interface WarehouseHandoverActionInput {
   id: string;
   action: 'send' | 'approve' | 'confirm' | 'reject' | 'cancel';

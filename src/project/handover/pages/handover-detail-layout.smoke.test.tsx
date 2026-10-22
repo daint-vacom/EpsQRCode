@@ -28,6 +28,7 @@ const pendingDocument: HandoverDocument = {
   },
   senderRepresentative: null,
   recipientRepresentative: null,
+  recipientHasQrAccount: true,
   plannedDate: '2026-10-20',
   dueDate: '2026-11-20',
   note: null,

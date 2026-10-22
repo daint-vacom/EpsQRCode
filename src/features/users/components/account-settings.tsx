@@ -1,26 +1,10 @@
-import { useEffect, useState } from 'react';
 import { changeSupabasePassword } from '@/features/auth/api/auth.api';
-import type { CustomField } from '@/project/data-configuration/model/custom-field';
-import {
-  loadEmployeeCustomFields,
-  loadEmployeeCustomFieldValues,
-  saveEmployeeCustomFieldValues,
-  updateCurrentEmployeeProfile,
-  uploadEmployeeAvatar,
-} from '@/project/employees/api/employees.api';
-import { EmployeeStatusBadge } from '@/project/employees/components/employee-badges';
-import { useCurrentEmployeeProfile } from '@/project/employees/hooks/use-current-employee-profile';
-import {
-  employeeFormSchema,
-  emptyEmployeeForm,
-  mapEmployeeToFormValues,
-  type EmployeeFormValues,
-} from '@/project/employees/model/employee';
+import { loadMyQrCodeAccount } from '@/project/accounts/api/accounts.api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { KeyRound, LockKeyhole, Save, UserRound } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { KeyRound, LockKeyhole, UserRound } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
@@ -32,6 +16,7 @@ import {
   CardHeading,
   CardTitle,
 } from '@/components/ui/card';
+import { ErrorState } from '@/components/ui/error-state';
 import {
   Form,
   FormControl,
@@ -40,37 +25,23 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { ImageUploadField } from '@/components/ui/image-upload-field';
 import { Input } from '@/components/ui/input';
-import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
 import { Label } from '@/components/ui/label';
 import { CardLoading } from '@/components/ui/loading';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { getAvatarInitials } from '@/components/common/avatar-identity';
-import { IDENTITY_AVATAR_TONES } from '@/components/common/gradient-avatar';
 import {
   accountPasswordSchema,
   type AccountPasswordFormValues,
 } from '../model/account-password';
 
-const employeeFormId = 'account-employee-form';
 const passwordFormId = 'account-password-form';
 
 export function AccountSettings() {
-  const { user, userId, hasPermission } = useUser();
-  const queryClient = useQueryClient();
-  const employeeQuery = useCurrentEmployeeProfile();
-  const [employeeImageFile, setEmployeeImageFile] = useState<File | null>(null);
-  const employeeForm = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeFormSchema),
-    defaultValues: emptyEmployeeForm,
+  const intl = useIntl();
+  const { user, userId } = useUser();
+  const accountQuery = useQuery({
+    queryKey: ['project', 'my-qrcode-account', userId],
+    queryFn: () => loadMyQrCodeAccount(),
+    enabled: Boolean(userId),
   });
   const passwordForm = useForm<AccountPasswordFormValues>({
     resolver: zodResolver(accountPasswordSchema),
@@ -81,96 +52,9 @@ export function AccountSettings() {
     },
   });
 
-  const employeeId = employeeQuery.data?.id ?? null;
-  const customFieldsQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-fields'],
-    queryFn: () => loadEmployeeCustomFields(),
-    staleTime: 60 * 1000,
-  });
-  const customValuesQuery = useQuery({
-    queryKey: ['project', 'employees', 'custom-values', employeeId],
-    queryFn: () => loadEmployeeCustomFieldValues(employeeId!),
-    enabled: Boolean(employeeId),
-  });
-
-  const canManageEmployee = hasPermission('organization:employee:update');
-  const activeCustomFields = (customFieldsQuery.data ?? []).filter(
-    (field) => field.isActive,
-  );
-
-  useEffect(() => {
-    const employee = employeeQuery.data;
-    if (!employee) return;
-
-    employeeForm.reset({
-      ...mapEmployeeToFormValues(employee),
-      customFields: customValuesQuery.data ?? {},
-    });
-    setEmployeeImageFile(null);
-  }, [customValuesQuery.data, employeeForm, employeeQuery.data]);
-
-  const employeeMutation = useMutation({
-    mutationFn: async (values: EmployeeFormValues) => {
-      if (!employeeQuery.data) {
-        throw new Error('Chưa tải được hồ sơ nhân viên hiện tại.');
-      }
-
-      const avatarUrl = employeeImageFile
-        ? await uploadEmployeeAvatar(employeeQuery.data.id, employeeImageFile)
-        : employeeQuery.data.avatarUrl;
-
-      const savedEmployee = await updateCurrentEmployeeProfile(
-        employeeQuery.data.id,
-        {
-          employeeCode: values.employeeCode,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          phone: values.phone,
-          status: values.status,
-          joinedAt: values.joinedAt
-            ? format(values.joinedAt, 'yyyy-MM-dd')
-            : null,
-          note: values.note,
-          avatarUrl,
-        },
-      );
-
-      if (canManageEmployee && activeCustomFields.length > 0) {
-        await saveEmployeeCustomFieldValues(
-          employeeQuery.data.id,
-          values.customFields,
-        );
-      }
-
-      return savedEmployee;
-    },
-    onSuccess: async (employee) => {
-      employeeForm.reset({
-        ...mapEmployeeToFormValues(employee),
-        customFields: employeeForm.getValues('customFields'),
-      });
-      setEmployeeImageFile(null);
-      await queryClient.invalidateQueries({
-        queryKey: ['project', 'current-employee-profile', userId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['project', 'employees'],
-      });
-      toast.success('Đã cập nhật thông tin nhân viên.');
-    },
-    onError: (error) => {
-      toast.error(
-        getApiErrorMessage(error, {
-          fallbackMessage: 'Không thể cập nhật thông tin nhân viên.',
-        }),
-      );
-    },
-  });
-
   const passwordMutation = useMutation({
     mutationFn: async (values: AccountPasswordFormValues) => {
       if (!user?.email) throw new Error('Tài khoản chưa có email đăng nhập.');
-
       await changeSupabasePassword(
         user.email,
         values.currentPassword,
@@ -179,16 +63,26 @@ export function AccountSettings() {
     },
     onSuccess: () => {
       passwordForm.reset();
-      toast.success('Đã đổi mật khẩu.');
+      toast.success(
+        intl.formatMessage({ id: 'accounts.password.toasts.updated' }),
+      );
     },
     onError: (error) => {
       toast.error(
         getApiErrorMessage(error, {
-          fallbackMessage: 'Không thể đổi mật khẩu.',
+          fallbackMessage: intl.formatMessage({
+            id: 'accounts.password.toasts.error',
+          }),
         }),
       );
     },
   });
+
+  const profile = accountQuery.data;
+  const profileName =
+    profile?.accountType === 'eps'
+      ? profile.epsEmployeeName
+      : profile?.displayName;
 
   return (
     <div className="space-y-4">
@@ -197,192 +91,125 @@ export function AccountSettings() {
           <CardHeading>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserRound className="size-4 text-primary" />
-              Thông tin nhân viên
+              {intl.formatMessage({ id: 'accounts.settings.profile.title' })}
             </CardTitle>
           </CardHeading>
         </CardHeader>
         <CardContent className="p-5">
-          {employeeQuery.isPending ? (
-            <CardLoading label="Đang tải thông tin nhân viên..." />
-          ) : employeeQuery.isError ? (
-            <p className="text-sm text-destructive">
-              Không thể tải thông tin nhân viên.
-            </p>
-          ) : !employeeQuery.data ? (
-            <p className="text-sm text-muted-foreground">
-              Tài khoản chưa được liên kết với hồ sơ nhân viên trong tổ chức
-              hiện tại.
-            </p>
-          ) : (
-            <Form {...employeeForm}>
-              <form
-                id={employeeFormId}
-                onSubmit={employeeForm.handleSubmit((values) =>
-                  employeeMutation.mutate(values),
-                )}
-                className="space-y-5"
-              >
-                <ImageUploadField
-                  value={employeeForm.watch('imageUrl')}
-                  onValueChange={(value) =>
-                    employeeForm.setValue('imageUrl', value, {
-                      shouldDirty: true,
-                    })
-                  }
-                  onFileChange={setEmployeeImageFile}
-                  label="Ảnh nhân viên"
-                  fallbackText={getAvatarInitials(
-                    [
-                      employeeForm.watch('lastName'),
-                      employeeForm.watch('firstName'),
-                    ]
-                      .filter(Boolean)
-                      .join(' '),
-                  )}
-                  fallbackTone={IDENTITY_AVATAR_TONES.employee}
-                />
-
-                <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="employeeCode"
-                    label="Mã nhân viên"
-                    readOnly={!canManageEmployee}
-                    required
+          {accountQuery.isPending ? (
+            <CardLoading
+              label={intl.formatMessage({ id: 'common.state.loading' })}
+            />
+          ) : accountQuery.isError ? (
+            <ErrorState
+              title={intl.formatMessage({
+                id: 'accounts.settings.profile.error',
+              })}
+              description={getApiErrorMessage(accountQuery.error)}
+              onRetry={() => void accountQuery.refetch()}
+              retryLabel={intl.formatMessage({ id: 'common.actions.retry' })}
+            />
+          ) : profile ? (
+            <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
+              <ReadOnlyField
+                label={intl.formatMessage({
+                  id: 'accounts.settings.profile.name',
+                })}
+                value={
+                  profileName ||
+                  intl.formatMessage({
+                    id: 'accounts.settings.profile.unmapped',
+                  })
+                }
+              />
+              <ReadOnlyField
+                label={intl.formatMessage({
+                  id: 'accounts.settings.profile.username',
+                })}
+                value={profile.username ?? ''}
+              />
+              <ReadOnlyField
+                label={intl.formatMessage({ id: 'accounts.fields.type' })}
+                value={intl.formatMessage({
+                  id:
+                    profile.accountType === 'eps'
+                      ? 'accounts.types.eps'
+                      : profile.accountType === 'external'
+                        ? 'accounts.types.external'
+                        : 'accounts.types.unmapped',
+                })}
+              />
+              <ReadOnlyField
+                label={intl.formatMessage({ id: 'accounts.fields.status' })}
+                value={intl.formatMessage({
+                  id: `accounts.status.${profile.status}`,
+                })}
+              />
+              {profile.accountType === 'eps' ? (
+                <>
+                  <ReadOnlyField
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.profile.epsCode',
+                    })}
+                    value={profile.epsEmployeeCode ?? ''}
                   />
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="phone"
-                    label="Số điện thoại"
-                    inputType="tel"
-                  />
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="firstName"
-                    label="Tên"
-                    required
-                  />
-                  <EmployeeTextField
-                    form={employeeForm}
-                    name="lastName"
-                    label="Họ và tên đệm"
-                  />
-                  <FormField
-                    control={employeeForm.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Trạng thái</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={!canManageEmployee}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="active">
-                              <EmployeeStatusBadge status="active" />
-                            </SelectItem>
-                            <SelectItem value="inactive">
-                              <EmployeeStatusBadge status="inactive" />
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={employeeForm.control}
-                    name="joinedAt"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ngày vào làm</FormLabel>
-                        <FormControl>
-                          {canManageEmployee ? (
-                            <DatePickerInput
-                              value={field.value}
-                              onChange={field.onChange}
-                              onBlur={field.onBlur}
-                              calendarLabel="Chọn ngày vào làm"
-                              valueMode="date"
-                              variant="md"
-                            />
-                          ) : (
-                            <Input
-                              readOnly
-                              value={formatEmployeeDate(field.value)}
-                            />
-                          )}
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={employeeForm.control}
-                    name="note"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Ghi chú</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            rows={3}
-                            readOnly={!canManageEmployee}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {activeCustomFields.length > 0 ? (
-                  <div className="space-y-3 border-t border-border pt-5">
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Thông tin bổ sung
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Các trường bổ sung được cấu hình cho hồ sơ nhân viên.
-                      </p>
-                    </div>
-                    <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
-                      {activeCustomFields.map((field) => (
-                        <EmployeeCustomFieldInput
-                          key={field.id}
-                          form={employeeForm}
-                          customField={field}
-                          readOnly={!canManageEmployee}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="flex justify-end pt-1">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={
-                      !employeeForm.formState.isDirty && !employeeImageFile
+                  <ReadOnlyField
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.profile.epsStatus',
+                    })}
+                    value={
+                      profile.epsEmploymentStatus
+                        ? intl.formatMessage({
+                            id: `accounts.settings.profile.epsStatus.${profile.epsEmploymentStatus}`,
+                          })
+                        : ''
                     }
-                    loading={employeeMutation.isPending}
-                    loadingText="Đang lưu"
-                  >
-                    <Save />
-                    Lưu thông tin nhân viên
-                  </Button>
-                </div>
-              </form>
-            </Form>
+                  />
+                  <ReadOnlyField
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.profile.department',
+                    })}
+                    value={profile.epsDepartmentName ?? ''}
+                  />
+                  <ReadOnlyField
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.profile.team',
+                    })}
+                    value={profile.epsTeamName ?? ''}
+                  />
+                </>
+              ) : profile.accountType === 'external' ? (
+                <ReadOnlyField
+                  label={intl.formatMessage({
+                    id: 'accounts.fields.externalOrganization',
+                  })}
+                  value={profile.externalOrganizationName ?? ''}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground md:col-span-2">
+                  {intl.formatMessage({
+                    id: 'accounts.settings.profile.mappingNotice',
+                  })}
+                </p>
+              )}
+              {profile.accountType === 'eps' ? (
+                <p className="text-sm text-muted-foreground md:col-span-2">
+                  {intl.formatMessage({
+                    id: 'accounts.settings.profile.epsReadOnly',
+                  })}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <ErrorState
+              title={intl.formatMessage({
+                id: 'accounts.settings.profile.error',
+              })}
+              description={intl.formatMessage({
+                id: 'accounts.settings.profile.missing',
+              })}
+              onRetry={() => void accountQuery.refetch()}
+            />
           )}
         </CardContent>
       </Card>
@@ -392,23 +219,23 @@ export function AccountSettings() {
           <CardHeading>
             <CardTitle className="flex items-center gap-2 text-base">
               <LockKeyhole className="size-4 text-primary" />
-              Thông tin tài khoản
+              {intl.formatMessage({ id: 'accounts.settings.security.title' })}
             </CardTitle>
           </CardHeading>
         </CardHeader>
         <CardContent className="space-y-5 p-5">
           <div className="space-y-2">
-            <Label htmlFor="account-email">Email đăng nhập</Label>
+            <Label htmlFor="account-email">
+              {intl.formatMessage({ id: 'accounts.settings.security.email' })}
+            </Label>
             <Input id="account-email" value={user?.email ?? ''} readOnly />
-            <p className="text-xs text-muted-foreground">
-              Email dùng để đăng nhập và xác thực tài khoản.
-            </p>
           </div>
-
           <div className="border-t border-border pt-5">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <KeyRound className="size-4 text-muted-foreground" />
-              Đổi mật khẩu
+              {intl.formatMessage({
+                id: 'accounts.settings.security.password',
+              })}
             </h3>
             <Form {...passwordForm}>
               <form
@@ -422,35 +249,47 @@ export function AccountSettings() {
                   <PasswordField
                     form={passwordForm}
                     name="currentPassword"
-                    label="Mật khẩu hiện tại"
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.security.currentPassword',
+                    })}
                     autoComplete="current-password"
                     className="md:col-span-2"
                   />
                   <PasswordField
                     form={passwordForm}
                     name="newPassword"
-                    label="Mật khẩu mới"
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.security.newPassword',
+                    })}
                     autoComplete="new-password"
                   />
                   <PasswordField
                     form={passwordForm}
                     name="confirmPassword"
-                    label="Xác nhận mật khẩu mới"
+                    label={intl.formatMessage({
+                      id: 'accounts.settings.security.confirmPassword',
+                    })}
                     autoComplete="new-password"
                   />
                 </div>
                 <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/30 p-4">
                   <p className="text-xs leading-5 text-muted-foreground">
-                    Bạn sẽ cần nhập mật khẩu hiện tại để xác nhận thay đổi.
+                    {intl.formatMessage({
+                      id: 'accounts.settings.security.confirmHint',
+                    })}
                   </p>
                   <Button
                     type="submit"
                     variant="primary"
                     className="shrink-0"
                     loading={passwordMutation.isPending}
-                    loadingText="Đang đổi"
+                    loadingText={intl.formatMessage({
+                      id: 'accounts.settings.security.saving',
+                    })}
                   >
-                    Đổi mật khẩu
+                    {intl.formatMessage({
+                      id: 'accounts.settings.security.updatePassword',
+                    })}
                   </Button>
                 </div>
               </form>
@@ -462,99 +301,12 @@ export function AccountSettings() {
   );
 }
 
-function EmployeeTextField({
-  form,
-  name,
-  label,
-  inputType = 'text',
-  readOnly = false,
-  required = false,
-}: {
-  form: ReturnType<typeof useForm<EmployeeFormValues>>;
-  name: 'employeeCode' | 'firstName' | 'lastName' | 'phone';
-  label: string;
-  inputType?: string;
-  readOnly?: boolean;
-  required?: boolean;
-}) {
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
-    <FormField
-      control={form.control}
-      name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>
-            {label}
-            {required ? <span className="text-destructive"> *</span> : null}
-          </FormLabel>
-          <FormControl>
-            <Input type={inputType} readOnly={readOnly} {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
-
-function EmployeeCustomFieldInput({
-  form,
-  customField,
-  readOnly,
-}: {
-  form: ReturnType<typeof useForm<EmployeeFormValues>>;
-  customField: CustomField;
-  readOnly: boolean;
-}) {
-  const fieldName =
-    `customFields.${customField.key}` as `customFields.${string}`;
-
-  return (
-    <FormField
-      control={form.control}
-      name={fieldName as never}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>
-            {customField.label}
-            {customField.isRequired ? (
-              <span className="text-destructive"> *</span>
-            ) : null}
-          </FormLabel>
-          {customField.fieldType === 'select' ? (
-            <Select
-              value={(field.value as string) || undefined}
-              onValueChange={field.onChange}
-              disabled={readOnly}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={`Chọn ${customField.label.toLowerCase()}`}
-                  />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {customField.options.map((option) => (
-                  <SelectItem key={option.id} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <FormControl>
-              <Input
-                type={customField.fieldType === 'number' ? 'number' : 'text'}
-                readOnly={readOnly}
-                {...field}
-              />
-            </FormControl>
-          )}
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <Input value={value} readOnly />
+    </div>
   );
 }
 
@@ -576,26 +328,17 @@ function PasswordField({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem className={className}>
+        <FormItem className={className} layout="horizontal" labelWidth="md">
           <FormLabel>
             {label}
             <span className="text-destructive"> *</span>
           </FormLabel>
           <FormControl>
-            <Input
-              type="password"
-              autoComplete={autoComplete}
-              placeholder={label}
-              {...field}
-            />
+            <Input type="password" autoComplete={autoComplete} {...field} />
           </FormControl>
           <FormMessage />
         </FormItem>
       )}
     />
   );
-}
-
-function formatEmployeeDate(value: Date | null): string {
-  return value ? value.toLocaleDateString('vi-VN') : '';
 }

@@ -19,9 +19,9 @@ describe('global search model', () => {
     expect(GLOBAL_SEARCH_LIMIT_PER_SOURCE).toBe(5);
   });
 
-  it('builds a searchable employee list route', () => {
-    expect(getGlobalSearchResultPath('employees', item)).toBe(
-      '/employees?search=KH%2001%2F2026',
+  it('builds a searchable account list route', () => {
+    expect(getGlobalSearchResultPath('accounts', item)).toBe(
+      '/tai-khoan?search=KH%2001%2F2026',
     );
   });
 });

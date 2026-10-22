@@ -1,4 +1,4 @@
-import { loadEmployeeList } from '@/project/employees/api/employees.api';
+import { loadAccounts } from '@/project/accounts/api/accounts.api';
 import {
   GLOBAL_SEARCH_LIMIT_PER_SOURCE,
   type GlobalSearchResult,
@@ -8,19 +8,24 @@ export async function loadGlobalSearch(
   query: string,
   signal?: AbortSignal,
 ): Promise<GlobalSearchResult> {
-  const result = await loadEmployeeList(
-    { page: 1, pageSize: GLOBAL_SEARCH_LIMIT_PER_SOURCE, search: query.trim() },
-    signal,
-  );
+  void signal;
+  const result = await loadAccounts(query.trim());
 
   return {
-    employees: result.employees.map((employee) => ({
-      id: employee.id,
-      title: employee.displayName,
-      code: employee.employeeCode,
-      subtitle: employee.phone || null,
-      status: employee.status,
-      imageUrl: employee.avatarUrl,
-    })),
+    accounts: result
+      .slice(0, GLOBAL_SEARCH_LIMIT_PER_SOURCE)
+      .map((account) => ({
+        id: account.userId,
+        title: account.displayName,
+        code: account.username,
+        subtitle:
+          account.accountType === 'external'
+            ? account.externalOrganizationName
+            : [account.epsDepartmentName, account.epsTeamName]
+                .filter(Boolean)
+                .join(' / ') || null,
+        status: account.status,
+        imageUrl: null,
+      })),
   };
 }

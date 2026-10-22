@@ -1,4 +1,4 @@
-import type { EmployeeRole } from '@/project/employees/model/employee';
+import type { RoleColor } from '@/project/model/role-color';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 
 interface RoleAssignmentRow {
@@ -8,11 +8,16 @@ interface RoleAssignmentRow {
 interface RoleRow {
   id: string;
   name: string;
-  color: EmployeeRole['color'];
+  color: RoleColor;
+}
+
+export interface ProjectAccountRole {
+  name: string;
+  color: RoleColor;
 }
 
 export interface ProjectContext {
-  accountRoles: EmployeeRole[];
+  accountRoles: ProjectAccountRole[];
 }
 
 function queryParams(params: Record<string, string>) {

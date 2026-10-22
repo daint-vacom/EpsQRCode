@@ -29,35 +29,20 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import { Switch } from '@/components/ui/switch';
 import type { Custodian } from '../../custodians/model/custodian';
 import {
   custodianFormSchema,
   type CustodianFormValues,
 } from '../../custodians/model/custodian-form-schema';
 
-const typeOptions = [
-  { value: 'department', label: 'Phòng ban' },
-  { value: 'team', label: 'Tổ nhóm' },
-  { value: 'person', label: 'Cá nhân' },
-  { value: 'external', label: 'Đơn vị ngoài' },
-];
-
 export const custodianDefaultValues: CustodianFormValues = {
-  type: 'department',
-  code: '',
-  name: '',
-  parentId: '',
-  accountUserId: '',
+  sourceKey: '',
   representativeUserId: '',
-  isActive: true,
 };
 
-// TODO(scaffold): replace with the real entity type used for edit-mode mapping.
 type CustodianFormSource = Custodian;
 
 export function useCustodianForm(
@@ -73,17 +58,12 @@ export function useCustodianForm(
 export function mapCustodianToFormValues(
   entity: CustodianFormSource,
 ): CustodianFormValues {
-  if (entity.type === 'warehouse') {
-    throw new Error('Warehouse records cannot be edited as custodians.');
-  }
   return {
-    type: entity.type,
-    code: entity.code,
-    name: entity.name,
-    parentId: entity.parentId ?? '',
-    accountUserId: entity.accountUserId ?? '',
+    sourceKey:
+      entity.sourceType && entity.sourceId
+        ? `${entity.sourceType}:${entity.sourceId}`
+        : '',
     representativeUserId: entity.representativeUserId ?? '',
-    isActive: entity.isActive,
   };
 }
 
@@ -91,9 +71,7 @@ interface CustodianFormProps {
   form: UseFormReturn<CustodianFormValues>;
   onSubmit: (values: CustodianFormValues) => void;
   id?: string;
-  mode: 'create' | 'edit';
-  parentIdOptions: SelectOption[];
-  accountUserIdOptions: SelectOption[];
+  sourceKeyOptions: SelectOption[];
   representativeUserIdOptions: SelectOption[];
 }
 
@@ -101,9 +79,7 @@ export function CustodianForm({
   form,
   onSubmit,
   id = 'custodian-form',
-  mode,
-  parentIdOptions,
-  accountUserIdOptions,
+  sourceKeyOptions,
   representativeUserIdOptions,
 }: CustodianFormProps) {
   const intl = useIntl();
@@ -113,7 +89,7 @@ export function CustodianForm({
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
           <FormField
             control={form.control}
-            name="type"
+            name="sourceKey"
             render={({ field }) => (
               <FormItem
                 className="md:col-span-12"
@@ -122,7 +98,7 @@ export function CustodianForm({
               >
                 <FormLabel>
                   {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.type',
+                    id: 'project.handover.custodians.fields.epsSource',
                   })}
                   <span className="text-destructive"> *</span>
                 </FormLabel>
@@ -130,107 +106,7 @@ export function CustodianForm({
                   <OptionSelect
                     value={field.value}
                     onChange={field.onChange}
-                    options={typeOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.code',
-                  })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.name',
-                  })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="parentId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.parent',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={parentIdOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="accountUserId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.account',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={accountUserIdOptions}
+                    options={sourceKeyOptions}
                     searchable={false}
                   />
                 </FormControl>
@@ -265,32 +141,6 @@ export function CustodianForm({
               </FormItem>
             )}
           />
-
-          {mode === 'edit' && (
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12 flex-row items-center gap-2.5"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel className="font-normal text-foreground">
-                    {intl.formatMessage({
-                      id: 'project.handover.custodians.fields.active',
-                    })}
-                  </FormLabel>
-                </FormItem>
-              )}
-            />
-          )}
         </div>
       </form>
     </Form>
@@ -305,8 +155,7 @@ interface CustodianFormDialogProps {
   onSubmit: (values: CustodianFormValues) => void;
   isSaving?: boolean;
   title?: string;
-  parentIdOptions: SelectOption[];
-  accountUserIdOptions: SelectOption[];
+  sourceKeyOptions: SelectOption[];
   representativeUserIdOptions: SelectOption[];
 }
 
@@ -318,8 +167,7 @@ export function CustodianFormDialog({
   onSubmit,
   isSaving = false,
   title,
-  parentIdOptions,
-  accountUserIdOptions,
+  sourceKeyOptions,
   representativeUserIdOptions,
 }: CustodianFormDialogProps) {
   const intl = useIntl();
@@ -373,9 +221,7 @@ export function CustodianFormDialog({
               form={form}
               onSubmit={onSubmit}
               id="custodian-form"
-              mode={mode}
-              parentIdOptions={parentIdOptions}
-              accountUserIdOptions={accountUserIdOptions}
+              sourceKeyOptions={sourceKeyOptions}
               representativeUserIdOptions={representativeUserIdOptions}
             />
           </div>

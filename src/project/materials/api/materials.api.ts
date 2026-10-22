@@ -84,8 +84,11 @@ function safeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-120) || 'image';
 }
 
-async function uploadMaterialImage(file: File): Promise<string> {
-  const path = `objects/${crypto.randomUUID()}/${safeFileName(file.name)}`;
+async function uploadMaterialImage(
+  file: File,
+  ownerPartyId: string,
+): Promise<string> {
+  const path = `parties/${ownerPartyId}/objects/${crypto.randomUUID()}/${safeFileName(file.name)}`;
   await uploadStorageObject({
     bucket: MATERIAL_IMAGES_BUCKET,
     path,
@@ -111,7 +114,7 @@ export async function saveMaterial(
         ? MATERIAL_IMAGES_BUCKET
         : (image.storageBucket ?? null);
       const storagePath = image.file
-        ? await uploadMaterialImage(image.file)
+        ? await uploadMaterialImage(image.file, values.ownerPartyId)
         : (image.storagePath ?? null);
       if (image.file && storagePath) uploadedPaths.push(storagePath);
       imagePayload.push({
