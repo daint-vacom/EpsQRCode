@@ -418,7 +418,9 @@ export function MaterialEditorPage() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => navigate(ROUTES.PROJECT.CUSTODIANS)}
+                        onClick={() =>
+                          navigate(ROUTES.PROJECT.EPS_ORGANIZATIONS)
+                        }
                       >
                         {intl.formatMessage({
                           id: 'project.materials.actions.manageCustodians',

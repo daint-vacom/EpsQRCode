@@ -1,7 +1,7 @@
 /**
- * Calculates the width needed by an icon-only action column in a dense table.
- * The formula mirrors the shared table spacing: 28px buttons, 4px gaps, and
- * 20px of horizontal cell padding.
+ * Calculates the width needed by an icon-only action column in any DataGrid.
+ * `col.actions` applies 20px of horizontal cell padding at every density, so
+ * the formula includes 28px buttons, 4px gaps, and that compact padding.
  */
 export function getDataGridActionsColumnSize(actionCount: number): number {
   const count = Number.isFinite(actionCount)

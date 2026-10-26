@@ -1,0 +1,39 @@
+[
+  {
+    "name": "get_my_qrcode_account",
+    "status": 200,
+    "ok": true
+  },
+  {
+    "name": "list_qrcode_accounts",
+    "status": 200,
+    "ok": true,
+    "count": 11
+  },
+  {
+    "name": "list_account_role_options",
+    "status": 200,
+    "ok": true,
+    "count": 7
+  },
+  {
+    "name": "list_external_organizations",
+    "status": 200,
+    "ok": true,
+    "count": 3
+  },
+  {
+    "name": "list_account_warehouse_options",
+    "status": 200,
+    "ok": true,
+    "count": 3
+  },
+  {
+    "name": "account-management create valid external",
+    "status": 400,
+    "ok": false,
+    "data": {
+      "message": "Chưa cấu hình SUPABASE_LOGIN_DOMAIN cho Edge Function."
+    }
+  }
+]

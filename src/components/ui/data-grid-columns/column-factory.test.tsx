@@ -84,6 +84,17 @@ describe('createColumnHelpers', () => {
     expect(column.meta?.cellClassName).toBe('w-[44px] max-w-[44px]');
   });
 
+  it('uses compact horizontal spacing for action columns at every table density', () => {
+    const column = col.actions({
+      id: 'actions',
+      header: '',
+      cellClassName: 'text-right',
+      cell: () => null,
+    });
+
+    expect(column.meta?.cellClassName).toBe('text-right px-2.5');
+  });
+
   it('renders shared number, currency, percent, and date formatting', () => {
     const columns = [
       col.number({

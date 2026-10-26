@@ -8,12 +8,13 @@ import { useMemo } from 'react';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Pencil } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { Badge } from '@/components/ui/badge';
 import {
   createColumnHelpers,
   DataGridActionButton,
   getDataGridActionsColumnSize,
 } from '@/components/ui/data-grid-columns';
+import { AccountRolesCell } from '../components/account-roles-cell';
+import { AccountStatusIndicator } from '../components/account-status-indicator';
 import type { Account } from '../model/account';
 
 export const ACCOUNT_COLUMN_PINNING: ColumnPinningState = {
@@ -30,6 +31,15 @@ export function useAccountColumns(params: {
     const col = createColumnHelpers<Account>();
 
     return [
+      col.custom({
+        id: 'status',
+        header: ' ',
+        headerClassName: 'w-12 text-center',
+        cellClassName: 'text-center',
+        size: 48,
+        enableSorting: false,
+        cell: (row) => <AccountStatusIndicator status={row.status} />,
+      }),
       col.custom({
         id: 'identity',
         header: intl.formatMessage({ id: 'accounts.columns.account' }),
@@ -49,20 +59,12 @@ export function useAccountColumns(params: {
       col.custom({
         id: 'accountType',
         header: intl.formatMessage({ id: 'accounts.columns.type' }),
-        size: 170,
+        size: 160,
         enableSorting: false,
         cell: (row) => (
-          <Badge
-            variant={
-              row.accountType === 'unmapped'
-                ? 'warning'
-                : row.accountType === 'external'
-                  ? 'info'
-                  : 'secondary'
-            }
-          >
+          <span className="text-sm">
             {intl.formatMessage({ id: `accounts.types.${row.accountType}` })}
-          </Badge>
+          </span>
         ),
       }),
       col.custom({
@@ -71,55 +73,28 @@ export function useAccountColumns(params: {
         size: 280,
         enableSorting: false,
         cell: (row) => (
-          <span className="text-sm">
-            {row.accountType === 'eps'
-              ? [row.epsDepartmentName, row.epsTeamName]
-                  .filter(Boolean)
-                  .join(' / ') || '—'
-              : row.accountType === 'external'
-                ? (row.externalOrganizationName ?? '—')
-                : '—'}
-          </span>
-        ),
-      }),
-      col.custom({
-        id: 'warehouses',
-        header: intl.formatMessage({ id: 'accounts.columns.warehouses' }),
-        size: 220,
-        enableSorting: false,
-        cell: (row) => (
-          <span className="text-sm">
-            {row.warehouseNames.join(', ') || '—'}
-          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="truncate text-sm font-medium">
+              {row.accountType === 'eps'
+                ? (row.epsDepartmentName ?? '—')
+                : row.accountType === 'external'
+                  ? (row.externalOrganizationName ?? '—')
+                  : '—'}
+            </span>
+            {row.accountType === 'eps' && row.epsTeamName ? (
+              <span className="truncate text-xs text-muted-foreground">
+                {row.epsTeamName}
+              </span>
+            ) : null}
+          </div>
         ),
       }),
       col.custom({
         id: 'roles',
         header: intl.formatMessage({ id: 'accounts.columns.roles' }),
-        size: 220,
+        size: 240,
         enableSorting: false,
-        cell: (row) => (
-          <span className="text-sm">{row.roleNames.join(', ') || '—'}</span>
-        ),
-      }),
-      col.custom({
-        id: 'status',
-        header: intl.formatMessage({ id: 'accounts.columns.status' }),
-        size: 170,
-        enableSorting: false,
-        cell: (row) => (
-          <Badge
-            variant={
-              row.status === 'active'
-                ? 'success'
-                : row.status === 'suspended'
-                  ? 'warning'
-                  : 'secondary'
-            }
-          >
-            {intl.formatMessage({ id: `accounts.status.${row.status}` })}
-          </Badge>
-        ),
+        cell: (row) => <AccountRolesCell roles={row.roles} />,
       }),
       col.actions({
         id: 'actions',

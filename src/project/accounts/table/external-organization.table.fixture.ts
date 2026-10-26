@@ -22,6 +22,13 @@ const spec: TableSpec = {
     },
     {
       kind: 'custom',
+      id: 'representatives',
+      header: 'Tài khoản đại diện',
+      headerMessageId: 'accounts.external.columns.representatives',
+      sizePreset: 'extraLong',
+    },
+    {
+      kind: 'custom',
       id: 'is_active',
       header: 'Trạng thái',
       headerMessageId: 'accounts.external.columns.status',

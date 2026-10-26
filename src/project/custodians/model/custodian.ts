@@ -21,27 +21,25 @@ export interface Custodian {
   updatedAt: string;
 }
 
-export interface CustodianFormValues {
-  sourceKey: string;
-  representativeUserId: string;
+export interface RepresentativeAccount {
+  id: string;
+  username: string | null;
+  displayName: string;
 }
 
-export type SaveCustodianValues = Omit<
-  CustodianFormValues,
-  'sourceKey' | 'representativeUserId'
-> & {
-  sourceId: string;
-  type: Exclude<CustodianType, 'external'>;
-  representativeUserId: string | null;
-};
+export type EpsOrganizationType = 'department' | 'team';
 
-export interface FakeEpsParty {
-  source_type: EpsCustodianSourceType;
-  source_id: string;
+export interface EpsOrganization {
+  id: string;
+  sourceId: string;
+  type: EpsOrganizationType;
   code: string;
   name: string;
-  parent_source_id: string | null;
-  is_active: boolean;
+  parentName: string | null;
+  canManageRepresentatives: boolean;
+  representativeUserIds: string[];
+  representativeAccounts: RepresentativeAccount[];
+  representativeOptions: RepresentativeAccount[];
 }
 
 export interface HandoverCounterpartyOption {

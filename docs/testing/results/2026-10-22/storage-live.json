@@ -1,0 +1,99 @@
+{
+  "runAt": "2026-10-22T06:35:22.000Z",
+  "paths": {
+    "a1": "parties/6238a670-a1af-42fb-a973-2c0d0836fe37/objects/b3650fd8-0e66-43b4-a5f8-ee512f76e582/uat-pixel.png",
+    "x": "parties/22367d04-80eb-4775-bd8b-5bbcff187281/objects/b3650fd8-0e66-43b4-a5f8-ee512f76e582/uat-pixel.png"
+  },
+  "cases": [
+    {
+      "name": "P01 upload own A1",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "Key": "material-images/parties/6238a670-a1af-42fb-a973-2c0d0836fe37/objects/b3650fd8-0e66-43b4-a5f8-ee512f76e582/uat-pixel.png",
+        "Id": "c6fc3233-efe7-4af9-ac6c-1eb91171511e"
+      }
+    },
+    {
+      "name": "P06 upload own X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "Key": "material-images/parties/22367d04-80eb-4775-bd8b-5bbcff187281/objects/b3650fd8-0e66-43b4-a5f8-ee512f76e582/uat-pixel.png",
+        "Id": "e643abdb-3a25-4bf7-a5fb-1af6736bb0b6"
+      }
+    },
+    {
+      "name": "P01 link uploaded image",
+      "status": 200,
+      "ok": true,
+      "data": "23d0c7fc-7202-4844-b096-80ec4d4a6af1"
+    },
+    {
+      "name": "P06 link uploaded image",
+      "status": 200,
+      "ok": true,
+      "data": "c0df2d2c-d472-40da-b2d9-c9c2fd51288d"
+    },
+    {
+      "name": "P01 sign A1",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "signedURLIssued": true
+      }
+    },
+    {
+      "name": "P01 sign X outside scope",
+      "status": 400,
+      "ok": false,
+      "data": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      }
+    },
+    {
+      "name": "P06 sign X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "signedURLIssued": true
+      }
+    },
+    {
+      "name": "P06 sign A1 outside scope",
+      "status": 400,
+      "ok": false,
+      "data": {
+        "statusCode": "404",
+        "error": "not_found",
+        "message": "Object not found",
+        "code": "NoSuchKey"
+      }
+    },
+    {
+      "name": "P01 upload into X denied",
+      "status": 400,
+      "ok": false,
+      "data": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "new row violates row-level security policy",
+        "code": "AccessDenied"
+      }
+    },
+    {
+      "name": "P06 upload into A1 denied",
+      "status": 400,
+      "ok": false,
+      "data": {
+        "statusCode": "403",
+        "error": "Unauthorized",
+        "message": "new row violates row-level security policy",
+        "code": "AccessDenied"
+      }
+    }
+  ]
+}

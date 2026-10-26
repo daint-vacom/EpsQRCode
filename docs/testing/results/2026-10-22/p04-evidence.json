@@ -1,0 +1,307 @@
+{
+  "profile": "P04",
+  "capturedAt": "2026-10-22T06:35:03.781Z",
+  "cases": [
+    {
+      "name": "materials.list",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 10,
+        "codes": [
+          "UAT-M-B1",
+          "UAT-M-B1-FLOW",
+          "UAT-M-B1-MUTATE",
+          "UAT-M-E004",
+          "UAT-M-E004-FLOW",
+          "UAT-M-E004-MUTATE",
+          "UAT-M-K1",
+          "UAT-M-K1-FLOW",
+          "UAT-M-K1-MUTATE"
+        ]
+      }
+    },
+    {
+      "name": "material.detail.B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "code": "UAT-M-B1",
+        "ownerPartyId": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd"
+      }
+    },
+    {
+      "name": "material.detail.DB",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.K2",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.history.B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 0
+      }
+    },
+    {
+      "name": "material.history.DB",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view material history"
+      }
+    },
+    {
+      "name": "handovers.list",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 4,
+        "uatCodes": ["UAT-H-A2-B1", "UAT-H-K1-A1", "UAT-H-Y-B1"]
+      }
+    },
+    {
+      "name": "handover.detail.K1-A1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "code": "UAT-H-K1-A1",
+        "status": "draft"
+      }
+    },
+    {
+      "name": "handover.history.K1-A1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 1
+      }
+    },
+    {
+      "name": "handover.detail.Y-B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "code": "UAT-H-Y-B1",
+        "status": "draft"
+      }
+    },
+    {
+      "name": "handover.history.Y-B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 1
+      }
+    },
+    {
+      "name": "handover.detail.K2-A2",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view handover"
+      }
+    },
+    {
+      "name": "handover.detail.X-A1",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view handover"
+      }
+    },
+    {
+      "name": "receipts.list",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 2,
+        "uatCodes": ["UAT-R-K1"]
+      }
+    },
+    {
+      "name": "receipt.detail.K1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "code": "UAT-R-K1",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "receipt.history.K1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 0
+      }
+    },
+    {
+      "name": "receipt.items.K1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 0
+      }
+    },
+    {
+      "name": "receipt.detail.K2",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "Permission denied to view receipt"
+      }
+    },
+    {
+      "name": "table.materials.B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 1,
+        "rows": [
+          {
+            "id": "b9f3e402-8bea-49a6-b12d-a98a3bedb7a3",
+            "code": "UAT-M-B1",
+            "owner_party_id": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table.materials.DB",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 0,
+        "rows": []
+      }
+    },
+    {
+      "name": "table.material_handover_history.K1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 1,
+        "rows": [
+          {
+            "id": "9c8e08cd-d181-4df6-a45b-5195c7c33cd9",
+            "handover_id": "8b594384-7a0f-41ac-abdc-c50d66b0c733",
+            "action": "created"
+          }
+        ]
+      }
+    },
+    {
+      "name": "table.material_receipt_history.K1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "count": 0,
+        "rows": []
+      }
+    },
+    {
+      "name": "mutation.allowed.B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": "46e03cbd-a668-42fe-ad58-b40d6fa8fe75"
+      }
+    },
+    {
+      "name": "mutation.restore.B1",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": "46e03cbd-a668-42fe-ad58-b40d6fa8fe75"
+      }
+    },
+    {
+      "name": "mutation.denied.DB",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "You must represent the owner party"
+      }
+    },
+    {
+      "name": "mutation.denied.DB-no-visible-row",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 0
+      }
+    },
+    {
+      "name": "mutation.denied.K2-allocation",
+      "status": 403,
+      "ok": false,
+      "summary": {
+        "code": "42501",
+        "message": "You must represent the warehouse to allocate materials"
+      }
+    },
+    {
+      "name": "mutation.denied.K2-no-row",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "total": 0
+      }
+    },
+    {
+      "name": "workflow.receipt.final",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": "afe43135-7467-439b-b275-66a61e6959f6",
+        "code": "PN-20261022-000001",
+        "status": "handover",
+        "version": 2,
+        "historyCount": 2,
+        "itemCount": 1
+      }
+    },
+    {
+      "name": "workflow.material.final",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": "d0b3ea92-c4f1-4b65-862a-df1fdf68be0a",
+        "code": "VT-000001",
+        "ownerPartyId": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+        "status": "available"
+      }
+    },
+    {
+      "name": "workflow.allocation.final",
+      "status": 200,
+      "ok": true,
+      "summary": {
+        "id": "6bc5a75d-1540-4866-a9dc-18c477ada2c9",
+        "code": "BG-20261022-10",
+        "status": "pending",
+        "version": 2
+      }
+    }
+  ]
+}

@@ -24,9 +24,9 @@ const OPERATION_MENU_ACCESS: Record<
     permission: HANDOVER_PERMISSION_CODES.view,
     messageId: 'project.navigation.handovers',
   },
-  [ROUTES.PROJECT.CUSTODIANS]: {
+  [ROUTES.PROJECT.EPS_ORGANIZATIONS]: {
     permission: CUSTODIAN_PERMISSION_CODES.view,
-    messageId: 'project.navigation.custodians',
+    messageId: 'project.navigation.epsOrganizations',
   },
   [ROUTES.PROJECT.WAREHOUSES]: {
     permission: WAREHOUSE_PERMISSION_CODES.view,

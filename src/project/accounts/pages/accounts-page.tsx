@@ -72,8 +72,6 @@ export function AccountsPage() {
     type: NO_FILTER,
     status: NO_FILTER,
     organization: NO_FILTER,
-    role: NO_FILTER,
-    warehouse: NO_FILTER,
   });
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
@@ -171,8 +169,6 @@ export function AccountsPage() {
 
   const filterOptions = useMemo(() => {
     const organizations = new Map<string, string>();
-    const roles = new Map<string, string>();
-    const warehouses = new Map<string, string>();
     for (const account of accountsQuery.data ?? EMPTY_ACCOUNTS) {
       const organizationId =
         account.externalOrganizationId ?? account.epsDepartmentId;
@@ -180,14 +176,6 @@ export function AccountsPage() {
         account.externalOrganizationName ?? account.epsDepartmentName;
       if (organizationId && organizationName)
         organizations.set(organizationId, organizationName);
-      account.roleIds.forEach((id, index) => {
-        const name = account.roleNames[index];
-        if (name) roles.set(id, name);
-      });
-      account.warehouseIds.forEach((id, index) => {
-        const name = account.warehouseNames[index];
-        if (name) warehouses.set(id, name);
-      });
     }
     const sortOptions = (values: Map<string, string>): SelectOption[] =>
       [...values]
@@ -223,20 +211,6 @@ export function AccountsPage() {
         },
         ...sortOptions(organizations),
       ],
-      roles: [
-        {
-          value: NO_FILTER,
-          label: intl.formatMessage({ id: 'accounts.filters.allRoles' }),
-        },
-        ...sortOptions(roles),
-      ],
-      warehouses: [
-        {
-          value: NO_FILTER,
-          label: intl.formatMessage({ id: 'accounts.filters.allWarehouses' }),
-        },
-        ...sortOptions(warehouses),
-      ],
     } satisfies Record<string, SelectOption[]>;
   }, [accountsQuery.data, intl]);
 
@@ -250,11 +224,7 @@ export function AccountsPage() {
             account.accountType === filters.type) &&
           (filters.status === NO_FILTER || account.status === filters.status) &&
           (filters.organization === NO_FILTER ||
-            organizationId === filters.organization) &&
-          (filters.role === NO_FILTER ||
-            account.roleIds.includes(filters.role)) &&
-          (filters.warehouse === NO_FILTER ||
-            account.warehouseIds.includes(filters.warehouse))
+            organizationId === filters.organization)
         );
       }),
     [accountsQuery.data, filters],
@@ -316,6 +286,7 @@ export function AccountsPage() {
       ) : null}
       <DataGrid
         table={table}
+        tableLayout={{ dense: true }}
         recordCount={filteredAccounts.length}
         isLoading={
           isPermissionsPending ||
@@ -334,7 +305,9 @@ export function AccountsPage() {
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
           <DataGridHeader
             variant="stats"
-            recordCountLabel={intl.formatMessage({ id: 'accounts.page.title' })}
+            recordCountLabel={intl.formatMessage({
+              id: 'accounts.entities.plural',
+            })}
             stats={
               <div className="flex flex-wrap items-center gap-2">
                 <SearchInput
@@ -387,30 +360,6 @@ export function AccountsPage() {
                     table.setPageIndex(0);
                   }}
                   className="w-44 shrink-0"
-                />
-                <OptionSelect
-                  ariaLabel={intl.formatMessage({
-                    id: 'accounts.filters.role',
-                  })}
-                  value={filters.role}
-                  options={filterOptions.roles}
-                  onChange={(value) => {
-                    setFilters((current) => ({ ...current, role: value }));
-                    table.setPageIndex(0);
-                  }}
-                  className="w-40 shrink-0"
-                />
-                <OptionSelect
-                  ariaLabel={intl.formatMessage({
-                    id: 'accounts.filters.warehouse',
-                  })}
-                  value={filters.warehouse}
-                  options={filterOptions.warehouses}
-                  onChange={(value) => {
-                    setFilters((current) => ({ ...current, warehouse: value }));
-                    table.setPageIndex(0);
-                  }}
-                  className="w-40 shrink-0"
                 />
               </div>
             }

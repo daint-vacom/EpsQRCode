@@ -5,6 +5,7 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
+import { RepresentativeAccountsCell } from '@/project/custodians/components/representative-accounts-cell';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { Pencil } from 'lucide-react';
 import { useIntl } from 'react-intl';
@@ -22,7 +23,12 @@ export const EXTERNAL_ORGANIZATION_COLUMN_PINNING: ColumnPinningState = {
 
 export function useExternalOrganizationColumns(params: {
   canManage: boolean;
+  isSavingRepresentatives: boolean;
   onEdit: (organization: ExternalOrganization) => void;
+  onSaveRepresentatives: (
+    organization: ExternalOrganization,
+    userIds: string[],
+  ) => Promise<void>;
 }): ColumnDef<ExternalOrganization>[] {
   const intl = useIntl();
 
@@ -43,6 +49,28 @@ export function useExternalOrganizationColumns(params: {
         size: 320,
         enableSorting: false,
         cell: (row) => <span className="text-sm font-medium">{row.name}</span>,
+      }),
+      col.custom({
+        id: 'representatives',
+        header: intl.formatMessage({
+          id: 'accounts.external.columns.representatives',
+        }),
+        size: 360,
+        enableSorting: false,
+        cell: (row) => (
+          <RepresentativeAccountsCell
+            entityName={row.name}
+            value={row.representative_user_ids}
+            accounts={
+              params.canManage
+                ? row.representative_options
+                : row.representative_accounts
+            }
+            canManage={params.canManage}
+            isSaving={params.isSavingRepresentatives}
+            onSave={(userIds) => params.onSaveRepresentatives(row, userIds)}
+          />
+        ),
       }),
       col.custom({
         id: 'is_active',

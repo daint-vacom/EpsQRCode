@@ -3,6 +3,7 @@
  * UI mặc định là tiếng Việt nên đây là catalog gốc.
  */
 import { accountMessagesVi } from '@/project/accounts/messages';
+import { custodianMessagesVi } from '@/project/custodians/messages';
 import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
 import { receiptMessagesVi } from '@/project/receipts/messages';
@@ -17,14 +18,15 @@ export const vi: Record<string, string> = {
   ...materialMessagesVi,
   ...warehouseMessagesVi,
   ...accountMessagesVi,
+  ...custodianMessagesVi,
   ...receiptMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.materials': 'Vật tư',
   'project.navigation.handovers': 'Phiếu bàn giao',
   'project.navigation.warehouses': 'Kho',
   'project.navigation.receipts': 'Phiếu nhập vật tư',
-  'project.navigation.custodians': 'Chủ thể bàn giao',
-  'project.navigation.accounts': 'Quản lý tài khoản',
+  'project.navigation.epsOrganizations': 'Đơn vị EPS',
+  'project.navigation.accounts': 'Tài khoản đăng nhập',
   'project.navigation.externalOrganizations': 'Đơn vị ngoài',
   'common.actions.create': 'Thêm mới',
   'common.actions.save': 'Lưu',

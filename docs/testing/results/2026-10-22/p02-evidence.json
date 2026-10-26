@@ -1,0 +1,562 @@
+{
+  "profile": "P02",
+  "capturedAt": "2026-10-22T06:39:00.194Z",
+  "cases": [
+    {
+      "name": "identity.E002.DA.A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "userId": "ec212871-d2ab-49fe-8a14-ccfd0244f1e6",
+      "accountType": "eps",
+      "epsEmployeeId": "EPS-MOCK-E002",
+      "epsDepartmentId": "EPS-MOCK-D01",
+      "epsTeamId": "EPS-MOCK-T01"
+    },
+    {
+      "name": "scope.material.view.DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "scope.materials:material:manage",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "scope.materials:handover:manage",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "scope.organization:account:view",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "scope.organization:account:manage",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "materials.list.department",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedVisible": [
+        "UAT-M-DA",
+        "UAT-M-A1",
+        "UAT-M-A2",
+        "UAT-M-E001",
+        "UAT-M-E003"
+      ],
+      "visibleFixtureKeys": [
+        "UAT-M-DA",
+        "UAT-M-DA-FLOW",
+        "UAT-M-DA-MUTATE",
+        "UAT-M-A1",
+        "UAT-M-A1-FLOW",
+        "UAT-M-A1-MUTATE",
+        "UAT-M-A2",
+        "UAT-M-A2-FLOW",
+        "UAT-M-A2-MUTATE",
+        "UAT-M-E001",
+        "UAT-M-E001-FLOW",
+        "UAT-M-E001-MUTATE",
+        "UAT-M-E003",
+        "UAT-M-E003-FLOW",
+        "UAT-M-E003-MUTATE"
+      ],
+      "expectedHidden": [
+        "UAT-M-DB",
+        "UAT-M-B1",
+        "UAT-M-E004",
+        "UAT-M-E005",
+        "UAT-M-X",
+        "UAT-M-Y",
+        "UAT-M-K1",
+        "UAT-M-K2"
+      ],
+      "total": 17
+    },
+    {
+      "name": "material.detail.UAT-M-DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "b13bc956-eb50-4857-a130-2931d965e86d",
+        "code": "UAT-M-DA",
+        "version": 1
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "7e3cc11d-38f5-41ae-81ee-8c994fecebc5",
+        "code": "UAT-M-A1",
+        "version": 1
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "73dc9dea-433e-4214-92a7-d9118d485ff8",
+        "code": "UAT-M-A2",
+        "version": 1
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "4dc63e7b-17df-4b07-ac4b-b71b14876bf9",
+        "code": "UAT-M-E003",
+        "version": 1
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-DB",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-B1",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-X",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-Y",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-K1",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.detail.UAT-M-K2",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "material.history.UAT-M-A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible history",
+      "count": 0
+    },
+    {
+      "name": "material.history.UAT-M-E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible history",
+      "count": 0
+    },
+    {
+      "name": "material.history.UAT-M-DB",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material history"
+      }
+    },
+    {
+      "name": "material.history.UAT-M-X",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material history"
+      }
+    },
+    {
+      "name": "table.materials.UAT-M-A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 1,
+      "rows": [
+        {
+          "id": "7e3cc11d-38f5-41ae-81ee-8c994fecebc5",
+          "code": "UAT-M-A1",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37"
+        }
+      ]
+    },
+    {
+      "name": "table.materials.UAT-M-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 1,
+      "rows": [
+        {
+          "id": "73dc9dea-433e-4214-92a7-d9118d485ff8",
+          "code": "UAT-M-A2",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12"
+        }
+      ]
+    },
+    {
+      "name": "table.materials.UAT-M-DB",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 0,
+      "rows": []
+    },
+    {
+      "name": "table.materials.UAT-M-X",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 0,
+      "rows": []
+    },
+    {
+      "name": "table.materials.UAT-M-K1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 0,
+      "rows": []
+    },
+    {
+      "name": "custodians.list.department",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedVisible": ["DA", "A1", "A2", "E001", "E002", "E003"],
+      "visibleFixtureKeys": ["DA", "A1", "A2", "E001", "E002", "E003"],
+      "expectedHidden": ["DB", "B1", "E004", "E005"]
+    },
+    {
+      "name": "handovers.list.related.DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedVisible": [
+        "UAT-H-A1-A2",
+        "UAT-H-A2-B1",
+        "UAT-H-X-A1",
+        "UAT-H-K1-A1",
+        "UAT-H-K2-A2"
+      ],
+      "visibleFixtureKeys": [
+        "UAT-H-A1-A2",
+        "UAT-H-A2-B1",
+        "UAT-H-X-A1",
+        "UAT-H-K1-A1",
+        "UAT-H-K2-A2"
+      ],
+      "expectedHidden": ["UAT-H-Y-B1"],
+      "total": 6
+    },
+    {
+      "name": "handover.detail.UAT-H-A1-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "2fdcf0d4-1db6-4cc8-9ab9-6b20fe40892e",
+        "code": "UAT-H-A1-A2",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "handover.history.UAT-H-A1-A2",
+      "outcome": "blocked",
+      "httpStatus": 403,
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover history"
+      }
+    },
+    {
+      "name": "handover.detail.UAT-H-A2-B1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "18e477d0-0c0d-4c3b-8d03-3a86e74ea68f",
+        "code": "UAT-H-A2-B1",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "handover.history.UAT-H-A2-B1",
+      "outcome": "blocked",
+      "httpStatus": 403,
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover history"
+      }
+    },
+    {
+      "name": "handover.detail.UAT-H-X-A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "12d5ea5c-52fe-4794-8943-60213093f911",
+        "code": "UAT-H-X-A1",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "handover.history.UAT-H-X-A1",
+      "outcome": "blocked",
+      "httpStatus": 403,
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover history"
+      }
+    },
+    {
+      "name": "handover.detail.UAT-H-K1-A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "8b594384-7a0f-41ac-abdc-c50d66b0c733",
+        "code": "UAT-H-K1-A1",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "handover.history.UAT-H-K1-A1",
+      "outcome": "blocked",
+      "httpStatus": 403,
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover history"
+      }
+    },
+    {
+      "name": "handover.detail.UAT-H-K2-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "visible",
+      "result": {
+        "id": "2681e214-d8f5-4aa3-ba79-e3367ee55f8a",
+        "code": "UAT-H-K2-A2",
+        "status": "draft",
+        "version": 1
+      }
+    },
+    {
+      "name": "handover.history.UAT-H-K2-A2",
+      "outcome": "blocked",
+      "httpStatus": 403,
+      "count": null,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover history"
+      }
+    },
+    {
+      "name": "handover.detail.UAT-H-Y-B1",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view handover"
+      }
+    },
+    {
+      "name": "table.material_handovers.UAT-H-A1-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 1,
+      "rows": [
+        {
+          "id": "2fdcf0d4-1db6-4cc8-9ab9-6b20fe40892e",
+          "code": "UAT-H-A1-A2",
+          "status": "draft",
+          "version": 1,
+          "senderPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+          "recipientPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12"
+        }
+      ]
+    },
+    {
+      "name": "table.material_handovers.UAT-H-Y-B1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedRows": 0,
+      "rows": []
+    },
+    {
+      "name": "table.material_handover_history.A1-A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "count": 0,
+      "rows": []
+    },
+    {
+      "name": "mutation.material.UAT-M-A1-MUTATE.deny-unchanged",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "baseline": {
+        "note": "UAT baseline",
+        "version": 9
+      },
+      "denial": {
+        "code": "42501",
+        "message": "Permission denied to manage materials"
+      },
+      "after": {
+        "note": "UAT baseline",
+        "version": 9
+      },
+      "unchanged": true,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to manage materials"
+      }
+    },
+    {
+      "name": "mutation.material.UAT-M-A2-MUTATE.deny-unchanged",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "baseline": {
+        "note": "UAT baseline",
+        "version": 1
+      },
+      "denial": {
+        "code": "42501",
+        "message": "Permission denied to manage materials"
+      },
+      "after": {
+        "note": "UAT baseline",
+        "version": 1
+      },
+      "unchanged": true,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to manage materials"
+      }
+    },
+    {
+      "name": "mutation.handover.confirm.receiver-DA-denied",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "receiverPartyId": null,
+      "before": {
+        "status": "draft",
+        "version": 1
+      },
+      "after": {
+        "status": "draft",
+        "version": 1
+      },
+      "unchanged": true,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to manage handovers"
+      }
+    },
+    {
+      "name": "mutation.handover.reject.receiver-DA-denied",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "receiverPartyId": null,
+      "before": {
+        "status": "draft",
+        "version": 1
+      },
+      "after": {
+        "status": "draft",
+        "version": 1
+      },
+      "unchanged": true,
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to manage handovers"
+      }
+    },
+    {
+      "name": "account-admin.list-denied",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "permission denied",
+      "error": {
+        "code": "42501",
+        "message": "Account view permission required"
+      }
+    },
+    {
+      "name": "table.user_roles.self-only",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "ownAssignmentRows": 1,
+      "otherAccountRows": 0,
+      "otherAccountHttpStatus": 200,
+      "policyExpectation": "self assignment visible; unrelated account assignments filtered by RLS"
+    }
+  ]
+}

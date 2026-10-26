@@ -1,0 +1,499 @@
+{
+  "profile": "P06",
+  "runAt": "2026-10-22T06:35:42.929Z",
+  "authUserId": "66325798-ad92-426b-8f74-911090380af8",
+  "cases": [
+    {
+      "label": "materials.list.all",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 4,
+        "ids": [
+          "c0df2d2c-d472-40da-b2d9-c9c2fd51288d",
+          "d2adecd0-5a20-48aa-901c-f4fcd7282ffb",
+          "223ff2d2-2868-4983-b396-9ed37a6e403c",
+          "b79cda69-d15e-4017-b9ae-83703723d681"
+        ],
+        "fixtureCodes": ["UAT-M-X", "UAT-M-X-FLOW", "UAT-M-X-MUTATE"]
+      }
+    },
+    {
+      "label": "materials.list.X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 1,
+        "ids": ["d2adecd0-5a20-48aa-901c-f4fcd7282ffb"]
+      }
+    },
+    {
+      "label": "materials.list.Y",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 0,
+        "ids": []
+      }
+    },
+    {
+      "label": "materials.list.K1",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 0,
+        "ids": []
+      }
+    },
+    {
+      "label": "materials.list.K2",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 0,
+        "ids": []
+      }
+    },
+    {
+      "label": "materials.detail.X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "d2adecd0-5a20-48aa-901c-f4fcd7282ffb",
+        "code": "UAT-M-X",
+        "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "borrowerPartyId": null,
+        "status": "available",
+        "reservationStatus": null,
+        "note": "UAT baseline",
+        "version": 1
+      }
+    },
+    {
+      "label": "materials.history.X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "count": 0,
+        "entries": []
+      }
+    },
+    {
+      "label": "materials.detail.X_MUTATE",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "b79cda69-d15e-4017-b9ae-83703723d681",
+        "code": "UAT-M-X-MUTATE",
+        "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "borrowerPartyId": null,
+        "status": "available",
+        "reservationStatus": null,
+        "note": "UAT baseline",
+        "version": 5
+      }
+    },
+    {
+      "label": "materials.history.X_MUTATE",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "count": 0,
+        "entries": []
+      }
+    },
+    {
+      "label": "materials.detail.X_FLOW",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "223ff2d2-2868-4983-b396-9ed37a6e403c",
+        "code": "UAT-M-X-FLOW",
+        "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "borrowerPartyId": null,
+        "status": "available",
+        "reservationStatus": null,
+        "note": "UAT baseline",
+        "version": 1
+      }
+    },
+    {
+      "label": "materials.history.X_FLOW",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "count": 0,
+        "entries": []
+      }
+    },
+    {
+      "label": "materials.detail.Y",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material"
+    },
+    {
+      "label": "materials.history.Y",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material history"
+    },
+    {
+      "label": "materials.detail.Y_MUTATE",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material"
+    },
+    {
+      "label": "materials.history.Y_MUTATE",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material history"
+    },
+    {
+      "label": "materials.detail.K1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material"
+    },
+    {
+      "label": "materials.history.K1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material history"
+    },
+    {
+      "label": "materials.detail.K2",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material"
+    },
+    {
+      "label": "materials.history.K2",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view material history"
+    },
+    {
+      "label": "materials.table.X",
+      "status": 200,
+      "ok": true,
+      "data": [
+        {
+          "id": "d2adecd0-5a20-48aa-901c-f4fcd7282ffb",
+          "code": "UAT-M-X",
+          "owner_party_id": "22367d04-80eb-4775-bd8b-5bbcff187281",
+          "borrower_party_id": null,
+          "status": "available",
+          "note": "UAT baseline",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "label": "materials.table.Y",
+      "status": 200,
+      "ok": true,
+      "data": []
+    },
+    {
+      "label": "materials.table.Y_MUTATE",
+      "status": 200,
+      "ok": true,
+      "data": []
+    },
+    {
+      "label": "materials.table.K1",
+      "status": 200,
+      "ok": true,
+      "data": []
+    },
+    {
+      "label": "handover.counterparty_options.X",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "count": 19,
+        "fields": ["code", "id", "name", "type"],
+        "options": [
+          {
+            "id": "07868e13-e326-4e08-a52b-68b6a44892a5",
+            "type": "external",
+            "code": "DEV-PARTNER",
+            "name": "Đối tác thiết bị"
+          },
+          {
+            "id": "222a7bc9-b358-48e9-82a9-8859454c79fd",
+            "type": "warehouse",
+            "code": "kho-he-thong",
+            "name": "Kho Hệ Thống"
+          },
+          {
+            "id": "f576437c-9ed6-488f-9ee5-dcbe610363a9",
+            "type": "person",
+            "code": "DEV-PERSON",
+            "name": "Người dùng thử nghiệm"
+          },
+          {
+            "id": "e9e6173d-80b4-4e86-bfea-8a40605c4df3",
+            "type": "department",
+            "code": "DEV-OPS",
+            "name": "Phòng Vận hành"
+          },
+          {
+            "id": "a96df48e-4177-4dd0-8551-3e7ee471f716",
+            "type": "team",
+            "code": "DEV-MAINT",
+            "name": "Tổ Bảo trì"
+          },
+          {
+            "id": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+            "type": "team",
+            "code": "UAT-A1",
+            "name": "UAT A1"
+          },
+          {
+            "id": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+            "type": "team",
+            "code": "UAT-A2",
+            "name": "UAT A2"
+          },
+          {
+            "id": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd",
+            "type": "team",
+            "code": "UAT-B1",
+            "name": "UAT B1"
+          },
+          {
+            "id": "432dbcd7-1676-4453-9d56-feafd1f3b5d2",
+            "type": "person",
+            "code": "MOCK-E006",
+            "name": "UAT Chưa có tài khoản"
+          },
+          {
+            "id": "ad1b243e-6528-4f02-a2e7-d9004b9a8264",
+            "type": "department",
+            "code": "UAT-DA",
+            "name": "UAT DA"
+          },
+          {
+            "id": "741aed4c-7e80-47cd-8761-a53ff0505198",
+            "type": "department",
+            "code": "UAT-DB",
+            "name": "UAT DB"
+          },
+          {
+            "id": "e5870667-719e-4c0d-981d-9e5481ffc919",
+            "type": "person",
+            "code": "UAT-E001",
+            "name": "UAT E001"
+          },
+          {
+            "id": "e8049846-0ac3-4bad-a4d7-45ff755df25c",
+            "type": "person",
+            "code": "UAT-E002",
+            "name": "UAT E002"
+          },
+          {
+            "id": "87501261-7698-41a5-9871-8f7f0b4f94f7",
+            "type": "person",
+            "code": "UAT-E003",
+            "name": "UAT E003"
+          },
+          {
+            "id": "4f49d8d4-6d33-4da7-a158-ac5628aaf5fe",
+            "type": "person",
+            "code": "UAT-E004",
+            "name": "UAT E004"
+          },
+          {
+            "id": "a283e5cd-04d2-48a4-bf13-8d7c1da68b55",
+            "type": "person",
+            "code": "UAT-E005",
+            "name": "UAT E005"
+          },
+          {
+            "id": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+            "type": "warehouse",
+            "code": "UAT-K1",
+            "name": "UAT K1"
+          },
+          {
+            "id": "7cdc7d22-6846-48ac-be0d-a4a20d5c054c",
+            "type": "warehouse",
+            "code": "UAT-K2",
+            "name": "UAT K2"
+          },
+          {
+            "id": "a335a727-f841-4137-af65-f80a7d1c1a6a",
+            "type": "external",
+            "code": "UAT-Y",
+            "name": "UAT Y"
+          }
+        ]
+      }
+    },
+    {
+      "label": "handover.detail.X_A1",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "12d5ea5c-52fe-4794-8943-60213093f911",
+        "code": "UAT-H-X-A1",
+        "type": "transfer",
+        "status": "draft",
+        "senderPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "recipientPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "version": 1,
+        "itemIds": ["d2adecd0-5a20-48aa-901c-f4fcd7282ffb"]
+      }
+    },
+    {
+      "label": "handover.history.X_A1",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "count": 1,
+        "entries": [
+          {
+            "id": "c0f42b22-8e7a-408b-abdf-2f9ae282f90d",
+            "note": "UAT fixture",
+            "action": "created",
+            "toStatus": "draft",
+            "createdAt": "2026-10-22T06:31:30.633911+00:00",
+            "fromStatus": null,
+            "handoverId": "12d5ea5c-52fe-4794-8943-60213093f911",
+            "actorUserId": "dc407608-b0a0-4bf3-9635-0d56967d3fdb",
+            "actorDisplayName": "uat.coordinator"
+          }
+        ]
+      }
+    },
+    {
+      "label": "handover.detail.Y_B1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view handover"
+    },
+    {
+      "label": "handover.history.Y_B1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view handover history"
+    },
+    {
+      "label": "handover.detail.K1_A1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view handover"
+    },
+    {
+      "label": "handover.history.K1_A1",
+      "status": 403,
+      "ok": false,
+      "error": "Permission denied to view handover history"
+    },
+    {
+      "label": "handover.list.all",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 1,
+        "items": [
+          {
+            "id": "12d5ea5c-52fe-4794-8943-60213093f911",
+            "code": "UAT-H-X-A1",
+            "type": "transfer",
+            "status": "draft",
+            "senderPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+            "recipientPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+            "version": 1,
+            "itemIds": ["d2adecd0-5a20-48aa-901c-f4fcd7282ffb"]
+          }
+        ]
+      }
+    },
+    {
+      "label": "handover.list.senderY",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "total": 0,
+        "ids": []
+      }
+    },
+    {
+      "label": "handover.table.Y_B1",
+      "status": 200,
+      "ok": true,
+      "data": []
+    }
+  ],
+  "mutation": {
+    "allowedX": {
+      "status": 200,
+      "ok": true,
+      "id": "b79cda69-d15e-4017-b9ae-83703723d681",
+      "before": {
+        "id": "b79cda69-d15e-4017-b9ae-83703723d681",
+        "code": "UAT-M-X-MUTATE",
+        "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "borrowerPartyId": null,
+        "status": "available",
+        "reservationStatus": null,
+        "note": "UAT baseline",
+        "version": 5
+      },
+      "after": {
+        "id": "b79cda69-d15e-4017-b9ae-83703723d681",
+        "code": "UAT-M-X-MUTATE",
+        "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+        "borrowerPartyId": null,
+        "status": "available",
+        "reservationStatus": null,
+        "note": "P06 UAT mutation 2026-10-22T06:35:51.807Z",
+        "version": 6
+      },
+      "restore": {
+        "status": 200,
+        "ok": true,
+        "after": {
+          "id": "b79cda69-d15e-4017-b9ae-83703723d681",
+          "code": "UAT-M-X-MUTATE",
+          "ownerPartyId": "22367d04-80eb-4775-bd8b-5bbcff187281",
+          "borrowerPartyId": null,
+          "status": "available",
+          "reservationStatus": null,
+          "note": "UAT baseline",
+          "version": 7
+        }
+      }
+    },
+    "deniedY": {
+      "status": 403,
+      "ok": false,
+      "error": "You must represent the owner party",
+      "before": null,
+      "after": null,
+      "beforeReadStatus": 403,
+      "afterReadStatus": 403,
+      "directTableVisible": false,
+      "rootCrossCheck": {
+        "source": "P00 privileged verification reported by coordinator",
+        "verified": true,
+        "id": "165699e3-f180-406b-94a9-dd929521ab9a",
+        "code": "UAT-M-Y-MUTATE",
+        "ownerPartyId": "a335a727-f841-4137-af65-f80a7d1c1a6a",
+        "note": "UAT baseline",
+        "version": 1
+      }
+    }
+  },
+  "transfer": {
+    "create": {
+      "status": 400,
+      "ok": false,
+      "error": "column \"sender_condition_note\" of relation \"material_handover_items\" does not exist"
+    }
+  }
+}

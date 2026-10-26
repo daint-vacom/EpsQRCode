@@ -1,0 +1,575 @@
+{
+  "profile": "P01",
+  "runAt": "2026-10-22T06:36:14.991Z",
+  "project": "uopmkpcorjhsppdowmab",
+  "authentication": "Supabase password grant using P01; assertions use P01 JWT only",
+  "scope": "P01 profile only; no receiver action; no other profile touched",
+  "counts": {
+    "pass": 44,
+    "fail": 1,
+    "blocked": 1
+  },
+  "cases": [
+    {
+      "name": "P01 identity and organization from get_my_qrcode_account",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "result": {
+        "userId": "c93b887e-4500-4832-b1b0-5115d9662d4b",
+        "accountType": "eps",
+        "epsEmployeeCode": "MOCK-E001",
+        "epsDepartmentId": "EPS-MOCK-D01",
+        "epsTeamId": "EPS-MOCK-T01",
+        "externalOrganizationId": null
+      }
+    },
+    {
+      "name": "effective scope material:view DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "DA",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:view A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "A1",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:view A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "A2",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:view E001",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "E001",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:view E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "E003",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:view DB",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "DB",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:view E004",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "E004",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:view E005",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "E005",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:view X",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "X",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:view K1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:view",
+      "party": "K1",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:manage A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:manage",
+      "party": "A1",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:manage E001",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:manage",
+      "party": "E001",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope material:manage E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:manage",
+      "party": "E003",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:manage A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:manage",
+      "party": "A2",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope material:manage DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:material:manage",
+      "party": "DA",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "effective scope handover:manage A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:handover:manage",
+      "party": "A1",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "name": "effective scope handover:manage A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "permission": "materials:handover:manage",
+      "party": "A2",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "name": "materials list scope (department view, team manage)",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expectedVisible": ["DA", "A1", "A2", "E001", "E003"],
+      "visibleFixtureKeys": ["DA", "A1", "A2", "E001", "E003"],
+      "expectedHidden": ["DB", "B1", "E004", "E005", "X", "Y", "K1", "K2"],
+      "total": 16
+    },
+    {
+      "name": "material detail A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "fixture": "A1",
+      "expected": "visible",
+      "result": {
+        "id": "7e3cc11d-38f5-41ae-81ee-8c994fecebc5",
+        "code": "UAT-M-A1",
+        "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "material detail A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "fixture": "A2",
+      "expected": "visible",
+      "result": {
+        "id": "73dc9dea-433e-4214-92a7-d9118d485ff8",
+        "code": "UAT-M-A2",
+        "ownerPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "material detail DA",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "fixture": "DA",
+      "expected": "visible",
+      "result": {
+        "id": "b13bc956-eb50-4857-a130-2931d965e86d",
+        "code": "UAT-M-DA",
+        "ownerPartyId": "ad1b243e-6528-4f02-a2e7-d9004b9a8264",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "material detail E001",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "fixture": "E001",
+      "expected": "visible",
+      "result": {
+        "id": "3dd19f71-9eb9-4259-843d-99579fb680f6",
+        "code": "UAT-M-E001",
+        "ownerPartyId": "e5870667-719e-4c0d-981d-9e5481ffc919",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "material detail E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "fixture": "E003",
+      "expected": "visible",
+      "result": {
+        "id": "4dc63e7b-17df-4b07-ac4b-b71b14876bf9",
+        "code": "UAT-M-E003",
+        "ownerPartyId": "87501261-7698-41a5-9871-8f7f0b4f94f7",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "material detail DB",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "DB",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail B1",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "B1",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail E004",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "E004",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail E005",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "E005",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail X",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "X",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail Y",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "Y",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail K1",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "K1",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material detail K2",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "fixture": "K2",
+      "expected": "denied",
+      "error": "Permission denied to view material"
+    },
+    {
+      "name": "material history A1 mutation fixture",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "readable array on in-scope material",
+      "result": {
+        "count": 0,
+        "actions": []
+      }
+    },
+    {
+      "name": "material history DB denied",
+      "outcome": "pass",
+      "httpStatus": 403,
+      "expected": "denied",
+      "error": "Permission denied to view material history"
+    },
+    {
+      "name": "direct table materials A1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "one visible row",
+      "result": [
+        {
+          "id": "7e3cc11d-38f5-41ae-81ee-8c994fecebc5",
+          "code": "UAT-M-A1",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37"
+        }
+      ]
+    },
+    {
+      "name": "direct table materials A2",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "one visible row",
+      "result": [
+        {
+          "id": "73dc9dea-433e-4214-92a7-d9118d485ff8",
+          "code": "UAT-M-A2",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12"
+        }
+      ]
+    },
+    {
+      "name": "direct table materials E001",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "one visible row",
+      "result": [
+        {
+          "id": "3dd19f71-9eb9-4259-843d-99579fb680f6",
+          "code": "UAT-M-E001",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "e5870667-719e-4c0d-981d-9e5481ffc919"
+        }
+      ]
+    },
+    {
+      "name": "direct table materials E003",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "one visible row",
+      "result": [
+        {
+          "id": "4dc63e7b-17df-4b07-ac4b-b71b14876bf9",
+          "code": "UAT-M-E003",
+          "note": "UAT baseline",
+          "version": 1,
+          "ownerPartyId": "87501261-7698-41a5-9871-8f7f0b4f94f7"
+        }
+      ]
+    },
+    {
+      "name": "direct table materials DB",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "zero visible rows",
+      "result": []
+    },
+    {
+      "name": "direct table materials K1",
+      "outcome": "pass",
+      "httpStatus": 200,
+      "expected": "zero visible rows",
+      "result": []
+    },
+    {
+      "name": "scoped material mutation A1",
+      "outcome": "pass",
+      "status": 200,
+      "expected": "note updated on P01 owned A1 record",
+      "before": {
+        "id": "7d7ddcb1-f141-41da-a7b9-f0a3801fa177",
+        "code": "UAT-M-A1-MUTATE",
+        "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "note": "UAT baseline",
+        "version": 7,
+        "status": "available"
+      },
+      "updateResult": {
+        "id": "7d7ddcb1-f141-41da-a7b9-f0a3801fa177"
+      },
+      "after": {
+        "id": "7d7ddcb1-f141-41da-a7b9-f0a3801fa177",
+        "code": "UAT-M-A1-MUTATE",
+        "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "note": "P01 live UAT 2026-10-22T06:36:10.716Z",
+        "version": 8,
+        "status": "available"
+      }
+    },
+    {
+      "name": "restore A1 mutation fixture note",
+      "outcome": "pass",
+      "status": 200,
+      "expectedNote": "UAT baseline",
+      "result": {
+        "id": "7d7ddcb1-f141-41da-a7b9-f0a3801fa177",
+        "code": "UAT-M-A1-MUTATE",
+        "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "note": "UAT baseline",
+        "version": 9,
+        "status": "available"
+      }
+    },
+    {
+      "name": "scoped material mutation A2 denied and unchanged",
+      "outcome": "pass",
+      "status": 403,
+      "expected": "denied; visible record remains unchanged to P01",
+      "before": {
+        "id": "1abcba43-71a6-4ccf-9f53-1fff25a68dab",
+        "code": "UAT-M-A2-MUTATE",
+        "ownerPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      },
+      "denial": "You must represent the owner party",
+      "after": {
+        "id": "1abcba43-71a6-4ccf-9f53-1fff25a68dab",
+        "code": "UAT-M-A2-MUTATE",
+        "ownerPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+        "note": "UAT baseline",
+        "version": 1,
+        "status": "available"
+      }
+    },
+    {
+      "name": "handover A1 to A2 draft",
+      "outcome": "fail",
+      "status": 400,
+      "step": "save_handover",
+      "request": {
+        "rpc": "save_handover",
+        "p_id": null,
+        "p_values": {
+          "type": "transfer",
+          "senderPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+          "recipientPartyId": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+          "senderRepresentativeUserId": "c93b887e-4500-4832-b1b0-5115d9662d4b",
+          "recipientRepresentativeUserId": null,
+          "plannedDate": "2026-10-22",
+          "dueDate": null,
+          "note": "P01 live UAT A1 to A2",
+          "items": [
+            {
+              "materialId": "7c3303d3-dc3a-4ab6-8605-0da68daeb574",
+              "condition": "good",
+              "note": null
+            }
+          ],
+          "attachmentFileIds": []
+        }
+      },
+      "response": {
+        "code": "42703",
+        "details": null,
+        "hint": null,
+        "message": "column \"sender_condition_note\" of relation \"material_handover_items\" does not exist"
+      }
+    },
+    {
+      "name": "handover A1 to A2 send",
+      "outcome": "blocked",
+      "expected": "send only after a persisted draft exists",
+      "reason": "Draft creation failed; no handover ID was returned."
+    },
+    {
+      "name": "P01 receives P04 K1 to A1 warehouse allocation",
+      "outcome": "pass",
+      "before": {
+        "handoverId": "6bc5a75d-1540-4866-a9dc-18c477ada2c9",
+        "status": "pending",
+        "mode": "warehouse_allocation",
+        "version": 2,
+        "senderPartyId": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+        "recipientPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+        "materialIds": ["d0b3ea92-c4f1-4b65-862a-df1fdf68be0a"]
+      },
+      "request": {
+        "rpc": "act_on_warehouse_handover",
+        "p_id": "6bc5a75d-1540-4866-a9dc-18c477ada2c9",
+        "p_action": "confirm",
+        "p_expected_version": 2,
+        "p_note": null,
+        "p_item_results": [
+          {
+            "materialId": "d0b3ea92-c4f1-4b65-862a-df1fdf68be0a",
+            "outcome": "received",
+            "condition": "good",
+            "note": "P01 UAT receive"
+          }
+        ]
+      },
+      "status": 200,
+      "response": {
+        "id": "6bc5a75d-1540-4866-a9dc-18c477ada2c9"
+      },
+      "after": {
+        "handover": {
+          "status": "completed",
+          "version": 3
+        },
+        "material": {
+          "id": "d0b3ea92-c4f1-4b65-862a-df1fdf68be0a",
+          "code": "VT-000001",
+          "ownerPartyId": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+          "note": "P01 UAT receive",
+          "version": 2,
+          "status": "available"
+        },
+        "handoverHistory": {
+          "count": 3,
+          "actions": ["created", "sent", "confirmed"]
+        },
+        "materialHistory": {
+          "count": 1,
+          "actions": ["handover"]
+        }
+      }
+    }
+  ]
+}

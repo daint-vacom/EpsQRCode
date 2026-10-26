@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { replaceCustodianRepresentatives } from '@/project/custodians/api/custodians.api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -99,6 +100,24 @@ export function ExternalOrganizationsPage() {
     },
     onError: (error) => toast.error(getApiErrorMessage(error)),
   });
+  const representativeMutation = useMutation({
+    mutationFn: (input: { id: string; userIds: string[] }) =>
+      replaceCustodianRepresentatives(input.id, input.userIds),
+    onSuccess: async () => {
+      toast.success(
+        intl.formatMessage({
+          id: 'accounts.external.toasts.representativesUpdated',
+        }),
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['project', 'external-organizations'],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['project', 'custodians'] }),
+      ]);
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error)),
+  });
 
   const normalizedSearch = search.trim().toLocaleLowerCase('vi');
   const organizations = useMemo(() => {
@@ -121,7 +140,10 @@ export function ExternalOrganizationsPage() {
   };
   const columns = useExternalOrganizationColumns({
     canManage,
+    isSavingRepresentatives: representativeMutation.isPending,
     onEdit: openEdit,
+    onSaveRepresentatives: (organization, userIds) =>
+      representativeMutation.mutateAsync({ id: organization.id, userIds }),
   });
   const table = useReactTable({
     data: organizations,

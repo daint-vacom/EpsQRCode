@@ -36,6 +36,7 @@ export const ROUTES = {
     HANDOVER_DETAIL: '/phieu-ban-giao/:id',
     WAREHOUSE_HANDOVER_CREATE: '/phieu-ban-giao/nhan-tu-kho',
     CUSTODIANS: '/chu-the-ban-giao',
+    EPS_ORGANIZATIONS: '/don-vi-eps',
     WAREHOUSES: '/kho',
     RECEIPTS: '/phieu-nhap-vat-tu',
     RECEIPT_CREATE: '/phieu-nhap-vat-tu/tao-moi',

@@ -1,8 +1,15 @@
+import type { RepresentativeAccount } from '@/project/custodians/model/custodian';
+import type { RoleColor } from '@/project/model/role-color';
 import { z } from 'zod';
 
 export type AccountType = 'eps' | 'external';
 export type AccountListType = AccountType | 'unmapped';
 export type QrCodeAccountStatus = 'active' | 'suspended' | 'deactivated';
+
+export interface AccountRole {
+  name: string;
+  color: RoleColor;
+}
 
 export interface Account {
   userId: string;
@@ -19,7 +26,7 @@ export interface Account {
   externalOrganizationName: string | null;
   status: QrCodeAccountStatus;
   roleIds: string[];
-  roleNames: string[];
+  roles: AccountRole[];
   warehouseIds: string[];
   warehouseNames: string[];
 }
@@ -58,6 +65,9 @@ export interface ExternalOrganization {
   name: string;
   is_active: boolean;
   created_at: string;
+  representative_user_ids: string[];
+  representative_accounts: RepresentativeAccount[];
+  representative_options: RepresentativeAccount[];
 }
 
 export interface AccountRoleOption {

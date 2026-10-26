@@ -93,8 +93,12 @@ Builder (đều trả `ColumnDef<TRow>`, accessor `get: (row) => value`):
 | `badge({ get, config })` | `StatusBadge` theo `StatusBadgeConfig` |
 | `index()` | số thứ tự 1-based (theo trang) |
 | `select()` | checkbox chọn dòng |
-| `actions({ cell })` | cột thao tác (cell căn phải) |
+| `actions({ cell })` | cột thao tác (cell căn phải, padding ngang compact) |
 | `custom({ cell })` | cell tùy biến (escape hatch) |
+
+Cột `actions` tự dùng padding ngang `px-2.5` ở mọi mật độ bảng. Khi kết hợp với
+`getDataGridActionsColumnSize(actionCount)`, chiều rộng sẽ khớp nút icon 28px, khoảng cách 4px
+và padding 20px. Tránh ghi đè padding ngang của cell khi dùng helper này.
 
 Tham số chung: `id`, `header`, `headerClassName`, `cellClassName`, `visibility`, `enableSorting`, `size`.
 

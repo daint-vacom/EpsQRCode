@@ -1,0 +1,139 @@
+{
+  "project": "uopmkpcorjhsppdowmab",
+  "accounts": {
+    "P00": {
+      "id": "dc407608-b0a0-4bf3-9635-0d56967d3fdb",
+      "username": "uat.coordinator",
+      "email": "uat.coordinator@qrcode-uat.example.invalid"
+    },
+    "P01": {
+      "id": "c93b887e-4500-4832-b1b0-5115d9662d4b",
+      "username": "uat.an.a1",
+      "email": "uat.an.a1@qrcode-uat.example.invalid"
+    },
+    "P02": {
+      "id": "ec212871-d2ab-49fe-8a14-ccfd0244f1e6",
+      "username": "uat.binh.da",
+      "email": "uat.binh.da@qrcode-uat.example.invalid"
+    },
+    "P03": {
+      "id": "ad2f7594-18a1-45ae-a272-dec11afeb7d6",
+      "username": "uat.chi.eps",
+      "email": "uat.chi.eps@qrcode-uat.example.invalid"
+    },
+    "P04": {
+      "id": "2bbca739-e569-4599-833b-963cdd119bca",
+      "username": "uat.dung.b1.k1",
+      "email": "uat.dung.b1.k1@qrcode-uat.example.invalid"
+    },
+    "P05": {
+      "id": "d3cbcf53-99db-40f3-9888-459bc6a56078",
+      "username": "uat.ha.no-team",
+      "email": "uat.ha.no-team@qrcode-uat.example.invalid"
+    },
+    "P06": {
+      "id": "66325798-ad92-426b-8f74-911090380af8",
+      "username": "uat.x.operator",
+      "email": "uat.x.operator@qrcode-uat.example.invalid"
+    },
+    "P07": {
+      "id": "d2a2a869-5f5e-44eb-b992-70c0017c5c13",
+      "username": "uat.y.viewer",
+      "email": "uat.y.viewer@qrcode-uat.example.invalid"
+    },
+    "P08": {
+      "id": "837e8f2a-9c0a-4f61-b023-77201c2edcd1",
+      "username": "uat.k1.keeper",
+      "email": "uat.k1.keeper@qrcode-uat.example.invalid"
+    },
+    "P09": {
+      "id": "c1b9558f-db61-4e36-a53e-1c03e7d4a14e",
+      "username": "uat.no-grants",
+      "email": "uat.no-grants@qrcode-uat.example.invalid"
+    }
+  },
+  "parties": {
+    "DA": "ad1b243e-6528-4f02-a2e7-d9004b9a8264",
+    "DB": "741aed4c-7e80-47cd-8761-a53ff0505198",
+    "A1": "6238a670-a1af-42fb-a973-2c0d0836fe37",
+    "A2": "4ddb905b-cc8c-47d9-8abb-953b8a2f0f12",
+    "B1": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd",
+    "E001": "e5870667-719e-4c0d-981d-9e5481ffc919",
+    "E002": "e8049846-0ac3-4bad-a4d7-45ff755df25c",
+    "E003": "87501261-7698-41a5-9871-8f7f0b4f94f7",
+    "E004": "4f49d8d4-6d33-4da7-a158-ac5628aaf5fe",
+    "E005": "a283e5cd-04d2-48a4-bf13-8d7c1da68b55",
+    "X": "22367d04-80eb-4775-bd8b-5bbcff187281",
+    "Y": "a335a727-f841-4137-af65-f80a7d1c1a6a",
+    "K1": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+    "K2": "7cdc7d22-6846-48ac-be0d-a4a20d5c054c"
+  },
+  "roles": {
+    "UAT_TEAM_OPERATOR": "fcd9d5a8-8833-4bea-9524-a70227f3b5c0",
+    "UAT_DEPARTMENT_READER": "7fc59c2f-34eb-4c3e-8a65-924c21a50f11",
+    "UAT_EPS_READER": "3ce301bc-66b3-4c2a-8104-7524794d2cfe",
+    "UAT_WAREHOUSE_OPERATOR": "3ac9ac11-ffdc-4fe0-87a5-785b382a60b3",
+    "UAT_EXTERNAL_OPERATOR": "f689641e-7eab-4f26-b5f5-2a6b2be23b05",
+    "UAT_EXTERNAL_READER": "0e998535-3b01-4df2-bc7c-4d2b07e6df7f"
+  },
+  "materials": {
+    "UAT-M-DA": "b13bc956-eb50-4857-a130-2931d965e86d",
+    "UAT-M-DA-FLOW": "0719e293-978b-4045-9659-1a2f1ea82a38",
+    "UAT-M-DA-MUTATE": "05a64fec-fb3c-4baf-ad45-b6dd20c0fcde",
+    "UAT-M-DB": "cb863a1a-ed70-44c6-9d1c-d7df1cde50b8",
+    "UAT-M-DB-FLOW": "f8c421b8-9df6-42f4-b7d4-f1f956e6ca6e",
+    "UAT-M-DB-MUTATE": "983cd411-8401-446a-b7df-2d9e11d260d7",
+    "UAT-M-A1": "7e3cc11d-38f5-41ae-81ee-8c994fecebc5",
+    "UAT-M-A1-FLOW": "7c3303d3-dc3a-4ab6-8605-0da68daeb574",
+    "UAT-M-A1-MUTATE": "7d7ddcb1-f141-41da-a7b9-f0a3801fa177",
+    "UAT-M-A2": "73dc9dea-433e-4214-92a7-d9118d485ff8",
+    "UAT-M-A2-FLOW": "da683ad5-9120-485a-a6f8-b3cc9bec2106",
+    "UAT-M-A2-MUTATE": "1abcba43-71a6-4ccf-9f53-1fff25a68dab",
+    "UAT-M-B1": "b9f3e402-8bea-49a6-b12d-a98a3bedb7a3",
+    "UAT-M-B1-FLOW": "e0930399-17cc-40fc-ac06-b48aec01d4c7",
+    "UAT-M-B1-MUTATE": "46e03cbd-a668-42fe-ad58-b40d6fa8fe75",
+    "UAT-M-E001": "3dd19f71-9eb9-4259-843d-99579fb680f6",
+    "UAT-M-E001-FLOW": "af6d972c-1dff-4317-b890-9318ccf77a06",
+    "UAT-M-E001-MUTATE": "8f4a894b-c386-420b-b319-0582f20023bb",
+    "UAT-M-E003": "4dc63e7b-17df-4b07-ac4b-b71b14876bf9",
+    "UAT-M-E003-FLOW": "950f96e5-784f-4a01-85e0-e81511075b6f",
+    "UAT-M-E003-MUTATE": "004d6ae1-8c47-40a5-b688-0876560a7245",
+    "UAT-M-E004": "14d6941a-2a65-41e6-9ab8-37ef893f0526",
+    "UAT-M-E004-FLOW": "b7ee2907-5eb0-434d-8fa7-93be2cf79550",
+    "UAT-M-E004-MUTATE": "58e814e3-95f7-4bcc-b681-7b85e9f13f41",
+    "UAT-M-E005": "dac26c10-d339-4945-b467-4e485bf57ca9",
+    "UAT-M-E005-FLOW": "67393523-c82d-4c65-ad3c-49be99e33c95",
+    "UAT-M-E005-MUTATE": "81b01c61-f8b6-4be0-a2aa-9d5209cc532a",
+    "UAT-M-X": "d2adecd0-5a20-48aa-901c-f4fcd7282ffb",
+    "UAT-M-X-FLOW": "223ff2d2-2868-4983-b396-9ed37a6e403c",
+    "UAT-M-X-MUTATE": "b79cda69-d15e-4017-b9ae-83703723d681",
+    "UAT-M-Y": "4ed25bc5-fb07-4720-9857-b54f78320dc3",
+    "UAT-M-Y-FLOW": "918180e1-cdd3-47ea-b43f-d42b11caa94f",
+    "UAT-M-Y-MUTATE": "165699e3-f180-406b-94a9-dd929521ab9a",
+    "UAT-M-K1": "1c0c280e-7d13-4ed0-8225-5a0c97291e65",
+    "UAT-M-K1-FLOW": "9ddb07a2-54bb-4135-ab72-916e379c3d92",
+    "UAT-M-K1-MUTATE": "18fe8cd2-e4f4-49a1-ae10-ae9d9afac07e",
+    "UAT-M-K2": "6e2ae4c4-192d-42ac-8019-da8863bc6ea9",
+    "UAT-M-K2-FLOW": "f973e22d-d4f1-47aa-8a90-b923a4d9eea0",
+    "UAT-M-K2-MUTATE": "b8fe3118-8976-49da-9c62-54b3f2d3e609"
+  },
+  "handovers": {
+    "UAT-H-A1-A2": "2fdcf0d4-1db6-4cc8-9ab9-6b20fe40892e",
+    "UAT-H-A2-B1": "18e477d0-0c0d-4c3b-8d03-3a86e74ea68f",
+    "UAT-H-X-A1": "12d5ea5c-52fe-4794-8943-60213093f911",
+    "UAT-H-Y-B1": "cf3c8e2b-f6ea-4688-a6bc-809923b07410",
+    "UAT-H-K1-A1": "8b594384-7a0f-41ac-abdc-c50d66b0c733",
+    "UAT-H-K2-A2": "2681e214-d8f5-4aa3-ba79-e3367ee55f8a"
+  },
+  "receipts": {
+    "UAT-R-K1": "80b73e61-3267-4d9d-b609-8f977461e3a2",
+    "UAT-R-K2": "65aae2fc-663f-4569-992d-1c1d0a10ff5a"
+  },
+  "modelId": "670bf5e0-6eff-448c-9819-aba8348f292a",
+  "setup": {
+    "method": "Auth and static baseline seeded via privileged SQL, not proof of account-create or business workflow success",
+    "baselineCommit": "458d922",
+    "epsCoordinator": "EPS-MOCK-E900",
+    "legacyUnmappedParties": 3
+  }
+}

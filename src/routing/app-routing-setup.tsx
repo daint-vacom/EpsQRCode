@@ -43,7 +43,7 @@ import { Layout39Page } from '@/pages/layout-39/page';
 import { NotFoundPage } from '@/pages/not-found/page';
 import { AccountsPage } from '@/project/accounts/pages/accounts-page';
 import { ExternalOrganizationsPage } from '@/project/accounts/pages/external-organizations-page';
-import { CustodiansPage } from '@/project/custodians/pages/custodians-page';
+import { EpsOrganizationsPage } from '@/project/custodians/pages/eps-organizations-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
 import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
@@ -66,7 +66,7 @@ import { MaterialReceiptDetailPage } from '@/project/receipts/pages/material-rec
 import { MaterialReceiptEditorPage } from '@/project/receipts/pages/material-receipt-editor-page';
 import { MaterialReceiptsPage } from '@/project/receipts/pages/material-receipts-page';
 import { WarehousesPage } from '@/project/warehouses/pages/warehouses-page';
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { DetailEntryLayout } from '@/components/layouts/detail-entry-layout';
 import { Layout1 } from '@/components/layouts/layout-1';
 import { Layout2 } from '@/components/layouts/layout-2';
@@ -252,7 +252,11 @@ export function AppRoutingSetup() {
           />
           <Route
             path={ROUTES.PROJECT.CUSTODIANS}
-            element={<CustodiansPage />}
+            element={<Navigate to={ROUTES.PROJECT.EPS_ORGANIZATIONS} replace />}
+          />
+          <Route
+            path={ROUTES.PROJECT.EPS_ORGANIZATIONS}
+            element={<EpsOrganizationsPage />}
           />
           <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
           <Route path={ROUTES.PROJECT.ACCOUNTS} element={<AccountsPage />} />

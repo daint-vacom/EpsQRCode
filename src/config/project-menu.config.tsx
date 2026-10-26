@@ -61,12 +61,12 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     title: 'Quản trị tổ chức',
     items: [
       {
-        label: 'Chủ thể bàn giao',
+        label: 'Đơn vị EPS',
         icon: Building2,
-        path: ROUTES.PROJECT.CUSTODIANS,
+        path: ROUTES.PROJECT.EPS_ORGANIZATIONS,
       },
       {
-        label: 'Quản lý tài khoản',
+        label: 'Tài khoản đăng nhập',
         icon: Users,
         path: ROUTES.PROJECT.ACCOUNTS,
       },

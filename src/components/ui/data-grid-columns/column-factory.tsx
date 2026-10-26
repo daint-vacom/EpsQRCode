@@ -383,7 +383,9 @@ export function createColumnHelpers<TRow extends object>(
         meta: createMeta({
           header,
           headerClassName: options.headerClassName,
-          cellClassName: cn('text-right', options.cellClassName),
+          // Keep action sizing independent of DataGrid density. The action
+          // width helper reserves the compact 20px horizontal cell padding.
+          cellClassName: cn('text-right', options.cellClassName, 'px-2.5'),
         }),
       };
     },

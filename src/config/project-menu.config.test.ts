@@ -14,13 +14,16 @@ describe('PROJECT_MENU_GROUPS', () => {
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
       'Vật tư',
       'Phiếu bàn giao',
+      'Kho',
+      'Phiếu nhập vật tư',
       'Mẫu vật tư',
       'Nhóm vật tư',
       'Thông số VT',
     ]);
     expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
-      'Chủ thể bàn giao',
-      'Nhân viên',
+      'Đơn vị EPS',
+      'Tài khoản đăng nhập',
+      'Đơn vị ngoài',
       'Tệp lưu trữ',
       'Phân quyền',
       'Danh mục',

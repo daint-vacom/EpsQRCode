@@ -6,6 +6,7 @@ import {
 import type {
   Account,
   AccountFormValues,
+  AccountRole,
   AccountRoleOption,
   AccountType,
   AccountWarehouseOption,
@@ -30,7 +31,7 @@ interface AccountRow {
   external_organization_name: string | null;
   status: Account['status'];
   role_ids: string[];
-  role_names: string[];
+  roles: AccountRole[];
   warehouse_ids: string[];
   warehouse_names: string[];
 }
@@ -63,7 +64,7 @@ export async function loadAccounts(search = ''): Promise<Account[]> {
     externalOrganizationName: row.external_organization_name,
     status: row.status,
     roleIds: row.role_ids ?? [],
-    roleNames: row.role_names ?? [],
+    roles: row.roles,
     warehouseIds: row.warehouse_ids ?? [],
     warehouseNames: row.warehouse_names ?? [],
   }));

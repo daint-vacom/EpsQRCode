@@ -1,0 +1,513 @@
+{
+  "profile": "P05",
+  "capturedAt": "2026-10-22T06:39:02.959Z",
+  "identityMatched": true,
+  "before": {
+    "identity.E005.noTeam": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "authProfile": "P05",
+      "accountType": "eps",
+      "epsEmployeeCode": "MOCK-E005",
+      "epsDepartmentId": "EPS-MOCK-D02",
+      "epsTeamId": null
+    },
+    "materials.list.noScopeLeak": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedTargetCodes": [],
+      "targetCodes": [],
+      "total": 0
+    },
+    "detail.DB": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.B1": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.E005": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.DA": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.DA": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.X": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.X": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.Y": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.Y": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.K1": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.K1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "viewScope.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "manageScope.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "viewScope.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "manageScope.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "viewScope.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "manageScope.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "mutation.DB": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-DB-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "You must represent the owner party"
+      }
+    },
+    "mutation.B1": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-B1-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "You must represent the owner party"
+      }
+    },
+    "mutation.E005": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-E005-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "Material is outside the permitted management scope"
+      }
+    }
+  },
+  "afterDepartmentRole": {
+    "roleAssignment": {
+      "status": 204,
+      "ok": true,
+      "outcome": "pass",
+      "actor": "P00",
+      "change": "add UAT_DEPARTMENT_READER while preserving UAT_TEAM_OPERATOR"
+    },
+    "identity.sameSession.E005.noTeam": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "authProfile": "P05",
+      "sameSessionUser": true,
+      "epsEmployeeCode": "MOCK-E005",
+      "epsDepartmentId": "EPS-MOCK-D02",
+      "epsTeamId": null
+    },
+    "materials.list.departmentScope": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedVisible": ["UAT-M-DB", "UAT-M-B1", "UAT-M-E005"],
+      "targetCodes": [
+        "UAT-M-B1",
+        "UAT-M-B1-FLOW",
+        "UAT-M-B1-MUTATE",
+        "UAT-M-DB",
+        "UAT-M-DB-FLOW",
+        "UAT-M-DB-MUTATE",
+        "UAT-M-E004",
+        "UAT-M-E004-FLOW",
+        "UAT-M-E004-MUTATE",
+        "UAT-M-E005",
+        "UAT-M-E005-FLOW",
+        "UAT-M-E005-MUTATE"
+      ],
+      "expectedAbsent": [
+        "UAT-M-DA",
+        "UAT-M-X",
+        "UAT-M-Y",
+        "UAT-M-K1",
+        "UAT-M-K2"
+      ],
+      "unexpectedCodes": [],
+      "total": 12
+    },
+    "detail.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": "visible",
+      "code": "UAT-M-DB"
+    },
+    "table.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 1,
+      "rows": [
+        {
+          "code": "UAT-M-DB",
+          "ownerPartyId": "741aed4c-7e80-47cd-8761-a53ff0505198"
+        }
+      ]
+    },
+    "detail.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": "visible",
+      "code": "UAT-M-B1"
+    },
+    "table.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 1,
+      "rows": [
+        {
+          "code": "UAT-M-B1",
+          "ownerPartyId": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd"
+        }
+      ]
+    },
+    "detail.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": "visible",
+      "code": "UAT-M-E005"
+    },
+    "table.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 1,
+      "rows": [
+        {
+          "code": "UAT-M-E005",
+          "ownerPartyId": "a283e5cd-04d2-48a4-bf13-8d7c1da68b55"
+        }
+      ]
+    },
+    "detail.DA": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.DA": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.X": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.X": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.Y": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.Y": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "detail.K1": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    },
+    "table.K1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expectedRows": 0,
+      "rows": []
+    },
+    "viewScope.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": true,
+      "actual": true
+    },
+    "manageScope.DB": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "viewScope.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": true,
+      "actual": true
+    },
+    "manageScope.B1": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "viewScope.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": true,
+      "actual": true
+    },
+    "manageScope.E005": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "expected": false,
+      "actual": false
+    },
+    "mutation.DB": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-DB-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "You must represent the owner party"
+      }
+    },
+    "mutation.B1": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-B1-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "You must represent the owner party"
+      }
+    },
+    "mutation.E005": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied for lack of material manage scope",
+      "payloadModelValid": true,
+      "fixture": "UAT-M-E005-MUTATE",
+      "error": {
+        "code": "42501",
+        "message": "Material is outside the permitted management scope"
+      }
+    }
+  },
+  "restoration": {
+    "roleAssignment": {
+      "status": 204,
+      "ok": true,
+      "outcome": "pass",
+      "actor": "P00",
+      "restoredRoles": ["UAT_TEAM_OPERATOR"]
+    },
+    "sameSession.listReturnsToEmpty": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "authProfile": "P05",
+      "targetCodes": [],
+      "total": 0
+    },
+    "sameSession.identity": {
+      "status": 200,
+      "ok": true,
+      "outcome": "pass",
+      "authProfile": "P05",
+      "sameSessionUser": true,
+      "epsEmployeeCode": "MOCK-E005",
+      "epsDepartmentId": "EPS-MOCK-D02",
+      "epsTeamId": null
+    },
+    "sameSession.detail.DBDenied": {
+      "status": 403,
+      "ok": false,
+      "outcome": "pass",
+      "expected": "denied after role restore",
+      "error": {
+        "code": "42501",
+        "message": "Permission denied to view material"
+      }
+    }
+  },
+  "errors": [],
+  "failures": [],
+  "result": "pass"
+}

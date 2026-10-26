@@ -39,7 +39,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.actions.expandQrCode': 'Phóng to mã QR vật tư {code}',
   'project.materials.actions.viewImage': 'Xem ảnh',
   'project.materials.actions.openQrLink': 'Mở liên kết chi tiết',
-  'project.materials.actions.manageCustodians': 'Quản lý chủ thể bàn giao',
+  'project.materials.actions.manageCustodians': 'Quản lý đơn vị EPS',
   'project.materials.actions.openReservation': 'Mở phiếu đang giữ vật tư',
   'project.materials.actions.syncing': 'Đang đồng bộ',
   'project.materials.actions.syncModel': 'Đồng bộ từ mẫu',
@@ -237,7 +237,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.actions.customize': 'Edit value',
   'project.materials.actions.useModelValue': 'Use model value',
   'project.materials.actions.resetImage': 'Use model image',
-  'project.materials.actions.manageCustodians': 'Manage custodians',
+  'project.materials.actions.manageCustodians': 'Manage EPS organizations',
   'project.materials.actions.openReservation':
     'Open handover holding this material',
   'project.materials.actions.syncing': 'Syncing',

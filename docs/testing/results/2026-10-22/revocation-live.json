@@ -1,0 +1,301 @@
+{
+  "runAt": "2026-10-22T06:36:22.787Z",
+  "events": [
+    {
+      "name": "P04 K1 before revocation",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "1c0c280e-7d13-4ed0-8225-5a0c97291e65",
+        "code": "UAT-M-K1",
+        "note": "UAT baseline",
+        "images": [],
+        "status": "available",
+        "modelId": "670bf5e0-6eff-448c-9819-aba8348f292a",
+        "version": 1,
+        "isActive": true,
+        "condition": "good",
+        "createdAt": "2026-10-22T06:31:30.633911+00:00",
+        "updatedAt": "2026-10-22T06:31:30.633911+00:00",
+        "nameOverride": "UAT-M-K1",
+        "ownerPartyId": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+        "serialNumber": "UAT-M-K1-SN",
+        "modelSnapshot": {
+          "id": "670bf5e0-6eff-448c-9819-aba8348f292a",
+          "code": "MVT-00001",
+          "name": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít",
+          "images": [
+            {
+              "id": "5cce5704-59fd-4a5d-b21b-62a045630318",
+              "isCover": true,
+              "sortOrder": 0,
+              "externalUrl": null,
+              "storagePath": "objects/ec16d233-7850-4e88-bf1e-9df69e679364/binh-chua-chay-viet-nam-ecosafe-es2-2lit-768x1071.jpg"
+            },
+            {
+              "id": "7b5c633b-c839-40d2-af2b-1638965656f5",
+              "isCover": false,
+              "sortOrder": 1,
+              "externalUrl": null,
+              "storagePath": "objects/aaf8c224-3418-4c02-aaf6-cac97ab957a8/binh-chua-chay-viet-nam-ecosafe-es2-2lit-1.jpg"
+            }
+          ],
+          "groupId": "f83a6f7b-6e00-4e31-a96f-db80051fcff8",
+          "capturedAt": "2026-10-22T06:31:30.633911",
+          "description": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít dung tính chất chữa cháy bên trong bình 2 lít được thiết kế nhỏ gọn với đường kính 11cm và chiều cao 31cm thuận tiện trong việc lắp đặt trong các cửa hàng buôn bán, văn phòng hay các khu vực nhà ở chung cư phục vụ an toàn cho cá nhân ở khu vực nhỏ.",
+          "externalCodes": [],
+          "specifications": [
+            {
+              "id": "3dd75a80-ca6c-4f70-87d6-fe0f1d1a3b86",
+              "name": "Mã sản phẩm",
+              "isList": false,
+              "values": ["ES2"],
+              "dataType": "text",
+              "valueLabels": []
+            },
+            {
+              "id": "33ca16bf-6cad-4619-855a-18683d877505",
+              "name": "Màu vỏ",
+              "isList": true,
+              "values": ["#4caf50", "#1677ff"],
+              "dataType": "color",
+              "valueLabels": ["Xanh lục", "Xanh lam"]
+            },
+            {
+              "id": "94d8c994-0a8f-4f46-87cf-a41dda2c590d",
+              "name": "Dung tích",
+              "isList": true,
+              "values": ["1 lít", "2 lít"],
+              "dataType": "text",
+              "valueLabels": []
+            }
+          ],
+          "requiresInspection": false
+        },
+        "borrowerPartyId": null,
+        "reservationStatus": null,
+        "reservedHandoverId": null,
+        "descriptionOverride": null,
+        "activeLoanHandoverId": null,
+        "specificationOverrides": {},
+        "specificationOverrideLabels": {}
+      }
+    },
+    {
+      "name": "P00 revoke P04 K1 via save_account_access",
+      "status": 204,
+      "ok": true,
+      "data": ""
+    },
+    {
+      "name": "P04 same session K1 after revocation",
+      "status": 403,
+      "ok": false,
+      "data": {
+        "code": "42501",
+        "details": null,
+        "hint": null,
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "P04 same session receipt K1 after revocation",
+      "status": 403,
+      "ok": false,
+      "data": {
+        "code": "42501",
+        "details": null,
+        "hint": null,
+        "message": "Permission denied to view receipt"
+      }
+    },
+    {
+      "name": "P04 same session B1 retained",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "b9f3e402-8bea-49a6-b12d-a98a3bedb7a3",
+        "code": "UAT-M-B1",
+        "note": "UAT baseline",
+        "images": [],
+        "status": "available",
+        "modelId": "670bf5e0-6eff-448c-9819-aba8348f292a",
+        "version": 1,
+        "isActive": true,
+        "condition": "good",
+        "createdAt": "2026-10-22T06:31:30.633911+00:00",
+        "updatedAt": "2026-10-22T06:31:30.633911+00:00",
+        "nameOverride": "UAT-M-B1",
+        "ownerPartyId": "c95e6074-9e69-40ee-a6c1-8e2d8af8d1dd",
+        "serialNumber": "UAT-M-B1-SN",
+        "modelSnapshot": {
+          "id": "670bf5e0-6eff-448c-9819-aba8348f292a",
+          "code": "MVT-00001",
+          "name": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít",
+          "images": [
+            {
+              "id": "5cce5704-59fd-4a5d-b21b-62a045630318",
+              "isCover": true,
+              "sortOrder": 0,
+              "externalUrl": null,
+              "storagePath": "objects/ec16d233-7850-4e88-bf1e-9df69e679364/binh-chua-chay-viet-nam-ecosafe-es2-2lit-768x1071.jpg"
+            },
+            {
+              "id": "7b5c633b-c839-40d2-af2b-1638965656f5",
+              "isCover": false,
+              "sortOrder": 1,
+              "externalUrl": null,
+              "storagePath": "objects/aaf8c224-3418-4c02-aaf6-cac97ab957a8/binh-chua-chay-viet-nam-ecosafe-es2-2lit-1.jpg"
+            }
+          ],
+          "groupId": "f83a6f7b-6e00-4e31-a96f-db80051fcff8",
+          "capturedAt": "2026-10-22T06:31:30.633911",
+          "description": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít dung tính chất chữa cháy bên trong bình 2 lít được thiết kế nhỏ gọn với đường kính 11cm và chiều cao 31cm thuận tiện trong việc lắp đặt trong các cửa hàng buôn bán, văn phòng hay các khu vực nhà ở chung cư phục vụ an toàn cho cá nhân ở khu vực nhỏ.",
+          "externalCodes": [],
+          "specifications": [
+            {
+              "id": "3dd75a80-ca6c-4f70-87d6-fe0f1d1a3b86",
+              "name": "Mã sản phẩm",
+              "isList": false,
+              "values": ["ES2"],
+              "dataType": "text",
+              "valueLabels": []
+            },
+            {
+              "id": "33ca16bf-6cad-4619-855a-18683d877505",
+              "name": "Màu vỏ",
+              "isList": true,
+              "values": ["#4caf50", "#1677ff"],
+              "dataType": "color",
+              "valueLabels": ["Xanh lục", "Xanh lam"]
+            },
+            {
+              "id": "94d8c994-0a8f-4f46-87cf-a41dda2c590d",
+              "name": "Dung tích",
+              "isList": true,
+              "values": ["1 lít", "2 lít"],
+              "dataType": "text",
+              "valueLabels": []
+            }
+          ],
+          "requiresInspection": false
+        },
+        "borrowerPartyId": null,
+        "reservationStatus": null,
+        "reservedHandoverId": null,
+        "descriptionOverride": null,
+        "activeLoanHandoverId": null,
+        "specificationOverrides": {},
+        "specificationOverrideLabels": {}
+      }
+    },
+    {
+      "name": "P04 same session K1 mutation denied",
+      "status": 403,
+      "ok": false,
+      "data": {
+        "code": "42501",
+        "details": null,
+        "hint": null,
+        "message": "Material is outside the permitted management scope"
+      }
+    },
+    {
+      "name": "P04 fresh session K1 after revocation",
+      "status": 403,
+      "ok": false,
+      "data": {
+        "code": "42501",
+        "details": null,
+        "hint": null,
+        "message": "Permission denied to view material"
+      }
+    },
+    {
+      "name": "P00 restore P04 K1",
+      "status": 204,
+      "ok": true,
+      "data": ""
+    },
+    {
+      "name": "P04 same session K1 after restore",
+      "status": 200,
+      "ok": true,
+      "data": {
+        "id": "1c0c280e-7d13-4ed0-8225-5a0c97291e65",
+        "code": "UAT-M-K1",
+        "note": "UAT baseline",
+        "images": [],
+        "status": "available",
+        "modelId": "670bf5e0-6eff-448c-9819-aba8348f292a",
+        "version": 1,
+        "isActive": true,
+        "condition": "good",
+        "createdAt": "2026-10-22T06:31:30.633911+00:00",
+        "updatedAt": "2026-10-22T06:31:30.633911+00:00",
+        "nameOverride": "UAT-M-K1",
+        "ownerPartyId": "7ffcf453-6aea-4b8e-b667-0767e586e91e",
+        "serialNumber": "UAT-M-K1-SN",
+        "modelSnapshot": {
+          "id": "670bf5e0-6eff-448c-9819-aba8348f292a",
+          "code": "MVT-00001",
+          "name": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít",
+          "images": [
+            {
+              "id": "5cce5704-59fd-4a5d-b21b-62a045630318",
+              "isCover": true,
+              "sortOrder": 0,
+              "externalUrl": null,
+              "storagePath": "objects/ec16d233-7850-4e88-bf1e-9df69e679364/binh-chua-chay-viet-nam-ecosafe-es2-2lit-768x1071.jpg"
+            },
+            {
+              "id": "7b5c633b-c839-40d2-af2b-1638965656f5",
+              "isCover": false,
+              "sortOrder": 1,
+              "externalUrl": null,
+              "storagePath": "objects/aaf8c224-3418-4c02-aaf6-cac97ab957a8/binh-chua-chay-viet-nam-ecosafe-es2-2lit-1.jpg"
+            }
+          ],
+          "groupId": "f83a6f7b-6e00-4e31-a96f-db80051fcff8",
+          "capturedAt": "2026-10-22T06:31:30.633911",
+          "description": "Bình chữa cháy Việt Nam Ecosafe ES2 2 lít dung tính chất chữa cháy bên trong bình 2 lít được thiết kế nhỏ gọn với đường kính 11cm và chiều cao 31cm thuận tiện trong việc lắp đặt trong các cửa hàng buôn bán, văn phòng hay các khu vực nhà ở chung cư phục vụ an toàn cho cá nhân ở khu vực nhỏ.",
+          "externalCodes": [],
+          "specifications": [
+            {
+              "id": "3dd75a80-ca6c-4f70-87d6-fe0f1d1a3b86",
+              "name": "Mã sản phẩm",
+              "isList": false,
+              "values": ["ES2"],
+              "dataType": "text",
+              "valueLabels": []
+            },
+            {
+              "id": "33ca16bf-6cad-4619-855a-18683d877505",
+              "name": "Màu vỏ",
+              "isList": true,
+              "values": ["#4caf50", "#1677ff"],
+              "dataType": "color",
+              "valueLabels": ["Xanh lục", "Xanh lam"]
+            },
+            {
+              "id": "94d8c994-0a8f-4f46-87cf-a41dda2c590d",
+              "name": "Dung tích",
+              "isList": true,
+              "values": ["1 lít", "2 lít"],
+              "dataType": "text",
+              "valueLabels": []
+            }
+          ],
+          "requiresInspection": false
+        },
+        "borrowerPartyId": null,
+        "reservationStatus": null,
+        "reservedHandoverId": null,
+        "descriptionOverride": null,
+        "activeLoanHandoverId": null,
+        "specificationOverrides": {},
+        "specificationOverrideLabels": {}
+      }
+    }
+  ]
+}

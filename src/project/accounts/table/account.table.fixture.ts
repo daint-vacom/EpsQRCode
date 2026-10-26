@@ -7,6 +7,14 @@ const spec: TableSpec = {
   columns: [
     {
       kind: 'custom',
+      id: 'status',
+      header: ' ',
+      headerClassName: 'w-12 text-center',
+      cellClassName: 'text-center',
+      size: 48,
+    },
+    {
+      kind: 'custom',
       id: 'identity',
       header: 'Tài khoản',
       headerMessageId: 'accounts.columns.account',
@@ -15,37 +23,23 @@ const spec: TableSpec = {
     {
       kind: 'custom',
       id: 'accountType',
-      header: 'Loại',
+      header: 'Loại tài khoản',
       headerMessageId: 'accounts.columns.type',
-      sizePreset: 'badge',
+      sizePreset: 'compact',
     },
     {
       kind: 'custom',
       id: 'organization',
-      header: 'Đơn vị / tổ',
+      header: 'Đơn vị',
       headerMessageId: 'accounts.columns.organization',
       sizePreset: 'long',
-    },
-    {
-      kind: 'custom',
-      id: 'warehouses',
-      header: 'Kho phụ trách',
-      headerMessageId: 'accounts.columns.warehouses',
-      sizePreset: 'medium',
     },
     {
       kind: 'custom',
       id: 'roles',
       header: 'Vai trò',
       headerMessageId: 'accounts.columns.roles',
-      sizePreset: 'medium',
-    },
-    {
-      kind: 'custom',
-      id: 'status',
-      header: 'Trạng thái',
-      headerMessageId: 'accounts.columns.status',
-      sizePreset: 'badge',
+      sizePreset: 'tags',
     },
     {
       kind: 'actions',

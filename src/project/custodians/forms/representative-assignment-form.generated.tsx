@@ -1,5 +1,5 @@
 /**
- * Scaffolded by form-builder from `src/project/handover/forms/custodian.form.fixture.ts`. Run `npm run gen:form` — do NOT hand-write this file.
+ * Scaffolded by form-builder from `src/project/custodians/forms/representative-assignment.form.fixture.ts`. Run `npm run gen:form` — do NOT hand-write this file.
  * You own this file now — keep create and edit dialog state separate in the parent. Create forms
  * keep their draft when closed; edit forms reset after the selected entity is assigned on the next
  * open. Never clear the selected entity or reset the form while an edit dialog is closing. To change
@@ -29,59 +29,53 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { OptionSelect } from '@/components/ui/option-select';
-import type { SelectOption } from '@/components/ui/option-select';
+import { MultiSelect } from '@/components/ui/multi-select';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
-import type { Custodian } from '../../custodians/model/custodian';
 import {
-  custodianFormSchema,
-  type CustodianFormValues,
-} from '../../custodians/model/custodian-form-schema';
+  representativeAssignmentFormSchema,
+  type RepresentativeAssignment,
+  type RepresentativeAssignmentFormValues,
+} from '../model/representative-assignment';
 
-export const custodianDefaultValues: CustodianFormValues = {
-  sourceKey: '',
-  representativeUserId: '',
-};
+export const representativeAssignmentDefaultValues: RepresentativeAssignmentFormValues =
+  {
+    userIds: [],
+  };
 
-type CustodianFormSource = Custodian;
+type RepresentativeAssignmentFormSource = RepresentativeAssignment;
 
-export function useCustodianForm(
-  options?: Omit<UseFormProps<CustodianFormValues>, 'resolver'>,
+export function useRepresentativeAssignmentForm(
+  options?: Omit<UseFormProps<RepresentativeAssignmentFormValues>, 'resolver'>,
 ) {
-  return useForm<CustodianFormValues>({
-    resolver: zodResolver(custodianFormSchema),
-    defaultValues: custodianDefaultValues,
+  return useForm<RepresentativeAssignmentFormValues>({
+    resolver: zodResolver(representativeAssignmentFormSchema),
+    defaultValues: representativeAssignmentDefaultValues,
     ...options,
   });
 }
 
-export function mapCustodianToFormValues(
-  entity: CustodianFormSource,
-): CustodianFormValues {
-  return {
-    sourceKey:
-      entity.sourceType && entity.sourceId
-        ? `${entity.sourceType}:${entity.sourceId}`
-        : '',
-    representativeUserId: entity.representativeUserId ?? '',
-  };
+export function mapRepresentativeAssignmentToFormValues(
+  entity: RepresentativeAssignmentFormSource,
+): RepresentativeAssignmentFormValues {
+  return { userIds: [...entity.userIds] };
 }
 
-interface CustodianFormProps {
-  form: UseFormReturn<CustodianFormValues>;
-  onSubmit: (values: CustodianFormValues) => void;
+interface RepresentativeAssignmentFormProps {
+  form: UseFormReturn<RepresentativeAssignmentFormValues>;
+  onSubmit: (values: RepresentativeAssignmentFormValues) => void;
   id?: string;
-  sourceKeyOptions: SelectOption[];
-  representativeUserIdOptions: SelectOption[];
+  disabled?: boolean;
+  userIdsOptions: MultiSelectOption[];
 }
 
-export function CustodianForm({
+export function RepresentativeAssignmentForm({
   form,
   onSubmit,
-  id = 'custodian-form',
-  sourceKeyOptions,
-  representativeUserIdOptions,
-}: CustodianFormProps) {
+  id = 'representativeAssignment-form',
+  disabled = false,
+  userIdsOptions,
+}: RepresentativeAssignmentFormProps) {
   const intl = useIntl();
   return (
     <Form {...form}>
@@ -89,7 +83,7 @@ export function CustodianForm({
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
           <FormField
             control={form.control}
-            name="sourceKey"
+            name="userIds"
             render={({ field }) => (
               <FormItem
                 className="md:col-span-12"
@@ -98,43 +92,27 @@ export function CustodianForm({
               >
                 <FormLabel>
                   {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.epsSource',
-                  })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <OptionSelect
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={sourceKeyOptions}
-                    searchable={false}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="representativeUserId"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.representative',
+                    id: 'custodians.representatives.fields.accounts',
                   })}
                 </FormLabel>
                 <FormControl>
-                  <OptionSelect
+                  <MultiSelect
                     value={field.value}
                     onChange={field.onChange}
-                    options={representativeUserIdOptions}
-                    searchable={false}
+                    options={userIdsOptions}
+                    disabled={disabled}
+                    placeholder={intl.formatMessage({
+                      id: 'custodians.representatives.select.placeholder',
+                    })}
+                    searchPlaceholder={intl.formatMessage({
+                      id: 'custodians.representatives.select.search',
+                    })}
+                    emptyMessage={intl.formatMessage({
+                      id: 'custodians.representatives.select.empty',
+                    })}
+                    ariaLabel={intl.formatMessage({
+                      id: 'custodians.representatives.fields.accounts',
+                    })}
                   />
                 </FormControl>
                 <FormMessage />
@@ -147,19 +125,18 @@ export function CustodianForm({
   );
 }
 
-interface CustodianFormDialogProps {
+interface RepresentativeAssignmentFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
-  form: UseFormReturn<CustodianFormValues>;
-  onSubmit: (values: CustodianFormValues) => void;
+  form: UseFormReturn<RepresentativeAssignmentFormValues>;
+  onSubmit: (values: RepresentativeAssignmentFormValues) => void;
   isSaving?: boolean;
   title?: string;
-  sourceKeyOptions: SelectOption[];
-  representativeUserIdOptions: SelectOption[];
+  userIdsOptions: MultiSelectOption[];
 }
 
-export function CustodianFormDialog({
+export function RepresentativeAssignmentFormDialog({
   open,
   onOpenChange,
   mode,
@@ -167,9 +144,8 @@ export function CustodianFormDialog({
   onSubmit,
   isSaving = false,
   title,
-  sourceKeyOptions,
-  representativeUserIdOptions,
-}: CustodianFormDialogProps) {
+  userIdsOptions,
+}: RepresentativeAssignmentFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -211,18 +187,18 @@ export function CustodianFormDialog({
             <DialogTitle>
               {title ??
                 intl.formatMessage({
-                  id: 'project.handover.custodians.dialogs.createTitle',
+                  id: 'custodians.representatives.dialog.title',
                 })}
             </DialogTitle>
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <CustodianForm
+            <RepresentativeAssignmentForm
               form={form}
               onSubmit={onSubmit}
-              id="custodian-form"
-              sourceKeyOptions={sourceKeyOptions}
-              representativeUserIdOptions={representativeUserIdOptions}
+              id="representativeAssignment-form"
+              disabled={isSaving}
+              userIdsOptions={userIdsOptions}
             />
           </div>
 
@@ -247,7 +223,7 @@ export function CustodianFormDialog({
               <Button
                 type="submit"
                 variant="primary"
-                form="custodian-form"
+                form="representativeAssignment-form"
                 loading={isSaving}
                 loadingText={intl.formatMessage({ id: 'common.state.saving' })}
               >

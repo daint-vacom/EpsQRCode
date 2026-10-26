@@ -6,6 +6,11 @@ import {
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DataGrid } from '@/components/ui/data-grid';
+import {
+  createColumnHelpers,
+  DataGridActionButton,
+  getDataGridActionsColumnSize,
+} from '@/components/ui/data-grid-columns';
 import { DataGridTable } from './data-grid-table';
 
 interface TestRow {
@@ -89,6 +94,39 @@ function PinnedTable() {
 
   return (
     <DataGrid table={table} recordCount={1}>
+      <DataGridTable />
+    </DataGrid>
+  );
+}
+
+function ActionSpacingTable({ dense }: { dense: boolean }) {
+  const col = createColumnHelpers<TestRow>();
+  const table = useReactTable({
+    data: [{ id: '1', name: 'Tài khoản mẫu' }],
+    columns: [
+      col.actions({
+        id: 'actions',
+        header: '',
+        size: getDataGridActionsColumnSize(1),
+        cell: () => (
+          <DataGridActionButton
+            action="edit"
+            type="button"
+            mode="icon"
+            size="sm"
+            aria-label="Sửa"
+          >
+            <span className="size-4" aria-hidden="true" />
+          </DataGridActionButton>
+        ),
+      }),
+    ],
+    state: { columnPinning: { right: ['actions'] } },
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  return (
+    <DataGrid table={table} recordCount={1} tableLayout={{ dense }}>
       <DataGridTable />
     </DataGrid>
   );
@@ -183,5 +221,19 @@ describe('DataGridTable loading state', () => {
     expect(pinnedHeader).toHaveStyle({ position: 'sticky' });
     expect(pinnedHeader).toHaveTextContent('Thao tác');
     expect(screen.queryByText('Ghim phải')).not.toBeInTheDocument();
+  });
+});
+
+describe('DataGridTable action column spacing', () => {
+  it.each([false, true])('fits the action button with dense=%s', (dense) => {
+    render(<ActionSpacingTable dense={dense} />);
+
+    const cell = screen.getByRole('cell');
+    const button = screen.getByRole('button', { name: 'Sửa' });
+
+    expect(cell).toHaveClass('px-2.5');
+    expect(cell).not.toHaveClass('px-6');
+    expect(cell).toHaveStyle({ width: '48px' });
+    expect(button).toHaveClass('w-7', 'h-7', 'p-0');
   });
 });
