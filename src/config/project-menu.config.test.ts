@@ -7,30 +7,38 @@ import {
 describe('PROJECT_MENU_GROUPS', () => {
   it('includes material operations and shared administration surfaces', () => {
     expect(PROJECT_MENU_GROUPS.map((group) => group.title)).toEqual([
-      'Quản lý vật tư',
+      'Không gian làm việc',
+      'Báo cáo',
       'Quản trị tổ chức',
       'Hệ thống',
     ]);
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
-      'Vật tư',
-      'Phiếu bàn giao',
-      'Kho',
+      'Quản lý vật tư',
       'Phiếu nhập vật tư',
-      'Mẫu vật tư',
-      'Nhóm vật tư',
-      'Thông số VT',
+      'Phiếu bàn giao',
     ]);
     expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
-      'Đơn vị EPS',
-      'Tài khoản đăng nhập',
-      'Đơn vị ngoài',
-      'Tệp lưu trữ',
-      'Phân quyền',
-      'Danh mục',
+      'Báo cáo',
     ]);
     expect(PROJECT_MENU_GROUPS[2]?.items.map((item) => item.label)).toEqual([
+      'Mẫu vật tư',
+      'Nhóm vật tư',
+      'Thông số kỹ thuật',
+      'Kho',
+      'Đơn vị EPS',
+      'Đơn vị ngoài',
+      'Tệp lưu trữ',
+      'Tài khoản đăng nhập',
+      'Phân quyền',
+    ]);
+    expect(PROJECT_MENU_GROUPS[3]?.items.map((item) => item.label)).toEqual([
       'Cài đặt',
     ]);
+    expect(
+      PROJECT_MENU_GROUPS.flatMap((group) => group.items).some(
+        (item) => item.path === '/danh-muc',
+      ),
+    ).toBe(false);
     expect(PROJECT_ENTITY_ORDER).toEqual(['employee']);
   });
 });

@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 
 export interface MenuItemConfig {
   label: string;
+  labelMessageId?: string;
   icon: LucideIcon;
   path?: string;
   wireframePath?: string;
@@ -10,6 +11,7 @@ export interface MenuItemConfig {
 
 export interface MenuGroupConfig {
   title: string;
+  titleMessageId?: string;
   items: MenuItemConfig[];
 }
 

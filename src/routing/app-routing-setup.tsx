@@ -65,6 +65,7 @@ import { TagsPage } from '@/project/pages/tags-page';
 import { MaterialReceiptDetailPage } from '@/project/receipts/pages/material-receipt-detail-page';
 import { MaterialReceiptEditorPage } from '@/project/receipts/pages/material-receipt-editor-page';
 import { MaterialReceiptsPage } from '@/project/receipts/pages/material-receipts-page';
+import { ReportsPage } from '@/project/reports/pages/reports-page';
 import { WarehousesPage } from '@/project/warehouses/pages/warehouses-page';
 import { Navigate, Route, Routes } from 'react-router';
 import { DetailEntryLayout } from '@/components/layouts/detail-entry-layout';
@@ -242,6 +243,7 @@ export function AppRoutingSetup() {
             element={<MaterialListPage />}
           />
           <Route path={ROUTES.PROJECT.HANDOVERS} element={<HandoversPage />} />
+          <Route path={ROUTES.PROJECT.REPORTS} element={<ReportsPage />} />
           <Route
             path={ROUTES.PROJECT.WAREHOUSES}
             element={<WarehousesPage />}

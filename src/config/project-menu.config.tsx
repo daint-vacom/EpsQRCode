@@ -1,6 +1,7 @@
 import { ROUTES } from '@/constants/routes';
 import {
   ArrowRightLeft,
+  BarChart3,
   Boxes,
   Building2,
   ClipboardPlus,
@@ -10,7 +11,6 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
-  Tags,
   Users,
 } from 'lucide-react';
 import type { MenuGroupConfig } from './menu.types';
@@ -18,76 +18,111 @@ import type { MenuGroupConfig } from './menu.types';
 /** Shared administration surfaces for the materials-management application. */
 export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   {
-    title: 'Quản lý vật tư',
+    title: 'Không gian làm việc',
+    titleMessageId: 'project.navigation.groups.workspace',
     items: [
       {
-        label: 'Vật tư',
+        label: 'Quản lý vật tư',
+        labelMessageId: 'project.navigation.materials',
         icon: Package,
         path: ROUTES.PROJECT.MATERIALS,
       },
       {
-        label: 'Phiếu bàn giao',
-        icon: ArrowRightLeft,
-        path: ROUTES.PROJECT.HANDOVERS,
-      },
-      {
-        label: 'Kho',
-        icon: Building2,
-        path: ROUTES.PROJECT.WAREHOUSES,
-      },
-      {
         label: 'Phiếu nhập vật tư',
+        labelMessageId: 'project.navigation.receipts',
         icon: ClipboardPlus,
         path: ROUTES.PROJECT.RECEIPTS,
       },
       {
-        label: 'Mẫu vật tư',
-        icon: Boxes,
-        path: ROUTES.PROJECT.MATERIAL_MODELS,
+        label: 'Phiếu bàn giao',
+        labelMessageId: 'project.navigation.handovers',
+        icon: ArrowRightLeft,
+        path: ROUTES.PROJECT.HANDOVERS,
       },
+    ],
+  },
+  {
+    title: 'Báo cáo',
+    titleMessageId: 'project.navigation.groups.reports',
+    items: [
       {
-        label: 'Nhóm vật tư',
-        icon: Folder,
-        path: ROUTES.PROJECT.MATERIAL_GROUPS,
-      },
-      {
-        label: 'Thông số VT',
-        icon: SlidersHorizontal,
-        path: ROUTES.PROJECT.MATERIAL_SPECIFICATIONS,
+        label: 'Báo cáo',
+        labelMessageId: 'project.navigation.reports',
+        icon: BarChart3,
+        path: ROUTES.PROJECT.REPORTS,
       },
     ],
   },
   {
     title: 'Quản trị tổ chức',
+    titleMessageId: 'project.navigation.groups.organization',
     items: [
       {
+        label: 'Mẫu vật tư',
+        labelMessageId: 'project.navigation.materialModels',
+        icon: Boxes,
+        path: ROUTES.PROJECT.MATERIAL_MODELS,
+      },
+      {
+        label: 'Nhóm vật tư',
+        labelMessageId: 'project.navigation.materialGroups',
+        icon: Folder,
+        path: ROUTES.PROJECT.MATERIAL_GROUPS,
+      },
+      {
+        label: 'Thông số kỹ thuật',
+        labelMessageId: 'project.navigation.materialSpecifications',
+        icon: SlidersHorizontal,
+        path: ROUTES.PROJECT.MATERIAL_SPECIFICATIONS,
+      },
+      {
+        label: 'Kho',
+        labelMessageId: 'project.navigation.warehouses',
+        icon: Building2,
+        path: ROUTES.PROJECT.WAREHOUSES,
+      },
+      {
         label: 'Đơn vị EPS',
+        labelMessageId: 'project.navigation.epsOrganizations',
         icon: Building2,
         path: ROUTES.PROJECT.EPS_ORGANIZATIONS,
       },
       {
+        label: 'Đơn vị ngoài',
+        labelMessageId: 'project.navigation.externalOrganizations',
+        icon: Building2,
+        path: ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS,
+      },
+      {
+        label: 'Tệp lưu trữ',
+        labelMessageId: 'project.navigation.files',
+        icon: FolderOpen,
+        path: ROUTES.PROJECT.FILES,
+      },
+      {
         label: 'Tài khoản đăng nhập',
+        labelMessageId: 'project.navigation.accounts',
         icon: Users,
         path: ROUTES.PROJECT.ACCOUNTS,
       },
       {
-        label: 'Đơn vị ngoài',
-        icon: Building2,
-        path: ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS,
-      },
-      { label: 'Tệp lưu trữ', icon: FolderOpen, path: ROUTES.PROJECT.FILES },
-      {
         label: 'Phân quyền',
+        labelMessageId: 'project.navigation.rolePermissions',
         icon: ShieldCheck,
         path: ROUTES.PROJECT.ROLE_PERMISSIONS,
       },
-      { label: 'Danh mục', icon: Tags, path: ROUTES.PROJECT.TAGS },
     ],
   },
   {
     title: 'Hệ thống',
+    titleMessageId: 'project.navigation.groups.system',
     items: [
-      { label: 'Cài đặt', icon: Settings, path: ROUTES.PROJECT.SETTINGS },
+      {
+        label: 'Cài đặt',
+        labelMessageId: 'project.navigation.settings',
+        icon: Settings,
+        path: ROUTES.PROJECT.SETTINGS,
+      },
     ],
   },
 ];

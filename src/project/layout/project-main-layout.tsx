@@ -52,6 +52,9 @@ export function ProjectMainLayout() {
       : appearance.sidebarTheme;
   const menuGroups = PROJECT_MENU_GROUPS.map((group) => ({
     ...group,
+    title: group.titleMessageId
+      ? intl.formatMessage({ id: group.titleMessageId })
+      : group.title,
     items: group.items
       .filter((item) => {
         const requirement = item.path
@@ -68,7 +71,12 @@ export function ProjectMainLayout() {
               ...item,
               label: intl.formatMessage({ id: requirement.messageId }),
             }
-          : item;
+          : item.labelMessageId
+            ? {
+                ...item,
+                label: intl.formatMessage({ id: item.labelMessageId }),
+              }
+            : item;
       }),
   })).filter((group) => group.items.length > 0);
   const menuItems = menuGroups.flatMap((group) => group.items);

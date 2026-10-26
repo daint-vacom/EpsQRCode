@@ -27,6 +27,7 @@ export const ROUTES = {
   },
   PROJECT: {
     MATERIALS: '/vat-tu',
+    REPORTS: '/bao-cao',
     MATERIAL_CREATE: '/vat-tu/tao-moi',
     MATERIAL_EDIT: '/vat-tu/:id/chinh-sua',
     MATERIAL_DETAIL: '/vat-tu/:id',
