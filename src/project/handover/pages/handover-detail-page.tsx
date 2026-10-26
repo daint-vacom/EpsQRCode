@@ -92,10 +92,25 @@ export function HandoverDetailPage() {
   const recipientParty = custodianList.find(
     (party) => party.id === document?.recipientParty.id,
   );
-  const isSender = Boolean(userId && senderParty?.canRepresent);
-  const isReceiver = Boolean(userId && recipientParty?.canRepresent);
+  const isSender = Boolean(
+    userId && (senderParty?.canRepresent || document?.senderCanRepresent),
+  );
+  const isReceiver = Boolean(
+    userId &&
+    document?.recipientParty.type !== 'other' &&
+    !document?.recipientParty.isHandoverCustom &&
+    (recipientParty?.canRepresent || document?.recipientCanRepresent),
+  );
   const items = document?.items ?? EMPTY_ITEMS;
   const isWarehouseHandover = Boolean(document && document.mode !== 'standard');
+  const hasOtherParty = Boolean(
+    document &&
+    (document.senderParty.type === 'other' ||
+      document.senderParty.isHandoverCustom ||
+      document.recipientParty.type === 'other' ||
+      document.recipientParty.isHandoverCustom),
+  );
+  const isHandoverCreator = Boolean(userId && document?.createdBy === userId);
   const canEditOrSend = Boolean(
     canManage &&
     document?.status === 'draft' &&
@@ -114,7 +129,14 @@ export function HandoverDetailPage() {
         (document.status === 'pending' && isSender)
       : isSender && ['draft', 'pending'].includes(document.status)),
   );
-  const canReceive = Boolean(
+  const canConfirm = Boolean(
+    canManage &&
+    document?.status === 'pending' &&
+    (hasOtherParty
+      ? isHandoverCreator && (isSender || isReceiver)
+      : isReceiver),
+  );
+  const canReject = Boolean(
     canManage && isReceiver && document?.status === 'pending',
   );
   const canCompleteOffline = Boolean(
@@ -123,7 +145,16 @@ export function HandoverDetailPage() {
     document?.mode === 'standard' &&
     document.status === 'pending' &&
     document.recipientHasQrAccount === false &&
+    !hasOtherParty &&
     !isReceiver,
+  );
+  const canCreateReverse = Boolean(
+    canManage &&
+    isSender &&
+    document?.mode === 'standard' &&
+    document.status === 'completed' &&
+    document.recipientParty.isHandoverCustom &&
+    ['transfer', 'loan'].includes(document.type),
   );
 
   const runAction = useCallback(
@@ -279,19 +310,21 @@ export function HandoverDetailPage() {
               </Button>
             </>
           ) : null}
-          {canReceive ? (
+          {canReject ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => {
+                setReasonAction('reject');
+                setReason('');
+              }}
+            >
+              {intl.formatMessage({ id: 'project.handover.actions.reject' })}
+            </Button>
+          ) : null}
+          {canConfirm ? (
             <>
-              <Button
-                type="button"
-                variant="secondary"
-                size="md"
-                onClick={() => {
-                  setReasonAction('reject');
-                  setReason('');
-                }}
-              >
-                {intl.formatMessage({ id: 'project.handover.actions.reject' })}
-              </Button>
               <Button
                 type="button"
                 variant="primary"
@@ -334,6 +367,26 @@ export function HandoverDetailPage() {
               })}
             </Button>
           ) : null}
+          {canCreateReverse ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() =>
+                navigate(
+                  `${ROUTES.PROJECT.HANDOVER_CREATE}?reverseFrom=${document.id}`,
+                )
+              }
+            >
+              <Boxes className="size-4" />
+              {intl.formatMessage({
+                id:
+                  document.type === 'loan'
+                    ? 'project.handover.actions.createReverseReturn'
+                    : 'project.handover.actions.createReverseTransfer',
+              })}
+            </Button>
+          ) : null}
           {canCancel ? (
             <Button
               type="button"
@@ -353,7 +406,8 @@ export function HandoverDetailPage() {
     [
       canCancel,
       canEditOrSend,
-      canReceive,
+      canConfirm,
+      canReject,
       canManage,
       document,
       id,
@@ -362,6 +416,7 @@ export function HandoverDetailPage() {
       isSender,
       isActionPending,
       canCompleteOffline,
+      canCreateReverse,
       navigate,
       runAction,
     ],

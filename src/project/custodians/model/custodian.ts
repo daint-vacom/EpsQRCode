@@ -1,4 +1,5 @@
-export type CustodianType = 'department' | 'team' | 'person' | 'external';
+export type CustodianType =
+  'department' | 'team' | 'person' | 'external' | 'other';
 export type CustodianPartyType = CustodianType | 'warehouse';
 export type EpsCustodianSourceType =
   'eps_department' | 'eps_team' | 'eps_person';
@@ -12,14 +13,36 @@ export interface Custodian {
   sourceType: EpsCustodianSourceType | null;
   sourceId: string | null;
   canRepresent: boolean;
+  canManageHandover?: boolean;
   accountUserId: string | null;
   accountUserIds: string[];
   representativeUserId: string | null;
   representativeDisplayName: string | null;
+  representativeName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  isHandoverCustom?: boolean;
+  handoverScopePartyId?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
+export type HandoverCustomParty = Pick<
+  Custodian,
+  | 'id'
+  | 'type'
+  | 'code'
+  | 'name'
+  | 'parentId'
+  | 'canRepresent'
+  | 'isActive'
+  | 'phone'
+  | 'email'
+  | 'isHandoverCustom'
+  | 'representativeName'
+  | 'handoverScopePartyId'
+>;
 
 export interface RepresentativeAccount {
   id: string;
@@ -47,4 +70,8 @@ export interface HandoverCounterpartyOption {
   type: CustodianPartyType;
   code: string;
   name: string;
+  parentId?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  representativeName?: string | null;
 }

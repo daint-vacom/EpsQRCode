@@ -4,6 +4,7 @@ import {
   loadCustodians,
   loadEpsOrganizations,
   loadHandoverCounterpartyOptions,
+  loadHandoverCustomParties,
 } from '../api/custodians.api';
 
 export const custodianKeys = {
@@ -13,6 +14,8 @@ export const custodianKeys = {
   accountOptions: () => [...custodianKeys.all, 'account-options'] as const,
   counterpartyOptions: (partyId: string) =>
     [...custodianKeys.all, 'counterparty-options', partyId] as const,
+  handoverCustomParties: () =>
+    [...custodianKeys.all, 'handover-custom-parties'] as const,
   epsOrganizations: () => [...custodianKeys.all, 'eps-organizations'] as const,
 };
 
@@ -20,6 +23,15 @@ export function useCustodiansQuery(includeInactive = false, enabled = true) {
   return useQuery({
     queryKey: custodianKeys.list(includeInactive),
     queryFn: ({ signal }) => loadCustodians(includeInactive, signal),
+    enabled,
+    retry: 0,
+  });
+}
+
+export function useHandoverCustomPartiesQuery(enabled = true) {
+  return useQuery({
+    queryKey: custodianKeys.handoverCustomParties(),
+    queryFn: ({ signal }) => loadHandoverCustomParties(signal),
     enabled,
     retry: 0,
   });

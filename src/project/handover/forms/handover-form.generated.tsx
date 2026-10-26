@@ -50,6 +50,20 @@ export const handoverDefaultValues: HandoverFormValues = {
   type: 'transfer',
   senderPartyId: '',
   recipientPartyId: '',
+  senderPartyKind: 'eps',
+  recipientPartyKind: 'eps',
+  senderPartyCode: '',
+  recipientPartyCode: '',
+  senderPartyName: '',
+  recipientPartyName: '',
+  senderPartyPhone: '',
+  recipientPartyPhone: '',
+  senderPartyEmail: '',
+  recipientPartyEmail: '',
+  senderRepresentativeName: '',
+  recipientRepresentativeName: '',
+  senderPartyScopePartyId: '',
+  recipientPartyScopePartyId: '',
   senderRepresentativeUserId: null,
   recipientRepresentativeUserId: null,
   plannedDate: '',
@@ -57,6 +71,7 @@ export const handoverDefaultValues: HandoverFormValues = {
   note: '',
   items: [],
   attachmentFileIds: [],
+  reverseFromHandoverId: null,
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
@@ -75,10 +90,32 @@ export function useHandoverForm(
 export function mapHandoverToFormValues(
   entity: HandoverFormSource,
 ): HandoverFormValues {
+  const partyKind = (party: HandoverDocument['senderParty']) =>
+    party.isHandoverCustom || party.type === 'other'
+      ? 'other'
+      : party.type === 'external'
+        ? 'external'
+        : 'eps';
   return {
     type: entity.type,
     senderPartyId: entity.senderParty.id,
     recipientPartyId: entity.recipientParty.id,
+    senderPartyKind: partyKind(entity.senderParty),
+    recipientPartyKind: partyKind(entity.recipientParty),
+    senderPartyCode: entity.senderParty.code,
+    recipientPartyCode: entity.recipientParty.code,
+    senderPartyName: entity.senderParty.name,
+    recipientPartyName: entity.recipientParty.name,
+    senderPartyPhone: entity.senderParty.phone ?? '',
+    recipientPartyPhone: entity.recipientParty.phone ?? '',
+    senderPartyEmail: entity.senderParty.email ?? '',
+    recipientPartyEmail: entity.recipientParty.email ?? '',
+    senderRepresentativeName: entity.senderRepresentative?.displayName ?? '',
+    recipientRepresentativeName:
+      entity.recipientRepresentative?.displayName ?? '',
+    senderPartyScopePartyId: entity.senderParty.handoverScopePartyId ?? '',
+    recipientPartyScopePartyId:
+      entity.recipientParty.handoverScopePartyId ?? '',
     senderRepresentativeUserId: entity.senderRepresentative?.userId ?? null,
     recipientRepresentativeUserId:
       entity.recipientRepresentative?.userId ?? null,
@@ -93,6 +130,7 @@ export function mapHandoverToFormValues(
     attachmentFileIds: entity.attachments.map(
       (attachment) => attachment.fileId,
     ),
+    reverseFromHandoverId: entity.reversesHandoverId ?? null,
   };
 }
 

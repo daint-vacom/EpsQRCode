@@ -4,6 +4,7 @@ import { ROUTES } from '@/constants/routes';
 import {
   useCustodiansQuery,
   useHandoverCounterpartyOptionsQuery,
+  useHandoverCustomPartiesQuery,
 } from '@/project/custodians/hooks/use-custodians';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
@@ -83,7 +84,14 @@ export function HandoverEditorPage() {
   const { isPermissionsPending } = useWorkspace();
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
   const documentQuery = useHandoverQuery(id, isEdit && canManage);
+  const reverseFromHandoverId =
+    new URLSearchParams(location.search).get('reverseFrom') ?? '';
+  const reverseSourceQuery = useHandoverQuery(
+    reverseFromHandoverId,
+    !isEdit && Boolean(reverseFromHandoverId) && canManage,
+  );
   const custodiansQuery = useCustodiansQuery(false, canManage);
+  const customPartiesQuery = useHandoverCustomPartiesQuery(canManage);
   const saveMutation = useSaveHandoverMutation();
   const actionMutation = useHandoverActionMutation();
   const { mutateAsync: saveHandover, isPending: isSaving } = saveMutation;
@@ -111,6 +119,8 @@ export function HandoverEditorPage() {
     HandoverAttachment[]
   >([]);
   const form = useHandoverForm();
+  const lastSenderPartyIdRef = useRef<string | null>(null);
+  const senderSelectionInitializedRef = useRef(false);
   const selectedMaterialIds = (form.watch('items') ?? [])
     .map((item) => item.materialId)
     .filter(isUuid);
@@ -119,20 +129,50 @@ export function HandoverEditorPage() {
     canManage,
   );
   const document = documentQuery.data;
-  const custodianList = (custodiansQuery.data ?? []).filter(
-    (party) => party.type !== 'warehouse',
+  const reverseSource = reverseSourceQuery.data;
+  const custodianList = useMemo(
+    () =>
+      (custodiansQuery.data ?? []).filter(
+        (party) => party.type !== 'warehouse',
+      ),
+    [custodiansQuery.data],
   );
-  const sender = custodianList.find(
-    (party) => party.id === form.watch('senderPartyId'),
-  );
+  const customPartyList = customPartiesQuery.data ?? [];
   const selectedSenderPartyId = form.watch('senderPartyId');
   const counterpartiesQuery = useHandoverCounterpartyOptionsQuery(
     selectedSenderPartyId,
     canManage,
   );
-  const recipient = custodianList.find(
-    (party) => party.id === form.watch('recipientPartyId'),
-  );
+  const recipientCatalogParties = useMemo(() => {
+    const knownIds = new Set(custodianList.map((party) => party.id));
+    return [
+      ...custodianList,
+      ...(counterpartiesQuery.data ?? [])
+        .filter(
+          (party) => party.type !== 'warehouse' && !knownIds.has(party.id),
+        )
+        .map((party) => ({
+          ...party,
+          parentId: party.parentId ?? null,
+          sourceType: null,
+          sourceId: null,
+          canRepresent: false,
+          canManageHandover: false,
+          accountUserId: null,
+          accountUserIds: [],
+          representativeUserId: null,
+          representativeDisplayName: null,
+          representativeName: party.representativeName ?? null,
+          phone: party.phone ?? null,
+          email: party.email ?? null,
+          isHandoverCustom: false,
+          handoverScopePartyId: null,
+          isActive: true,
+          createdAt: '',
+          updatedAt: '',
+        })),
+    ];
+  }, [counterpartiesQuery.data, custodianList]);
   const handoverType = form.watch('type');
   const materialFilters: Omit<
     MaterialListFilters,
@@ -168,32 +208,81 @@ export function HandoverEditorPage() {
     () => new Map(materialOptions.map((material) => [material.id, material])),
     [materialOptions],
   );
-  const representativeOptions = (partyId: string) => {
-    const party = custodianList.find((item) => item.id === partyId);
-    return party?.representativeUserId
-      ? [
-          {
-            value: party.representativeUserId,
-            label: party.representativeDisplayName || party.name,
-          },
-        ]
-      : [];
-  };
-  const representedSenderOptions = custodianList
-    .filter((party) => party.isActive && party.canRepresent)
-    .map((party) => ({
-      value: party.id,
-      label: `${party.name} · ${party.code}`,
-    }));
-  const activePartyOptions = (counterpartiesQuery.data ?? []).map((party) => ({
-    value: party.id,
-    label: `${party.name} · ${party.code}`,
-  }));
+  const representedSenderOptions = custodianList.filter(
+    (party) => party.isActive && party.canRepresent && party.canManageHandover,
+  );
 
   useEffect(() => {
     if (!document) return;
-    form.reset(mapHandoverToFormValues(document));
+    const values = mapHandoverToFormValues(document);
+    form.reset(values);
+    lastSenderPartyIdRef.current = values.senderPartyId;
+    senderSelectionInitializedRef.current = true;
   }, [document, form]);
+
+  useEffect(() => {
+    if (isEdit || !reverseSource) return;
+    const source = mapHandoverToFormValues(reverseSource);
+    const values = {
+      ...source,
+      type: reverseSource.type === 'loan' ? 'return' : 'transfer',
+      senderPartyId: reverseSource.recipientParty.id,
+      recipientPartyId: reverseSource.senderParty.id,
+      senderPartyKind: source.recipientPartyKind,
+      recipientPartyKind: source.senderPartyKind,
+      senderPartyCode: reverseSource.recipientParty.code,
+      recipientPartyCode: reverseSource.senderParty.code,
+      senderPartyName: reverseSource.recipientParty.name,
+      recipientPartyName: reverseSource.senderParty.name,
+      senderPartyPhone: reverseSource.recipientParty.phone ?? '',
+      recipientPartyPhone: reverseSource.senderParty.phone ?? '',
+      senderPartyEmail: reverseSource.recipientParty.email ?? '',
+      recipientPartyEmail: reverseSource.senderParty.email ?? '',
+      senderRepresentativeName:
+        reverseSource.recipientRepresentative?.displayName ?? '',
+      recipientRepresentativeName:
+        reverseSource.senderRepresentative?.displayName ?? '',
+      senderPartyScopePartyId:
+        reverseSource.recipientParty.handoverScopePartyId ?? '',
+      recipientPartyScopePartyId:
+        reverseSource.senderParty.handoverScopePartyId ?? '',
+      senderRepresentativeUserId:
+        reverseSource.recipientRepresentative?.userId ?? null,
+      recipientRepresentativeUserId:
+        reverseSource.senderRepresentative?.userId ?? null,
+      plannedDate:
+        reverseSource.plannedDate ?? new Date().toISOString().slice(0, 10),
+      dueDate: '',
+      note: '',
+      items: reverseSource.items.map((item) => ({
+        materialId: item.materialId,
+        condition: item.senderCondition ?? item.condition,
+        note: item.note ?? '',
+      })),
+      attachmentFileIds: [],
+      expectedVersion: undefined,
+      reverseFromHandoverId: reverseSource.id,
+    };
+    form.reset(values);
+    lastSenderPartyIdRef.current = values.senderPartyId;
+    senderSelectionInitializedRef.current = true;
+  }, [form, isEdit, reverseSource]);
+
+  useEffect(() => {
+    const senderPartyId = form.getValues('senderPartyId');
+    if (!senderSelectionInitializedRef.current) {
+      lastSenderPartyIdRef.current = senderPartyId;
+      senderSelectionInitializedRef.current = true;
+      return;
+    }
+    if (
+      lastSenderPartyIdRef.current &&
+      lastSenderPartyIdRef.current !== senderPartyId
+    ) {
+      form.setValue('items', [], { shouldDirty: true, shouldValidate: true });
+    }
+    lastSenderPartyIdRef.current = senderPartyId;
+  }, [form, selectedSenderPartyId]);
 
   useEffect(() => {
     if (isEdit || !bulkMaterialIds.length) return;
@@ -478,15 +567,36 @@ export function HandoverEditorPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto p-4 lg:p-5">
-      {custodiansQuery.isPending ? (
+      {custodiansQuery.isPending ||
+      customPartiesQuery.isPending ||
+      (Boolean(reverseFromHandoverId) && reverseSourceQuery.isPending) ? (
         <div className="h-40 animate-pulse rounded-xl bg-muted" />
-      ) : custodiansQuery.isError ? (
+      ) : custodiansQuery.isError || customPartiesQuery.isError ? (
         <ErrorState
           title={intl.formatMessage({
             id: 'project.handover.errors.loadPartiesTitle',
           })}
-          description={getApiErrorMessage(custodiansQuery.error)}
-          onRetry={() => void custodiansQuery.refetch()}
+          description={getApiErrorMessage(
+            custodiansQuery.error ?? customPartiesQuery.error,
+          )}
+          onRetry={() => {
+            void custodiansQuery.refetch();
+            void customPartiesQuery.refetch();
+          }}
+        />
+      ) : reverseSourceQuery.isError ||
+        (reverseFromHandoverId &&
+          (!reverseSource ||
+            reverseSource.status !== 'completed' ||
+            !['transfer', 'loan'].includes(reverseSource.type))) ? (
+        <ErrorState
+          title={intl.formatMessage({
+            id: 'project.handover.errors.invalidReverseSourceTitle',
+          })}
+          description={intl.formatMessage({
+            id: 'project.handover.errors.invalidReverseSourceDescription',
+          })}
+          onRetry={() => void reverseSourceQuery.refetch()}
         />
       ) : (
         <Form {...form}>
@@ -503,15 +613,11 @@ export function HandoverEditorPage() {
                   })}
                   side="sender"
                   form={form}
-                  partyField="senderPartyId"
-                  representativeField="senderRepresentativeUserId"
                   parties={custodianList}
-                  partyOptions={representedSenderOptions}
-                  representativeOptions={representativeOptions(
-                    sender?.id ?? '',
-                  )}
+                  customParties={customPartyList}
                   notice={
-                    representedSenderOptions.length === 0 ? (
+                    representedSenderOptions.length === 0 &&
+                    customPartyList.length === 0 ? (
                       <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
                         {intl.formatMessage({
                           id: 'project.handover.errors.senderNotConfigured',
@@ -520,11 +626,17 @@ export function HandoverEditorPage() {
                     ) : null
                   }
                 />
-                <div className="flex flex-row items-center justify-center gap-3 rounded-lg py-1 text-center xl:flex-col xl:gap-2 xl:py-0">
-                  <div className="flex items-center gap-1 text-primary">
-                    <ArrowRight className="size-6" aria-hidden="true" />
-                    <Package className="size-10" aria-hidden="true" />
-                    <ArrowRight className="size-6" aria-hidden="true" />
+                <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-2 text-center xl:py-0">
+                  <div className="grid w-full grid-cols-3 items-center text-primary">
+                    <div className="flex items-center justify-center">
+                      <ArrowRight className="size-6" aria-hidden="true" />
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <Package className="size-10" aria-hidden="true" />
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <ArrowRight className="size-6" aria-hidden="true" />
+                    </div>
                   </div>
                   <div className="flex w-full min-w-0 max-w-64 flex-col items-center gap-2">
                     <p className="text-sm font-semibold text-foreground">
@@ -577,14 +689,8 @@ export function HandoverEditorPage() {
                   })}
                   side="recipient"
                   form={form}
-                  partyField="recipientPartyId"
-                  representativeField="recipientRepresentativeUserId"
-                  parties={custodianList}
-                  partyOptions={activePartyOptions}
-                  representativeOptions={representativeOptions(
-                    recipient?.id ?? '',
-                  )}
-                  partyOptionsLoading={counterpartiesQuery.isPending}
+                  parties={recipientCatalogParties}
+                  customParties={customPartyList}
                   notice={
                     counterpartiesQuery.isError ? (
                       <ErrorState
@@ -692,24 +798,34 @@ export function HandoverEditorPage() {
 
             <div className="grid grid-cols-1 gap-admin-page-section xl:grid-cols-[minmax(0,2.2fr)_minmax(18rem,1fr)]">
               <div className="flex min-h-[min(32rem,80dvh)] max-h-[80dvh] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
-                <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
-                  <HandoverItemsEditorTable
-                    form={form}
-                    materials={[...materialById.values()]}
-                    materialFilters={materialFilters}
-                    initialMaterialSearch={initialMaterialSearch}
-                    allowReservedByHandoverId={id || undefined}
-                    fillHeight
-                  />
-                </div>
-                {form.formState.errors.items?.message ? (
-                  <p
-                    className="shrink-0 border-t border-border px-4 py-2 text-xs text-destructive"
-                    role="alert"
-                  >
-                    {form.formState.errors.items.message}
-                  </p>
-                ) : null}
+                {selectedSenderPartyId ? (
+                  <>
+                    <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+                      <HandoverItemsEditorTable
+                        form={form}
+                        materials={[...materialById.values()]}
+                        materialFilters={materialFilters}
+                        initialMaterialSearch={initialMaterialSearch}
+                        allowReservedByHandoverId={id || undefined}
+                        fillHeight
+                      />
+                    </div>
+                    {form.formState.errors.items?.message ? (
+                      <p
+                        className="shrink-0 border-t border-border px-4 py-2 text-xs text-destructive"
+                        role="alert"
+                      >
+                        {form.formState.errors.items.message}
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                    {intl.formatMessage({
+                      id: 'project.handover.empty.chooseSenderForItems',
+                    })}
+                  </div>
+                )}
               </div>
 
               <Card className="min-h-[min(32rem,80dvh)] max-h-[80dvh] min-w-0 overflow-y-auto">

@@ -10,12 +10,18 @@ export type HandoverStatus =
   | 'cancelled';
 export type HandoverMode =
   'standard' | 'warehouse_allocation' | 'warehouse_request';
+export type HandoverPartyKind = 'eps' | 'external' | 'other';
 
 export interface HandoverPartySnapshot {
   id: string;
   code: string;
   name: string;
-  type: 'department' | 'team' | 'person' | 'external' | 'warehouse';
+  type: 'department' | 'team' | 'person' | 'external' | 'other' | 'warehouse';
+  isHandoverCustom?: boolean;
+  phone?: string | null;
+  email?: string | null;
+  handoverScopePartyId?: string | null;
+  canRepresent?: boolean;
 }
 
 export interface HandoverRepresentativeSnapshot {
@@ -56,6 +62,9 @@ export interface HandoverDocument {
   senderRepresentative: HandoverRepresentativeSnapshot | null;
   recipientRepresentative: HandoverRepresentativeSnapshot | null;
   recipientHasQrAccount: boolean;
+  senderCanRepresent?: boolean;
+  recipientCanRepresent?: boolean;
+  reversesHandoverId?: string | null;
   plannedDate: string | null;
   dueDate: string | null;
   note: string | null;
@@ -92,6 +101,20 @@ export interface HandoverFormValues {
   type: HandoverType;
   senderPartyId: string;
   recipientPartyId: string;
+  senderPartyKind: HandoverPartyKind;
+  recipientPartyKind: HandoverPartyKind;
+  senderPartyCode: string;
+  recipientPartyCode: string;
+  senderPartyName: string;
+  recipientPartyName: string;
+  senderPartyPhone: string;
+  recipientPartyPhone: string;
+  senderPartyEmail: string;
+  recipientPartyEmail: string;
+  senderRepresentativeName: string;
+  recipientRepresentativeName: string;
+  senderPartyScopePartyId: string;
+  recipientPartyScopePartyId: string;
   senderRepresentativeUserId: string | null;
   recipientRepresentativeUserId: string | null;
   plannedDate: string;
@@ -100,6 +123,7 @@ export interface HandoverFormValues {
   items: HandoverItemInput[];
   attachmentFileIds: string[];
   expectedVersion?: number;
+  reverseFromHandoverId?: string | null;
 }
 
 export type HandoverAction = 'send' | 'confirm' | 'reject' | 'cancel';

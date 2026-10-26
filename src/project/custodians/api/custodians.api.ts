@@ -3,6 +3,7 @@ import type {
   Custodian,
   EpsOrganization,
   HandoverCounterpartyOption,
+  HandoverCustomParty,
 } from '../model/custodian';
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -70,5 +71,14 @@ export async function loadHandoverCounterpartyOptions(
       { p_party_id: partyId },
       { signal },
     ),
+  );
+}
+
+export async function loadHandoverCustomParties(
+  signal?: AbortSignal,
+): Promise<HandoverCustomParty[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post('/rpc/list_handover_custom_parties', {}, { signal }),
   );
 }
