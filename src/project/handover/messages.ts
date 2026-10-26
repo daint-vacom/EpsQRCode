@@ -19,6 +19,9 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.actions.addItem': 'Thêm vật tư',
   'project.handover.actions.removeItem': 'Xóa vật tư',
   'project.handover.actions.upload': 'Chọn tệp đính kèm',
+  'project.handover.actions.changeParty': 'Thay đổi',
+  'project.handover.actions.selectSenderParty': 'Chọn bên giao',
+  'project.handover.actions.selectRecipientParty': 'Chọn bên nhận',
   'project.handover.actions.openAttachment': 'Mở tệp',
   'project.handover.fields.type': 'Loại phiếu',
   'project.handover.fields.status': 'Trạng thái',
@@ -26,6 +29,9 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.fields.recipient': 'Bên nhận',
   'project.handover.fields.senderRepresentative': 'Người đại diện giao',
   'project.handover.fields.recipientRepresentative': 'Người đại diện nhận',
+  'project.handover.fields.representative': 'Người đại diện',
+  'project.handover.fields.phone': 'Số điện thoại',
+  'project.handover.fields.email': 'Email',
   'project.handover.fields.plannedDate': 'Ngày dự kiến',
   'project.handover.fields.dueDate': 'Hạn trả',
   'project.handover.fields.note': 'Ghi chú',
@@ -45,6 +51,7 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.tabs.items': 'Danh sách vật tư',
   'project.handover.tabs.history': 'Diễn biến',
   'project.handover.status.draft': 'Bản nháp',
+  'project.handover.status.new': 'Tạo mới',
   'project.handover.status.awaiting_warehouse_approval': 'Chờ kho duyệt',
   'project.handover.status.pending': 'Chờ xác nhận',
   'project.handover.status.completed': 'Hoàn tất',
@@ -62,12 +69,16 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.empty.search': 'Không tìm thấy phiếu phù hợp.',
   'project.handover.empty.items': 'Phiếu chưa có vật tư.',
   'project.handover.empty.editorItems': 'Chưa thêm vật tư vào phiếu.',
+  'project.handover.empty.selectSender': 'Chọn đối tượng giao vật tư',
+  'project.handover.empty.selectRecipient': 'Chọn đối tượng nhận vật tư',
   'project.handover.empty.history': 'Chưa có diễn biến xử lý.',
   'project.handover.errors.loadTitle': 'Không tải được danh sách phiếu',
   'project.handover.errors.loadDetailTitle': 'Không tải được phiếu bàn giao',
   'project.handover.errors.loadPartiesTitle': 'Không tải được danh mục chủ thể',
   'project.handover.errors.loadCounterpartiesTitle':
     'Không tải được danh sách bên nhận',
+  'project.handover.errors.senderNotConfigured':
+    'Tài khoản của bạn chưa được gắn với chủ thể bên giao. Hãy cấu hình người đại diện trong danh mục chủ thể trước khi lập phiếu.',
   'project.handover.errors.noViewPermission':
     'Không có quyền xem phiếu bàn giao',
   'project.handover.errors.noManagePermission':
@@ -101,6 +112,14 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.labels.removeAttachment': 'Xóa tệp {fileName}',
   'project.handover.labels.attachmentHint':
     'Chọn tệp đính kèm, dung lượng tối đa 20 MB mỗi tệp.',
+  'project.handover.labels.selectRepresentative': 'Chọn người đại diện',
+  'project.handover.labels.transferFlow': 'Bàn giao tài sản, vật tư',
+  'project.handover.typeDescription.transfer':
+    'Chuyển quyền sở hữu vật tư từ bên giao sang bên nhận.',
+  'project.handover.typeDescription.loan':
+    'Bên nhận được sử dụng vật tư tạm thời và cần hoàn trả đúng hạn.',
+  'project.handover.typeDescription.return':
+    'Bên giao hoàn trả vật tư đã mượn cho bên nhận.',
   'project.handover.labels.uploading': 'Đang tải tệp lên',
   'project.handover.labels.saving': 'Đang lưu',
   'project.handover.labels.processing': 'Đang xử lý',
@@ -195,6 +214,9 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.actions.addItem': 'Add material',
   'project.handover.actions.removeItem': 'Remove material',
   'project.handover.actions.upload': 'Choose attachment',
+  'project.handover.actions.changeParty': 'Change',
+  'project.handover.actions.selectSenderParty': 'Select sender',
+  'project.handover.actions.selectRecipientParty': 'Select recipient',
   'project.handover.actions.openAttachment': 'Open file',
   'project.handover.fields.type': 'Handover type',
   'project.handover.fields.status': 'Status',
@@ -202,6 +224,9 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.fields.recipient': 'Recipient',
   'project.handover.fields.senderRepresentative': 'Sender representative',
   'project.handover.fields.recipientRepresentative': 'Recipient representative',
+  'project.handover.fields.representative': 'Representative',
+  'project.handover.fields.phone': 'Phone number',
+  'project.handover.fields.email': 'Email',
   'project.handover.fields.plannedDate': 'Planned date',
   'project.handover.fields.dueDate': 'Due date',
   'project.handover.fields.note': 'Note',
@@ -221,6 +246,7 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.tabs.items': 'Materials',
   'project.handover.tabs.history': 'Activity',
   'project.handover.status.draft': 'Draft',
+  'project.handover.status.new': 'New',
   'project.handover.status.awaiting_warehouse_approval':
     'Awaiting warehouse approval',
   'project.handover.status.pending': 'Pending confirmation',
@@ -239,12 +265,18 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.empty.search': 'No matching handovers found.',
   'project.handover.empty.items': 'This handover has no materials.',
   'project.handover.empty.editorItems': 'No materials added to this handover.',
+  'project.handover.empty.selectSender':
+    'Select the party handing over materials',
+  'project.handover.empty.selectRecipient':
+    'Select the party receiving materials',
   'project.handover.empty.history': 'No activity yet.',
   'project.handover.errors.loadTitle': 'Could not load handovers',
   'project.handover.errors.loadDetailTitle': 'Could not load handover',
   'project.handover.errors.loadPartiesTitle': 'Could not load custodians',
   'project.handover.errors.loadCounterpartiesTitle':
     'Could not load recipient options',
+  'project.handover.errors.senderNotConfigured':
+    'Your account is not assigned to a sender party. Configure a representative in the party catalog before creating a handover.',
   'project.handover.errors.noViewPermission':
     'You do not have permission to view handovers.',
   'project.handover.errors.noManagePermission':
@@ -278,6 +310,14 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.labels.removeAttachment': 'Remove file {fileName}',
   'project.handover.labels.attachmentHint':
     'Choose attachments, up to 20 MB per file.',
+  'project.handover.labels.selectRepresentative': 'Select a representative',
+  'project.handover.labels.transferFlow': 'Assets and materials handover',
+  'project.handover.typeDescription.transfer':
+    'Transfers material ownership from the sender to the recipient.',
+  'project.handover.typeDescription.loan':
+    'The recipient may use the materials temporarily and must return them by the due date.',
+  'project.handover.typeDescription.return':
+    'The sender returns borrowed materials to the recipient.',
   'project.handover.labels.uploading': 'Uploading file',
   'project.handover.labels.saving': 'Saving',
   'project.handover.labels.processing': 'Processing',

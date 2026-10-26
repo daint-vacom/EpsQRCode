@@ -151,7 +151,7 @@ export function MaterialSelectionDialog({
           )}
         </span>
       }
-      contentClassName="w-[min(96vw,80rem)] max-w-none"
+      contentClassName="h-[min(90dvh,760px)] w-[min(96vw,80rem)] max-w-none"
     >
       <DataGrid
         table={table}
@@ -165,8 +165,9 @@ export function MaterialSelectionDialog({
         })}
         tableLayout={{ dense: true }}
       >
-        <Card className="flex min-h-[28rem] min-w-0 flex-1 flex-col overflow-hidden border-0 shadow-none">
+        <Card className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-0 shadow-none">
           <DataGridHeader
+            className="shrink-0"
             variant="stats"
             recordCountLabel={intl.formatMessage({
               id: 'project.materials.list.recordCountLabel',
@@ -184,7 +185,7 @@ export function MaterialSelectionDialog({
               </div>
             }
           />
-          <CardTable className="min-h-0 flex-1">
+          <CardTable className="min-h-0 flex-1 overflow-auto">
             {query.isError ? (
               <ErrorState
                 title={intl.formatMessage({
@@ -197,7 +198,7 @@ export function MaterialSelectionDialog({
               <DataGridTable />
             )}
           </CardTable>
-          <CardFooter className="justify-between">
+          <CardFooter className="shrink-0 justify-between">
             {!query.isError ? (
               <DataGridPagination
                 sizes={[10, 25, 50]}
