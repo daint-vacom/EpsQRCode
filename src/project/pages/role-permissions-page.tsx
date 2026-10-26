@@ -544,7 +544,7 @@ export function RolePermissionsPage() {
         <Card className="max-h-[220px] w-full max-w-full shrink-0 overflow-hidden xl:max-h-none xl:w-[260px]">
           <CardHeader className="min-h-0 flex-col items-start gap-1 p-4">
             <div className="flex w-full items-center justify-between gap-2">
-              <CardTitle className="text-[15px]">
+              <CardTitle className="text-base">
                 {intl.formatMessage({ id: 'permissions.roles.listTitle' })}
               </CardTitle>
               <Tooltip>
@@ -601,7 +601,7 @@ export function RolePermissionsPage() {
                     )}
                   />
                   <span className="min-w-0">
-                    <span className="block truncate text-[13px] font-semibold">
+                    <span className="block truncate text-2sm font-semibold">
                       {role.name}
                     </span>
                   </span>
@@ -624,7 +624,7 @@ export function RolePermissionsPage() {
           <CardHeader className="shrink-0 flex-col items-stretch gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
             <CardHeading>
               <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-[18px]">
+                <CardTitle className="text-lg">
                   {intl.formatMessage(
                     { id: 'permissions.roles.permissionHeading' },
                     { role: selectedRole.name },
@@ -692,7 +692,7 @@ export function RolePermissionsPage() {
           <CardContent className="min-h-0 min-w-0 overflow-hidden p-0">
             <ScrollArea className="h-full w-full max-w-full min-w-0">
               <div className="min-w-[752px]">
-                <div className="sticky top-0 z-10 grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] border-b bg-muted text-[12px] font-semibold text-secondary-foreground">
+                <div className="sticky top-0 z-10 grid grid-cols-[minmax(240px,1fr)_repeat(4,128px)] border-b bg-muted text-xs font-semibold text-secondary-foreground">
                   <div className="border-r px-5 py-3">
                     {intl.formatMessage({ id: 'permissions.table.module' })}
                   </div>
@@ -837,7 +837,7 @@ function ModulePermissionSection({
             )}
           </button>
           <div className="min-w-0">
-            <div className="text-[13px] font-semibold leading-5">
+            <div className="text-2sm font-semibold leading-5">
               {module.name}
             </div>
             <div className="truncate text-xs text-muted-foreground">
