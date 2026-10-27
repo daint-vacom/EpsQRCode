@@ -46,7 +46,7 @@ describe('loading components', () => {
     expect(dots[2]).toHaveStyle({ animationDelay: '210ms' });
   });
 
-  it('renders full page loading with the project logo in a square loader', () => {
+  it('renders full page loading with the EPS logo in a square loader', () => {
     render(<PageLoading label="Đang tải trang quản trị..." />);
 
     expect(screen.getByRole('status')).toHaveAttribute(
@@ -63,7 +63,7 @@ describe('loading components', () => {
       screen
         .getByRole('status')
         .querySelector('[data-slot="logo-square-loader"] img'),
-    ).toHaveAttribute('src', '/media/app/android-chrome-512x512.png');
+    ).toHaveAttribute('src', '/media/logos/evn-genco3-no-text.png');
   });
 
   it('exposes the logo square loader as a reusable indicator', () => {
@@ -71,6 +71,6 @@ describe('loading components', () => {
 
     expect(
       document.querySelector('[data-slot="logo-square-loader"] img'),
-    ).toHaveAttribute('src', '/media/app/android-chrome-512x512.png');
+    ).toHaveAttribute('src', '/media/logos/evn-genco3-no-text.png');
   });
 });

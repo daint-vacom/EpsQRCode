@@ -43,6 +43,8 @@ export const en: Record<string, string> = {
   'project.navigation.files': 'File storage',
   'project.navigation.rolePermissions': 'Permissions',
   'project.navigation.settings': 'Settings',
+  'settings.tabs.account': 'Account',
+  'settings.tabs.organization': 'Organization',
   'reports.page.title': 'Reports',
   'reports.mock.heading': 'Report mock page',
   'reports.mock.description': 'Report content and data will be added later.',

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { AccountSettings } from '@/features/users/components/account-settings';
 import type { CodeGenerationEntityKey } from '@/project/code-generation/api/code-generation-patterns.api';
 import {
   useCodeGenerationPatternsQuery,
@@ -10,10 +11,12 @@ import {
   Palette,
   Save,
   Settings,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useIntl } from 'react-intl';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import {
@@ -47,10 +50,20 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type SettingsTab = 'data' | 'appearance';
+type SettingsTab = 'account' | 'data' | 'appearance';
+
+function resolveSettingsTab(
+  value: string | null,
+  canViewDataConfiguration: boolean,
+): SettingsTab {
+  if (value === 'account' || value === 'appearance') return value;
+  if (value === 'data' && canViewDataConfiguration) return value;
+  return canViewDataConfiguration ? 'data' : 'appearance';
+}
 
 export function ProjectSettingsPage() {
   const intl = useIntl();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasPermission } = useUser();
   const { theme, setTheme } = useTheme();
   const { appearance, saveAppearance } = useAppSettings();
@@ -64,11 +77,12 @@ export function ProjectSettingsPage() {
     canViewDataConfiguration,
   );
   const saveCodePatternsMutation = useSaveCodeGenerationPatternsMutation();
+  const requestedTab = searchParams.get('tab');
   const [patternDrafts, setPatternDrafts] = useState<
     Record<CodeGenerationEntityKey, string>
   >({ material_group: '', material_model: '', material_specification: '' });
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    canViewDataConfiguration ? 'data' : 'appearance',
+    resolveSettingsTab(requestedTab, canViewDataConfiguration),
   );
   const currentTheme = theme === 'light' || theme === 'dark' ? theme : 'system';
 
@@ -111,8 +125,21 @@ export function ProjectSettingsPage() {
   };
 
   useEffect(() => {
-    setActiveTab(canViewDataConfiguration ? 'data' : 'appearance');
-  }, [canViewDataConfiguration]);
+    setActiveTab(resolveSettingsTab(requestedTab, canViewDataConfiguration));
+  }, [canViewDataConfiguration, requestedTab]);
+
+  const handleTabChange = (value: string) => {
+    const nextTab = resolveSettingsTab(value, canViewDataConfiguration);
+    setActiveTab(nextTab);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set('tab', nextTab);
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -125,7 +152,7 @@ export function ProjectSettingsPage() {
       <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as SettingsTab)}
+          onValueChange={handleTabChange}
           className="min-w-0 px-4 pb-4 pt-4 lg:px-5 lg:pb-5 lg:pt-5"
         >
           <div className="grid min-w-0 gap-4 lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-6">
@@ -133,6 +160,13 @@ export function ProjectSettingsPage() {
               variant="button"
               className="h-fit w-full flex-col items-stretch justify-start gap-1 rounded-lg border border-border bg-card p-2"
             >
+              <TabsTrigger
+                value="account"
+                className="justify-start gap-2.5 px-3 text-left"
+              >
+                <UserRound />
+                {intl.formatMessage({ id: 'settings.tabs.account' })}
+              </TabsTrigger>
               {canViewDataConfiguration && (
                 <TabsTrigger
                   value="data"
@@ -154,6 +188,9 @@ export function ProjectSettingsPage() {
             </TabsList>
 
             <div className="min-w-0">
+              <TabsContent value="account" className="mt-0">
+                <AccountSettings />
+              </TabsContent>
               {canViewDataConfiguration && (
                 <TabsContent value="data" className="mt-0">
                   <SettingsSection

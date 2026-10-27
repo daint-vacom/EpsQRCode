@@ -95,7 +95,9 @@ export function mapHandoverToFormValues(
       ? 'other'
       : party.type === 'external'
         ? 'external'
-        : 'eps';
+        : party.type === 'warehouse'
+          ? 'warehouse'
+          : 'eps';
   return {
     type: entity.type,
     senderPartyId: entity.senderParty.id,

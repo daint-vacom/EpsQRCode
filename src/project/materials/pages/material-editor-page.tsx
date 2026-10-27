@@ -14,12 +14,13 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MATERIAL_IMAGES_BUCKET } from '../api/materials.api';
+import { MaterialOwnerCard } from '../components/material-owner-card';
 import {
   materialDefaultValues,
   MaterialForm,
@@ -45,7 +46,7 @@ export function MaterialEditorPage() {
   const navigate = useNavigate();
   const { id = '' } = useParams();
   const isEdit = Boolean(id);
-  const { userId, hasPermission } = useUser();
+  const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
@@ -60,8 +61,8 @@ export function MaterialEditorPage() {
     !isPermissionsPending && (canManage || canView),
   );
   const custodiansQuery = useCustodiansQuery(
-    false,
-    !isPermissionsPending && canManage && !isEdit,
+    true,
+    !isPermissionsPending && (canManage || (isEdit && canView)),
   );
   const saveMutation = useSaveMaterialMutation();
   const editingMaterial = materialQuery.data;
@@ -156,24 +157,11 @@ export function MaterialEditorPage() {
       ),
     [editingMaterial?.modelId, modelsQuery.data],
   );
-  const ownerPartyIdOptions = useMemo(
-    () =>
-      (custodiansQuery.data ?? [])
-        .filter(
-          (party) =>
-            party.isActive &&
-            (party.accountUserId === userId ||
-              party.representativeUserId === userId),
-        )
-        .map((party) => ({
-          value: party.id,
-          label: `${party.name} · ${party.code}`,
-        })),
-    [custodiansQuery.data, userId],
-  );
   const isLoading =
     isPermissionsPending ||
-    (isEdit && canView && materialQuery.isPending) ||
+    (isEdit &&
+      canView &&
+      (materialQuery.isPending || custodiansQuery.isPending)) ||
     (!isEdit &&
       canManage &&
       (modelsQuery.isPending || custodiansQuery.isPending));
@@ -203,10 +191,7 @@ export function MaterialEditorPage() {
             variant="primary"
             size="md"
             loading={isSaving}
-            disabled={
-              (!isEdit && ownerPartyIdOptions.length === 0) ||
-              Boolean(editingMaterial?.reservedHandoverId)
-            }
+            disabled={Boolean(editingMaterial?.reservedHandoverId)}
             loadingText={intl.formatMessage({
               id: 'project.materials.actions.saving',
             })}
@@ -224,7 +209,6 @@ export function MaterialEditorPage() {
       isEdit,
       isLoading,
       isSaving,
-      ownerPartyIdOptions.length,
       title,
     ],
   );
@@ -371,65 +355,39 @@ export function MaterialEditorPage() {
             </TabsList>
             <TabsContent
               value="general"
-              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
             >
-              <Card className="min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5">
-                  {isEdit ? (
-                    <div className="mb-5 grid grid-cols-1 gap-3">
-                      <div className="grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
-                        <span className="text-sm font-medium">
-                          {intl.formatMessage({
-                            id: 'project.materials.fields.code',
-                          })}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {editingMaterial?.code}
-                        </span>
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-[minmax(160px,0.7fr)_minmax(0,1.3fr)] sm:items-center">
-                        <span className="text-sm font-medium">
-                          {intl.formatMessage({
-                            id: 'project.materials.fields.model',
-                          })}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {editingMaterial?.modelSnapshot.name}
-                        </span>
-                      </div>
-                    </div>
-                  ) : null}
+              <Card className="min-w-0 shrink-0">
+                <CardHeader className="min-h-0 px-5 py-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Boxes className="size-4 text-primary" aria-hidden="true" />
+                    {intl.formatMessage({
+                      id: 'project.materials.tabs.general',
+                    })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 pt-1">
                   <MaterialForm
                     id={FORM_ID}
                     mode={isEdit ? 'edit' : 'create'}
                     form={form}
                     onSubmit={handleSubmit}
                     models={availableModels}
-                    ownerPartyIdOptions={ownerPartyIdOptions}
                     renderFormElement={false}
                   />
-                  {!isEdit && ownerPartyIdOptions.length === 0 ? (
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-admin-control border border-warning/40 bg-warning/5 p-4">
-                      <p className="text-sm">
-                        {intl.formatMessage({
-                          id: 'project.materials.form.noRepresentedOwner',
-                        })}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          navigate(ROUTES.PROJECT.EPS_ORGANIZATIONS)
-                        }
-                      >
-                        {intl.formatMessage({
-                          id: 'project.materials.actions.manageCustodians',
-                        })}
-                      </Button>
-                    </div>
-                  ) : null}
                 </CardContent>
               </Card>
+              <MaterialOwnerCard
+                form={form}
+                parties={custodiansQuery.data ?? []}
+                readOnly={isEdit}
+                partyLoadError={
+                  isEdit && custodiansQuery.isError
+                    ? getApiErrorMessage(custodiansQuery.error)
+                    : undefined
+                }
+                onRetry={() => void custodiansQuery.refetch()}
+              />
             </TabsContent>
             <TabsContent
               value="technical"
@@ -496,6 +454,22 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     descriptionOverride: material.descriptionOverride ?? '',
     serialNumber: material.serialNumber ?? '',
     ownerPartyId: material.ownerPartyId,
+    ownerSnapshot: {
+      kind: material.ownerSnapshot.kind,
+      code: material.ownerSnapshot.code,
+      name: material.ownerSnapshot.name,
+      representativeName: material.ownerSnapshot.representativeName,
+      phone: material.ownerSnapshot.phone,
+      email: material.ownerSnapshot.email,
+      departmentId: material.ownerSnapshot.departmentId,
+      departmentCode: material.ownerSnapshot.departmentCode,
+      departmentName: material.ownerSnapshot.departmentName,
+      teamId: material.ownerSnapshot.teamId,
+      teamCode: material.ownerSnapshot.teamCode,
+      teamName: material.ownerSnapshot.teamName,
+      employeeId: material.ownerSnapshot.employeeId,
+      scopePartyId: material.ownerSnapshot.scopePartyId,
+    },
     condition: material.condition,
     note: material.note ?? '',
     specificationOverrides: { ...material.specificationOverrides },

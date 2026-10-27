@@ -23,7 +23,6 @@ import Inline from 'yet-another-react-lightbox/plugins/inline';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { buildPath, ROUTES } from '@/constants/routes';
-import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { useIntl } from 'react-intl';
@@ -92,10 +91,6 @@ export function MaterialDetailPage() {
   const queryEnabled = !isPermissionsPending && canView;
   const materialQuery = useMaterialQuery(id, queryEnabled);
   const material = materialQuery.data;
-  const custodiansQuery = useCustodiansQuery(
-    true,
-    queryEnabled && Boolean(material),
-  );
   const groupsQuery = useMaterialGroupsQuery(queryEnabled && Boolean(material));
   const [activeTab, setActiveTab] = useState<MaterialDetailTabValue>('general');
   const modelName =
@@ -104,9 +99,6 @@ export function MaterialDetailPage() {
     intl.formatMessage({ id: 'project.materials.page.detailTitle' });
   const isLoading =
     isPermissionsPending || (canView && materialQuery.isPending);
-  const owner = custodiansQuery.data?.find(
-    (party) => party.id === material?.ownerPartyId,
-  );
   const group = groupsQuery.data?.find(
     (item) => item.id === material?.modelSnapshot.groupId,
   );
@@ -227,11 +219,12 @@ export function MaterialDetailPage() {
                       groupLoading={groupsQuery.isPending}
                       groupError={groupsQuery.isError}
                       onRetryGroup={() => void groupsQuery.refetch()}
-                      ownerName={owner?.name}
-                      representativeName={owner?.representativeDisplayName}
-                      ownerLoading={custodiansQuery.isPending}
-                      ownerError={custodiansQuery.isError}
-                      onRetryOwner={() => void custodiansQuery.refetch()}
+                      ownerName={material.ownerSnapshot.name}
+                      representativeName={
+                        material.ownerSnapshot.representativeName
+                      }
+                      ownerLoading={false}
+                      ownerError={false}
                     />
                   </div>
                 </TabsContent>
@@ -586,7 +579,7 @@ function MaterialSummarySidebar({
   representativeName?: string | null;
   ownerLoading: boolean;
   ownerError: boolean;
-  onRetryOwner: () => void;
+  onRetryOwner?: () => void;
 }) {
   const intl = useIntl();
   const statusText = intl.formatMessage({

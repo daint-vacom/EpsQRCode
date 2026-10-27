@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { OptionSelect } from '@/components/ui/option-select';
-import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -86,7 +85,6 @@ interface MaterialFormProps {
   renderFormElement?: boolean;
   mode: 'create' | 'edit';
   models: MaterialModel[];
-  ownerPartyIdOptions: SelectOption[];
 }
 
 export function MaterialForm({
@@ -96,65 +94,62 @@ export function MaterialForm({
   renderFormElement = true,
   mode,
   models,
-  ownerPartyIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
   const fields = (
     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-      {mode === 'create' && (
-        <FormField
-          control={form.control}
-          name="code"
-          render={({ field }) => (
-            <FormItem
-              className="md:col-span-12"
-              layout="horizontal"
-              labelWidth="md"
-            >
-              <FormLabel>
-                {intl.formatMessage({
-                  id: 'project.materials.fields.code',
-                })}
-                <span className="text-destructive"> *</span>
-              </FormLabel>
-              <FormControl>
-                <Input variant="md" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="code"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.code',
+              })}
+              <span className="text-destructive"> *</span>
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} readOnly={mode === 'edit'} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-      {mode === 'create' && (
-        <FormField
-          control={form.control}
-          name="modelId"
-          render={({ field }) => (
-            <FormItem
-              className="md:col-span-12"
-              layout="horizontal"
-              labelWidth="md"
-            >
-              <FormLabel>
-                {intl.formatMessage({
-                  id: 'project.materials.fields.model',
-                })}
-                <span className="text-destructive"> *</span>
-              </FormLabel>
-              <FormControl>
-                <MaterialModelSelect
-                  sourceMode="options"
-                  models={models}
-                  value={field.value}
-                  onChange={field.onChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
+      <FormField
+        control={form.control}
+        name="modelId"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.model',
+              })}
+              <span className="text-destructive"> *</span>
+            </FormLabel>
+            <FormControl>
+              <MaterialModelSelect
+                sourceMode="options"
+                models={models}
+                selectedModel={models.find((model) => model.id === field.value)}
+                value={field.value}
+                onChange={field.onChange}
+                disabled={mode === 'edit'}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
       <FormField
         control={form.control}
@@ -220,36 +215,6 @@ export function MaterialForm({
           </FormItem>
         )}
       />
-
-      {mode === 'create' && (
-        <FormField
-          control={form.control}
-          name="ownerPartyId"
-          render={({ field }) => (
-            <FormItem
-              className="md:col-span-12"
-              layout="horizontal"
-              labelWidth="md"
-            >
-              <FormLabel>
-                {intl.formatMessage({
-                  id: 'project.materials.fields.initialOwner',
-                })}
-                <span className="text-destructive"> *</span>
-              </FormLabel>
-              <FormControl>
-                <OptionSelect
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={ownerPartyIdOptions}
-                  searchable
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
 
       {mode === 'create' && (
         <FormField
@@ -326,7 +291,6 @@ interface MaterialFormDialogProps {
   isSaving?: boolean;
   title?: string;
   models: MaterialModel[];
-  ownerPartyIdOptions: SelectOption[];
 }
 
 export function MaterialFormDialog({
@@ -338,7 +302,6 @@ export function MaterialFormDialog({
   isSaving = false,
   title,
   models,
-  ownerPartyIdOptions,
 }: MaterialFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -391,7 +354,6 @@ export function MaterialFormDialog({
               id="material-form"
               mode={mode}
               models={models}
-              ownerPartyIdOptions={ownerPartyIdOptions}
             />
           </div>
 

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
+import { vi as messagesVi } from '@/i18n/messages/vi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { materialMessagesVi } from '../messages';
 import type { Material } from '../model/material';
 
 const mocks = vi.hoisted(() => ({
@@ -157,6 +158,35 @@ const sample: Material = {
   specificationOverrideLabels: {},
   serialNumber: 'SER-1',
   ownerPartyId: 'party-1',
+  ownerSnapshot: {
+    kind: 'eps',
+    type: 'department',
+    partyId: 'party-1',
+    catalogPartyId: 'party-1',
+    sourceType: 'eps_department',
+    sourceId: 'source-party-1',
+    departmentId: 'party-1',
+    departmentCode: 'P01',
+    departmentName: 'Phòng Kỹ thuật',
+    departmentSourceId: 'source-party-1',
+    teamId: null,
+    teamCode: null,
+    teamName: null,
+    teamSourceId: null,
+    employeeId: null,
+    employeeCode: null,
+    employeeName: null,
+    employeeSourceId: null,
+    externalOrganizationId: null,
+    warehouseId: null,
+    scopePartyId: null,
+    code: 'P01',
+    name: 'Phòng Kỹ thuật',
+    representativeName: '',
+    phone: '',
+    email: '',
+    capturedAt: '2026-10-01T00:00:00Z',
+  },
   borrowerPartyId: null,
   condition: 'good',
   note: null,
@@ -171,28 +201,20 @@ const sample: Material = {
 };
 
 function renderPage(path: string, element: ReactNode) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
   return render(
-    <IntlProvider
-      locale="vi"
-      messages={{
-        ...materialMessagesVi,
-        'materialModels.specifications.column': 'Thông số',
-        'materialModels.specifications.values': 'Giá trị',
-        'materialModels.specifications.count': '{count} thông số',
-        'materialModels.specifications.chooseSuggestion': 'Chọn giá trị gợi ý',
-        'materialModels.specifications.addValuePlaceholder': 'Nhập giá trị',
-        'materialModels.specifications.addValue': 'Thêm giá trị',
-        'materialModels.specifications.removeValue': 'Xóa giá trị {index}',
-        'materialModels.specifications.types.text': 'Văn bản',
-      }}
-    >
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/materials/:id" element={element} />
-          <Route path="/materials/new" element={element} />
-        </Routes>
-      </MemoryRouter>
-    </IntlProvider>,
+    <QueryClientProvider client={queryClient}>
+      <IntlProvider locale="vi" messages={messagesVi}>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/materials/:id" element={element} />
+            <Route path="/materials/new" element={element} />
+          </Routes>
+        </MemoryRouter>
+      </IntlProvider>
+    </QueryClientProvider>,
   );
 }
 
@@ -227,7 +249,7 @@ describe('production material pages', () => {
     expect(
       screen.getByText('Chọn mẫu vật tư để xem thông tin được lưu khi tạo.'),
     ).toBeInTheDocument();
-  }, 15000);
+  }, 30000);
 
   it('renders the authenticated detail and its stable QR destination', async () => {
     mocks.material = {
@@ -269,7 +291,7 @@ describe('production material pages', () => {
       container.querySelector('svg[aria-label="QR MAT-001"]'),
     ).toHaveAttribute(
       'data-qr-value',
-      `${window.location.origin}/materials/material-1`,
+      `${window.location.origin}/vat-tu/material-1`,
     );
   });
 

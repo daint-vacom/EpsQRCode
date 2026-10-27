@@ -81,9 +81,7 @@ function MaterialModelTrigger({
   return (
     <span className="flex min-w-0 items-center gap-2 text-start">
       {showImage ? <MaterialModelImage model={model} /> : null}
-      <span className="block min-w-0 truncate text-sm font-medium text-foreground">
-        {model.name}
-      </span>
+      <span className="block min-w-0 truncate">{model.name}</span>
     </span>
   );
 }

@@ -18,7 +18,6 @@ const spec: FormSpec = {
       layout: 'horizontal',
       labelWidth: 'md',
       required: true,
-      modes: ['create'],
     },
     {
       kind: 'combobox',
@@ -30,7 +29,6 @@ const spec: FormSpec = {
       labelWidth: 'md',
       required: true,
       optionsFrom: 'prop',
-      modes: ['create'],
     },
     {
       kind: 'text',
@@ -60,18 +58,6 @@ const spec: FormSpec = {
       labelWidth: 'md',
       alignment: 'start',
       rows: 3,
-    },
-    {
-      kind: 'combobox',
-      name: 'ownerPartyId',
-      label: 'Chủ sở hữu ban đầu',
-      labelMessageId: 'project.materials.fields.initialOwner',
-      width: 'full',
-      layout: 'horizontal',
-      labelWidth: 'md',
-      required: true,
-      optionsFrom: 'prop',
-      modes: ['create'],
     },
     {
       kind: 'select',

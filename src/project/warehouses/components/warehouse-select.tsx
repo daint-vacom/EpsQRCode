@@ -3,21 +3,24 @@ import { Building2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { getApiErrorMessage } from '@/lib/errors';
 import { OptionSelect } from '@/components/ui/option-select';
-import type { OptionSelectProps } from '@/components/ui/option-select';
+import type {
+  OptionSelectProps,
+  SelectOption,
+} from '@/components/ui/option-select';
+import { SelectOptionContent } from '@/components/ui/select-option-content';
 import { useWarehousesQuery } from '../hooks/use-warehouses';
 import type { Warehouse } from '../model/warehouse';
 
+export type WarehouseSelectItem = Pick<Warehouse, 'id' | 'code' | 'name'> &
+  Partial<Pick<Warehouse, 'address'>>;
+
 export type WarehouseSelectProps = Omit<
-  OptionSelectProps<{ warehouse: Warehouse }>,
-  | 'options'
-  | 'selectedOption'
-  | 'renderOption'
-  | 'loading'
-  | 'loadingMessage'
-  | 'emptyMessage'
+  OptionSelectProps<{ warehouse: WarehouseSelectItem }>,
+  'options' | 'renderOption' | 'loading' | 'loadingMessage' | 'emptyMessage'
 > & {
   sourceMode?: 'fetch' | 'options';
-  warehouses?: readonly Warehouse[];
+  warehouses?: readonly WarehouseSelectItem[];
+  selectedOption?: SelectOption<{ warehouse: WarehouseSelectItem }>;
 };
 
 export function WarehouseSelect({
@@ -53,7 +56,9 @@ export function WarehouseSelect({
       {...props}
       value={value}
       options={options}
-      selectedOption={options.find((option) => option.value === value)}
+      selectedOption={
+        options.find((option) => option.value === value) ?? props.selectedOption
+      }
       placeholder={prompt}
       searchPlaceholder={intl.formatMessage({ id: 'warehouses.select.search' })}
       loading={sourceMode === 'fetch' && query.isPending && query.isFetching}
@@ -70,17 +75,16 @@ export function WarehouseSelect({
       }}
       emptyMessage={intl.formatMessage({ id: 'warehouses.select.empty' })}
       canDeselect={false}
+      optionContentClassName="overflow-visible whitespace-normal"
       renderOption={(option) =>
         option.data ? (
-          <span className="flex min-w-0 items-center gap-2">
-            <Building2 className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 truncate">
-              {option.data.warehouse.name}
-            </span>
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {option.data.warehouse.code}
-            </span>
-          </span>
+          <SelectOptionContent
+            title={option.data.warehouse.name}
+            description={option.data.warehouse.code}
+            leading={
+              <Building2 className="size-4 shrink-0 text-muted-foreground" />
+            }
+          />
         ) : (
           option.label
         )

@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         this.props.fallback ?? (
-          <div className="flex h-full min-h-40 flex-col items-center justify-center gap-2 p-6 text-center">
+          <div className="flex h-full min-h-40 w-full flex-col items-center justify-center gap-2 p-6 text-center">
             <p className="text-base font-semibold text-foreground">
               Đã có lỗi xảy ra
             </p>

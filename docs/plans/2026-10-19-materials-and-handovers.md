@@ -7,7 +7,7 @@ Ngày: 19/10/2026. Phạm vi: EpsQRCode, một workspace, không tenant.
 - Mỗi vật tư thực tế có UUID, mã định danh bất biến, QR và một mẫu nguồn.
 - Lưu snapshot thông tin mẫu lúc tạo. Sửa mẫu không tự đổi vật tư cũ; cập nhật từ mẫu phải xem trước, xác nhận chủ động và ghi lịch sử. Giữ override của vật tư; không đọc hai dạng dữ liệu cũ/mới.
 - Vật tư có owner, borrower tùy chọn, condition `good | damaged`. Đơn vị đang giữ suy ra từ borrower hoặc owner.
-- Chủ thể sở hữu/mượn có thể là phòng ban, tổ nhóm, cá nhân, đơn vị ngoài. Mô hình thống nhất có `id`, `code`, `name`, `type`; thêm parent, trạng thái và liên kết người đại diện khi cần. Không kết nối danh mục hoặc tài khoản PLEpsClient.
+- Contract về loại chủ sở hữu, snapshot, metadata danh mục và roll-up báo cáo được quy định tại [Hợp đồng đối tượng sở hữu vật tư](../reference/material-ownership-contract.md). Các mô tả owner cũ trong kế hoạch này đã được thay thế bởi contract đó. Giữ nguyên nguyên tắc EpsQRCode không lấy dữ liệu thử nghiệm từ PLEpsClient.
 - Ba loại phiếu: chuyển sở hữu, cho mượn, trả lại. Một phiếu có một loại, một bên giao, một bên nhận và nhiều vật tư riêng lẻ.
 - Khóa vật tư ngay khi lưu vào phiếu nháp. Một vật tư không thuộc đồng thời hai phiếu nháp/chờ nhận. Thêm/xóa dòng phải cập nhật đặt giữ nguyên tử; hủy/từ chối/hoàn tất giải phóng đặt giữ.
 - Luồng `draft -> pending -> completed | rejected | cancelled`; bản nháp cũng được hủy. Chưa có bước quản lý phê duyệt.
@@ -19,13 +19,13 @@ Ngày: 19/10/2026. Phạm vi: EpsQRCode, một workspace, không tenant.
 
 ### Chủ thể bàn giao
 
-`Custodian`: UUID id, code, name, type (`department | team | person | external`), parentId tùy chọn, isActive. Liên kết Auth UUID với chủ thể qua danh sách đại diện; không coi tên người nhận nhập tay là bằng chứng quyền xác nhận. Đơn vị ngoài có thể được đại diện bởi tài khoản nội bộ được phân công. Không tự động cho mọi người xác nhận mọi chủ thể.
+`Custodian`: định danh danh mục cho các loại đối tượng theo [contract sở hữu](../reference/material-ownership-contract.md). Không dùng loại lưu trữ `department | team | person` như bốn loại lựa chọn trên UI. Quyền của tài khoản thao tác được kiểm tra riêng; người nhận là nhân viên không cần tài khoản QRCode.
 
 ### Vật tư
 
-`Material`: UUID, code, modelId, modelSnapshot (mã/tên/nhóm/mô tả/ảnh/thông số/thời điểm nguồn), overrides, serial, ownerPartyId, borrowerPartyId, condition, version, createdAt/updatedAt. Cấu trúc và kiểu dữ liệu thông số thuộc mẫu; vật tư chỉ ghi đè các giá trị hợp lệ, không tự tạo cấu trúc. Quy tắc ghi đè tường minh cần thể hiện trong hợp đồng.
+`Material`: UUID, code, modelId, modelSnapshot (mã/tên/nhóm/mô tả/ảnh/thông số/thời điểm nguồn), overrides, serial, owner snapshot cùng metadata ID danh mục theo [contract sở hữu](../reference/material-ownership-contract.md), borrowerPartyId, condition, version, createdAt/updatedAt. Cấu trúc và kiểu dữ liệu thông số thuộc mẫu; vật tư chỉ ghi đè các giá trị hợp lệ, không tự tạo cấu trúc. Quy tắc ghi đè tường minh cần thể hiện trong hợp đồng.
 
-Khởi tạo lưu owner và condition một lần, ghi sự kiện. Chỉnh hồ sơ chỉ sửa thông tin tĩnh; owner/borrower/condition sau đó chỉ đổi qua nghiệp vụ hoàn tất phiếu. Chặn cập nhật mẫu khi vật tư đang được đặt giữ nếu làm thay đổi dữ liệu đã chốt trong phiếu.
+Khởi tạo lưu owner snapshot và condition, ghi sự kiện. Chỉnh hồ sơ vật tư chỉ đọc card owner; thay đổi chủ sở hữu hiện tại diễn ra qua nghiệp vụ hoàn tất phiếu và nhận snapshot bên nhận. Chặn cập nhật mẫu khi vật tư đang được đặt giữ nếu làm thay đổi dữ liệu đã chốt trong phiếu.
 
 ### Phiếu và lịch sử
 
@@ -59,7 +59,7 @@ Mọi mutation xác minh quyền server và phiên bản hiện tại. Xác nh�
 ## 5. Màn hình
 
 - Danh sách vật tư: search mã/tên/serial, lọc mẫu/nhóm/chủ thể/tình trạng, pagination, tạo/sửa hồ sơ, mở chi tiết tab mới và QR.
-- Tạo/sửa: chọn mẫu, hiển thị snapshot và override rõ ràng, khôi phục theo mẫu, owner và condition chỉ ở lúc tạo.
+- Tạo/sửa: chọn mẫu, hiển thị snapshot và override rõ ràng, khôi phục theo mẫu; chọn và sửa owner snapshot ở lúc tạo theo [contract sở hữu](../reference/material-ownership-contract.md); owner và condition chỉ đọc ở trang sửa, thay đổi qua phiếu bàn giao.
 - Chi tiết: theo bố cục standalone example, ảnh/QR/sidebar hiện trạng, thông tin/thông số, lịch sử và phiếu liên quan; toàn bộ dữ liệu thật.
 - Danh sách bàn giao: lọc loại/trạng thái/hai bên/ngày, tìm mã phiếu/vật tư, liên kết tạo/chi tiết.
 - Lập phiếu: chọn loại/hai bên/người đại diện/ngày/hạn trả, thêm từng vật tư, tình trạng/ghi chú, lưu nháp đặt giữ, gửi.

@@ -1,6 +1,8 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   Custodian,
+  EpsEmployeeListFilters,
+  EpsEmployeeListResult,
   EpsOrganization,
   HandoverCounterpartyOption,
   HandoverCustomParty,
@@ -19,6 +21,26 @@ export async function loadCustodians(
     supabaseApi.post(
       '/rpc/list_custodians',
       { p_include_inactive: includeInactive },
+      { signal },
+    ),
+  );
+}
+
+export async function loadEpsOwnerEmployees(
+  filters: EpsEmployeeListFilters,
+  signal?: AbortSignal,
+): Promise<EpsEmployeeListResult> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_material_party_employees',
+      {
+        p_search: filters.search ?? '',
+        p_department_id: filters.departmentId ?? null,
+        p_team_id: filters.teamId ?? null,
+        p_page: filters.page ?? 1,
+        p_page_size: filters.pageSize ?? 30,
+      },
       { signal },
     ),
   );

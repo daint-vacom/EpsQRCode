@@ -17,6 +17,7 @@ declare
   v_document jsonb;
   v_preview jsonb;
   v_material_json jsonb;
+  v_owner_report jsonb;
   v_values jsonb;
   v_rejected boolean;
   v_history_count bigint;
@@ -38,6 +39,22 @@ begin
   v_second := public.save_material(p_id => null,p_expected_version => null,p_values => jsonb_build_object(
     'code','SMOKE-'||gen_random_uuid(),'modelId',v_model,'ownerPartyId',v_owner,'condition','good',
     'specificationOverrides','{}'::jsonb,'conditionNote',''));
+  -- Simulate a legacy row written before owner_snapshot existed, then exercise
+  -- the same owner-party backfill used by the migration.
+  update public.materials set owner_snapshot='{}'::jsonb where id=v_material;
+  update public.materials material
+  set owner_snapshot=public.material_owner_snapshot_from_party(material.owner_party_id,'{}'::jsonb)
+  where material.id=v_material and material.owner_snapshot='{}'::jsonb;
+  v_material_json := public.get_material(v_material);
+  assert v_material_json->'ownerSnapshot'->>'kind'='eps', 'Legacy owner party must backfill to an EPS snapshot';
+  assert v_material_json->'ownerSnapshot'->>'partyId'=v_owner::text, 'Legacy snapshot must retain its owner-party ID';
+  assert v_material_json->'ownerSnapshot'->>'name'='Đơn vị thử A', 'Legacy snapshot must retain the catalog name';
+  v_owner_report := public.list_materials(jsonb_build_object('ownerPartyId',v_owner,'page',1,'pageSize',20));
+  assert exists (
+    select 1 from jsonb_array_elements(v_owner_report->'items') as entry(value)
+    where entry.value->>'id'=v_material::text
+  ),
+    'Owner reports must include legacy materials after snapshot backfill';
   v_values := jsonb_build_object('type','loan','senderPartyId',v_owner,'recipientPartyId',v_borrower,
     'plannedDate',current_date,'dueDate',current_date+7,'attachmentFileIds','[]'::jsonb,
     'items',jsonb_build_array(jsonb_build_object('materialId',v_material,'condition','good','conditionNote','')));
@@ -144,7 +161,7 @@ begin
   end;
   assert v_rejected, 'Completed documents cannot be edited';
 
-  raise notice 'PASS: draft reservations, loan/send/confirm, idempotency, return/damage, cancel, atomic transfer, model sync, immutable documents';
+  raise notice 'PASS: owner snapshot backfill and roll-up, draft reservations, loan/send/confirm, idempotency, return/damage, cancel, atomic transfer, model sync, immutable documents';
 end;
 $test$;
 

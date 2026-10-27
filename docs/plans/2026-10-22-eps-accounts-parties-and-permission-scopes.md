@@ -34,21 +34,13 @@ Kế hoạch này kế thừa nghiệp vụ bàn giao và phiếu nhập đã c�
 - Không dùng tài khoản, dữ liệu nhân viên hay tổ chức EPS thật làm dữ liệu kiểm thử. Giai đoạn phát triển dùng fixture/provider giả lập theo contract; tích hợp thật là bước riêng.
 - Supabase hiện là persistence phát triển, không mặc nhiên là kiến trúc production hoặc cơ chế đăng nhập EPS cuối cùng.
 
-## 3. Chủ thể bàn giao
+## 3. Chủ thể bàn giao và chủ sở hữu vật tư
 
-Giữ một định danh chủ thể chung để vật tư và phiếu tham chiếu. Hỗ trợ đủ năm loại:
-
-| Loại         | Ý nghĩa       | Quan hệ                                    |
-| ------------ | ------------- | ------------------------------------------ |
-| `department` | Đơn vị EPS    | Có nhiều tổ/nhóm và nhân viên              |
-| `team`       | Tổ/nhóm EPS   | Thuộc một đơn vị EPS                       |
-| `person`     | Nhân viên EPS | Thuộc một đơn vị, có thể thuộc một tổ/nhóm |
-| `warehouse`  | Kho QRCode    | Có nhiều tài khoản phụ trách               |
-| `external`   | Đơn vị ngoài  | Có nhiều tài khoản bên ngoài               |
+Contract lựa chọn và snapshot có hiệu lực tại [Hợp đồng đối tượng sở hữu vật tư](../reference/material-ownership-contract.md). Các surface dùng bốn loại đối tượng: Đơn vị EPS (đơn vị → tổ/nhóm → nhân viên), Đơn vị ngoài, Kho và Khác. `department`, `team` và `person` là các cấp/dòng danh mục trong một loại EPS, không phải ba loại lựa chọn thay thế nhau. Phiếu bàn giao và form vật tư phải dùng cùng selector, các trường snapshot có thể sửa và metadata ID nguồn.
 
 ### Định danh và liên kết
 
-- Chủ thể EPS liên kết bằng loại đối tượng và ID EPS; không ghép bằng tên hoặc mã hiển thị.
+- Các cấp EPS liên kết bằng ID danh mục EPS; không ghép bằng tên hoặc mã hiển thị. Lưu snapshot đã nhập/chỉnh cùng metadata ID nguồn theo contract sở hữu.
 - Chủ thể kho và đơn vị ngoài dùng ID do QRCode quản lý; mỗi bản ghi nghiệp vụ có đúng một chủ thể tương ứng.
 - Tái sử dụng `material_custodians` và `material_warehouses` khi phù hợp; bổ sung liên kết nguồn thay vì tạo hệ thống chủ thể thứ hai.
 - Thông tin tổ chức hiện tại của nhân viên EPS đến từ backend EPS. Nhân viên chưa phân tổ vẫn xác định được đơn vị.
@@ -58,6 +50,7 @@ Giữ một định danh chủ thể chung để vật tư và phiếu tham chi�
 ### Snapshot lịch sử
 
 - Phiếu lưu mã, tên và quan hệ tổ chức cần thiết tại thời điểm phát sinh.
+- Vật tư lưu snapshot chủ sở hữu và metadata danh mục; báo cáo EPS tổng hợp từ nhân viên lên tổ/nhóm và đơn vị theo snapshot đã ghi nhận.
 - EPS đổi tên, chuyển nhân viên sang tổ hoặc đơn vị khác không viết lại snapshot của chứng từ cũ.
 - Snapshot dùng cho nội dung lịch sử; không dùng thay tổ chức hiện tại của tài khoản để tính quyền.
 - Không lưu bản sao toàn bộ hồ sơ nhân sự EPS chỉ để phục vụ chủ thể bàn giao.
@@ -225,7 +218,7 @@ Các kiểu chi tiết phải được chốt từ contract backend. Không coi 
 - Không còn select phạm vi chung ở vai trò.
 - Hiển thị ý nghĩa phạm vi và những mức không áp dụng cho quyền đó.
 - Màn hình kho và tài khoản cùng cập nhật một nguồn phân công.
-- Bộ chọn chủ thể phân biệt rõ năm loại; nguồn EPS chỉ đọc.
+- Bộ chọn chủ thể dùng bốn loại theo [contract sở hữu](../reference/material-ownership-contract.md); catalog EPS là nguồn gợi ý, còn snapshot nghiệp vụ có thể chỉnh sửa và giữ metadata ID nguồn.
 - Các trang giữ toolbar trong Idle/loading/error, dùng ErrorState và retry phù hợp; form ngang, bảng theo builder và i18n Việt/Anh của repo.
 - Trước khi triển khai UI phải thực hiện builder gate và đối chiếu screen tương ứng của web-template.
 

@@ -1,10 +1,14 @@
 import { Fragment, useEffect, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { signOutFromSupabase } from '@/features/auth/api/auth.api';
+import { loadMyQrCodeAccount } from '@/project/accounts/api/accounts.api';
+import type { MyQrCodeAccount } from '@/project/accounts/model/account';
 import { GlobalSearch } from '@/project/search/components/global-search';
 import { useAuthStore } from '@/stores/auth.store';
+import { useQuery } from '@tanstack/react-query';
 import {
   Bell,
+  Building2,
   CircleHelp,
   LogOut,
   Menu,
@@ -12,12 +16,16 @@ import {
   Palette,
   PanelLeft,
   PanelLeftClose,
+  RefreshCw,
   Settings,
   ShieldAlert,
   ShoppingCart,
   UserRound,
+  UsersRound,
+  type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useIntl } from 'react-intl';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -127,38 +135,82 @@ const MOCK_NOTIFICATIONS = [
   },
 ] as const;
 
-function AccountMenuHeader({ name, email }: { name: string; email: string }) {
+function AccountMenuHeader({
+  name,
+  email,
+  roles,
+}: {
+  name: string;
+  email: string;
+  roles: MyQrCodeAccount['roles'];
+}) {
   const initial = name.trim().charAt(0).toUpperCase() || 'T';
 
   return (
-    <>
-      <DropdownMenuLabel className="px-2 py-1.5">
-        <div>
-          <div className="flex items-center gap-3">
-            <Avatar className="size-8 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
-              <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
-                {initial}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-foreground">
-                {name}
-              </p>
-              {email ? (
-                <p className="truncate text-xs font-normal text-muted-foreground">
-                  {email}
-                </p>
-              ) : null}
-            </div>
-          </div>
+    <DropdownMenuLabel className="px-2 py-2">
+      <div className="flex items-center gap-3">
+        <Avatar className="size-9 rounded-full border border-admin-amber-light bg-gradient-to-br from-[#fff3e0] to-[#ffb74d] text-sm font-bold text-[#f57c00] shadow-sm">
+          <AvatarFallback className="border-0 bg-transparent text-[#f57c00]">
+            {initial}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-foreground">
+            {name}
+          </p>
+          {email ? (
+            <p className="truncate text-xs font-normal text-muted-foreground">
+              {email}
+            </p>
+          ) : null}
         </div>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-    </>
+      </div>
+      {roles.length ? (
+        <div className="mt-2 flex flex-wrap gap-1 ps-12">
+          {roles.map((role) => (
+            <Badge
+              key={`${role.name}-${role.color}`}
+              variant={role.color}
+              appearance="light"
+              size="sm"
+              className="max-w-full rounded-md"
+            >
+              <span className="truncate">{role.name}</span>
+            </Badge>
+          ))}
+        </div>
+      ) : null}
+    </DropdownMenuLabel>
+  );
+}
+
+function ReadonlyAccountOption({
+  icon: Icon,
+  label,
+  description,
+}: {
+  icon: LucideIcon;
+  label: string;
+  description: string;
+}) {
+  return (
+    <DropdownMenuItem
+      aria-disabled="true"
+      onSelect={(event) => event.preventDefault()}
+    >
+      <Icon />
+      <span className="grid min-w-0 gap-0.5">
+        <span className="truncate">{label}</span>
+        <span className="break-words text-xs font-normal text-muted-foreground">
+          {description}
+        </span>
+      </span>
+    </DropdownMenuItem>
   );
 }
 
 export function Header() {
+  const intl = useIntl();
   const { isMobile, isSidebarOpen, sidebarToggle, shell } = useLayout();
   const isDark = shell.headerVariant === 'dark';
   const isProjectShell = shell.homePath === ROUTES.HOME;
@@ -179,6 +231,34 @@ export function Header() {
   ).length;
   const accountName = authUser?.name || 'Tài khoản';
   const accountEmail = authUser?.email ?? '';
+  const accountQuery = useQuery({
+    queryKey: ['project', 'my-qrcode-account', authUser?.id ?? null],
+    queryFn: () => loadMyQrCodeAccount(),
+    enabled: isProjectShell && Boolean(authUser?.id),
+  });
+  const account = accountQuery.data;
+  const accountUnitLabel =
+    account?.accountType === 'external'
+      ? intl.formatMessage({ id: 'accounts.fields.externalOrganization' })
+      : account?.accountType === 'eps'
+        ? intl.formatMessage({ id: 'accounts.settings.profile.department' })
+        : intl.formatMessage({ id: 'settings.tabs.organization' });
+  const accountUnitName =
+    account?.accountType === 'external'
+      ? account.externalOrganizationName
+      : account?.accountType === 'eps'
+        ? account.epsDepartmentName
+        : null;
+  const accountUnitValue = accountQuery.isPending
+    ? intl.formatMessage({ id: 'common.state.loading' })
+    : accountQuery.isError && !account
+      ? intl.formatMessage({ id: 'accounts.settings.profile.error' })
+      : (accountUnitName ??
+        intl.formatMessage({
+          id: account
+            ? 'accounts.settings.profile.unmapped'
+            : 'accounts.settings.profile.missing',
+        }));
   const accountInitial = accountName.trim().charAt(0).toUpperCase() || 'T';
   const breadcrumbItems = shell.breadcrumbItems ?? [
     { label: shell.breadcrumbRootLabel, path: shell.breadcrumbRootPath },
@@ -456,18 +536,65 @@ export function Header() {
           <DropdownMenuContent
             align="end"
             sideOffset={8}
-            className="w-64 p-1.5"
+            className={cn('p-1.5', isProjectShell ? 'w-72' : 'w-64')}
           >
-            <AccountMenuHeader name={accountName} email={accountEmail} />
+            <AccountMenuHeader
+              name={accountName}
+              email={accountEmail}
+              roles={isProjectShell ? (accountQuery.data?.roles ?? []) : []}
+            />
 
-            {!isProjectShell ? (
+            {isProjectShell ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>
+                    {intl.formatMessage({ id: 'settings.tabs.account' })}
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      navigate(`${ROUTES.PROJECT.SETTINGS}?tab=account`)
+                    }
+                  >
+                    <UserRound />
+                    {intl.formatMessage({ id: 'settings.tabs.account' })}
+                  </DropdownMenuItem>
+                  <ReadonlyAccountOption
+                    icon={Building2}
+                    label={accountUnitValue}
+                    description={accountUnitLabel}
+                  />
+                  {account?.accountType === 'eps' && account.epsTeamName ? (
+                    <ReadonlyAccountOption
+                      icon={UsersRound}
+                      label={account.epsTeamName}
+                      description={intl.formatMessage({
+                        id: 'accounts.settings.profile.team',
+                      })}
+                    />
+                  ) : null}
+                  {accountQuery.isError && !accountQuery.data ? (
+                    <DropdownMenuItem
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        void accountQuery.refetch();
+                      }}
+                    >
+                      <RefreshCw />
+                      {intl.formatMessage({ id: 'common.actions.refresh' })}
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : (
               <DropdownMenuGroup>
                 <DropdownMenuItem>
                   <Settings />
                   Cài đặt
                 </DropdownMenuItem>
               </DropdownMenuGroup>
-            ) : null}
+            )}
 
             {!isProjectShell ? <DropdownMenuSeparator /> : null}
 

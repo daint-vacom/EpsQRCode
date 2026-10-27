@@ -224,7 +224,7 @@ export function useMaterialColumns({
         cell: (row) =>
           row.status === 'loaned' && row.borrowerPartyId
             ? (partyNameById.get(row.borrowerPartyId) ?? row.borrowerPartyId)
-            : (partyNameById.get(row.ownerPartyId) ?? row.ownerPartyId),
+            : row.ownerSnapshot.name,
       }),
       col.custom({
         id: 'condition',

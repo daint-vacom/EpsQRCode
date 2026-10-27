@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { loadEpsOwnerEmployees } from '@/project/custodians/api/custodians.api';
 import type {
   Custodian,
+  EpsEmployeeCatalogEntry,
   HandoverCustomParty,
 } from '@/project/custodians/model/custodian';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
+import { useUser } from '@/providers/user-provider';
 import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import {
   Form,
@@ -15,19 +18,35 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { OptionSelect } from '@/components/ui/option-select';
+import { ApiOptionSelect, OptionSelect } from '@/components/ui/option-select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { HandoverFormValues, HandoverPartyKind } from '../model/handover';
 import { HandoverPartyDialogShell } from './handover-party-dialog-shell.generated';
 
 type Side = 'sender' | 'recipient';
 
+type SideFieldNames = {
+  PartyId: 'senderPartyId' | 'recipientPartyId';
+  PartyKind: 'senderPartyKind' | 'recipientPartyKind';
+  PartyCode: 'senderPartyCode' | 'recipientPartyCode';
+  PartyName: 'senderPartyName' | 'recipientPartyName';
+  PartyPhone: 'senderPartyPhone' | 'recipientPartyPhone';
+  PartyEmail: 'senderPartyEmail' | 'recipientPartyEmail';
+  RepresentativeName:
+    'senderRepresentativeName' | 'recipientRepresentativeName';
+  RepresentativeUserId:
+    'senderRepresentativeUserId' | 'recipientRepresentativeUserId';
+  PartyScopePartyId: 'senderPartyScopePartyId' | 'recipientPartyScopePartyId';
+};
+
 interface PartyDialogValues {
   kind: HandoverPartyKind;
   partyId: string;
   departmentId: string;
   teamId: string;
+  personId: string;
   scopePartyId: string;
+  code: string;
   name: string;
   representativeName: string;
   representativeUserId: string | null;
@@ -48,6 +67,9 @@ interface PartyCatalogItem {
   email: string | null;
   isHandoverCustom: boolean;
   handoverScopePartyId: string | null;
+  canRepresent: boolean;
+  sourceType: Custodian['sourceType'];
+  sourceId: string | null;
 }
 
 interface HandoverPartyDialogProps {
@@ -59,8 +81,11 @@ interface HandoverPartyDialogProps {
   customParties: HandoverCustomParty[];
 }
 
-function fieldName(side: Side, key: string) {
-  return `${side === 'sender' ? 'sender' : 'recipient'}${key}` as const;
+function fieldName<K extends keyof SideFieldNames>(
+  side: Side,
+  key: K,
+): SideFieldNames[K] {
+  return `${side === 'sender' ? 'sender' : 'recipient'}${key}` as SideFieldNames[K];
 }
 
 function normalizePartyName(value: string) {
@@ -71,11 +96,13 @@ function normalizePartyName(value: string) {
     .toLocaleLowerCase('vi-VN');
 }
 
-function snapshotToKind(
-  party?: Custodian | HandoverCustomParty,
-): HandoverPartyKind {
+function snapshotToKind(party?: {
+  type: Custodian['type'];
+  isHandoverCustom?: boolean;
+}): HandoverPartyKind {
   if (party?.isHandoverCustom || party?.type === 'other') return 'other';
   if (party?.type === 'external') return 'external';
+  if (party?.type === 'warehouse') return 'warehouse';
   return 'eps';
 }
 
@@ -99,6 +126,8 @@ function mapParty(party: Custodian | HandoverCustomParty): PartyCatalogItem {
     email: party.email ?? null,
     isHandoverCustom: Boolean(party.isHandoverCustom),
     handoverScopePartyId: party.handoverScopePartyId ?? null,
+    sourceType: 'sourceType' in party ? (party.sourceType ?? null) : null,
+    sourceId: 'sourceId' in party ? (party.sourceId ?? null) : null,
   };
 }
 
@@ -111,6 +140,7 @@ export function HandoverPartyDialog({
   customParties,
 }: HandoverPartyDialogProps) {
   const intl = useIntl();
+  const { userId } = useUser();
   const prefix = side === 'sender' ? 'sender' : 'recipient';
   const dialogForm = useForm<PartyDialogValues>({
     defaultValues: {
@@ -118,7 +148,9 @@ export function HandoverPartyDialog({
       partyId: '',
       departmentId: '',
       teamId: '',
+      personId: '',
       scopePartyId: '',
+      code: '',
       name: '',
       representativeName: '',
       representativeUserId: null,
@@ -138,6 +170,7 @@ export function HandoverPartyDialog({
     (party) => party.id === dialogForm.watch('partyId'),
   );
   const selectedDepartmentId = dialogForm.watch('departmentId');
+  const selectedTeamId = dialogForm.watch('teamId');
   const senderAllowedIds = new Set(
     parties
       .filter((party) => party.canRepresent && party.canManageHandover)
@@ -160,6 +193,12 @@ export function HandoverPartyDialog({
   const externalParties = allParties.filter(
     (party) =>
       party.type === 'external' &&
+      !party.isHandoverCustom &&
+      partyCanBeSender(party),
+  );
+  const warehouseParties = allParties.filter(
+    (party) =>
+      party.type === 'warehouse' &&
       !party.isHandoverCustom &&
       partyCanBeSender(party),
   );
@@ -201,6 +240,7 @@ export function HandoverPartyDialog({
   ) => {
     dialogForm.setValue('kind', kind);
     dialogForm.setValue('partyId', party.id);
+    dialogForm.setValue('code', party.code);
     dialogForm.setValue('name', party.name);
     dialogForm.setValue(
       'representativeName',
@@ -213,9 +253,19 @@ export function HandoverPartyDialog({
     if (party.type === 'department') {
       dialogForm.setValue('departmentId', party.id);
       dialogForm.setValue('teamId', '');
+      dialogForm.setValue('personId', '');
     } else if (party.type === 'team') {
       dialogForm.setValue('departmentId', party.parentId ?? '');
       dialogForm.setValue('teamId', party.id);
+      dialogForm.setValue('personId', '');
+    } else if (party.type === 'person') {
+      const parent = allParties.find((item) => item.id === party.parentId);
+      dialogForm.setValue(
+        'departmentId',
+        parent?.type === 'team' ? (parent.parentId ?? '') : (parent?.id ?? ''),
+      );
+      dialogForm.setValue('teamId', parent?.type === 'team' ? parent.id : '');
+      dialogForm.setValue('personId', party.id);
     }
   };
 
@@ -230,6 +280,10 @@ export function HandoverPartyDialog({
     const party = allParties.find((item) => item.id === partyId);
     const kind = form.getValues(`${prefix}PartyKind`);
     const type = party?.type;
+    const personParent =
+      type === 'person'
+        ? allParties.find((item) => item.id === party?.parentId)
+        : undefined;
     dialogForm.reset({
       kind: kind ?? snapshotToKind(party),
       partyId,
@@ -238,24 +292,35 @@ export function HandoverPartyDialog({
           ? partyId
           : type === 'team'
             ? (party?.parentId ?? '')
+            : type === 'person'
+              ? personParent?.type === 'team'
+                ? (personParent.parentId ?? '')
+                : (personParent?.id ?? '')
+              : '',
+      teamId:
+        type === 'team'
+          ? partyId
+          : type === 'person' && personParent?.type === 'team'
+            ? personParent.id
             : '',
-      teamId: type === 'team' ? partyId : '',
+      personId: type === 'person' ? partyId : '',
       scopePartyId:
         form.getValues(`${prefix}PartyScopePartyId`) ||
         party?.handoverScopePartyId ||
         '',
-      name: form.getValues(`${prefix}PartyName`) || party?.name || '',
+      name: form.getValues(`${prefix}PartyName`) ?? party?.name ?? '',
+      code: form.getValues(`${prefix}PartyCode`) ?? party?.code ?? '',
       representativeName:
-        form.getValues(`${prefix}RepresentativeName`) ||
-        party?.representativeName ||
-        party?.representativeDisplayName ||
+        form.getValues(`${prefix}RepresentativeName`) ??
+        party?.representativeName ??
+        party?.representativeDisplayName ??
         '',
       representativeUserId:
         form.getValues(`${prefix}RepresentativeUserId`) ??
         party?.representativeUserId ??
         null,
-      phone: form.getValues(`${prefix}PartyPhone`) || party?.phone || '',
-      email: form.getValues(`${prefix}PartyEmail`) || party?.email || '',
+      phone: form.getValues(`${prefix}PartyPhone`) ?? party?.phone ?? '',
+      email: form.getValues(`${prefix}PartyEmail`) ?? party?.email ?? '',
     });
   }, [allParties, dialogForm, form, open, prefix]);
 
@@ -287,9 +352,11 @@ export function HandoverPartyDialog({
       partyId: '',
       departmentId: '',
       teamId: '',
+      personId: '',
       scopePartyId:
         kind === 'other' && side === 'sender' ? current.scopePartyId : '',
       name: '',
+      code: '',
       representativeName: '',
       representativeUserId: null,
       phone: '',
@@ -299,12 +366,13 @@ export function HandoverPartyDialog({
 
   const save = dialogForm.handleSubmit((values) => {
     const partyId =
-      values.kind === 'eps' && values.teamId
-        ? values.teamId
-        : values.kind === 'eps' && values.departmentId
-          ? values.departmentId
-          : values.partyId;
-    const selected = allParties.find((party) => party.id === partyId);
+      values.kind === 'eps' && values.personId
+        ? values.personId
+        : values.kind === 'eps' && values.teamId
+          ? values.teamId
+          : values.kind === 'eps' && values.departmentId
+            ? values.departmentId
+            : values.partyId;
     const id = fieldName(side, 'PartyId');
     const kindName = fieldName(side, 'PartyKind');
     const codeName = fieldName(side, 'PartyCode');
@@ -316,7 +384,7 @@ export function HandoverPartyDialog({
     const scopePartyId = fieldName(side, 'PartyScopePartyId');
     form.setValue(id, partyId, { shouldDirty: true, shouldValidate: true });
     form.setValue(kindName, values.kind, { shouldDirty: true });
-    form.setValue(codeName, selected?.code ?? '', { shouldDirty: true });
+    form.setValue(codeName, values.code.trim(), { shouldDirty: true });
     form.setValue(name, values.name.trim(), {
       shouldDirty: true,
       shouldValidate: true,
@@ -347,7 +415,9 @@ export function HandoverPartyDialog({
   const isInvalid =
     !dialogForm.watch('name').trim() ||
     (dialogForm.watch('kind') === 'eps' && !dialogForm.watch('departmentId')) ||
-    (dialogForm.watch('kind') === 'external' && !dialogForm.watch('partyId')) ||
+    ((dialogForm.watch('kind') === 'external' ||
+      dialogForm.watch('kind') === 'warehouse') &&
+      !dialogForm.watch('partyId')) ||
     (dialogForm.watch('kind') === 'other' &&
       side === 'sender' &&
       !dialogForm.watch('partyId')) ||
@@ -381,23 +451,25 @@ export function HandoverPartyDialog({
                     onValueChange={(value) =>
                       setKind(value as HandoverPartyKind)
                     }
-                    className="grid gap-2 sm:grid-cols-3"
+                    className="grid gap-2 sm:grid-cols-4"
                   >
-                    {(['eps', 'external', 'other'] as const).map((kind) => (
-                      <label
-                        key={kind}
-                        htmlFor={`${side}-party-kind-${kind}`}
-                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-                      >
-                        <RadioGroupItem
-                          id={`${side}-party-kind-${kind}`}
-                          value={kind}
-                        />
-                        {intl.formatMessage({
-                          id: `project.handover.partyDialog.kind.${kind}`,
-                        })}
-                      </label>
-                    ))}
+                    {(['eps', 'external', 'warehouse', 'other'] as const).map(
+                      (kind) => (
+                        <label
+                          key={kind}
+                          htmlFor={`${side}-party-kind-${kind}`}
+                          className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                        >
+                          <RadioGroupItem
+                            id={`${side}-party-kind-${kind}`}
+                            value={kind}
+                          />
+                          {intl.formatMessage({
+                            id: `project.handover.partyDialog.kind.${kind}`,
+                          })}
+                        </label>
+                      ),
+                    )}
                   </RadioGroup>
                 </FormControl>
               </FormItem>
@@ -423,6 +495,7 @@ export function HandoverPartyDialog({
                         onChange={(value) => {
                           field.onChange(value);
                           dialogForm.setValue('teamId', '');
+                          dialogForm.setValue('personId', '');
                           const department = departments.find(
                             (item) => item.id === value,
                           );
@@ -438,42 +511,138 @@ export function HandoverPartyDialog({
                   </FormItem>
                 )}
               />
-              {teams.length ? (
-                <FormField
-                  control={dialogForm.control}
-                  name="teamId"
-                  render={({ field }) => (
-                    <FormItem layout="horizontal" labelWidth="md">
-                      <FormLabel>
-                        {intl.formatMessage({
-                          id: 'project.handover.partyDialog.epsTeam',
+              <FormField
+                control={dialogForm.control}
+                name="teamId"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.partyDialog.epsTeam',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <OptionSelect
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          const team = teams.find((item) => item.id === value);
+                          const department = departments.find(
+                            (item) => item.id === selectedDepartmentId,
+                          );
+                          if (team) applyCatalogParty(team, 'eps');
+                          else if (department)
+                            applyCatalogParty(department, 'eps');
+                        }}
+                        options={partyOptions(teams)}
+                        placeholder={intl.formatMessage({
+                          id: 'project.handover.partyDialog.selectTeam',
                         })}
-                      </FormLabel>
-                      <FormControl>
-                        <OptionSelect
-                          value={field.value}
-                          onChange={(value) => {
-                            field.onChange(value);
-                            const team = teams.find(
-                              (item) => item.id === value,
+                        disabled={!selectedDepartmentId}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={dialogForm.control}
+                name="personId"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.partyDialog.epsEmployee',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <ApiOptionSelect<
+                        EpsEmployeeCatalogEntry,
+                        { departmentId?: string; teamId?: string }
+                      >
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          if (!value) {
+                            const parent = allParties.find(
+                              (item) =>
+                                item.id ===
+                                (selectedTeamId || selectedDepartmentId),
                             );
-                            const department = departments.find(
-                              (item) => item.id === selectedDepartmentId,
-                            );
-                            if (team) applyCatalogParty(team, 'eps');
-                            else if (department)
-                              applyCatalogParty(department, 'eps');
-                          }}
-                          options={partyOptions(teams)}
-                          placeholder={intl.formatMessage({
-                            id: 'project.handover.partyDialog.selectTeam',
-                          })}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              ) : null}
+                            if (parent) applyCatalogParty(parent, 'eps');
+                          }
+                        }}
+                        onSelect={(option) => {
+                          const employee = option?.data;
+                          if (!employee) return;
+                          const party: PartyCatalogItem = {
+                            id: employee.id,
+                            type: 'person',
+                            code: employee.code,
+                            name: employee.name,
+                            parentId: employee.teamId ?? employee.departmentId,
+                            representativeUserId: null,
+                            representativeDisplayName: null,
+                            representativeName: null,
+                            phone: null,
+                            email: null,
+                            isHandoverCustom: false,
+                            handoverScopePartyId: null,
+                            canRepresent: true,
+                            sourceType: 'eps_person',
+                            sourceId: employee.sourceId,
+                          };
+                          applyCatalogParty(party, 'eps');
+                        }}
+                        loadOptions={async ({
+                          search,
+                          filters,
+                          page,
+                          pageSize,
+                          signal,
+                        }) => {
+                          const result = await loadEpsOwnerEmployees(
+                            { search, ...filters, page, pageSize },
+                            signal,
+                          );
+                          return {
+                            options: result.items.map((employee) => ({
+                              value: employee.id,
+                              label: `${employee.name} · ${employee.code}`,
+                              searchableText: `${employee.name} ${employee.code}`,
+                              data: employee,
+                            })),
+                            hasMore: page * pageSize < result.total,
+                          };
+                        }}
+                        cacheKey={[
+                          'project',
+                          'custodians',
+                          'eps-employees',
+                          userId,
+                          side,
+                        ]}
+                        filters={{
+                          departmentId: selectedDepartmentId || undefined,
+                          teamId: selectedTeamId || undefined,
+                        }}
+                        selectedOption={
+                          field.value && dialogForm.getValues('name')
+                            ? {
+                                value: field.value,
+                                label: `${dialogForm.getValues('name')} · ${dialogForm.getValues('code')}`,
+                              }
+                            : undefined
+                        }
+                        placeholder={intl.formatMessage({
+                          id: 'project.handover.partyDialog.selectParty',
+                        })}
+                        disabled={!selectedDepartmentId}
+                        pageSize={30}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </>
           ) : null}
 
@@ -509,6 +678,60 @@ export function HandoverPartyDialog({
               )}
             />
           ) : null}
+
+          {dialogForm.watch('kind') === 'warehouse' ? (
+            <FormField
+              control={dialogForm.control}
+              name="partyId"
+              render={({ field }) => (
+                <FormItem layout="horizontal" labelWidth="md">
+                  <FormLabel>
+                    {intl.formatMessage({ id: 'receipts.columns.warehouse' })}
+                    <span className="text-destructive"> *</span>
+                  </FormLabel>
+                  <FormControl>
+                    <OptionSelect
+                      value={field.value}
+                      onChange={(value) => {
+                        const party = warehouseParties.find(
+                          (item) => item.id === value,
+                        );
+                        if (party) applyCatalogParty(party, 'warehouse');
+                        else field.onChange(value);
+                      }}
+                      options={partyOptions(warehouseParties)}
+                      placeholder={intl.formatMessage({
+                        id: 'project.handover.partyDialog.selectParty',
+                      })}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          ) : null}
+
+          <FormField
+            control={dialogForm.control}
+            name="code"
+            render={({ field }) => (
+              <FormItem layout="horizontal" labelWidth="md">
+                <FormLabel>
+                  {intl.formatMessage({
+                    id: 'project.handover.custodians.fields.code',
+                  })}
+                </FormLabel>
+                <FormControl>
+                  {partyKind === 'other' ? (
+                    <Input {...field} />
+                  ) : (
+                    <div className="flex min-h-9 items-center text-sm text-foreground">
+                      {field.value || '—'}
+                    </div>
+                  )}
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={dialogForm.control}

@@ -10,7 +10,7 @@ export type HandoverStatus =
   | 'cancelled';
 export type HandoverMode =
   'standard' | 'warehouse_allocation' | 'warehouse_request';
-export type HandoverPartyKind = 'eps' | 'external' | 'other';
+export type HandoverPartyKind = 'eps' | 'external' | 'warehouse' | 'other';
 
 export interface HandoverPartySnapshot {
   id: string;
@@ -20,7 +20,26 @@ export interface HandoverPartySnapshot {
   isHandoverCustom?: boolean;
   phone?: string | null;
   email?: string | null;
+  representativeName?: string | null;
   handoverScopePartyId?: string | null;
+  scopePartyId?: string | null;
+  externalOrganizationId?: string | null;
+  warehouseId?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
+  departmentId?: string | null;
+  departmentSourceId?: string | null;
+  departmentCode?: string | null;
+  departmentName?: string | null;
+  teamId?: string | null;
+  teamSourceId?: string | null;
+  teamCode?: string | null;
+  teamName?: string | null;
+  employeeId?: string | null;
+  employeeSourceId?: string | null;
+  employeeCode?: string | null;
+  employeeName?: string | null;
+  catalogPartyId?: string | null;
   canRepresent?: boolean;
 }
 

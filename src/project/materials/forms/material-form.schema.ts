@@ -7,7 +7,30 @@ export const materialFormSchema = z
     nameOverride: z.string().trim(),
     descriptionOverride: z.string().trim(),
     serialNumber: z.string().trim(),
-    ownerPartyId: z.string().uuid('Vui lòng chọn chủ sở hữu.'),
+    ownerPartyId: z
+      .string()
+      .refine(
+        (value) => value === '' || z.string().uuid().safeParse(value).success,
+        'Vui lòng chọn chủ sở hữu hợp lệ.',
+      ),
+    ownerSnapshot: z
+      .object({
+        kind: z.enum(['eps', 'external', 'warehouse', 'other']),
+        code: z.string().trim(),
+        name: z.string().trim(),
+        representativeName: z.string().trim(),
+        phone: z.string().trim(),
+        email: z.string().trim(),
+        departmentId: z.string().uuid().nullable().optional(),
+        departmentCode: z.string().nullable().optional(),
+        departmentName: z.string().nullable().optional(),
+        teamId: z.string().uuid().nullable().optional(),
+        teamCode: z.string().nullable().optional(),
+        teamName: z.string().nullable().optional(),
+        employeeId: z.string().uuid().nullable().optional(),
+        scopePartyId: z.string().uuid().nullable().optional(),
+      })
+      .optional(),
     condition: z.enum(['good', 'damaged']),
     note: z.string().trim(),
     specificationOverrides: z.record(z.string(), z.array(z.string())),
@@ -22,11 +45,41 @@ export const materialFormSchema = z
         path: ['modelId'],
         message: 'Vui lòng chọn mẫu vật tư.',
       });
-    if (!values.ownerPartyId)
+    const ownerKind = values.ownerSnapshot?.kind ?? 'eps';
+    if (!values.ownerPartyId && ownerKind !== 'other')
       context.addIssue({
         code: 'custom',
         path: ['ownerPartyId'],
         message: 'Vui lòng chọn chủ sở hữu.',
+      });
+    if (
+      !values.ownerPartyId &&
+      ownerKind === 'other' &&
+      !values.ownerSnapshot?.name
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerSnapshot', 'name'],
+        message: 'Vui lòng nhập tên chủ sở hữu.',
+      });
+    if (
+      values.ownerPartyId &&
+      values.ownerSnapshot &&
+      !values.ownerSnapshot.name
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerSnapshot', 'name'],
+        message: 'Vui lòng nhập tên chủ sở hữu.',
+      });
+    if (
+      values.ownerSnapshot?.email &&
+      !/^\S+@\S+\.\S+$/.test(values.ownerSnapshot.email)
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['ownerSnapshot', 'email'],
+        message: 'Nhập email hợp lệ.',
       });
   });
 

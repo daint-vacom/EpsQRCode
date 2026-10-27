@@ -7,6 +7,7 @@ import type {
   OptionSelectProps,
   SelectOption,
 } from '@/components/ui/option-select';
+import { SelectOptionContent } from '@/components/ui/select-option-content';
 import { useAvailableMaterialGroupsQuery } from '../hooks/use-material-groups';
 import type { MaterialGroup } from '../model/material-group';
 
@@ -29,19 +30,6 @@ export type MaterialGroupSelectProps = Omit<
   sourceMode?: 'fetch' | 'options';
   groups?: readonly MaterialGroup[];
 };
-
-function MaterialGroupOption({ item }: { item: MaterialGroupSelectItem }) {
-  return (
-    <span className="flex min-w-0 flex-col gap-0.5 text-start">
-      <span className="block truncate text-sm font-medium text-foreground">
-        {item.title}
-      </span>
-      <span className="block truncate text-xs text-muted-foreground">
-        {item.description}
-      </span>
-    </span>
-  );
-}
 
 export function MaterialGroupSelect({
   value = '',
@@ -120,7 +108,14 @@ export function MaterialGroupSelect({
       canDeselect={false}
       optionContentClassName="overflow-visible whitespace-normal"
       renderOption={(option) =>
-        option.data ? <MaterialGroupOption item={option.data} /> : option.label
+        option.data ? (
+          <SelectOptionContent
+            title={option.data.title}
+            description={option.data.description}
+          />
+        ) : (
+          option.label
+        )
       }
       onOpenChange={(open) => {
         setOpen(open);

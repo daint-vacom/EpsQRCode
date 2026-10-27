@@ -13,6 +13,7 @@ export interface Custodian {
   sourceType: EpsCustodianSourceType | null;
   sourceId: string | null;
   canRepresent: boolean;
+  canManageMaterial?: boolean;
   canManageHandover?: boolean;
   accountUserId: string | null;
   accountUserIds: string[];
@@ -26,6 +27,33 @@ export interface Custodian {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** EPS employee catalog entry used by owner and handover selectors. */
+export interface EpsEmployeeCatalogEntry {
+  id: string;
+  sourceId: string;
+  code: string;
+  name: string;
+  departmentId: string;
+  departmentName: string;
+  teamId: string | null;
+  teamName: string | null;
+}
+
+export interface EpsEmployeeListFilters {
+  search?: string;
+  departmentId?: string;
+  teamId?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface EpsEmployeeListResult {
+  items: EpsEmployeeCatalogEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export type HandoverCustomParty = Pick<

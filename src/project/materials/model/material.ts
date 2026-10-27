@@ -21,6 +21,56 @@ export interface MaterialModelSnapshot {
   capturedAt: string;
 }
 
+export type MaterialOwnerKind = 'eps' | 'external' | 'warehouse' | 'other';
+
+export interface MaterialOwnerSnapshot {
+  kind: MaterialOwnerKind;
+  type: 'department' | 'team' | 'person' | 'external' | 'other' | 'warehouse';
+  partyId: string;
+  catalogPartyId: string | null;
+  departmentId: string | null;
+  departmentCode: string | null;
+  departmentName: string | null;
+  teamId: string | null;
+  teamCode: string | null;
+  teamName: string | null;
+  employeeId: string | null;
+  employeeCode: string | null;
+  employeeName: string | null;
+  sourceType: string | null;
+  sourceId: string | null;
+  departmentSourceId: string | null;
+  teamSourceId: string | null;
+  employeeSourceId: string | null;
+  externalOrganizationId: string | null;
+  warehouseId: string | null;
+  scopePartyId: string | null;
+  code: string;
+  name: string;
+  representativeName: string;
+  phone: string;
+  email: string;
+  capturedAt: string;
+}
+
+export type MaterialOwnerSnapshotDraft = Pick<
+  MaterialOwnerSnapshot,
+  'kind' | 'code' | 'name' | 'representativeName' | 'phone' | 'email'
+> &
+  Partial<
+    Pick<
+      MaterialOwnerSnapshot,
+      | 'departmentId'
+      | 'departmentCode'
+      | 'departmentName'
+      | 'teamId'
+      | 'teamCode'
+      | 'teamName'
+      | 'employeeId'
+      | 'scopePartyId'
+    >
+  >;
+
 export interface Material {
   id: string;
   code: string;
@@ -33,6 +83,7 @@ export interface Material {
   specificationOverrideLabels: Record<string, string[]>;
   serialNumber: string | null;
   ownerPartyId: string;
+  ownerSnapshot: MaterialOwnerSnapshot;
   borrowerPartyId: string | null;
   condition: MaterialCondition;
   note: string | null;
@@ -55,6 +106,7 @@ export interface MaterialFormValues {
   specificationOverrideLabels?: Record<string, string[]>;
   serialNumber: string;
   ownerPartyId: string;
+  ownerSnapshot?: MaterialOwnerSnapshotDraft;
   condition: MaterialCondition;
   note: string;
 }
@@ -83,6 +135,7 @@ export interface MaterialListFilters {
   modelId?: string;
   groupId?: string;
   ownerPartyId?: string;
+  ownerCatalogId?: string;
   borrowerPartyId?: string;
   receiptId?: string;
   isActive?: boolean;

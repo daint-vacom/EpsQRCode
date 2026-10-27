@@ -35,7 +35,7 @@ function LogoSquareLoader({ className }: { className?: string }) {
       )}
     >
       <img
-        src={toAbsoluteUrl('/media/app/android-chrome-512x512.png')}
+        src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
         alt=""
         className="size-full animate-logo-square-loader object-contain [animation-fill-mode:both] motion-reduce:animate-none"
       />

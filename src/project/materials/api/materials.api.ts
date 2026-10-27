@@ -88,7 +88,7 @@ async function uploadMaterialImage(
   file: File,
   ownerPartyId: string,
 ): Promise<string> {
-  const path = `parties/${ownerPartyId}/objects/${crypto.randomUUID()}/${safeFileName(file.name)}`;
+  const path = `parties/${ownerPartyId || 'unassigned'}/objects/${crypto.randomUUID()}/${safeFileName(file.name)}`;
   await uploadStorageObject({
     bucket: MATERIAL_IMAGES_BUCKET,
     path,
@@ -109,12 +109,19 @@ export async function saveMaterial(
 
   try {
     const imagePayload: MaterialImagePayload[] = [];
+    const imageOwnerPartyId =
+      values.ownerSnapshot?.kind === 'other'
+        ? (values.ownerSnapshot.scopePartyId ?? '')
+        : values.ownerPartyId;
     for (const [sortOrder, image] of images.entries()) {
       const storageBucket = image.file
         ? MATERIAL_IMAGES_BUCKET
         : (image.storageBucket ?? null);
       const storagePath = image.file
-        ? await uploadMaterialImage(image.file, values.ownerPartyId)
+        ? await uploadMaterialImage(
+            image.file,
+            imageOwnerPartyId || values.ownerSnapshot?.scopePartyId || '',
+          )
         : (image.storagePath ?? null);
       if (image.file && storagePath) uploadedPaths.push(storagePath);
       imagePayload.push({

@@ -37,6 +37,7 @@ export interface MyQrCodeAccount {
   displayName: string | null;
   accountType: AccountType | null;
   status: QrCodeAccountStatus;
+  roles: AccountRole[];
   epsEmployeeId: string | null;
   epsEmployeeCode: string | null;
   epsEmployeeName: string | null;
