@@ -453,7 +453,7 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     nameOverride: material.nameOverride ?? '',
     descriptionOverride: material.descriptionOverride ?? '',
     serialNumber: material.serialNumber ?? '',
-    ownerPartyId: material.ownerPartyId,
+    ownerPartyId: material.ownerPartyId ?? '',
     ownerSnapshot: {
       kind: material.ownerSnapshot.kind,
       code: material.ownerSnapshot.code,

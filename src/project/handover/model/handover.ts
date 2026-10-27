@@ -13,7 +13,7 @@ export type HandoverMode =
 export type HandoverPartyKind = 'eps' | 'external' | 'warehouse' | 'other';
 
 export interface HandoverPartySnapshot {
-  id: string;
+  id: string | null;
   code: string;
   name: string;
   type: 'department' | 'team' | 'person' | 'external' | 'other' | 'warehouse';

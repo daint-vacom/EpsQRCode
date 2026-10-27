@@ -26,7 +26,7 @@ export type MaterialOwnerKind = 'eps' | 'external' | 'warehouse' | 'other';
 export interface MaterialOwnerSnapshot {
   kind: MaterialOwnerKind;
   type: 'department' | 'team' | 'person' | 'external' | 'other' | 'warehouse';
-  partyId: string;
+  partyId: string | null;
   catalogPartyId: string | null;
   departmentId: string | null;
   departmentCode: string | null;
@@ -52,6 +52,20 @@ export interface MaterialOwnerSnapshot {
   email: string;
   capturedAt: string;
 }
+
+export type MaterialBorrowerSnapshot = Pick<
+  MaterialOwnerSnapshot,
+  | 'kind'
+  | 'type'
+  | 'partyId'
+  | 'catalogPartyId'
+  | 'scopePartyId'
+  | 'code'
+  | 'name'
+  | 'representativeName'
+  | 'phone'
+  | 'email'
+>;
 
 export type MaterialOwnerSnapshotDraft = Pick<
   MaterialOwnerSnapshot,
@@ -82,9 +96,10 @@ export interface Material {
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
   serialNumber: string | null;
-  ownerPartyId: string;
+  ownerPartyId: string | null;
   ownerSnapshot: MaterialOwnerSnapshot;
   borrowerPartyId: string | null;
+  borrowerSnapshot: MaterialBorrowerSnapshot | null;
   condition: MaterialCondition;
   note: string | null;
   status: MaterialStatus;
@@ -135,8 +150,12 @@ export interface MaterialListFilters {
   modelId?: string;
   groupId?: string;
   ownerPartyId?: string;
+  ownerScopePartyId?: string;
+  ownerName?: string;
   ownerCatalogId?: string;
   borrowerPartyId?: string;
+  borrowerScopePartyId?: string;
+  borrowerName?: string;
   receiptId?: string;
   isActive?: boolean;
   status?: MaterialStatus;

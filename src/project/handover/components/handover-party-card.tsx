@@ -1,8 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import type {
-  Custodian,
-  HandoverCustomParty,
-} from '@/project/custodians/model/custodian';
+import type { Custodian } from '@/project/custodians/model/custodian';
 import { Building2, Mail, Pencil, Phone, UserRound } from 'lucide-react';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -18,7 +15,6 @@ interface HandoverPartyCardProps {
   side: 'sender' | 'recipient';
   form: UseFormReturn<HandoverFormValues>;
   parties: Custodian[];
-  customParties: HandoverCustomParty[];
   disabled?: boolean;
   notice?: ReactNode;
 }
@@ -55,7 +51,6 @@ export function HandoverPartyCard({
   side,
   form,
   parties,
-  customParties,
   disabled = false,
   notice,
 }: HandoverPartyCardProps) {
@@ -72,13 +67,13 @@ export function HandoverPartyCard({
     side === 'sender'
       ? (form.formState.errors.senderPartyName?.message ??
         form.formState.errors.senderPartyId?.message ??
+        form.formState.errors.senderPartyScopePartyId?.message ??
         form.formState.errors.senderPartyEmail?.message)
       : (form.formState.errors.recipientPartyName?.message ??
         form.formState.errors.recipientPartyId?.message ??
+        form.formState.errors.recipientPartyScopePartyId?.message ??
         form.formState.errors.recipientPartyEmail?.message);
-  const party = [...parties, ...customParties].find(
-    (item) => item.id === partyId,
-  );
+  const party = parties.find((item) => item.id === partyId);
   const parent = party?.parentId
     ? parties.find((item) => item.id === party.parentId)
     : undefined;
@@ -221,7 +216,6 @@ export function HandoverPartyCard({
         side={side}
         form={form}
         parties={parties}
-        customParties={customParties}
       />
     </>
   );

@@ -71,11 +71,15 @@ export const handoverFormSchema = z
           message: side === 'sender' ? 'Chọn bên giao.' : 'Chọn bên nhận.',
         });
       }
-      if (kind === 'other' && side === 'sender' && !partyId) {
+      if (
+        kind === 'other' &&
+        side === 'sender' &&
+        !values.senderPartyScopePartyId
+      ) {
         context.addIssue({
           code: 'custom',
-          path: ['senderPartyId'],
-          message: 'Không tìm thấy đối tượng sở hữu vật tư theo tên đã nhập.',
+          path: ['senderPartyScopePartyId'],
+          message: 'Chọn phạm vi quyền thao tác cho bên giao.',
         });
       }
     });

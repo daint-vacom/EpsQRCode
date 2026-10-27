@@ -23,7 +23,7 @@ Nhân viên là bản ghi từ danh mục nhân viên EPS, không phải tài kh
 
 Mỗi lần ghi nhận chủ sở hữu lưu một snapshot của đối tượng tại thời điểm nghiệp vụ. Snapshot chứa loại đối tượng, mã/tên và các thông tin hiển thị liên quan; với EPS, lưu các cấp đơn vị, tổ/nhóm, nhân viên đã chọn cùng mã/tên hiển thị của từng cấp. Các loại khác lưu thông tin tương ứng như đơn vị ngoài/kho hoặc tên đối tượng tự nhập, đại diện, điện thoại và email khi có.
 
-Khi chọn từ danh mục, giao diện điền sẵn thông tin. Mã chủ thể lấy từ danh mục và chỉ hiển thị, không cho sửa; tên, người đại diện và thông tin liên hệ vẫn được lưu thành snapshot có thể sửa mà không làm đổi bản ghi danh mục. Với loại Khác, người dùng có thể nhập mã cùng các thông tin snapshot khác. Lưu thêm metadata ID nguồn cho từng cấp đã chọn (EPS department/team/employee, đơn vị ngoài hoặc kho) để đối chiếu và báo cáo. Không suy ra metadata bằng cách so tên. Đối tượng tự nhập không có ID danh mục thì metadata ID để trống; nếu người dùng chọn một bản ghi danh mục thì giữ ID bản ghi đó dù nội dung snapshot đã được sửa. Với loại Khác, `scopePartyId` chỉ là phạm vi quyền quản lý/đường dẫn lưu ảnh; nó không phải metadata chủ sở hữu và không được tính vào cây EPS.
+Khi chọn từ danh mục, giao diện điền sẵn thông tin. Mã chủ thể lấy từ danh mục và chỉ hiển thị, không cho sửa; tên, người đại diện và thông tin liên hệ vẫn được lưu thành snapshot có thể sửa mà không làm đổi bản ghi danh mục. Với loại Khác, người dùng có thể nhập mã cùng các thông tin snapshot khác. Backend không tạo bản ghi chủ thể, UUID hoặc mã giả cho thông tin này; `ownerPartyId`/ID bên giao-bên nhận để trống và chỉ snapshot được lưu. Lưu thêm metadata ID nguồn cho từng cấp đã chọn (EPS department/team/employee, đơn vị ngoài hoặc kho) để đối chiếu và báo cáo. Không suy ra metadata bằng cách so tên. Đối tượng tự nhập không có ID danh mục thì metadata ID để trống; nếu người dùng chọn một bản ghi danh mục thì giữ ID bản ghi đó dù nội dung snapshot đã được sửa. Với loại Khác, `scopePartyId` chỉ là phạm vi quyền quản lý/đường dẫn lưu ảnh; nó không phải metadata chủ sở hữu và không được tính vào cây EPS.
 
 Snapshot của chủ sở hữu vật tư là dữ liệu nghiệp vụ, không phải bản sao toàn bộ hồ sơ nhân sự. Đổi tên hoặc đổi tổ chức trong danh mục không được âm thầm viết lại snapshot vật tư hay snapshot của phiếu bàn giao đã hoàn tất.
 
@@ -50,7 +50,7 @@ Quyền tạo, gửi và xác nhận phiếu là quyền của tài khoản thao
 
 ## 5. Yêu cầu dữ liệu và triển khai
 
-- API/form phải truyền snapshot owner và metadata ID danh mục; chỉ lưu một UUID `ownerPartyId` không đủ để đáp ứng contract.
+- API/form phải truyền snapshot owner và metadata ID danh mục; chỉ lưu một UUID `ownerPartyId` không đủ để đáp ứng contract. Đối tượng tự nhập lưu `ownerPartyId = null`; người mượn tự nhập lưu `borrowerPartyId = null`; bên giao/bên nhận tự nhập lưu party ID tương ứng bằng `null`. `scopePartyId` chỉ phục vụ quyền thao tác.
 - Lưu snapshot, metadata nguồn, lịch sử thay đổi owner và cập nhật owner sau khi hoàn tất bàn giao trong cùng giao dịch nghiệp vụ.
 - Các truy vấn, bộ lọc và báo cáo phải hỗ trợ tổng hợp EPS theo ID nguồn đơn vị/tổ/nhân viên trong snapshot. Cần giữ ổn định số liệu lịch sử khi danh mục đổi.
 - Nguồn danh sách nhân viên phải là danh mục nhân viên EPS và không lọc bỏ nhân viên vì thiếu liên kết tài khoản QRCode. API chỉ dành cho màn hình quản lý/tạo tài khoản không mặc nhiên là API phù hợp cho selector sở hữu.
@@ -62,8 +62,9 @@ Quyền tạo, gửi và xác nhận phiếu là quyền của tài khoản thao
 Mã nguồn triển khai contract qua các phần sau:
 
 - Form tạo vật tư và dialog bên giao/bên nhận có bốn loại đối tượng. EPS có selector đơn vị → tổ/nhóm → nhân viên; nhân viên được tìm trong danh mục EPS độc lập với tài khoản QRCode.
-- Mã chủ thể được điền từ danh mục và chỉ hiển thị; tên, người đại diện và liên hệ vẫn là snapshot có thể sửa. Loại Khác cho phép nhập mã. ID nguồn danh mục được giữ để đối chiếu. Card sở hữu trên form sửa vật tư là chỉ đọc; chuyển chủ sở hữu hiện tại thực hiện qua phiếu bàn giao.
+- Mã chủ thể được điền từ danh mục và chỉ hiển thị; tên, người đại diện và liên hệ vẫn là snapshot có thể sửa. Loại Khác cho phép nhập mã nhưng không tạo bản ghi hay UUID chủ thể; party ID để trống và chỉ snapshot được lưu. ID nguồn danh mục được giữ để đối chiếu. Card sở hữu trên form sửa vật tư là chỉ đọc; chuyển chủ sở hữu hiện tại thực hiện qua phiếu bàn giao.
 - Migration `20261026170000_material_owner_party_snapshots.sql` bổ sung snapshot vật tư, backfill dữ liệu cũ, cập nhật snapshot khi hoàn tất bàn giao và cho phép lọc vật tư theo ID đơn vị/tổ/nhân viên cha trong snapshot.
+- Migration `20261027110000_manual_other_party_snapshots.sql` chuyển chủ sở hữu, người mượn và bên giao/nhận tự nhập sang snapshot-only; mọi party ID của loại Khác để `null`. Migration giữ ID catalog trong `scopePartyId` chỉ để kiểm tra quyền và chuẩn hóa các dữ liệu ID tự sinh cũ ra khỏi bản ghi nghiệp vụ. Migration đã được áp dụng vào Supabase dev project `uopmkpcorjhsppdowmab`; đã xác nhận version lịch sử, schema snapshot, các party ID liên quan để trống và function chọn đối tượng trả về cấu trúc mới.
 - Các kế hoạch cũ dẫn về contract này; phần owner mâu thuẫn không còn là nguồn nghiệp vụ độc lập.
 
 Migration `20261026170000_material_owner_party_snapshots.sql` đã được áp dụng lên Supabase dev và schema/backfill/RPC đã được kiểm tra. RPC `list_materials` hỗ trợ lọc theo ID chủ thể nội bộ qua `ownerPartyId` và ID nguồn danh mục qua `ownerCatalogId`; với cả hai kiểu, điều kiện snapshot bao gồm các cấp cha EPS và mỗi vật tư chỉ xuất hiện một lần trong kết quả. Trang Báo cáo hiện vẫn là placeholder; chưa có báo cáo vật tư để kiểm tra trực quan số liệu roll-up.

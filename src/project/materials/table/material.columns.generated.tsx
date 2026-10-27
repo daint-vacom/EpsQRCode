@@ -222,8 +222,12 @@ export function useMaterialColumns({
         size: 200,
         enableSorting: false,
         cell: (row) =>
-          row.status === 'loaned' && row.borrowerPartyId
-            ? (partyNameById.get(row.borrowerPartyId) ?? row.borrowerPartyId)
+          row.status === 'loaned'
+            ? row.borrowerSnapshot?.name ||
+              (row.borrowerPartyId
+                ? (partyNameById.get(row.borrowerPartyId) ??
+                  row.borrowerPartyId)
+                : '—')
             : row.ownerSnapshot.name,
       }),
       col.custom({

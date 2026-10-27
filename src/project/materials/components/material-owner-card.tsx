@@ -161,6 +161,7 @@ export function MaterialOwnerCard({
     const scopeParty = parties.find(
       (party) =>
         party.canManageMaterial &&
+        party.canRepresent &&
         ['department', 'team', 'person'].includes(party.type),
     );
     form.setValue(

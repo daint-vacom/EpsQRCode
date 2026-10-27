@@ -47,11 +47,10 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.partyDialog.epsTeam': 'Tổ nhóm',
   'project.handover.partyDialog.epsEmployee': 'Nhân viên',
   'project.handover.partyDialog.catalogParty': 'Đơn vị ngoài',
+  'project.handover.partyDialog.authorizationScope': 'Phạm vi quyền thao tác',
   'project.handover.partyDialog.selectParty': 'Chọn đối tượng',
   'project.handover.partyDialog.selectTeam': 'Chọn tổ nhóm',
   'project.handover.partyDialog.noSuggestions': 'Không có gợi ý phù hợp.',
-  'project.handover.partyDialog.senderOtherMatchingHint':
-    'Nhập đúng tên đối tượng đang sở hữu vật tư để hệ thống tự nhận diện.',
   'project.handover.partyDialog.invalidEmail': 'Nhập email hợp lệ.',
   'project.handover.errors.invalidReverseSourceTitle':
     'Không thể lập phiếu bàn giao lại',
@@ -269,11 +268,10 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.partyDialog.epsTeam': 'Team',
   'project.handover.partyDialog.epsEmployee': 'Employee',
   'project.handover.partyDialog.catalogParty': 'External unit',
+  'project.handover.partyDialog.authorizationScope': 'Permission scope',
   'project.handover.partyDialog.selectParty': 'Select a party',
   'project.handover.partyDialog.selectTeam': 'Select a team',
   'project.handover.partyDialog.noSuggestions': 'No matching suggestions.',
-  'project.handover.partyDialog.senderOtherMatchingHint':
-    'Enter the exact name of the material owner so the system can match it.',
   'project.handover.partyDialog.invalidEmail': 'Enter a valid email address.',
   'project.handover.errors.invalidReverseSourceTitle':
     'Cannot create a reverse handover',

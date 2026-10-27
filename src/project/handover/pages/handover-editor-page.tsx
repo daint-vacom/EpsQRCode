@@ -4,7 +4,6 @@ import { ROUTES } from '@/constants/routes';
 import {
   useCustodiansQuery,
   useHandoverCounterpartyOptionsQuery,
-  useHandoverCustomPartiesQuery,
 } from '@/project/custodians/hooks/use-custodians';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
@@ -91,7 +90,6 @@ export function HandoverEditorPage() {
     !isEdit && Boolean(reverseFromHandoverId) && canManage,
   );
   const custodiansQuery = useCustodiansQuery(false, canManage);
-  const customPartiesQuery = useHandoverCustomPartiesQuery(canManage);
   const saveMutation = useSaveHandoverMutation();
   const actionMutation = useHandoverActionMutation();
   const { mutateAsync: saveHandover, isPending: isSaving } = saveMutation;
@@ -137,10 +135,14 @@ export function HandoverEditorPage() {
       ),
     [custodiansQuery.data],
   );
-  const customPartyList = customPartiesQuery.data ?? [];
   const selectedSenderPartyId = form.watch('senderPartyId');
+  const selectedSenderScopePartyId = form.watch('senderPartyScopePartyId');
+  const senderCatalogIdForCounterparties =
+    form.watch('senderPartyKind') === 'other'
+      ? selectedSenderScopePartyId
+      : selectedSenderPartyId;
   const counterpartiesQuery = useHandoverCounterpartyOptionsQuery(
-    selectedSenderPartyId,
+    senderCatalogIdForCounterparties,
     canManage,
   );
   const recipientCatalogParties = useMemo(() => {
@@ -181,10 +183,30 @@ export function HandoverEditorPage() {
     ownerPartyId:
       handoverType === 'return'
         ? undefined
-        : form.watch('senderPartyId') || undefined,
+        : form.watch('senderPartyKind') === 'other'
+          ? undefined
+          : form.watch('senderPartyId') || undefined,
+    ownerScopePartyId:
+      handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
+        ? form.watch('senderPartyScopePartyId') || undefined
+        : undefined,
+    ownerName:
+      handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
+        ? form.watch('senderPartyName') || undefined
+        : undefined,
     borrowerPartyId:
       handoverType === 'return'
-        ? form.watch('senderPartyId') || undefined
+        ? form.watch('senderPartyKind') === 'other'
+          ? undefined
+          : form.watch('senderPartyId') || undefined
+        : undefined,
+    borrowerScopePartyId:
+      handoverType === 'return' && form.watch('senderPartyKind') === 'other'
+        ? form.watch('senderPartyScopePartyId') || undefined
+        : undefined,
+    borrowerName:
+      handoverType === 'return' && form.watch('senderPartyKind') === 'other'
+        ? form.watch('senderPartyName') || undefined
         : undefined,
     status:
       handoverType === 'return' ? ('loaned' as const) : ('available' as const),
@@ -226,8 +248,14 @@ export function HandoverEditorPage() {
     const values = {
       ...source,
       type: reverseSource.type === 'loan' ? 'return' : 'transfer',
-      senderPartyId: reverseSource.recipientParty.id,
-      recipientPartyId: reverseSource.senderParty.id,
+      senderPartyId:
+        source.recipientPartyKind === 'other'
+          ? ''
+          : (reverseSource.recipientParty.id ?? ''),
+      recipientPartyId:
+        source.senderPartyKind === 'other'
+          ? ''
+          : (reverseSource.senderParty.id ?? ''),
       senderPartyKind: source.recipientPartyKind,
       recipientPartyKind: source.senderPartyKind,
       senderPartyCode: reverseSource.recipientParty.code,
@@ -243,9 +271,13 @@ export function HandoverEditorPage() {
       recipientRepresentativeName:
         reverseSource.senderRepresentative?.displayName ?? '',
       senderPartyScopePartyId:
-        reverseSource.recipientParty.handoverScopePartyId ?? '',
+        reverseSource.recipientParty.handoverScopePartyId ??
+        reverseSource.recipientParty.scopePartyId ??
+        '',
       recipientPartyScopePartyId:
-        reverseSource.senderParty.handoverScopePartyId ?? '',
+        reverseSource.senderParty.handoverScopePartyId ??
+        reverseSource.senderParty.scopePartyId ??
+        '',
       senderRepresentativeUserId:
         reverseSource.recipientRepresentative?.userId ?? null,
       recipientRepresentativeUserId:
@@ -568,20 +600,16 @@ export function HandoverEditorPage() {
   return (
     <div className="h-full min-h-0 overflow-y-auto p-4 lg:p-5">
       {custodiansQuery.isPending ||
-      customPartiesQuery.isPending ||
       (Boolean(reverseFromHandoverId) && reverseSourceQuery.isPending) ? (
         <div className="h-40 animate-pulse rounded-xl bg-muted" />
-      ) : custodiansQuery.isError || customPartiesQuery.isError ? (
+      ) : custodiansQuery.isError ? (
         <ErrorState
           title={intl.formatMessage({
             id: 'project.handover.errors.loadPartiesTitle',
           })}
-          description={getApiErrorMessage(
-            custodiansQuery.error ?? customPartiesQuery.error,
-          )}
+          description={getApiErrorMessage(custodiansQuery.error)}
           onRetry={() => {
             void custodiansQuery.refetch();
-            void customPartiesQuery.refetch();
           }}
         />
       ) : reverseSourceQuery.isError ||
@@ -614,10 +642,8 @@ export function HandoverEditorPage() {
                   side="sender"
                   form={form}
                   parties={custodianList}
-                  customParties={customPartyList}
                   notice={
-                    representedSenderOptions.length === 0 &&
-                    customPartyList.length === 0 ? (
+                    representedSenderOptions.length === 0 ? (
                       <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
                         {intl.formatMessage({
                           id: 'project.handover.errors.senderNotConfigured',
@@ -690,7 +716,6 @@ export function HandoverEditorPage() {
                   side="recipient"
                   form={form}
                   parties={recipientCatalogParties}
-                  customParties={customPartyList}
                   notice={
                     counterpartiesQuery.isError ? (
                       <ErrorState

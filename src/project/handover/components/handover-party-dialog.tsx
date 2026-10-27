@@ -3,7 +3,6 @@ import { loadEpsOwnerEmployees } from '@/project/custodians/api/custodians.api';
 import type {
   Custodian,
   EpsEmployeeCatalogEntry,
-  HandoverCustomParty,
 } from '@/project/custodians/model/custodian';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -12,7 +11,6 @@ import { AutocompleteInput } from '@/components/ui/autocomplete-input';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -78,7 +76,6 @@ interface HandoverPartyDialogProps {
   side: Side;
   form: UseFormReturn<HandoverFormValues>;
   parties: Custodian[];
-  customParties: HandoverCustomParty[];
 }
 
 function fieldName<K extends keyof SideFieldNames>(
@@ -86,14 +83,6 @@ function fieldName<K extends keyof SideFieldNames>(
   key: K,
 ): SideFieldNames[K] {
   return `${side === 'sender' ? 'sender' : 'recipient'}${key}` as SideFieldNames[K];
-}
-
-function normalizePartyName(value: string) {
-  return value
-    .normalize('NFC')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLocaleLowerCase('vi-VN');
 }
 
 function snapshotToKind(party?: {
@@ -106,7 +95,7 @@ function snapshotToKind(party?: {
   return 'eps';
 }
 
-function mapParty(party: Custodian | HandoverCustomParty): PartyCatalogItem {
+function mapParty(party: Custodian): PartyCatalogItem {
   const representativeDisplayName =
     'representativeDisplayName' in party
       ? party.representativeDisplayName
@@ -137,7 +126,6 @@ export function HandoverPartyDialog({
   side,
   form,
   parties,
-  customParties,
 }: HandoverPartyDialogProps) {
   const intl = useIntl();
   const { userId } = useUser();
@@ -160,14 +148,8 @@ export function HandoverPartyDialog({
   });
   const didInitializeRef = useRef(false);
   const allParties = useMemo(
-    () => [
-      ...parties.filter((party) => !party.isHandoverCustom).map(mapParty),
-      ...customParties.map(mapParty),
-    ],
-    [customParties, parties],
-  );
-  const selectedParty = allParties.find(
-    (party) => party.id === dialogForm.watch('partyId'),
+    () => parties.filter((party) => !party.isHandoverCustom).map(mapParty),
+    [parties],
   );
   const selectedDepartmentId = dialogForm.watch('departmentId');
   const selectedTeamId = dialogForm.watch('teamId');
@@ -202,22 +184,14 @@ export function HandoverPartyDialog({
       !party.isHandoverCustom &&
       partyCanBeSender(party),
   );
-  const customPartyRecords = allParties.filter(
-    (party) => party.isHandoverCustom && partyCanBeSender(party),
-  );
-  const partyName = dialogForm.watch('name');
   const partyKind = dialogForm.watch('kind');
-  const normalizedPartyName = normalizePartyName(partyName);
-  const matchingCustomParties = normalizedPartyName
-    ? customPartyRecords.filter(
-        (party) => normalizePartyName(party.name) === normalizedPartyName,
-      )
-    : [];
-  const matchingCustomParty =
-    matchingCustomParties.length === 1 ? matchingCustomParties[0] : undefined;
-  const matchingCustomPartyId = matchingCustomParty?.id ?? '';
-  const matchingCustomPartyScopeId =
-    matchingCustomParty?.handoverScopePartyId ?? '';
+  const senderScopeOptions = parties.filter(
+    (party) =>
+      party.isActive &&
+      !party.isHandoverCustom &&
+      party.canRepresent &&
+      party.canManageHandover,
+  );
   const representativeOptions = allParties
     .filter(
       (party) =>
@@ -286,7 +260,7 @@ export function HandoverPartyDialog({
         : undefined;
     dialogForm.reset({
       kind: kind ?? snapshotToKind(party),
-      partyId,
+      partyId: kind === 'other' ? '' : partyId,
       departmentId:
         type === 'department'
           ? partyId
@@ -324,28 +298,11 @@ export function HandoverPartyDialog({
     });
   }, [allParties, dialogForm, form, open, prefix]);
 
-  useEffect(() => {
-    if (!open || partyKind !== 'other') return;
-    if (dialogForm.getValues('partyId') !== matchingCustomPartyId) {
-      dialogForm.setValue('partyId', matchingCustomPartyId, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-    if (dialogForm.getValues('scopePartyId') !== matchingCustomPartyScopeId) {
-      dialogForm.setValue('scopePartyId', matchingCustomPartyScopeId);
-    }
-  }, [
-    dialogForm,
-    matchingCustomPartyId,
-    matchingCustomPartyScopeId,
-    open,
-    partyKind,
-  ]);
-
   const setKind = (kind: HandoverPartyKind) => {
     const current = dialogForm.getValues();
     if (current.kind === kind) return;
+    const senderScopePartyId = form.getValues('senderPartyScopePartyId');
+    const senderPartyId = form.getValues('senderPartyId');
     dialogForm.reset({
       ...current,
       kind,
@@ -354,7 +311,14 @@ export function HandoverPartyDialog({
       teamId: '',
       personId: '',
       scopePartyId:
-        kind === 'other' && side === 'sender' ? current.scopePartyId : '',
+        kind !== 'other'
+          ? ''
+          : side === 'sender'
+            ? current.scopePartyId ||
+              current.partyId ||
+              senderScopeOptions[0]?.id ||
+              ''
+            : current.scopePartyId || senderScopePartyId || senderPartyId || '',
       name: '',
       code: '',
       representativeName: '',
@@ -366,13 +330,15 @@ export function HandoverPartyDialog({
 
   const save = dialogForm.handleSubmit((values) => {
     const partyId =
-      values.kind === 'eps' && values.personId
-        ? values.personId
-        : values.kind === 'eps' && values.teamId
-          ? values.teamId
-          : values.kind === 'eps' && values.departmentId
-            ? values.departmentId
-            : values.partyId;
+      values.kind === 'other'
+        ? ''
+        : values.kind === 'eps' && values.personId
+          ? values.personId
+          : values.kind === 'eps' && values.teamId
+            ? values.teamId
+            : values.kind === 'eps' && values.departmentId
+              ? values.departmentId
+              : values.partyId;
     const id = fieldName(side, 'PartyId');
     const kindName = fieldName(side, 'PartyKind');
     const codeName = fieldName(side, 'PartyCode');
@@ -420,7 +386,7 @@ export function HandoverPartyDialog({
       !dialogForm.watch('partyId')) ||
     (dialogForm.watch('kind') === 'other' &&
       side === 'sender' &&
-      !dialogForm.watch('partyId')) ||
+      !dialogForm.watch('scopePartyId')) ||
     Boolean(
       dialogForm.watch('email') &&
       !/^\S+@\S+\.\S+$/.test(dialogForm.watch('email')),
@@ -710,6 +676,33 @@ export function HandoverPartyDialog({
             />
           ) : null}
 
+          {partyKind === 'other' && side === 'sender' ? (
+            <FormField
+              control={dialogForm.control}
+              name="scopePartyId"
+              render={({ field }) => (
+                <FormItem layout="horizontal" labelWidth="md">
+                  <FormLabel>
+                    {intl.formatMessage({
+                      id: 'project.handover.partyDialog.authorizationScope',
+                    })}
+                    <span className="text-destructive"> *</span>
+                  </FormLabel>
+                  <FormControl>
+                    <OptionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={partyOptions(senderScopeOptions.map(mapParty))}
+                      placeholder={intl.formatMessage({
+                        id: 'project.handover.partyDialog.selectParty',
+                      })}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          ) : null}
+
           <FormField
             control={dialogForm.control}
             name="code"
@@ -745,41 +738,8 @@ export function HandoverPartyDialog({
                   <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    onChange={(event) => {
-                      field.onChange(event);
-                      if (partyKind !== 'other') return;
-                      const enteredName = normalizePartyName(
-                        event.target.value,
-                      );
-                      const matches = customPartyRecords.filter(
-                        (party) =>
-                          normalizePartyName(party.name) === enteredName,
-                      );
-                      const match =
-                        matches.length === 1 ? matches[0] : undefined;
-                      dialogForm.setValue('partyId', match?.id ?? '', {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                      dialogForm.setValue(
-                        'scopePartyId',
-                        match?.handoverScopePartyId ?? '',
-                      );
-                    }}
-                  />
+                  <Input {...field} />
                 </FormControl>
-                {partyKind === 'other' &&
-                side === 'sender' &&
-                partyName.trim() &&
-                !selectedParty?.isHandoverCustom ? (
-                  <FormDescription>
-                    {intl.formatMessage({
-                      id: 'project.handover.partyDialog.senderOtherMatchingHint',
-                    })}
-                  </FormDescription>
-                ) : null}
               </FormItem>
             )}
           />

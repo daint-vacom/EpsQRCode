@@ -188,6 +188,7 @@ const sample: Material = {
     capturedAt: '2026-10-01T00:00:00Z',
   },
   borrowerPartyId: null,
+  borrowerSnapshot: null,
   condition: 'good',
   note: null,
   status: 'available',

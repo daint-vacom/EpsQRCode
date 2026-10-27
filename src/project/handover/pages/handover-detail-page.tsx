@@ -137,7 +137,11 @@ export function HandoverDetailPage() {
       : isReceiver),
   );
   const canReject = Boolean(
-    canManage && isReceiver && document?.status === 'pending',
+    canManage &&
+    document?.status === 'pending' &&
+    (hasOtherParty
+      ? isHandoverCreator && (isSender || isReceiver)
+      : isReceiver),
   );
   const canCompleteOffline = Boolean(
     canManage &&
@@ -153,7 +157,8 @@ export function HandoverDetailPage() {
     isSender &&
     document?.mode === 'standard' &&
     document.status === 'completed' &&
-    document.recipientParty.isHandoverCustom &&
+    (document.recipientParty.type === 'other' ||
+      document.recipientParty.isHandoverCustom) &&
     ['transfer', 'loan'].includes(document.type),
   );
 

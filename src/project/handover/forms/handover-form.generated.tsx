@@ -100,8 +100,14 @@ export function mapHandoverToFormValues(
           : 'eps';
   return {
     type: entity.type,
-    senderPartyId: entity.senderParty.id,
-    recipientPartyId: entity.recipientParty.id,
+    senderPartyId:
+      partyKind(entity.senderParty) === 'other'
+        ? ''
+        : (entity.senderParty.id ?? ''),
+    recipientPartyId:
+      partyKind(entity.recipientParty) === 'other'
+        ? ''
+        : (entity.recipientParty.id ?? ''),
     senderPartyKind: partyKind(entity.senderParty),
     recipientPartyKind: partyKind(entity.recipientParty),
     senderPartyCode: entity.senderParty.code,
