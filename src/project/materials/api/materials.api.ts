@@ -17,6 +17,14 @@ import type {
 
 export const MATERIAL_IMAGES_BUCKET = 'material-images';
 
+export interface BulkMaterialCreateResult {
+  rowNumber: number;
+  code: string;
+  success: boolean;
+  id: string | null;
+  error: string | null;
+}
+
 interface MaterialImagePayload {
   storage_bucket: string | null;
   storage_path: string | null;
@@ -32,6 +40,7 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
 export async function loadMaterials(
   filters: MaterialListFilters = {},
   signal?: AbortSignal,
+  options: { resolveImages?: boolean } = {},
 ): Promise<MaterialListResult> {
   assertSupabaseConfigured();
   const result = await request<MaterialListResult>(
@@ -39,10 +48,31 @@ export async function loadMaterials(
   );
   return {
     ...result,
-    items: await Promise.all(
-      result.items.map((material) => resolveMaterialImages(material, true)),
-    ),
+    items:
+      options.resolveImages === false
+        ? result.items
+        : await Promise.all(
+            result.items.map((material) =>
+              resolveMaterialImages(material, true),
+            ),
+          ),
   };
+}
+
+export async function createMaterialsBulk(
+  values: MaterialFormValues[],
+): Promise<BulkMaterialCreateResult[]> {
+  assertSupabaseConfigured();
+  const rows = await request<BulkMaterialCreateResult[]>(
+    supabaseApi.post('/rpc/create_materials_bulk', {
+      p_items: values.map((item) => ({
+        ...item,
+        specificationOverrideLabels: item.specificationOverrideLabels ?? {},
+        images: [],
+      })),
+    }),
+  );
+  return rows;
 }
 
 export async function loadMaterial(

@@ -11,6 +11,21 @@ import { warehouseMessagesVi } from '@/project/warehouses/messages';
 
 export const vi: Record<string, string> = {
   'common.actions.retry': 'Thử lại',
+  'common.spreadsheets.errors.fileType':
+    'Vui lòng chọn tệp Excel có định dạng .xlsx.',
+  'common.spreadsheets.errors.unavailable':
+    'Không thể khởi tạo chức năng xử lý Excel trong trình duyệt này.',
+  'common.spreadsheets.errors.fileSize': 'Tệp Excel vượt quá giới hạn 20 MB.',
+  'common.spreadsheets.errors.noWorksheets':
+    'Tệp Excel không có trang tính để xử lý.',
+  'common.spreadsheets.errors.rowLimit':
+    'Trang tính vượt quá giới hạn 50.000 dòng.',
+  'common.spreadsheets.errors.worksheetMissing':
+    'Không tìm thấy trang tính đã chọn.',
+  'common.spreadsheets.errors.mappingEmpty':
+    'Không nhận diện được cột dữ liệu trong biểu mẫu. Thêm khóa trường ở hàng đầu hoặc dùng tiêu đề cột chuẩn.',
+  'common.spreadsheets.errors.exportLimit':
+    'Tệp xuất vượt quá giới hạn 50.000 dòng.',
   'common.actions.loadMore': 'Tải thêm',
   'common.select.loadingMore': 'Đang tải thêm',
   'common.select.loadError': 'Không thể tải dữ liệu',
@@ -520,6 +535,16 @@ export const vi: Record<string, string> = {
   'settings.tabs.organization': 'Tổ chức',
   'settings.tabs.appearance': 'Giao diện',
   'settings.tabs.dataConfiguration': 'Cấu hình dữ liệu',
+  'settings.tabs.spreadsheetTemplates': 'Biểu mẫu',
+  'settings.spreadsheetTemplates.title': 'Biểu mẫu Excel',
+  'settings.spreadsheetTemplates.materialsImport': 'Nhập vật tư',
+  'settings.spreadsheetTemplates.materialsExport': 'Xuất vật tư',
+  'settings.spreadsheetTemplates.chooseFile': 'Chọn biểu mẫu Excel .xlsx',
+  'settings.spreadsheetTemplates.fileHelp':
+    'Chọn tệp .xlsx để thêm hoặc thay thế biểu mẫu. Tệp tối đa 20 MB.',
+  'settings.spreadsheetTemplates.saved': 'Đã cập nhật biểu mẫu Excel.',
+  'settings.spreadsheetTemplates.loadErrorTitle':
+    'Không tải được biểu mẫu Excel',
   'settings.dataConfiguration.title': 'Quy tắc sinh mã tự động',
   'settings.dataConfiguration.fields.materialGroupPattern':
     'Mẫu mã nhóm vật tư',

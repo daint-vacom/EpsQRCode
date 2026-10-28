@@ -6,8 +6,10 @@ import {
   useSaveCodeGenerationPatternsMutation,
 } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { getCodePatternExample } from '@/project/code-generation/model/code-pattern-example';
+import { SpreadsheetTemplatesSettings } from '@/project/spreadsheets/components/spreadsheet-templates-settings';
 import {
   Database,
+  FileSpreadsheet,
   Palette,
   Save,
   Settings,
@@ -50,15 +52,18 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-type SettingsTab = 'account' | 'data' | 'appearance';
+type SettingsTab = 'account' | 'data' | 'templates' | 'appearance';
 
 function resolveSettingsTab(
   value: string | null,
   canViewDataConfiguration: boolean,
+  canViewSpreadsheetTemplates: boolean,
 ): SettingsTab {
   if (value === 'account' || value === 'appearance') return value;
   if (value === 'data' && canViewDataConfiguration) return value;
-  return canViewDataConfiguration ? 'data' : 'appearance';
+  if (value === 'templates' && canViewSpreadsheetTemplates) return value;
+  if (canViewDataConfiguration) return 'data';
+  return canViewSpreadsheetTemplates ? 'templates' : 'appearance';
 }
 
 export function ProjectSettingsPage() {
@@ -73,6 +78,10 @@ export function ProjectSettingsPage() {
   const canViewDataConfiguration =
     hasPermission('organization:custom-field:view') ||
     canManageDataConfiguration;
+  const canManageSpreadsheetTemplates = hasPermission(
+    'files:file_manager:manage',
+  );
+  const canViewSpreadsheetTemplates = hasPermission('files:file_manager:view');
   const codePatternsQuery = useCodeGenerationPatternsQuery(
     canViewDataConfiguration,
   );
@@ -82,7 +91,11 @@ export function ProjectSettingsPage() {
     Record<CodeGenerationEntityKey, string>
   >({ material_group: '', material_model: '', material_specification: '' });
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    resolveSettingsTab(requestedTab, canViewDataConfiguration),
+    resolveSettingsTab(
+      requestedTab,
+      canViewDataConfiguration,
+      canViewSpreadsheetTemplates,
+    ),
   );
   const currentTheme = theme === 'light' || theme === 'dark' ? theme : 'system';
 
@@ -125,11 +138,21 @@ export function ProjectSettingsPage() {
   };
 
   useEffect(() => {
-    setActiveTab(resolveSettingsTab(requestedTab, canViewDataConfiguration));
-  }, [canViewDataConfiguration, requestedTab]);
+    setActiveTab(
+      resolveSettingsTab(
+        requestedTab,
+        canViewDataConfiguration,
+        canViewSpreadsheetTemplates,
+      ),
+    );
+  }, [canViewDataConfiguration, canViewSpreadsheetTemplates, requestedTab]);
 
   const handleTabChange = (value: string) => {
-    const nextTab = resolveSettingsTab(value, canViewDataConfiguration);
+    const nextTab = resolveSettingsTab(
+      value,
+      canViewDataConfiguration,
+      canViewSpreadsheetTemplates,
+    );
     setActiveTab(nextTab);
     setSearchParams(
       (current) => {
@@ -175,6 +198,17 @@ export function ProjectSettingsPage() {
                   <Database />
                   {intl.formatMessage({
                     id: 'settings.tabs.dataConfiguration',
+                  })}
+                </TabsTrigger>
+              )}
+              {canViewSpreadsheetTemplates && (
+                <TabsTrigger
+                  value="templates"
+                  className="justify-start gap-2.5 px-3 text-left"
+                >
+                  <FileSpreadsheet />
+                  {intl.formatMessage({
+                    id: 'settings.tabs.spreadsheetTemplates',
                   })}
                 </TabsTrigger>
               )}
@@ -363,6 +397,14 @@ export function ProjectSettingsPage() {
                       </div>
                     )}
                   </SettingsSection>
+                </TabsContent>
+              )}
+
+              {canViewSpreadsheetTemplates && (
+                <TabsContent value="templates" className="mt-0">
+                  <SpreadsheetTemplatesSettings
+                    canManage={canManageSpreadsheetTemplates}
+                  />
                 </TabsContent>
               )}
 
@@ -569,8 +611,8 @@ function SettingsField({
   children: ReactNode;
 }) {
   return (
-    <div className="grid items-start gap-x-4 gap-y-1 md:grid-cols-[12rem_minmax(0,1fr)]">
-      <Label className="pt-2 text-sm font-medium text-foreground">
+    <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1">
+      <Label variant="secondary" className="pt-2">
         {label}
       </Label>
       <div className="min-w-0">{children}</div>

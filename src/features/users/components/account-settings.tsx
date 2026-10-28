@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { changeSupabasePassword } from '@/features/auth/api/auth.api';
 import { loadMyQrCodeAccount } from '@/project/accounts/api/accounts.api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -110,7 +111,7 @@ export function AccountSettings() {
               retryLabel={intl.formatMessage({ id: 'common.actions.retry' })}
             />
           ) : profile ? (
-            <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
+            <div className="space-y-4">
               <ReadOnlyField
                 label={intl.formatMessage({
                   id: 'accounts.settings.profile.name',
@@ -186,19 +187,12 @@ export function AccountSettings() {
                   value={profile.externalOrganizationName ?? ''}
                 />
               ) : (
-                <p className="text-sm text-muted-foreground md:col-span-2">
+                <p className="text-sm text-muted-foreground">
                   {intl.formatMessage({
                     id: 'accounts.settings.profile.mappingNotice',
                   })}
                 </p>
               )}
-              {profile.accountType === 'eps' ? (
-                <p className="text-sm text-muted-foreground md:col-span-2">
-                  {intl.formatMessage({
-                    id: 'accounts.settings.profile.epsReadOnly',
-                  })}
-                </p>
-              ) : null}
             </div>
           ) : (
             <ErrorState
@@ -225,10 +219,16 @@ export function AccountSettings() {
         </CardHeader>
         <CardContent className="space-y-5 p-5">
           <div className="space-y-2">
-            <Label htmlFor="account-email">
-              {intl.formatMessage({ id: 'accounts.settings.security.email' })}
-            </Label>
-            <Input id="account-email" value={user?.email ?? ''} readOnly />
+            <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1">
+              <Label
+                variant="secondary"
+                className="pt-2"
+                htmlFor="account-email"
+              >
+                {intl.formatMessage({ id: 'accounts.settings.security.email' })}
+              </Label>
+              <Input id="account-email" value={user?.email ?? ''} readOnly />
+            </div>
           </div>
           <div className="border-t border-border pt-5">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -245,7 +245,7 @@ export function AccountSettings() {
                 )}
                 className="mt-4 space-y-5"
               >
-                <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">
+                <div className="space-y-5">
                   <PasswordField
                     form={passwordForm}
                     name="currentPassword"
@@ -253,7 +253,6 @@ export function AccountSettings() {
                       id: 'accounts.settings.security.currentPassword',
                     })}
                     autoComplete="current-password"
-                    className="md:col-span-2"
                   />
                   <PasswordField
                     form={passwordForm}
@@ -302,10 +301,13 @@ export function AccountSettings() {
 }
 
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  const fieldId = useId();
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Input value={value} readOnly />
+    <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1">
+      <Label variant="secondary" className="pt-2" htmlFor={fieldId}>
+        {label}
+      </Label>
+      <Input id={fieldId} value={value} readOnly />
     </div>
   );
 }
@@ -315,20 +317,18 @@ function PasswordField({
   name,
   label,
   autoComplete,
-  className,
 }: {
   form: ReturnType<typeof useForm<AccountPasswordFormValues>>;
   name: keyof AccountPasswordFormValues;
   label: string;
   autoComplete: string;
-  className?: string;
 }) {
   return (
     <FormField
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem className={className} layout="horizontal" labelWidth="md">
+        <FormItem layout="horizontal" labelWidth="md">
           <FormLabel>
             {label}
             <span className="text-destructive"> *</span>

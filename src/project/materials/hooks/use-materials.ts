@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import {
   applyMaterialModelSync,
+  createMaterialsBulk,
   deleteMaterials,
   loadMaterial,
   loadMaterialHistory,
@@ -86,6 +87,15 @@ export function useSaveMaterialMutation() {
       previousImages,
     }: SaveMaterialInput) =>
       saveMaterial(id, expectedVersion, values, images, previousImages),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+  });
+}
+
+export function useCreateMaterialsBulkMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createMaterialsBulk,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialKeys.all }),
   });

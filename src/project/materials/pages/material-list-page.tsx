@@ -9,7 +9,7 @@ import {
   type PaginationState,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { Boxes, Handshake, Plus, Trash2 } from 'lucide-react';
+import { Boxes, Download, Handshake, Plus, Trash2, Upload } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -30,6 +30,10 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  MaterialSpreadsheetExportDialog,
+  MaterialSpreadsheetImportDialog,
+} from '../components/material-spreadsheet-dialog';
 import {
   useDeleteMaterialMutation,
   useMaterialsQuery,
@@ -59,6 +63,8 @@ export function MaterialListPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [deletingMaterials, setDeletingMaterials] = useState<Material[]>([]);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
     ReadonlySet<string>
@@ -75,6 +81,10 @@ export function MaterialListPage() {
       pageSize: pagination.pageSize,
     }),
     [pagination.pageIndex, pagination.pageSize, search, status],
+  );
+  const spreadsheetFilters = useMemo(
+    () => ({ search: search.trim() || undefined, status: status || undefined }),
+    [search, status],
   );
   const queryEnabled = isPermissionsPending || canView;
   const query = useMaterialsQuery(
@@ -233,17 +243,45 @@ export function MaterialListPage() {
         title={intl.formatMessage({ id: 'project.materials.page.title' })}
         icon={Boxes}
         actions={
-          canManage ? (
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
-            >
-              <Plus />
-              {intl.formatMessage({ id: 'project.materials.actions.create' })}
-            </Button>
-          ) : null
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canView ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => setIsExportDialogOpen(true)}
+              >
+                <Download />
+                {intl.formatMessage({
+                  id: 'project.materials.actions.exportExcel',
+                })}
+              </Button>
+            ) : null}
+            {canManage ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => setIsImportDialogOpen(true)}
+              >
+                <Upload />
+                {intl.formatMessage({
+                  id: 'project.materials.actions.importExcel',
+                })}
+              </Button>
+            ) : null}
+            {canManage ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
+              >
+                <Plus />
+                {intl.formatMessage({ id: 'project.materials.actions.create' })}
+              </Button>
+            ) : null}
+          </div>
         }
       />
       <DataGrid
@@ -419,6 +457,15 @@ export function MaterialListPage() {
         isConfirming={deleteMutation.isPending}
         closeOnConfirm={false}
         onConfirm={handleDelete}
+      />
+      <MaterialSpreadsheetImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+      <MaterialSpreadsheetExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        filters={spreadsheetFilters}
       />
     </div>
   );
