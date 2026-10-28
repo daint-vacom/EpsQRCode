@@ -13,6 +13,8 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.page.printDescription':
     'Chọn mẫu nhãn để in cho vật tư đã chọn.',
   'project.materialLabels.print.materialCount': 'Số vật tư: {count}',
+  'project.materialLabels.print.labelNote': 'Ghi chú nhãn',
+  'project.materialLabels.print.labelNoteBinding': 'Ghi chú nhãn (nhập khi in)',
   'project.materialLabels.actions.create': 'Tạo mẫu nhãn',
   'project.materialLabels.actions.edit': 'Chỉnh sửa mẫu',
   'project.materialLabels.actions.deactivate': 'Tắt mẫu',
@@ -47,6 +49,9 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.fields.material': 'Vật tư',
   'project.materialLabels.fields.fontSize': 'Cỡ chữ',
   'project.materialLabels.fields.fontFamily': 'Phông chữ',
+  'project.materialLabels.fields.searchFont': 'Tìm phông chữ',
+  'project.materialLabels.fields.noFontMatches':
+    'Không tìm thấy phông chữ phù hợp.',
   'project.materialLabels.fields.componentName': 'Tên thành phần',
   'project.materialLabels.fields.text': 'Nội dung',
   'project.materialLabels.fields.x': 'Vị trí X (mm)',
@@ -56,6 +61,7 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.fields.rotation': 'Góc xoay',
   'project.materialLabels.fields.opacity': 'Độ mờ (%)',
   'project.materialLabels.fields.binding': 'Trường dữ liệu',
+  'project.materialLabels.fields.sampleValue': 'Giá trị mẫu',
   'project.materialLabels.fields.fill': 'Màu chữ / nền',
   'project.materialLabels.fields.stroke': 'Màu đường kẻ',
   'project.materialLabels.fields.alignment': 'Căn lề',
@@ -66,8 +72,6 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.editor.typography': 'Kiểu chữ',
   'project.materialLabels.editor.noSelection':
     'Chọn một thành phần để chỉnh sửa thuộc tính.',
-  'project.materialLabels.editor.mappingHelp':
-    'Giá trị mẫu được hiển thị trên canvas; khi in, phần mềm thay bằng dữ liệu của từng vật tư.',
   'project.materialLabels.editor.staticTextBinding': 'Văn bản tĩnh',
   'project.materialLabels.editor.qrBinding': 'Liên kết chi tiết vật tư',
   'project.materialLabels.editor.qrBindingHelp':
@@ -76,6 +80,7 @@ export const materialLabelMessagesVi: Record<string, string> = {
     'Thành phần này không nhận dữ liệu vật tư.',
   'project.materialLabels.layers.components': 'Thành phần',
   'project.materialLabels.layers.materialData': 'Dữ liệu vật tư',
+  'project.materialLabels.layers.printInputs': 'Trường nhập khi in',
   'project.materialLabels.layers.onLabel': 'Thành phần trên nhãn',
   'project.materialLabels.layers.empty': 'Chưa có thành phần trên nhãn.',
   'project.materialLabels.layers.reorder': 'Kéo để sắp xếp lớp',
@@ -149,6 +154,9 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.page.printDescription':
     'Choose a label template for the selected materials.',
   'project.materialLabels.print.materialCount': 'Materials: {count}',
+  'project.materialLabels.print.labelNote': 'Label note',
+  'project.materialLabels.print.labelNoteBinding':
+    'Label note (enter when printing)',
   'project.materialLabels.actions.create': 'Create template',
   'project.materialLabels.actions.edit': 'Edit template',
   'project.materialLabels.actions.deactivate': 'Deactivate template',
@@ -183,6 +191,8 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.fields.material': 'Material',
   'project.materialLabels.fields.fontSize': 'Font size',
   'project.materialLabels.fields.fontFamily': 'Font family',
+  'project.materialLabels.fields.searchFont': 'Search fonts',
+  'project.materialLabels.fields.noFontMatches': 'No matching fonts found.',
   'project.materialLabels.fields.componentName': 'Component name',
   'project.materialLabels.fields.text': 'Text',
   'project.materialLabels.fields.x': 'X position (mm)',
@@ -192,6 +202,7 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.fields.rotation': 'Rotation',
   'project.materialLabels.fields.opacity': 'Opacity (%)',
   'project.materialLabels.fields.binding': 'Data field',
+  'project.materialLabels.fields.sampleValue': 'Sample value',
   'project.materialLabels.fields.fill': 'Text / fill color',
   'project.materialLabels.fields.stroke': 'Line color',
   'project.materialLabels.fields.alignment': 'Alignment',
@@ -202,8 +213,6 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.editor.typography': 'Typography',
   'project.materialLabels.editor.noSelection':
     'Select a component to edit its properties.',
-  'project.materialLabels.editor.mappingHelp':
-    'The sample value appears on the canvas; printing replaces it with each material’s data.',
   'project.materialLabels.editor.staticTextBinding': 'Static text',
   'project.materialLabels.editor.qrBinding': 'Material detail link',
   'project.materialLabels.editor.qrBindingHelp':
@@ -212,6 +221,7 @@ export const materialLabelMessagesEn: Record<string, string> = {
     'This component does not use material data.',
   'project.materialLabels.layers.components': 'Components',
   'project.materialLabels.layers.materialData': 'Material data',
+  'project.materialLabels.layers.printInputs': 'Print-time fields',
   'project.materialLabels.layers.onLabel': 'Components on label',
   'project.materialLabels.layers.empty': 'No components on this label.',
   'project.materialLabels.layers.reorder': 'Drag to reorder layer',

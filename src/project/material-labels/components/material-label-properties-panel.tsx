@@ -23,10 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SelectSearch } from '@/components/ui/select-search';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   LABEL_EDITOR_PIXELS_PER_MM,
+  MATERIAL_LABEL_BINDING_FIELDS,
   MATERIAL_LABEL_FIELDS,
 } from '../utils/material-label-design';
 
@@ -40,6 +42,30 @@ export interface MaterialLabelTemplateEditorMetadata {
 }
 
 type MaterialLabelPropertiesTab = 'design' | 'data' | 'template';
+
+const FONT_FAMILY_OPTIONS = [
+  'Arial',
+  'Arial Black',
+  'Arial Narrow',
+  'Calibri',
+  'Cambria',
+  'Candara',
+  'Comic Sans MS',
+  'Consolas',
+  'Courier New',
+  'Georgia',
+  'Inter',
+  'Lato',
+  'Lucida Console',
+  'Montserrat',
+  'Open Sans',
+  'Roboto',
+  'Segoe UI',
+  'Tahoma',
+  'Times New Roman',
+  'Trebuchet MS',
+  'Verdana',
+].map((fontFamily) => ({ value: fontFamily, label: fontFamily }));
 
 function PropertyRow({
   label,
@@ -58,7 +84,9 @@ function PropertyRow({
 
 function getBindingOptions(component: FabricObject) {
   if (component.type === 'textbox' || component.type === 'text') {
-    return MATERIAL_LABEL_FIELDS.filter((field) => field.kind === 'text');
+    return MATERIAL_LABEL_BINDING_FIELDS.filter(
+      (field) => field.kind === 'text',
+    );
   }
   if (component.type === 'image') {
     return MATERIAL_LABEL_FIELDS.filter((field) => field.kind === 'image');
@@ -116,6 +144,17 @@ export function MaterialLabelPropertiesPanel({
   const isLocked = selectedObject?.get('editorLocked') === true;
   const bindings = selectedObject ? getBindingOptions(selectedObject) : [];
   const selectedBinding = String(selectedObject?.get('labelBinding') ?? '');
+  const selectedFontFamily = String(
+    selectedObject?.get('fontFamily') ?? 'Arial',
+  );
+  const fontFamilyOptions = FONT_FAMILY_OPTIONS.some(
+    (option) => option.value === selectedFontFamily,
+  )
+    ? FONT_FAMILY_OPTIONS
+    : [
+        { value: selectedFontFamily, label: selectedFontFamily },
+        ...FONT_FAMILY_OPTIONS,
+      ];
   const selectedColor = String(selectedObject?.get(colorProperty) ?? '#111827');
   const colorValue = /^#[0-9a-f]{6}$/i.test(selectedColor)
     ? selectedColor
@@ -130,8 +169,9 @@ export function MaterialLabelPropertiesPanel({
     id: isQr
       ? 'project.materialLabels.editor.qrBinding'
       : selectedBinding
-        ? (bindings.find((field) => field.key === selectedBinding)?.messageId ??
-          'project.materialLabels.fields.binding')
+        ? (MATERIAL_LABEL_BINDING_FIELDS.find(
+            (field) => field.key === selectedBinding,
+          )?.messageId ?? 'project.materialLabels.fields.binding')
         : 'project.materialLabels.editor.staticTextBinding',
   });
 
@@ -292,94 +332,89 @@ export function MaterialLabelPropertiesPanel({
                                   }
                                 />
                               </PropertyRow>
-                              <div className="grid grid-cols-2 gap-2">
-                                <PropertyRow
-                                  label={intl.formatMessage({
-                                    id: 'project.materialLabels.fields.objectWidth',
-                                  })}
-                                >
-                                  <Input
-                                    type="number"
-                                    min="0.1"
-                                    step="0.1"
-                                    value={objectWidth}
-                                    disabled={isLocked}
-                                    onChange={(event) =>
-                                      onUpdateMeasurement(
-                                        'width',
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                </PropertyRow>
-                                <PropertyRow
-                                  label={intl.formatMessage({
-                                    id: 'project.materialLabels.fields.objectHeight',
-                                  })}
-                                >
-                                  <Input
-                                    type="number"
-                                    min="0.1"
-                                    step="0.1"
-                                    value={objectHeight}
-                                    disabled={isLocked}
-                                    onChange={(event) =>
-                                      onUpdateMeasurement(
-                                        'height',
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                </PropertyRow>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <PropertyRow
-                                  label={intl.formatMessage({
-                                    id: 'project.materialLabels.fields.rotation',
-                                  })}
-                                >
-                                  <Input
-                                    type="number"
-                                    step="1"
-                                    value={String(
-                                      Math.round(
-                                        Number(selectedObject.angle ?? 0),
-                                      ),
-                                    )}
-                                    disabled={isLocked}
-                                    onChange={(event) =>
-                                      onUpdateMeasurement(
-                                        'angle',
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                </PropertyRow>
-                                <PropertyRow
-                                  label={intl.formatMessage({
-                                    id: 'project.materialLabels.fields.opacity',
-                                  })}
-                                >
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    value={String(
-                                      Math.round(
-                                        Number(selectedObject.opacity ?? 1) *
-                                          100,
-                                      ),
-                                    )}
-                                    disabled={isLocked}
-                                    onChange={(event) =>
-                                      onUpdateMeasurement(
-                                        'opacity',
-                                        event.target.value,
-                                      )
-                                    }
-                                  />
-                                </PropertyRow>
-                              </div>
+                              <PropertyRow
+                                label={intl.formatMessage({
+                                  id: 'project.materialLabels.fields.objectWidth',
+                                })}
+                              >
+                                <Input
+                                  type="number"
+                                  min="0.1"
+                                  step="0.1"
+                                  value={objectWidth}
+                                  disabled={isLocked}
+                                  onChange={(event) =>
+                                    onUpdateMeasurement(
+                                      'width',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </PropertyRow>
+                              <PropertyRow
+                                label={intl.formatMessage({
+                                  id: 'project.materialLabels.fields.objectHeight',
+                                })}
+                              >
+                                <Input
+                                  type="number"
+                                  min="0.1"
+                                  step="0.1"
+                                  value={objectHeight}
+                                  disabled={isLocked}
+                                  onChange={(event) =>
+                                    onUpdateMeasurement(
+                                      'height',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </PropertyRow>
+                              <PropertyRow
+                                label={intl.formatMessage({
+                                  id: 'project.materialLabels.fields.rotation',
+                                })}
+                              >
+                                <Input
+                                  type="number"
+                                  step="1"
+                                  value={String(
+                                    Math.round(
+                                      Number(selectedObject.angle ?? 0),
+                                    ),
+                                  )}
+                                  disabled={isLocked}
+                                  onChange={(event) =>
+                                    onUpdateMeasurement(
+                                      'angle',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </PropertyRow>
+                              <PropertyRow
+                                label={intl.formatMessage({
+                                  id: 'project.materialLabels.fields.opacity',
+                                })}
+                              >
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={String(
+                                    Math.round(
+                                      Number(selectedObject.opacity ?? 1) * 100,
+                                    ),
+                                  )}
+                                  disabled={isLocked}
+                                  onChange={(event) =>
+                                    onUpdateMeasurement(
+                                      'opacity',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </PropertyRow>
                             </div>
                           </div>
                         </>
@@ -397,13 +432,23 @@ export function MaterialLabelPropertiesPanel({
                               id: 'project.materialLabels.fields.fontFamily',
                             })}
                           >
-                            <Input
-                              value={String(
-                                selectedObject.get('fontFamily') ?? 'Arial',
-                              )}
+                            <SelectSearch
+                              ariaLabel={intl.formatMessage({
+                                id: 'project.materialLabels.fields.fontFamily',
+                              })}
+                              value={selectedFontFamily}
+                              options={fontFamilyOptions}
+                              searchable
+                              searchPlaceholder={intl.formatMessage({
+                                id: 'project.materialLabels.fields.searchFont',
+                              })}
+                              emptyMessage={intl.formatMessage({
+                                id: 'project.materialLabels.fields.noFontMatches',
+                              })}
+                              canDeselect={false}
                               disabled={isLocked}
-                              onChange={(event) =>
-                                onUpdateObject('fontFamily', event.target.value)
+                              onChange={(value) =>
+                                onUpdateObject('fontFamily', value)
                               }
                             />
                           </PropertyRow>
@@ -631,11 +676,21 @@ export function MaterialLabelPropertiesPanel({
                         </SelectContent>
                       </Select>
                     </PropertyRow>
-                    <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
-                      {intl.formatMessage({
-                        id: 'project.materialLabels.editor.mappingHelp',
-                      })}
-                    </p>
+                    {isText ? (
+                      <PropertyRow
+                        label={intl.formatMessage({
+                          id: 'project.materialLabels.fields.sampleValue',
+                        })}
+                      >
+                        <Input
+                          value={String(selectedObject?.get('text') ?? '')}
+                          disabled={isLocked}
+                          onChange={(event) =>
+                            onUpdateObject('text', event.target.value)
+                          }
+                        />
+                      </PropertyRow>
+                    ) : null}
                   </>
                 ) : selectedObject ? (
                   <p className="rounded-md border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">

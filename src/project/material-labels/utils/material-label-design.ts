@@ -16,46 +16,49 @@ import type {
 } from '../model/material-label-template';
 
 export const LABEL_EDITOR_PIXELS_PER_MM = 4;
+export const LABEL_DEFAULT_WIDTH_MM = 60;
+export const LABEL_DEFAULT_HEIGHT_MM = 20;
 export const LABEL_MIN_WIDTH_MM = 20;
 export const LABEL_MAX_WIDTH_MM = 200;
 export const LABEL_MIN_HEIGHT_MM = 10;
 export const LABEL_MAX_HEIGHT_MM = 120;
+export const MATERIAL_LABEL_NOTE_BINDING = 'print.labelNote';
 
 export const MATERIAL_LABEL_FIELDS = [
   {
     key: 'code',
     messageId: 'project.materialLabels.materialFields.code',
-    sample: 'VT-000001',
+    sample: 'Mã vật tư',
     kind: 'text',
   },
   {
     key: 'name',
     messageId: 'project.materialLabels.materialFields.name',
-    sample: 'Máy bơm chữa cháy',
+    sample: 'Tên vật tư',
     kind: 'text',
   },
   {
     key: 'modelName',
     messageId: 'project.materialLabels.materialFields.modelName',
-    sample: 'Máy bơm chữa cháy',
+    sample: 'Tên mẫu vật tư',
     kind: 'text',
   },
   {
     key: 'serialNumber',
     messageId: 'project.materialLabels.materialFields.serialNumber',
-    sample: 'SN-2026-001',
+    sample: 'C02XG123KPH0',
     kind: 'text',
   },
   {
     key: 'ownerName',
     messageId: 'project.materialLabels.materialFields.ownerName',
-    sample: 'Phòng Kỹ thuật',
+    sample: 'Đơn vị đang giữ',
     kind: 'text',
   },
   {
     key: 'ownerCode',
     messageId: 'project.materialLabels.materialFields.ownerCode',
-    sample: 'EPS-KT',
+    sample: 'Mã đơn vị',
     kind: 'text',
   },
   {
@@ -66,10 +69,26 @@ export const MATERIAL_LABEL_FIELDS = [
   },
 ] as const;
 
+export const MATERIAL_LABEL_PRINT_INPUT_FIELDS = [
+  {
+    key: MATERIAL_LABEL_NOTE_BINDING,
+    messageId: 'project.materialLabels.print.labelNoteBinding',
+    sample: 'Ghi chú nhãn',
+    kind: 'text',
+  },
+] as const;
+
+export const MATERIAL_LABEL_BINDING_FIELDS = [
+  ...MATERIAL_LABEL_FIELDS,
+  ...MATERIAL_LABEL_PRINT_INPUT_FIELDS,
+] as const;
+
 export type MaterialLabelFieldKey =
+  (typeof MATERIAL_LABEL_BINDING_FIELDS)[number]['key'];
+export type MaterialLabelMaterialFieldKey =
   (typeof MATERIAL_LABEL_FIELDS)[number]['key'];
 export type MaterialLabelTextFieldKey = Extract<
-  MaterialLabelFieldKey,
+  MaterialLabelMaterialFieldKey,
   'code' | 'name' | 'modelName' | 'serialNumber' | 'ownerName' | 'ownerCode'
 >;
 
@@ -134,6 +153,8 @@ export async function addQrImageToCanvas(
   image.set({
     left,
     top,
+    originX: 'left',
+    originY: 'top',
     scaleX: size / Math.max(1, image.width ?? size),
     scaleY: size / Math.max(1, image.height ?? size),
     labelElementId: `qr-${crypto.randomUUID()}`,
@@ -182,31 +203,21 @@ export async function loadMaterialLabelDesign(
     canvas.add(
       createLabelTextbox({
         id: 'field-name',
-        text: 'Máy bơm chữa cháy',
+        text: 'Tên vật tư',
         left: textLeft,
-        top: Math.round(height * 0.23),
+        top: Math.round(height * 0.2),
         width: textWidth,
-        fontSize: Math.max(12, Math.round(height * 0.13)),
-        fontWeight: 'bold',
+        fontSize: Math.max(12, Math.round(height * 0.18)),
         binding: 'name',
       }),
       createLabelTextbox({
         id: 'field-code',
-        text: 'VT-000001',
+        text: 'Mã vật tư',
         left: textLeft,
-        top: Math.round(height * 0.52),
+        top: Math.round(height * 0.62),
         width: textWidth,
-        fontSize: Math.max(10, Math.round(height * 0.1)),
+        fontSize: Math.max(12, Math.round(height * 0.16)),
         binding: 'code',
-      }),
-      createLabelTextbox({
-        id: 'field-serial',
-        text: 'SN-2026-001',
-        left: textLeft,
-        top: Math.round(height * 0.72),
-        width: textWidth,
-        fontSize: Math.max(9, Math.round(height * 0.08)),
-        binding: 'serialNumber',
       }),
     );
   }
@@ -231,7 +242,7 @@ export function serializeMaterialLabelDesign(
 
 function getMaterialBindingValue(
   material: Material,
-  binding: MaterialLabelFieldKey,
+  binding: MaterialLabelMaterialFieldKey,
 ) {
   switch (binding) {
     case 'code':
@@ -252,6 +263,7 @@ function getMaterialBindingValue(
 export async function renderMaterialLabelSvg(
   template: MaterialLabelTemplate,
   material: Material,
+  labelNote = '',
 ) {
   const width = Math.round(template.widthMm * LABEL_EDITOR_PIXELS_PER_MM);
   const height = Math.round(template.heightMm * LABEL_EDITOR_PIXELS_PER_MM);
@@ -293,6 +305,12 @@ export async function renderMaterialLabelSvg(
     const qrDataUrl = await createQrImageDataUrl(getMaterialQrUrl(material.id));
     for (const object of canvas.getObjects()) {
       const binding = object.get('labelBinding');
+      if (
+        binding === MATERIAL_LABEL_NOTE_BINDING &&
+        (object.type === 'textbox' || object.type === 'text')
+      ) {
+        (object as FabricObject & { text?: string }).set('text', labelNote);
+      }
       if (typeof binding === 'string') {
         const field = MATERIAL_LABEL_FIELDS.find(
           (item) => item.key === binding,

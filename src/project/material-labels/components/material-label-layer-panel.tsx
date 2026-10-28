@@ -38,7 +38,12 @@ import {
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MATERIAL_LABEL_FIELDS } from '../utils/material-label-design';
+import {
+  MATERIAL_LABEL_BINDING_FIELDS,
+  MATERIAL_LABEL_FIELDS,
+  MATERIAL_LABEL_NOTE_BINDING,
+  MATERIAL_LABEL_PRINT_INPUT_FIELDS,
+} from '../utils/material-label-design';
 import type { MaterialLabelFieldKey } from '../utils/material-label-design';
 
 interface MaterialLabelLayerPanelProps {
@@ -73,7 +78,9 @@ function getLayerName(
   }
 
   const binding = object.get('labelBinding');
-  const field = MATERIAL_LABEL_FIELDS.find((item) => item.key === binding);
+  const field = MATERIAL_LABEL_BINDING_FIELDS.find(
+    (item) => item.key === binding,
+  );
   if (field) return formatMessage({ id: field.messageId });
 
   if (object.get('labelElementType') === 'qr' || object.get('qrCode')) {
@@ -113,9 +120,10 @@ function MaterialLabelLayerRow({
   const isVisible = object.visible !== false;
   const isQr = object.get('labelElementType') === 'qr' || object.get('qrCode');
   const binding = object.get('labelBinding');
-  const bindingField = MATERIAL_LABEL_FIELDS.find(
+  const bindingField = MATERIAL_LABEL_BINDING_FIELDS.find(
     (item) => item.key === binding,
   );
+  const isPrintInput = binding === MATERIAL_LABEL_NOTE_BINDING;
   const sortable = useSortable({ id, disabled: isLocked || !id });
 
   return (
@@ -155,7 +163,9 @@ function MaterialLabelLayerRow({
         aria-pressed={selected}
         onClick={onSelect}
       >
-        {bindingField ? (
+        {isPrintInput ? (
+          <Type className="size-4 shrink-0 text-primary" />
+        ) : bindingField ? (
           <Database className="size-4 shrink-0 text-primary" />
         ) : isQr ? (
           <QrCode className="size-4 shrink-0 text-primary" />
@@ -169,7 +179,7 @@ function MaterialLabelLayerRow({
         <span className="min-w-0 flex-1 truncate">
           {getLayerName(object, intl.formatMessage)}
         </span>
-        {bindingField ? (
+        {bindingField && !isPrintInput ? (
           <Link2
             className="size-3.5 shrink-0 text-primary"
             aria-label={intl.formatMessage({
@@ -367,6 +377,34 @@ export function MaterialLabelLayerPanel({
                 </Button>
               ),
             )}
+          </div>
+        </section>
+
+        <section className="space-y-2 border-t pt-4">
+          <h2 className="text-base font-semibold">
+            {intl.formatMessage({
+              id: 'project.materialLabels.layers.printInputs',
+            })}
+          </h2>
+          <div className="space-y-1">
+            {MATERIAL_LABEL_PRINT_INPUT_FIELDS.map((field) => (
+              <Button
+                key={field.key}
+                type="button"
+                variant="ghost"
+                size="md"
+                className="w-full justify-start gap-2"
+                disabled={!canvasReady}
+                onClick={() => onAddField(field.key)}
+              >
+                <Plus className="size-4 text-primary" />
+                <span className="truncate">
+                  {intl.formatMessage({
+                    id: 'project.materialLabels.print.labelNote',
+                  })}
+                </span>
+              </Button>
+            ))}
           </div>
         </section>
 

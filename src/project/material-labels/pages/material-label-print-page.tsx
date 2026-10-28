@@ -14,6 +14,8 @@ import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import {
@@ -21,7 +23,10 @@ import {
   useMaterialLabelTemplatesQuery,
   useSaveMaterialLabelTemplatePreferencesMutation,
 } from '../hooks/use-material-label-templates';
-import { renderMaterialLabelSvg } from '../utils/material-label-design';
+import {
+  MATERIAL_LABEL_NOTE_BINDING,
+  renderMaterialLabelSvg,
+} from '../utils/material-label-design';
 import './material-label-print.css';
 
 function getMaterialIds(search: string): string[] {
@@ -66,6 +71,7 @@ export function MaterialLabelPrintPage() {
   const savePreferencesMutation =
     useSaveMaterialLabelTemplatePreferencesMutation();
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [labelNotes, setLabelNotes] = useState<Record<string, string>>({});
   const [labelSvgs, setLabelSvgs] = useState<Record<string, string>>({});
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<unknown>(null);
@@ -91,6 +97,18 @@ export function MaterialLabelPrintPage() {
   const selectedTemplate = activeTemplates.find(
     (template) => template.id === selectedTemplateId,
   );
+  const hasLabelNoteInput = useMemo(() => {
+    const objects = selectedTemplate?.design?.objects;
+    return (
+      Array.isArray(objects) &&
+      objects.some(
+        (object) =>
+          object !== null &&
+          typeof object === 'object' &&
+          Reflect.get(object, 'labelBinding') === MATERIAL_LABEL_NOTE_BINDING,
+      )
+    );
+  }, [selectedTemplate]);
   const templateOptions = activeTemplates.map((template) => ({
     value: template.id,
     label: `${template.name} · ${template.widthMm} × ${template.heightMm} mm`,
@@ -99,6 +117,7 @@ export function MaterialLabelPrintPage() {
 
   useEffect(() => {
     setSelectedTemplateId('');
+    setLabelNotes({});
   }, [materialIdsKey]);
 
   useEffect(() => {
@@ -148,7 +167,11 @@ export function MaterialLabelPrintPage() {
         async (material) =>
           [
             material.id,
-            await renderMaterialLabelSvg(selectedTemplate, material),
+            await renderMaterialLabelSvg(
+              selectedTemplate,
+              material,
+              labelNotes[material.id] ?? '',
+            ),
           ] as const,
       ),
     )
@@ -164,7 +187,7 @@ export function MaterialLabelPrintPage() {
     return () => {
       cancelled = true;
     };
-  }, [materials, renderNonce, selectedTemplate]);
+  }, [labelNotes, materials, renderNonce, selectedTemplate]);
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -353,25 +376,56 @@ export function MaterialLabelPrintPage() {
                       {getMaterialLabel(material)}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex justify-center pb-4">
-                    {labelSvgs[material.id] ? (
-                      <div
-                        className="overflow-hidden border bg-white shadow-sm [&>svg]:block [&>svg]:size-full"
-                        style={{
-                          width: `${selectedTemplate?.widthMm ?? 60}mm`,
-                          height: `${selectedTemplate?.heightMm ?? 35}mm`,
-                        }}
-                        dangerouslySetInnerHTML={{
-                          __html: labelSvgs[material.id] ?? '',
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-28 items-center justify-center text-sm text-muted-foreground">
-                        {intl.formatMessage({
-                          id: 'project.materialLabels.states.rendering',
-                        })}
+                  <CardContent
+                    className={
+                      hasLabelNoteInput
+                        ? 'space-y-4'
+                        : 'flex justify-center pb-4'
+                    }
+                  >
+                    {hasLabelNoteInput ? (
+                      <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+                        <Label htmlFor={`material-label-note-${material.id}`}>
+                          {intl.formatMessage({
+                            id: 'project.materialLabels.print.labelNote',
+                          })}
+                        </Label>
+                        <Input
+                          id={`material-label-note-${material.id}`}
+                          value={labelNotes[material.id] ?? ''}
+                          onChange={(event) =>
+                            setLabelNotes((current) => ({
+                              ...current,
+                              [material.id]: event.target.value,
+                            }))
+                          }
+                        />
                       </div>
-                    )}
+                    ) : null}
+                    <div
+                      className={
+                        hasLabelNoteInput ? 'flex justify-center' : undefined
+                      }
+                    >
+                      {labelSvgs[material.id] ? (
+                        <div
+                          className="overflow-hidden border bg-white shadow-sm [&>svg]:block [&>svg]:size-full"
+                          style={{
+                            width: `${selectedTemplate?.widthMm ?? 60}mm`,
+                            height: `${selectedTemplate?.heightMm ?? 35}mm`,
+                          }}
+                          dangerouslySetInnerHTML={{
+                            __html: labelSvgs[material.id] ?? '',
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-28 items-center justify-center text-sm text-muted-foreground">
+                          {intl.formatMessage({
+                            id: 'project.materialLabels.states.rendering',
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}

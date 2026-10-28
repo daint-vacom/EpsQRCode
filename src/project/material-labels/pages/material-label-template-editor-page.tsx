@@ -40,13 +40,16 @@ import {
 } from '../hooks/use-material-label-templates';
 import {
   addQrImageToCanvas,
+  LABEL_DEFAULT_HEIGHT_MM,
+  LABEL_DEFAULT_WIDTH_MM,
   LABEL_EDITOR_PIXELS_PER_MM,
   LABEL_MAX_HEIGHT_MM,
   LABEL_MAX_WIDTH_MM,
   LABEL_MIN_HEIGHT_MM,
   LABEL_MIN_WIDTH_MM,
   loadMaterialLabelDesign,
-  MATERIAL_LABEL_FIELDS,
+  MATERIAL_LABEL_BINDING_FIELDS,
+  MATERIAL_LABEL_NOTE_BINDING,
   serializeMaterialLabelDesign,
   type MaterialLabelFieldKey,
 } from '../utils/material-label-design';
@@ -64,6 +67,22 @@ type TemplateMetadata = {
 
 export function MaterialLabelTemplateEditorPage() {
   const intl = useIntl();
+  const getFieldSample = useCallback(
+    (fieldKey: MaterialLabelFieldKey) => {
+      const field = MATERIAL_LABEL_BINDING_FIELDS.find(
+        (item) => item.key === fieldKey,
+      );
+      if (!field) return '';
+      if (field.key === 'serialNumber') return field.sample;
+      if (field.key === MATERIAL_LABEL_NOTE_BINDING) {
+        return intl.formatMessage({
+          id: 'project.materialLabels.print.labelNote',
+        });
+      }
+      return intl.formatMessage({ id: field.messageId });
+    },
+    [intl],
+  );
   const navigate = useNavigate();
   const { id: templateId } = useParams();
   const { hasPermission } = useUser();
@@ -75,6 +94,7 @@ export function MaterialLabelTemplateEditorPage() {
   const saveMutation = useSaveMaterialLabelTemplateMutation();
   const saveTemplate = saveMutation.mutateAsync;
   const canvasElementRef = useRef<HTMLCanvasElement>(null);
+  const labelCardRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<Canvas | null>(null);
   const [selectedObject, setSelectedObject] = useState<FabricObject | null>(
     null,
@@ -85,8 +105,8 @@ export function MaterialLabelTemplateEditorPage() {
   const [metadata, setMetadata] = useState<TemplateMetadata>({
     name: '',
     description: '',
-    widthMm: 60,
-    heightMm: 35,
+    widthMm: LABEL_DEFAULT_WIDTH_MM,
+    heightMm: LABEL_DEFAULT_HEIGHT_MM,
     isDefault: false,
     isActive: true,
   });
@@ -136,8 +156,8 @@ export function MaterialLabelTemplateEditorPage() {
     }
     if (canvasRef.current) return;
 
-    const initialWidthMm = template?.widthMm ?? 60;
-    const initialHeightMm = template?.heightMm ?? 35;
+    const initialWidthMm = template?.widthMm ?? LABEL_DEFAULT_WIDTH_MM;
+    const initialHeightMm = template?.heightMm ?? LABEL_DEFAULT_HEIGHT_MM;
     const width = Math.round(initialWidthMm * LABEL_EDITOR_PIXELS_PER_MM);
     const height = Math.round(initialHeightMm * LABEL_EDITOR_PIXELS_PER_MM);
     const canvas = new Canvas(canvasElementRef.current, {
@@ -184,6 +204,8 @@ export function MaterialLabelTemplateEditorPage() {
                     : 'shape');
           const isLocked = object.get('editorLocked') === true;
           object.set({
+            originX: 'left',
+            originY: 'top',
             labelElementId:
               object.get('labelElementId') ||
               `label-layer-${index}-${crypto.randomUUID()}`,
@@ -256,7 +278,7 @@ export function MaterialLabelTemplateEditorPage() {
       width: Math.round(metadata.widthMm * LABEL_EDITOR_PIXELS_PER_MM),
       height: Math.round(metadata.heightMm * LABEL_EDITOR_PIXELS_PER_MM),
     });
-    canvas.requestRenderAll();
+    canvas.renderAll();
   }, [canvasReady, metadata.heightMm, metadata.widthMm]);
 
   const addCanvasObject = useCallback(
@@ -264,6 +286,8 @@ export function MaterialLabelTemplateEditorPage() {
       const canvas = canvasRef.current;
       if (!canvas) return;
       object.set({
+        originX: 'left',
+        originY: 'top',
         labelElementId: `label-element-${crypto.randomUUID()}`,
         labelElementType: elementType,
         name,
@@ -282,11 +306,11 @@ export function MaterialLabelTemplateEditorPage() {
   const addField = useCallback(
     (fieldKey: MaterialLabelFieldKey) => {
       const canvas = canvasRef.current;
-      const definition = MATERIAL_LABEL_FIELDS.find(
+      const definition = MATERIAL_LABEL_BINDING_FIELDS.find(
         (item) => item.key === fieldKey,
       );
       if (!canvas || !definition) return;
-      const textbox = new Textbox(definition.sample, {
+      const textbox = new Textbox(getFieldSample(fieldKey), {
         left: Math.max(10, canvas.getWidth() * 0.42),
         top: Math.max(10, canvas.getHeight() * 0.35),
         width: Math.max(40, canvas.getWidth() * 0.5),
@@ -297,7 +321,7 @@ export function MaterialLabelTemplateEditorPage() {
       textbox.set({ labelBinding: fieldKey });
       addCanvasObject(textbox, 'text');
     },
-    [addCanvasObject],
+    [addCanvasObject, getFieldSample],
   );
 
   const addStaticText = useCallback(() => {
@@ -593,14 +617,16 @@ export function MaterialLabelTemplateEditorPage() {
       if (!selectedObject || selectedObject.get('editorLocked')) return;
       const fieldKey = value === '__static__' ? '' : value;
       selectedObject.set('labelBinding', fieldKey);
-      const field = MATERIAL_LABEL_FIELDS.find((item) => item.key === fieldKey);
-      if (field) selectedObject.set('text', field.sample);
+      const field = MATERIAL_LABEL_BINDING_FIELDS.find(
+        (item) => item.key === fieldKey,
+      );
+      if (field) selectedObject.set('text', getFieldSample(fieldKey));
       canvasRef.current?.requestRenderAll();
       if (canvasRef.current) {
         setLayers(canvasRef.current.getObjects().slice().reverse());
       }
     },
-    [selectedObject],
+    [getFieldSample, selectedObject],
   );
 
   const duplicateSelectedObject = useCallback(() => {
@@ -659,6 +685,37 @@ export function MaterialLabelTemplateEditorPage() {
     canvas.requestRenderAll();
     refreshEditorState();
   }, [refreshEditorState, selectedObject]);
+
+  useEffect(() => {
+    if (!selectedObject) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.closest('input, textarea, select, [contenteditable="true"]'))
+      ) {
+        return;
+      }
+
+      if (
+        selectedObject.get('editorLocked') ||
+        selectedObject.get('labelElementType') === 'qr' ||
+        (selectedObject as FabricObject & { isEditing?: boolean }).isEditing
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      deleteSelectedObject();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteSelectedObject, selectedObject]);
 
   const centerSelectedObject = useCallback(() => {
     const canvas = canvasRef.current;
@@ -776,11 +833,14 @@ export function MaterialLabelTemplateEditorPage() {
   const rulerGutterY = 44;
 
   useEffect(() => {
+    const labelCard = labelCardRef.current;
     const canvas = canvasRef.current;
-    if (!canvasReady || !canvas) return;
-    canvas.wrapperEl.style.transform = `scale(${canvasScale})`;
-    canvas.wrapperEl.style.transformOrigin = 'top left';
-  }, [canvasReady, canvasHeight, canvasScale, canvasWidth]);
+    if (!canvasReady || !labelCard || !canvas) return;
+    labelCard.style.transform = `scale(${canvasScale})`;
+    labelCard.style.transformOrigin = 'top left';
+    canvas.calcOffset();
+    canvas.renderAll();
+  }, [canvasReady, canvasScale]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
@@ -1017,12 +1077,13 @@ export function MaterialLabelTemplateEditorPage() {
                           </div>
                         </div>
                         <div
+                          ref={labelCardRef}
                           className="absolute shrink-0 rounded-sm bg-white shadow-md ring-1 ring-border"
                           style={{
                             left: rulerGutterX,
                             top: rulerGutterY,
-                            width: scaledCanvasWidth,
-                            height: scaledCanvasHeight,
+                            width: canvasWidth,
+                            height: canvasHeight,
                           }}
                         >
                           <canvas
