@@ -1,4 +1,5 @@
-import { FileSpreadsheet, LoaderCircle } from 'lucide-react';
+import { useState } from 'react';
+import { FileSpreadsheet } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -12,10 +13,11 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
+import { SingleFileUploadField } from '@/components/ui/single-file-upload-field';
 import {
+  downloadSpreadsheetTemplateFile,
   SPREADSHEET_TEMPLATE_DEFINITIONS,
   type SpreadsheetTemplateKey,
 } from '../api/spreadsheet-templates.api';
@@ -38,6 +40,8 @@ export function SpreadsheetTemplatesSettings({
   const importTemplate = useSpreadsheetTemplateQuery('materialsImport');
   const exportTemplate = useSpreadsheetTemplateQuery('materialsExport');
   const saveMutation = useSaveSpreadsheetTemplateMutation();
+  const [downloadingKey, setDownloadingKey] =
+    useState<SpreadsheetTemplateKey | null>(null);
   const queries = {
     materialsImport: importTemplate,
     materialsExport: exportTemplate,
@@ -68,9 +72,28 @@ export function SpreadsheetTemplatesSettings({
     );
   };
 
+  const handleDownload = async (key: SpreadsheetTemplateKey) => {
+    setDownloadingKey(key);
+    try {
+      const { fileName, blob } = await downloadSpreadsheetTemplateFile(key);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setDownloadingKey(null);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader className="p-5">
+      <CardHeader className="px-5 pb-0 pt-5">
         <CardHeading>
           <CardTitle className="flex items-center gap-2 text-base">
             <FileSpreadsheet className="size-4 text-primary" />
@@ -78,7 +101,7 @@ export function SpreadsheetTemplatesSettings({
           </CardTitle>
         </CardHeading>
       </CardHeader>
-      <CardContent className="space-y-5 p-5">
+      <CardContent className="space-y-5 px-5 pb-5 pt-3">
         {isLoading ? (
           <PageLoading
             label={intl.formatMessage({ id: 'common.state.loading' })}
@@ -120,43 +143,32 @@ export function SpreadsheetTemplatesSettings({
                       </p>
                     )}
                   </div>
-                  <div className="min-w-0 space-y-1">
-                    {query.data ? (
-                      <p
-                        className="truncate pt-2 text-sm text-muted-foreground"
-                        title={query.data.fileName}
-                      >
-                        {query.data.fileName}
-                      </p>
-                    ) : !canManage ? (
-                      <p className="pt-2 text-sm text-muted-foreground">—</p>
-                    ) : null}
-                    {canManage ? (
-                      <Input
-                        id={`spreadsheet-template-${key}`}
-                        type="file"
-                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        disabled={saveMutation.isPending}
-                        aria-label={intl.formatMessage({
-                          id: 'settings.spreadsheetTemplates.chooseFile',
-                        })}
-                        onChange={(event) => {
-                          const file = event.currentTarget.files?.[0];
-                          event.currentTarget.value = '';
-                          handleFile(key, file);
-                        }}
-                      />
-                    ) : null}
-                    {isUploading ? (
-                      <p
-                        className="flex items-center gap-2 text-xs text-muted-foreground"
-                        role="status"
-                      >
-                        <LoaderCircle className="size-3.5 animate-spin" />
-                        {intl.formatMessage({ id: 'common.state.loading' })}
-                      </p>
-                    ) : null}
-                  </div>
+                  <SingleFileUploadField
+                    id={`spreadsheet-template-${key}`}
+                    fileName={query.data?.fileName}
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    canEdit={canManage}
+                    disabled={saveMutation.isPending || downloadingKey !== null}
+                    isUploading={isUploading}
+                    isDownloading={downloadingKey === key}
+                    chooseLabel={intl.formatMessage({
+                      id: 'settings.spreadsheetTemplates.chooseFile',
+                    })}
+                    replaceLabel={intl.formatMessage({
+                      id: 'settings.spreadsheetTemplates.replaceFile',
+                    })}
+                    downloadLabel={intl.formatMessage({
+                      id: 'settings.spreadsheetTemplates.downloadFile',
+                    })}
+                    uploadingLabel={intl.formatMessage({
+                      id: 'settings.spreadsheetTemplates.uploading',
+                    })}
+                    downloadingLabel={intl.formatMessage({
+                      id: 'settings.spreadsheetTemplates.downloading',
+                    })}
+                    onFileSelected={(file) => handleFile(key, file)}
+                    onDownload={() => void handleDownload(key)}
+                  />
                 </div>
               );
             })}

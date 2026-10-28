@@ -169,11 +169,11 @@ export function useMaterialSpreadsheetExport({
   const handleTemplate = async (file?: File) => {
     setError('');
     if (!file) return;
-    setCustomTemplateName(file.name);
-    setCustomWorkbook(null);
     setFileLoading(true);
     try {
-      setCustomWorkbook(await readXlsxFile(file));
+      const nextWorkbook = await readXlsxFile(file);
+      setCustomTemplateName(file.name);
+      setCustomWorkbook(nextWorkbook);
     } catch (caught) {
       setError(getErrorText(caught, intl.formatMessage));
     } finally {
@@ -211,7 +211,7 @@ export function useMaterialSpreadsheetExport({
       const mapping = prepareMaterialExportMapping(
         workbook,
         fields,
-        templateSource,
+        templateSource === 'system',
       );
       if (!mapping || Object.keys(mapping.columnByFieldKey).length === 0) {
         throw new SpreadsheetError('common.spreadsheets.errors.mappingEmpty');
@@ -339,9 +339,11 @@ export function MaterialSpreadsheetExportPanel({
                 aria-label={intl.formatMessage({
                   id: 'project.materials.spreadsheet.chooseFile',
                 })}
-                onChange={(event) =>
-                  void state.handleTemplate(event.currentTarget.files?.[0])
-                }
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  event.currentTarget.value = '';
+                  void state.handleTemplate(file);
+                }}
               />
               {state.customTemplateName ? (
                 <p className="text-xs text-muted-foreground">

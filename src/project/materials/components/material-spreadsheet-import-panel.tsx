@@ -106,20 +106,22 @@ export function MaterialSpreadsheetImportPanel({
 
   const handleFile = async (selectedFile?: File) => {
     setFileError('');
-    setResults(null);
-    setMapping(null);
     if (!selectedFile) {
       setHasCustomFile(false);
       setFileName(sharedTemplate?.fileName ?? '');
       setWorkbook(sharedTemplate?.workbook ?? null);
+      setMapping(null);
+      setResults(null);
       return;
     }
-    setHasCustomFile(true);
-    setFileName(selectedFile.name);
-    setWorkbook(null);
     setFileLoading(true);
     try {
-      setWorkbook(await readXlsxFile(selectedFile));
+      const nextWorkbook = await readXlsxFile(selectedFile);
+      setHasCustomFile(true);
+      setFileName(selectedFile.name);
+      setWorkbook(nextWorkbook);
+      setMapping(null);
+      setResults(null);
     } catch (error) {
       setFileError(getErrorText(error, intl.formatMessage));
     } finally {

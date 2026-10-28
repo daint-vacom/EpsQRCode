@@ -590,7 +590,7 @@ function SettingsSection({
 }) {
   return (
     <Card>
-      <CardHeader className="p-5">
+      <CardHeader className="px-5 pb-0 pt-5">
         <CardHeading>
           <CardTitle className="flex items-center gap-2 text-base">
             <Icon className="size-4 text-primary" />
@@ -598,7 +598,7 @@ function SettingsSection({
           </CardTitle>
         </CardHeading>
       </CardHeader>
-      <CardContent className="space-y-5 p-5">{children}</CardContent>
+      <CardContent className="space-y-5 px-5 pb-5 pt-3">{children}</CardContent>
     </Card>
   );
 }

@@ -88,7 +88,7 @@ export function AccountSettings() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="p-5">
+        <CardHeader className="px-5 pb-0 pt-5">
           <CardHeading>
             <CardTitle className="flex items-center gap-2 text-base">
               <UserRound className="size-4 text-primary" />
@@ -96,7 +96,7 @@ export function AccountSettings() {
             </CardTitle>
           </CardHeading>
         </CardHeader>
-        <CardContent className="p-5">
+        <CardContent className="px-5 pb-5 pt-3">
           {accountQuery.isPending ? (
             <CardLoading
               label={intl.formatMessage({ id: 'common.state.loading' })}
@@ -209,7 +209,7 @@ export function AccountSettings() {
       </Card>
 
       <Card>
-        <CardHeader className="p-5">
+        <CardHeader className="px-5 pb-0 pt-5">
           <CardHeading>
             <CardTitle className="flex items-center gap-2 text-base">
               <LockKeyhole className="size-4 text-primary" />
@@ -217,7 +217,7 @@ export function AccountSettings() {
             </CardTitle>
           </CardHeading>
         </CardHeader>
-        <CardContent className="space-y-5 p-5">
+        <CardContent className="space-y-5 px-5 pb-5 pt-3">
           <div className="space-y-2">
             <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1">
               <Label

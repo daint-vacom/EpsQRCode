@@ -8,8 +8,9 @@ import type {
 } from '@/lib/spreadsheets/xlsx';
 import {
   detectSpreadsheetExportMapping,
+  getSpreadsheetHeaders,
   normalizeHeader,
-  SPREADSHEET_FIELD_MARKER,
+  suggestSpreadsheetMapping,
 } from '@/lib/spreadsheets/xlsx';
 import { materialFormSchema } from '../forms/material-form.schema';
 import type {
@@ -97,6 +98,7 @@ export function getMaterialSpreadsheetFields(
     fields.push({
       key: `material.specification.${specification.id}`,
       label: specification.name,
+      markerAliases: [`material.specification.slot.${index + 1}`],
       headerAliases: [
         translate('project.materials.spreadsheet.fields.specificationSlot', {
           index: String(index + 1),
@@ -145,6 +147,24 @@ export function getMaterialSpreadsheetFields(
           .join('; ');
       },
     });
+  });
+
+  const specificationFields = fields.filter((field) =>
+    field.key.startsWith('material.specification.'),
+  );
+  fields.push({
+    key: 'material.specifications',
+    label: translate('project.materials.fields.specifications'),
+    read: (material) =>
+      specificationFields
+        .map((field) => {
+          const value = field.read(material);
+          return value === null || value === ''
+            ? ''
+            : `${field.label}: ${String(value)}`;
+        })
+        .filter(Boolean)
+        .join('\n'),
   });
 
   fields.push(
@@ -198,135 +218,113 @@ export function getMaterialSpreadsheetFields(
   return fields;
 }
 
+export function getMaterialSpreadsheetExportFields(
+  fields: SpreadsheetField<Material>[],
+  translate: TranslateMaterialSpreadsheetMessage,
+): SpreadsheetField<Material>[] {
+  const specificationField = fields.find(
+    (field) => field.key === 'material.specifications',
+  );
+  if (!specificationField) return fields;
+
+  const legacySlotAliases = [1, 2, 3].flatMap((index) => [
+    translate('project.materials.spreadsheet.fields.specificationSlot', {
+      index: String(index),
+    }),
+    translate('project.materials.spreadsheet.fields.specificationShortSlot', {
+      index: String(index),
+    }),
+  ]);
+  const exportSpecificationField: SpreadsheetField<Material> = {
+    ...specificationField,
+    markerAliases: ['material.specification.slot.1'],
+    headerAliases: legacySlotAliases,
+  };
+
+  return fields
+    .filter((field) => !field.key.startsWith('material.specification.'))
+    .map((field) =>
+      field.key === 'material.specifications'
+        ? exportSpecificationField
+        : field,
+    );
+}
+
 export function prepareMaterialExportMapping(
   workbook: SpreadsheetWorkbook,
   fields: SpreadsheetField<Material>[],
-  templateSource: 'system' | 'custom',
+  repairMarkerHeaderMismatch = false,
 ): SpreadsheetMapping | null {
-  const mapping = detectSpreadsheetExportMapping(workbook, fields);
-  if (!mapping) return null;
+  const markerMapping = detectSpreadsheetExportMapping(workbook, fields);
+  if (!markerMapping) return null;
 
-  const worksheet = workbook.getWorksheet(mapping.worksheetName);
-  if (!worksheet) return null;
+  const worksheet = workbook.getWorksheet(markerMapping.worksheetName);
+  if (!worksheet) return markerMapping;
 
-  if (
-    templateSource === 'system' &&
-    hasFieldMarkerRow(worksheet, mapping.headerRow - 1)
-  ) {
-    return arrangeSystemTemplateColumns(worksheet, mapping, fields);
+  const headers = getSpreadsheetHeaders(worksheet, markerMapping.headerRow);
+  const headerMapping = suggestSpreadsheetMapping(
+    worksheet,
+    fields,
+    markerMapping.headerRow,
+  );
+  const specificationField = fields.find(
+    (field) => field.key === 'material.specifications',
+  );
+  const legacySpecificationLabels = new Set(
+    (specificationField?.headerAliases ?? []).map(normalizeHeader),
+  );
+  const hasLegacySpecificationHeaders = headers.some((header) =>
+    legacySpecificationLabels.has(normalizeHeader(header.label)),
+  );
+  const markerAndHeaderColumnsDiffer = fields.some(
+    (field) =>
+      markerMapping.columnByFieldKey[field.key] !==
+      headerMapping.columnByFieldKey[field.key],
+  );
+  const canRepairFromHeaders =
+    repairMarkerHeaderMismatch &&
+    markerAndHeaderColumnsDiffer &&
+    hasLegacySpecificationHeaders &&
+    fields.every((field) => headerMapping.columnByFieldKey[field.key]) &&
+    Boolean(headerMapping.columnByFieldKey['material.code']) &&
+    Boolean(headerMapping.columnByFieldKey['material.model.code']);
+  const mapping: SpreadsheetMapping = canRepairFromHeaders
+    ? {
+        ...headerMapping,
+        worksheetName: markerMapping.worksheetName,
+        markerRow: markerMapping.markerRow,
+        rewriteMarkerRow: true,
+        rewriteHeaderLabels: true,
+      }
+    : { ...markerMapping };
+
+  const specificationColumn =
+    mapping.columnByFieldKey['material.specifications'];
+  const hiddenColumns = headers
+    .filter(
+      (header) =>
+        header.column !== specificationColumn &&
+        legacySpecificationLabels.has(normalizeHeader(header.label)),
+    )
+    .map((header) => header.column);
+  if (hiddenColumns.length > 0) {
+    mapping.hiddenColumns = [
+      ...new Set([...(mapping.hiddenColumns ?? []), ...hiddenColumns]),
+    ];
+    mapping.rewriteMarkerRow = mapping.markerRow !== undefined;
+    mapping.rewriteHeaderLabels = true;
   }
 
-  fields.forEach((field) => {
-    const column = mapping.columnByFieldKey[field.key];
-    if (!column || !field.headerAliases?.length) return;
-    const header = worksheet.getCell(mapping.headerRow, column);
-    const currentHeader = header.text ?? String(header.value ?? '');
-    if (
-      field.headerAliases.some(
-        (alias) => normalizeHeader(alias) === normalizeHeader(currentHeader),
-      )
-    ) {
-      header.value = field.label;
-    }
-  });
+  if (mapping.markerRow !== undefined) {
+    const spacerStart = mapping.markerRow + 1;
+    mapping.dataStartRow = Math.max(spacerStart, 4);
+    mapping.clearedRows = Array.from(
+      { length: mapping.dataStartRow - spacerStart },
+      (_, index) => spacerStart + index,
+    );
+  }
+
   return mapping;
-}
-
-function arrangeSystemTemplateColumns(
-  worksheet: SpreadsheetWorkbook['worksheets'][number],
-  detectedMapping: SpreadsheetMapping,
-  fields: SpreadsheetField<Material>[],
-): SpreadsheetMapping | null {
-  const orderedFields = fields.filter(
-    (field) => detectedMapping.columnByFieldKey[field.key] !== undefined,
-  );
-  if (orderedFields.length === 0) return null;
-
-  const markerRowNumber = detectedMapping.headerRow - 1;
-  const oldColumnCount = Math.max(
-    worksheet.columns?.length ?? 0,
-    ...Object.values(detectedMapping.columnByFieldKey),
-  );
-  const originalWidths = worksheet.columns ?? [];
-  const fallbackColumn = Math.max(
-    1,
-    ...Object.values(detectedMapping.columnByFieldKey),
-  );
-  const styleByField = orderedFields.map((field) => {
-    const sourceColumn =
-      detectedMapping.columnByFieldKey[field.key] ?? fallbackColumn;
-    return {
-      headerStyle: worksheet.getCell(detectedMapping.headerRow, sourceColumn)
-        .style,
-      dataStyle: worksheet.getCell(detectedMapping.dataStartRow, sourceColumn)
-        .style,
-      width: originalWidths[sourceColumn - 1]?.width,
-    };
-  });
-
-  const columnByFieldKey = Object.fromEntries(
-    orderedFields.map((field, index) => [field.key, index + 1]),
-  );
-  const markerRow = worksheet.getRow(markerRowNumber);
-  markerRow.hidden = true;
-  for (
-    let column = orderedFields.length + 1;
-    column <= oldColumnCount;
-    column += 1
-  ) {
-    markerRow.getCell(column).value = null;
-    worksheet.getCell(detectedMapping.headerRow, column).value = null;
-    for (
-      let rowNumber = detectedMapping.dataStartRow;
-      rowNumber <= worksheet.rowCount;
-      rowNumber += 1
-    ) {
-      worksheet.getCell(rowNumber, column).value = null;
-    }
-  }
-
-  orderedFields.forEach((field, index) => {
-    const column = index + 1;
-    const markerCell = markerRow.getCell(column);
-    const headerCell = worksheet.getCell(detectedMapping.headerRow, column);
-    const dataCell = worksheet.getCell(detectedMapping.dataStartRow, column);
-    const styles = styleByField[index];
-
-    if (styles.headerStyle && typeof styles.headerStyle === 'object') {
-      headerCell.style = structuredClone(styles.headerStyle);
-    }
-    if (styles.dataStyle && typeof styles.dataStyle === 'object') {
-      dataCell.style = structuredClone(styles.dataStyle);
-    }
-    markerCell.value = `${SPREADSHEET_FIELD_MARKER}${field.key}`;
-    headerCell.value = field.label;
-  });
-
-  worksheet.columns = orderedFields.map((field, index) => ({
-    width: Math.min(
-      Math.max(styleByField[index].width ?? 0, field.label.length + 4, 16),
-      36,
-    ),
-  }));
-
-  return {
-    ...detectedMapping,
-    columnByFieldKey,
-  };
-}
-
-function hasFieldMarkerRow(
-  worksheet: SpreadsheetWorkbook['worksheets'][number],
-  rowNumber: number,
-): boolean {
-  if (rowNumber < 1) return false;
-  let hasMarker = false;
-  worksheet.getRow(rowNumber).eachCell?.({ includeEmpty: false }, (cell) => {
-    if (String(cell.value ?? '').startsWith(SPREADSHEET_FIELD_MARKER)) {
-      hasMarker = true;
-    }
-  });
-  return hasMarker;
 }
 
 export function mapMaterialImportRows(
@@ -367,6 +365,22 @@ export function mapMaterialImportRows(
         code,
         values: null,
         error: translate('project.materials.spreadsheet.errors.modelNotFound'),
+      };
+    }
+
+    const combinedSpecifications = parseCombinedSpecifications(
+      valueOf(row, 'material.specifications'),
+      model,
+    );
+    if (combinedSpecifications.errorName) {
+      return {
+        rowNumber: row.rowNumber,
+        code,
+        values: null,
+        error: translate(
+          'project.materials.spreadsheet.errors.specificationModel',
+          { name: combinedSpecifications.errorName },
+        ),
       };
     }
 
@@ -490,8 +504,6 @@ export function mapMaterialImportRows(
     for (const field of fields) {
       const fieldKey = field.key;
       if (!fieldKey.startsWith('material.specification.')) continue;
-      const rawValue = valueOf(row, fieldKey);
-      if (!rawValue) continue;
       const specificationId = fieldKey.slice('material.specification.'.length);
       const specification = model.specifications.find(
         (item) => item.id === specificationId,
@@ -509,12 +521,18 @@ export function mapMaterialImportRows(
           ),
         };
       }
-      const importedValues = specification.isList
-        ? rawValue
-            .split(';')
-            .map((item) => item.trim())
-            .filter(Boolean)
-        : [rawValue];
+      const rawValue = valueOf(row, fieldKey);
+      const combinedValues =
+        combinedSpecifications.valuesBySpecificationId.get(specificationId);
+      const importedValues = rawValue
+        ? specification.isList
+          ? rawValue
+              .split(';')
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : [rawValue]
+        : (combinedValues ?? []);
+      if (importedValues.length === 0) continue;
       let normalizedValues = importedValues;
       if (specification.dataType === 'color') {
         const matchedValueIndexes = importedValues.map((value) => {
@@ -620,4 +638,40 @@ function parseOwnerKind(
 
 function valueOf(row: SpreadsheetDataRow, key: string): string {
   return row.values[key]?.trim() ?? '';
+}
+
+function parseCombinedSpecifications(
+  rawValue: string,
+  model: MaterialModel,
+): {
+  valuesBySpecificationId: Map<string, string[]>;
+  errorName: string | null;
+} {
+  const valuesBySpecificationId = new Map<string, string[]>();
+  for (const line of rawValue.split(/\r?\n/).map((value) => value.trim())) {
+    if (!line) continue;
+    const separator = line.indexOf(':');
+    const name = separator >= 0 ? line.slice(0, separator).trim() : line;
+    const value = separator >= 0 ? line.slice(separator + 1).trim() : '';
+    const matches = model.specifications.filter(
+      (specification) =>
+        normalizeHeader(specification.name) === normalizeHeader(name),
+    );
+    if (separator < 0 || !value || matches.length !== 1) {
+      return { valuesBySpecificationId, errorName: name };
+    }
+    const specification = matches[0];
+    if (!specification) continue;
+    const parsedValues = specification.isList
+      ? value
+          .split(';')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : [value];
+    if (valuesBySpecificationId.has(specification.id)) {
+      return { valuesBySpecificationId, errorName: name };
+    }
+    valuesBySpecificationId.set(specification.id, parsedValues);
+  }
+  return { valuesBySpecificationId, errorName: null };
 }

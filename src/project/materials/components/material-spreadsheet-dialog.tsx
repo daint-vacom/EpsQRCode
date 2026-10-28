@@ -7,7 +7,10 @@ import { useIntl } from 'react-intl';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
 import type { MaterialListFilters } from '../model/material';
-import { getMaterialSpreadsheetFields } from '../spreadsheet/material-spreadsheet';
+import {
+  getMaterialSpreadsheetExportFields,
+  getMaterialSpreadsheetFields,
+} from '../spreadsheet/material-spreadsheet';
 import { MaterialSpreadsheetExportDialogShell } from './material-spreadsheet-export-dialog-shell.generated';
 import {
   MaterialSpreadsheetExportPanel,
@@ -41,8 +44,22 @@ function useMaterialSpreadsheetOptions(enabled: boolean) {
       ),
     [custodians, intl, models],
   );
+  const exportFields = useMemo(
+    () =>
+      getMaterialSpreadsheetExportFields(fields, (id, values) =>
+        intl.formatMessage({ id }, values),
+      ),
+    [fields, intl],
+  );
 
-  return { fields, models, custodians, modelsQuery, custodiansQuery };
+  return {
+    fields,
+    exportFields,
+    models,
+    custodians,
+    modelsQuery,
+    custodiansQuery,
+  };
 }
 
 function CatalogState({
@@ -142,7 +159,7 @@ export function MaterialSpreadsheetExportDialog({
     'materialsExport',
     open && canLoadSharedTemplate,
   );
-  const { fields, modelsQuery, custodiansQuery } =
+  const { exportFields, modelsQuery, custodiansQuery } =
     useMaterialSpreadsheetOptions(open);
   const catalogsLoading = modelsQuery.isPending || custodiansQuery.isPending;
   const catalogsError = modelsQuery.isError || custodiansQuery.isError;
@@ -154,7 +171,7 @@ export function MaterialSpreadsheetExportDialog({
   const exportState = useMaterialSpreadsheetExport({
     open,
     filters,
-    fields,
+    fields: exportFields,
     sharedTemplate,
     sharedTemplateLoading,
     sharedTemplateError,

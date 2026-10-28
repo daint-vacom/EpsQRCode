@@ -1,6 +1,10 @@
+import JSZip from 'jszip';
+
 export const SPREADSHEET_FIELD_MARKER = '__eps_field__:';
 export const MAX_SPREADSHEET_FILE_BYTES = 20 * 1024 * 1024;
 export const MAX_SPREADSHEET_ROWS = 50_000;
+const SPREADSHEET_MAIN_NAMESPACE =
+  'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 
 export class SpreadsheetError extends Error {
   constructor(messageId: string) {
@@ -15,6 +19,7 @@ export interface SpreadsheetField<TRecord> {
   key: string;
   label: string;
   headerAliases?: string[];
+  markerAliases?: string[];
   required?: boolean;
   read: (record: TRecord) => SpreadsheetValue;
 }
@@ -27,8 +32,13 @@ export interface SpreadsheetHeader {
 export interface SpreadsheetMapping {
   worksheetName: string;
   headerRow: number;
+  markerRow?: number;
   dataStartRow: number;
   columnByFieldKey: Record<string, number>;
+  rewriteMarkerRow?: boolean;
+  rewriteHeaderLabels?: boolean;
+  hiddenColumns?: number[];
+  clearedRows?: number[];
 }
 
 export interface SpreadsheetDataRow {
@@ -48,6 +58,7 @@ interface SpreadsheetCell {
 
 interface SpreadsheetRow {
   hidden?: boolean;
+  height?: number;
   getCell: (column: number) => SpreadsheetCell;
   eachCell?: (
     options: { includeEmpty?: boolean },
@@ -59,9 +70,13 @@ export interface SpreadsheetWorksheet {
   name: string;
   rowCount: number;
   getRow: (row: number) => SpreadsheetRow;
+  eachRow?: (
+    options: { includeEmpty?: boolean },
+    callback: (row: SpreadsheetRow, rowNumber: number) => void,
+  ) => void;
   getCell: (row: number, column: number) => SpreadsheetCell;
   addRow: (values: unknown[]) => SpreadsheetRow;
-  columns?: Array<{ width?: number }>;
+  columns?: Array<{ width?: number; hidden?: boolean }>;
   views?: unknown[];
 }
 
@@ -99,6 +114,95 @@ async function createWorkbook(): Promise<SpreadsheetWorkbook> {
   return new excelJs.Workbook();
 }
 
+async function normalizePrefixedSpreadsheetXml(
+  data: ArrayBuffer,
+): Promise<ArrayBuffer | null> {
+  let archive: JSZip;
+  try {
+    archive = await JSZip.loadAsync(data);
+  } catch {
+    return null;
+  }
+
+  let changed = false;
+  const namespacePattern = new RegExp(
+    `xmlns:([\\w.-]+)=["']${SPREADSHEET_MAIN_NAMESPACE}["']`,
+  );
+  const defaultNamespacePattern = new RegExp(
+    `xmlns=["']${SPREADSHEET_MAIN_NAMESPACE}["']`,
+  );
+
+  await Promise.all(
+    Object.values(archive.files).map(async (entry) => {
+      if (entry.dir || !/\.(xml|rels)$/i.test(entry.name)) return;
+
+      const contents = await entry.async('string');
+      const namespaceMatch = contents.match(namespacePattern);
+      if (!namespaceMatch) return;
+
+      const prefix = namespaceMatch[1];
+      let normalized = contents;
+      if (!defaultNamespacePattern.test(normalized)) {
+        normalized = normalized.replace(
+          namespaceMatch[0],
+          `xmlns="${SPREADSHEET_MAIN_NAMESPACE}" ${namespaceMatch[0]}`,
+        );
+      }
+      const escapedPrefix = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      normalized = normalized.replace(
+        new RegExp(`(<\\/?\\s*)${escapedPrefix}:`, 'g'),
+        '$1',
+      );
+
+      if (normalized !== contents) {
+        archive.file(entry.name, normalized);
+        changed = true;
+      }
+    }),
+  );
+
+  if (!changed) return null;
+  const bytes = await archive.generateAsync({ type: 'uint8array' });
+  return bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ) as ArrayBuffer;
+}
+
+async function loadSpreadsheetWorkbook(
+  data: ArrayBuffer,
+): Promise<SpreadsheetWorkbook> {
+  const workbook = await createWorkbook();
+  try {
+    await workbook.xlsx.load(data);
+    return workbook;
+  } catch {
+    const normalized = await normalizePrefixedSpreadsheetXml(data);
+    if (!normalized) {
+      throw new SpreadsheetError('common.spreadsheets.errors.invalidFile');
+    }
+
+    const normalizedWorkbook = await createWorkbook();
+    try {
+      await normalizedWorkbook.xlsx.load(normalized);
+    } catch {
+      throw new SpreadsheetError('common.spreadsheets.errors.invalidFile');
+    }
+    return normalizedWorkbook;
+  }
+}
+
+export async function cloneSpreadsheetWorkbook(
+  workbook: SpreadsheetWorkbook,
+): Promise<SpreadsheetWorkbook> {
+  const serialized = await workbook.xlsx.writeBuffer();
+  const data = new Uint8Array(serialized.byteLength);
+  data.set(serialized);
+  const clone = await createWorkbook();
+  await clone.xlsx.load(data.buffer as ArrayBuffer);
+  return clone;
+}
+
 export async function readXlsxFile(file: File): Promise<SpreadsheetWorkbook> {
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
     throw new SpreadsheetError('common.spreadsheets.errors.fileType');
@@ -106,8 +210,7 @@ export async function readXlsxFile(file: File): Promise<SpreadsheetWorkbook> {
   if (file.size > MAX_SPREADSHEET_FILE_BYTES) {
     throw new SpreadsheetError('common.spreadsheets.errors.fileSize');
   }
-  const workbook = await createWorkbook();
-  await workbook.xlsx.load(await file.arrayBuffer());
+  const workbook = await loadSpreadsheetWorkbook(await file.arrayBuffer());
   if (workbook.worksheets.length === 0) {
     throw new SpreadsheetError('common.spreadsheets.errors.noWorksheets');
   }
@@ -118,7 +221,107 @@ export async function readXlsxFile(file: File): Promise<SpreadsheetWorkbook> {
   ) {
     throw new SpreadsheetError('common.spreadsheets.errors.rowLimit');
   }
+  validateSpreadsheetMarkerRows(workbook);
+  upgradeLegacyMarkerLayouts(workbook);
   return workbook;
+}
+
+function validateSpreadsheetMarkerRows(workbook: SpreadsheetWorkbook) {
+  for (const worksheet of workbook.worksheets) {
+    let markerRow: number | undefined;
+    let hasMarkersInMultipleRows = false;
+
+    forEachWorksheetRow(worksheet, (row, rowNumber) => {
+      row.eachCell?.({ includeEmpty: false }, (cell) => {
+        if (!cellToText(cell).trim().startsWith(SPREADSHEET_FIELD_MARKER)) {
+          return;
+        }
+        if (markerRow === undefined) {
+          markerRow = rowNumber;
+        } else if (markerRow !== rowNumber) {
+          hasMarkersInMultipleRows = true;
+        }
+      });
+    });
+
+    if (hasMarkersInMultipleRows) {
+      throw new SpreadsheetError(
+        'common.spreadsheets.errors.markersMustShareRow',
+      );
+    }
+  }
+}
+
+function upgradeLegacyMarkerLayouts(workbook: SpreadsheetWorkbook) {
+  for (const worksheet of workbook.worksheets) {
+    const legacyMarkerRow = worksheet.getRow(1);
+    const markers: Array<{ column: number; value: unknown }> = [];
+    legacyMarkerRow.eachCell?.({ includeEmpty: false }, (cell, column) => {
+      if (cellToText(cell).trim().startsWith(SPREADSHEET_FIELD_MARKER)) {
+        markers.push({ column, value: cell.value });
+      }
+    });
+    if (markers.length === 0) continue;
+
+    const headerRow = worksheet.getRow(2);
+    const dataSampleRow = worksheet.getRow(3);
+    const headingsByColumn = new Map(
+      markers.map(({ column }) => {
+        const cell = headerRow.getCell(column);
+        return [
+          column,
+          {
+            value: cell.value,
+            style:
+              cell.style && typeof cell.style === 'object'
+                ? structuredClone(cell.style)
+                : undefined,
+          },
+        ];
+      }),
+    );
+    headerRow.eachCell?.({ includeEmpty: true }, (cell, column) => {
+      const targetCell = legacyMarkerRow.getCell(column);
+      targetCell.value = cell.value;
+      if (cell.style && typeof cell.style === 'object') {
+        targetCell.style = structuredClone(cell.style);
+      }
+      cell.value = null;
+    });
+
+    for (const marker of markers) {
+      const heading = headingsByColumn.get(marker.column);
+      const headingCell = legacyMarkerRow.getCell(marker.column);
+      headingCell.value = heading?.value;
+      if (heading?.style) headingCell.style = heading.style;
+
+      const markerCell = headerRow.getCell(marker.column);
+      markerCell.value = marker.value;
+      const sampleStyle = dataSampleRow.getCell(marker.column).style;
+      if (sampleStyle && typeof sampleStyle === 'object') {
+        markerCell.style = structuredClone(sampleStyle);
+      }
+    }
+
+    legacyMarkerRow.hidden = false;
+    headerRow.hidden = false;
+    legacyMarkerRow.height = headerRow.height;
+    headerRow.height = dataSampleRow.height;
+  }
+}
+
+function forEachWorksheetRow(
+  worksheet: SpreadsheetWorksheet,
+  callback: (row: SpreadsheetRow, rowNumber: number) => void,
+) {
+  if (worksheet.eachRow) {
+    worksheet.eachRow({ includeEmpty: false }, callback);
+    return;
+  }
+
+  for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber += 1) {
+    callback(worksheet.getRow(rowNumber), rowNumber);
+  }
 }
 
 export function getSpreadsheetHeaders(
@@ -136,7 +339,7 @@ export function getSpreadsheetHeaders(
 
 export function detectSpreadsheetMapping(
   worksheet: SpreadsheetWorksheet,
-  fields: Array<{ key: string }>,
+  fields: Array<{ key: string; markerAliases?: string[] }>,
 ): SpreadsheetMapping | null {
   const mapping = detectMarkedSpreadsheetMapping(worksheet, fields);
   if (!mapping || Object.keys(mapping.columnByFieldKey).length < 2) return null;
@@ -153,29 +356,17 @@ export function detectSpreadsheetExportMapping<TRecord>(
   for (const worksheet of workbook.worksheets) {
     const markedMapping = detectMarkedSpreadsheetMapping(worksheet, fields);
     if (markedMapping) {
-      const headerMapping = suggestSpreadsheetMapping(
-        worksheet,
-        fields,
-        markedMapping.headerRow,
-      );
-      return {
-        ...markedMapping,
-        columnByFieldKey: {
-          ...headerMapping.columnByFieldKey,
-          ...markedMapping.columnByFieldKey,
-        },
-      };
+      return markedMapping;
     }
 
-    const searchRows = Math.min(worksheet.rowCount, 12);
-    for (let headerRow = 1; headerRow <= searchRows; headerRow += 1) {
+    forEachWorksheetRow(worksheet, (_row, headerRow) => {
       const candidate = suggestSpreadsheetMapping(worksheet, fields, headerRow);
       const matchCount = Object.keys(candidate.columnByFieldKey).length;
       if (matchCount > bestMatchCount) {
         bestMapping = candidate;
         bestMatchCount = matchCount;
       }
-    }
+    });
   }
 
   return bestMapping;
@@ -183,30 +374,36 @@ export function detectSpreadsheetExportMapping<TRecord>(
 
 function detectMarkedSpreadsheetMapping(
   worksheet: SpreadsheetWorksheet,
-  fields: Array<{ key: string }>,
+  fields: Array<{ key: string; markerAliases?: string[] }>,
 ): SpreadsheetMapping | null {
-  const knownKeys = new Set(fields.map((field) => field.key));
-  const searchRows = Math.min(worksheet.rowCount, 12);
-  for (let rowNumber = 1; rowNumber <= searchRows; rowNumber += 1) {
+  const fieldKeyByMarker = new Map<string, string>();
+  for (const field of fields) {
+    fieldKeyByMarker.set(field.key, field.key);
+    for (const alias of field.markerAliases ?? []) {
+      fieldKeyByMarker.set(alias, field.key);
+    }
+  }
+  let mapping: SpreadsheetMapping | null = null;
+  forEachWorksheetRow(worksheet, (row, rowNumber) => {
+    if (mapping) return;
     const columnByFieldKey: Record<string, number> = {};
-    worksheet
-      .getRow(rowNumber)
-      .eachCell?.({ includeEmpty: false }, (cell, column) => {
-        const marker = cellToText(cell).trim();
-        if (!marker.startsWith(SPREADSHEET_FIELD_MARKER)) return;
-        const fieldKey = marker.slice(SPREADSHEET_FIELD_MARKER.length);
-        if (knownKeys.has(fieldKey)) columnByFieldKey[fieldKey] = column;
-      });
-    if (Object.keys(columnByFieldKey).length === 0) continue;
-    const headerRow = rowNumber + 1;
-    return {
+    row.eachCell?.({ includeEmpty: false }, (cell, column) => {
+      const marker = cellToText(cell).trim();
+      if (!marker.startsWith(SPREADSHEET_FIELD_MARKER)) return;
+      const markerKey = marker.slice(SPREADSHEET_FIELD_MARKER.length);
+      const fieldKey = fieldKeyByMarker.get(markerKey);
+      if (fieldKey) columnByFieldKey[fieldKey] = column;
+    });
+    if (Object.keys(columnByFieldKey).length === 0) return;
+    mapping = {
       worksheetName: worksheet.name,
-      headerRow,
-      dataStartRow: headerRow + 1,
+      headerRow: Math.max(1, rowNumber - 1),
+      markerRow: rowNumber,
+      dataStartRow: rowNumber + 1,
       columnByFieldKey,
     };
-  }
-  return null;
+  });
+  return mapping;
 }
 
 export function suggestSpreadsheetMapping<TRecord>(
@@ -273,7 +470,9 @@ export async function exportSpreadsheet<TRecord>({
   workbook: providedWorkbook,
   mapping: providedMapping,
 }: ExportWorkbookOptions<TRecord>): Promise<void> {
-  const workbook = providedWorkbook ?? (await createWorkbook());
+  const workbook = providedWorkbook
+    ? await cloneSpreadsheetWorkbook(providedWorkbook)
+    : await createWorkbook();
   const worksheet = providedMapping
     ? workbook.getWorksheet(providedMapping.worksheetName)
     : workbook.addWorksheet(worksheetName);
@@ -283,18 +482,57 @@ export async function exportSpreadsheet<TRecord>({
 
   const mapping = providedMapping ?? {
     worksheetName: worksheet.name,
-    headerRow: 2,
+    headerRow: 1,
+    markerRow: 2,
     dataStartRow: 3,
     columnByFieldKey: Object.fromEntries(
       fields.map((field, index) => [field.key, index + 1]),
     ),
   };
 
+  if (providedMapping) {
+    for (const column of mapping.hiddenColumns ?? []) {
+      const existingColumn = worksheet.columns?.[column - 1] ?? {};
+      if (worksheet.columns) {
+        worksheet.columns[column - 1] = { ...existingColumn, hidden: true };
+      }
+      worksheet.getCell(mapping.headerRow, column).value = null;
+      if (mapping.markerRow !== undefined) {
+        worksheet.getCell(mapping.markerRow, column).value = null;
+      }
+    }
+
+    if (mapping.markerRow !== undefined && mapping.rewriteMarkerRow) {
+      const markerRow = worksheet.getRow(mapping.markerRow);
+      markerRow.eachCell?.({ includeEmpty: false }, (cell) => {
+        if (cellToText(cell).trim().startsWith(SPREADSHEET_FIELD_MARKER)) {
+          cell.value = null;
+        }
+      });
+      for (const field of fields) {
+        const column = mapping.columnByFieldKey[field.key];
+        if (!column) continue;
+        markerRow.getCell(column).value =
+          `${SPREADSHEET_FIELD_MARKER}${field.key}`;
+        if (mapping.rewriteHeaderLabels) {
+          worksheet.getCell(mapping.headerRow, column).value = field.label;
+        }
+      }
+    }
+
+    for (const rowNumber of mapping.clearedRows ?? []) {
+      const row = worksheet.getRow(rowNumber);
+      row.eachCell?.({ includeEmpty: false }, (cell) => {
+        cell.value = null;
+      });
+      row.hidden = true;
+    }
+  }
+
   if (!providedMapping) {
-    const markerRow = worksheet.getRow(1);
-    markerRow.hidden = true;
+    const markerRow = worksheet.getRow(mapping.markerRow ?? 2);
     fields.forEach((field) => {
-      worksheet.getCell(1, mapping.columnByFieldKey[field.key]).value =
+      markerRow.getCell(mapping.columnByFieldKey[field.key]).value =
         `${SPREADSHEET_FIELD_MARKER}${field.key}`;
     });
     fields.forEach((field) => {
@@ -322,25 +560,33 @@ export async function exportSpreadsheet<TRecord>({
   const lastExistingRow = worksheet.rowCount;
   const sampleStyles = new Map<number, unknown>();
   if (providedMapping) {
+    const styleSourceRow = mapping.markerRow ?? mapping.dataStartRow;
     for (const field of fields) {
       const column = mapping.columnByFieldKey[field.key];
       const style = column
-        ? worksheet.getCell(mapping.dataStartRow, column).style
+        ? worksheet.getCell(styleSourceRow, column).style
         : undefined;
       if (column && style && typeof style === 'object') {
         sampleStyles.set(column, structuredClone(style));
       }
     }
   }
+  const firstOutputAreaRow =
+    mapping.markerRow === undefined
+      ? mapping.dataStartRow
+      : mapping.markerRow + 1;
   const lastRowToClear = Math.max(
     lastExistingRow,
     mapping.dataStartRow + records.length - 1,
   );
   for (
-    let rowNumber = mapping.dataStartRow;
+    let rowNumber = firstOutputAreaRow;
     rowNumber <= lastRowToClear;
     rowNumber += 1
   ) {
+    for (const column of mapping.hiddenColumns ?? []) {
+      worksheet.getCell(rowNumber, column).value = null;
+    }
     for (const field of fields) {
       const column = mapping.columnByFieldKey[field.key];
       if (!column) continue;
@@ -355,13 +601,20 @@ export async function exportSpreadsheet<TRecord>({
       const column = mapping.columnByFieldKey[field.key];
       if (!column) continue;
       const cell = worksheet.getCell(rowNumber, column);
-      if (providedMapping && rowNumber > mapping.dataStartRow) {
+      if (
+        providedMapping &&
+        (mapping.markerRow !== undefined || rowNumber > mapping.dataStartRow)
+      ) {
         const sampleStyle = sampleStyles.get(column);
         if (sampleStyle) cell.style = structuredClone(sampleStyle);
       }
       cell.value = field.read(record);
     }
   });
+
+  if (mapping.markerRow !== undefined) {
+    worksheet.getRow(mapping.markerRow).hidden = true;
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {

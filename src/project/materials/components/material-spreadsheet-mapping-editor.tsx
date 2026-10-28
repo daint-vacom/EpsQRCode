@@ -137,6 +137,10 @@ export function MaterialSpreadsheetMappingEditor({
     const nextHeaderRow = Math.max(1, Number(value) || 1);
     setHeaderRow(nextHeaderRow);
     if (!worksheet) return;
+    if (mapping?.markerRow !== undefined) {
+      persistMapping({ ...mapping, headerRow: nextHeaderRow });
+      return;
+    }
     const nextMapping = suggestSpreadsheetMapping(
       worksheet,
       fields,
@@ -147,6 +151,7 @@ export function MaterialSpreadsheetMappingEditor({
   };
 
   const handleDataStartRowChange = (value: string) => {
+    if (mapping?.markerRow !== undefined) return;
     const nextDataStartRow = Math.max(
       headerRow + 1,
       Number(value) || headerRow + 1,
@@ -217,6 +222,7 @@ export function MaterialSpreadsheetMappingEditor({
             type="number"
             min={headerRow + 1}
             value={dataStartRow}
+            disabled={mapping.markerRow !== undefined}
             onChange={(event) => handleDataStartRowChange(event.target.value)}
           />
         </div>

@@ -87,37 +87,38 @@ function getTemplateItem(
   return items.find((item) => item.kind === 'file' && item.name === fileName);
 }
 
-async function loadBundledTemplate(
+interface SpreadsheetTemplateFile {
+  fileName: string;
+  updatedAt: string;
+  blob: Blob;
+}
+
+async function loadBundledTemplateFile(
   key: SpreadsheetTemplateKey,
-): Promise<SpreadsheetTemplate> {
+): Promise<SpreadsheetTemplateFile> {
   const definition = SPREADSHEET_TEMPLATE_DEFINITIONS[key];
   const response = await fetch(definition.bundledPath);
   if (!response.ok) {
     throw new Error('Không tải được biểu mẫu Excel mặc định.');
   }
 
-  const blob = await response.blob();
-  const file = new File([blob], definition.fileName, {
-    type: blob.type || SPREADSHEET_TEMPLATE_MIME_TYPE,
-  });
   return {
-    key,
     fileName: definition.fileName,
     updatedAt: '',
-    workbook: await readXlsxFile(file),
+    blob: await response.blob(),
   };
 }
 
-export async function loadSpreadsheetTemplate(
+async function loadSpreadsheetTemplateFile(
   key: SpreadsheetTemplateKey,
-): Promise<SpreadsheetTemplate | null> {
+): Promise<SpreadsheetTemplateFile> {
   const folder = await findTemplateFolder().catch(() => null);
-  if (!folder) return loadBundledTemplate(key);
+  if (!folder) return loadBundledTemplateFile(key);
 
   const items = await listFileManagerItems(folder.id).catch(() => null);
-  if (!items) return loadBundledTemplate(key);
+  if (!items) return loadBundledTemplateFile(key);
   const item = getTemplateItem(items, key);
-  if (!item) return loadBundledTemplate(key);
+  if (!item) return loadBundledTemplateFile(key);
 
   const reference = await loadFileStorageReference(item.id);
   const signedUrl = await createSignedStorageUrl(
@@ -129,15 +130,40 @@ export async function loadSpreadsheetTemplate(
     throw new Error('Không tải được biểu mẫu Excel dùng chung.');
   }
 
-  const blob = await response.blob();
-  const file = new File([blob], item.name, {
-    type: blob.type || SPREADSHEET_TEMPLATE_MIME_TYPE,
+  return {
+    fileName: item.name,
+    updatedAt: item.modifiedAt,
+    blob: await response.blob(),
+  };
+}
+
+export async function loadSpreadsheetTemplate(
+  key: SpreadsheetTemplateKey,
+): Promise<SpreadsheetTemplate | null> {
+  const templateFile = await loadSpreadsheetTemplateFile(key);
+  const file = new File([templateFile.blob], templateFile.fileName, {
+    type: templateFile.blob.type || SPREADSHEET_TEMPLATE_MIME_TYPE,
   });
   return {
     key,
-    fileName: item.name,
-    updatedAt: item.modifiedAt,
+    fileName: templateFile.fileName,
+    updatedAt: templateFile.updatedAt,
     workbook: await readXlsxFile(file),
+  };
+}
+
+export async function downloadSpreadsheetTemplateFile(
+  key: SpreadsheetTemplateKey,
+): Promise<{ fileName: string; blob: Blob }> {
+  const templateFile = await loadSpreadsheetTemplateFile(key);
+  const file = new File([templateFile.blob], templateFile.fileName, {
+    type: templateFile.blob.type || SPREADSHEET_TEMPLATE_MIME_TYPE,
+  });
+  const workbook = await readXlsxFile(file);
+  const buffer = await workbook.xlsx.writeBuffer();
+  return {
+    fileName: templateFile.fileName,
+    blob: new Blob([buffer], { type: SPREADSHEET_TEMPLATE_MIME_TYPE }),
   };
 }
 
@@ -154,10 +180,15 @@ export async function saveSpreadsheetTemplate(input: {
     throw new SpreadsheetError('common.spreadsheets.errors.fileSize');
   }
 
-  await readXlsxFile(file);
+  const workbook = await readXlsxFile(file);
+  const buffer = await workbook.xlsx.writeBuffer();
+  if (buffer.byteLength > MAX_SPREADSHEET_FILE_BYTES) {
+    throw new SpreadsheetError('common.spreadsheets.errors.fileSize');
+  }
+
   const folder = await ensureTemplateFolder(userId);
   const definition = SPREADSHEET_TEMPLATE_DEFINITIONS[key];
-  const normalizedFile = new File([file], definition.fileName, {
+  const normalizedFile = new File([buffer], definition.fileName, {
     type: file.type || SPREADSHEET_TEMPLATE_MIME_TYPE,
     lastModified: file.lastModified,
   });

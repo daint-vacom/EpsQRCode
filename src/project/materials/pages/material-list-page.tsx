@@ -31,6 +31,11 @@ import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   MaterialSpreadsheetExportDialog,
   MaterialSpreadsheetImportDialog,
 } from '../components/material-spreadsheet-dialog';
@@ -55,6 +60,12 @@ const DEFAULT_PAGE_SIZE = 25;
 
 export function MaterialListPage() {
   const intl = useIntl();
+  const exportExcelLabel = intl.formatMessage({
+    id: 'project.materials.actions.exportExcel',
+  });
+  const importExcelLabel = intl.formatMessage({
+    id: 'project.materials.actions.importExcel',
+  });
   const navigate = useNavigate();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
@@ -245,30 +256,38 @@ export function MaterialListPage() {
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             {canView ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() => setIsExportDialogOpen(true)}
-              >
-                <Download />
-                {intl.formatMessage({
-                  id: 'project.materials.actions.exportExcel',
-                })}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label={exportExcelLabel}
+                    onClick={() => setIsExportDialogOpen(true)}
+                  >
+                    <Download aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{exportExcelLabel}</TooltipContent>
+              </Tooltip>
             ) : null}
             {canManage ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() => setIsImportDialogOpen(true)}
-              >
-                <Upload />
-                {intl.formatMessage({
-                  id: 'project.materials.actions.importExcel',
-                })}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label={importExcelLabel}
+                    onClick={() => setIsImportDialogOpen(true)}
+                  >
+                    <Upload aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{importExcelLabel}</TooltipContent>
+              </Tooltip>
             ) : null}
             {canManage ? (
               <Button
