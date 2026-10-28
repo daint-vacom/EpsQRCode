@@ -9,7 +9,7 @@ import {
   type PaginationState,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { Boxes, Handshake, Plus, Trash2 } from 'lucide-react';
+import { Boxes, Handshake, Plus, QrCode, Trash2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -142,6 +142,10 @@ export function MaterialListPage() {
         `${ROUTES.PROJECT.HANDOVER_CREATE}?materialId=${encodeURIComponent(material.id)}`,
       ),
     onDelete: (material) => setDeletingMaterials([material]),
+    onPrint: (material) =>
+      navigate(
+        `${ROUTES.PROJECT.MATERIAL_LABEL_PRINT}?ids=${encodeURIComponent(material.id)}`,
+      ),
   });
   const table = useReactTable({
     data: items,
@@ -151,11 +155,11 @@ export function MaterialListPage() {
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
     rowCount: total,
-    enableRowSelection: canManage,
+    enableRowSelection: canView,
     state: {
       pagination,
       columnPinning: MATERIAL_COLUMN_PINNING,
-      columnVisibility: { select: canManage },
+      columnVisibility: { select: canView },
       rowSelection,
     },
     onPaginationChange: setPagination,
@@ -356,28 +360,49 @@ export function MaterialListPage() {
             )
           }
         >
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            disabled={selectedMaterials.some((material) =>
-              Boolean(material.reservedHandoverId),
-            )}
-            onClick={handleBulkHandover}
-          >
-            <Handshake />
-            {intl.formatMessage({ id: 'project.materials.bulk.handover' })}
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            disabled={deleteMutation.isPending}
-            onClick={() => setDeletingMaterials(selectedMaterials)}
-          >
-            <Trash2 />
-            {intl.formatMessage({ id: 'project.materials.bulk.delete' })}
-          </Button>
+          {canView ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() =>
+                navigate(
+                  `${ROUTES.PROJECT.MATERIAL_LABEL_PRINT}?ids=${encodeURIComponent(
+                    selectedMaterials.map((material) => material.id).join(','),
+                  )}`,
+                )
+              }
+            >
+              <QrCode />
+              {intl.formatMessage({ id: 'project.materials.bulk.printQr' })}
+            </Button>
+          ) : null}
+          {canManage ? (
+            <>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={selectedMaterials.some((material) =>
+                  Boolean(material.reservedHandoverId),
+                )}
+                onClick={handleBulkHandover}
+              >
+                <Handshake />
+                {intl.formatMessage({ id: 'project.materials.bulk.handover' })}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={deleteMutation.isPending}
+                onClick={() => setDeletingMaterials(selectedMaterials)}
+              >
+                <Trash2 />
+                {intl.formatMessage({ id: 'project.materials.bulk.delete' })}
+              </Button>
+            </>
+          ) : null}
         </DataGridActionBar>
       </DataGrid>
       <ConfirmDialog

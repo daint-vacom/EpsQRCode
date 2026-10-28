@@ -1,6 +1,7 @@
 import { accountMessagesEn } from '@/project/accounts/messages';
 import { custodianMessagesEn } from '@/project/custodians/messages';
 import { handoverMessagesEn } from '@/project/handover/messages';
+import { materialLabelMessagesEn } from '@/project/material-labels/messages';
 import { materialMessagesEn } from '@/project/materials/messages';
 import { receiptMessagesEn } from '@/project/receipts/messages';
 import { warehouseMessagesEn } from '@/project/warehouses/messages';
@@ -14,6 +15,7 @@ export const en: Record<string, string> = {
   'common.select.loadError': 'Unable to load data',
   'common.select.minSearch': 'Enter at least {count} characters to search',
   ...materialMessagesEn,
+  ...materialLabelMessagesEn,
   ...warehouseMessagesEn,
   ...accountMessagesEn,
   ...custodianMessagesEn,

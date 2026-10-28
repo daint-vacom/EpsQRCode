@@ -51,6 +51,9 @@ import { HandoversPage } from '@/project/handover/pages/handovers-page';
 import { WarehouseHandoverEditorPage } from '@/project/handover/pages/warehouse-handover-editor-page';
 import { ProjectMainLayout } from '@/project/layout/project-main-layout';
 import { MaterialGroupsPage } from '@/project/material-groups/pages/material-groups-page';
+import { MaterialLabelPrintPage } from '@/project/material-labels/pages/material-label-print-page';
+import { MaterialLabelTemplateEditorPage } from '@/project/material-labels/pages/material-label-template-editor-page';
+import { MaterialLabelTemplatesPage } from '@/project/material-labels/pages/material-label-templates-page';
 import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
 import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
 import { MaterialSpecificationsPage } from '@/project/material-specifications/pages/material-specifications-page';
@@ -242,6 +245,14 @@ export function AppRoutingSetup() {
             path={ROUTES.PROJECT.MATERIALS}
             element={<MaterialListPage />}
           />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES}
+            element={<MaterialLabelTemplatesPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_LABEL_PRINT}
+            element={<MaterialLabelPrintPage />}
+          />
           <Route path={ROUTES.PROJECT.HANDOVERS} element={<HandoversPage />} />
           <Route path={ROUTES.PROJECT.REPORTS} element={<ReportsPage />} />
           <Route
@@ -294,6 +305,14 @@ export function AppRoutingSetup() {
           />
         </Route>
         <Route element={<DetailEntryLayout />}>
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATE_CREATE}
+            element={<MaterialLabelTemplateEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATE_EDIT}
+            element={<MaterialLabelTemplateEditorPage />}
+          />
           <Route
             path={ROUTES.PROJECT.HANDOVER_CREATE}
             element={<HandoverEditorPage />}

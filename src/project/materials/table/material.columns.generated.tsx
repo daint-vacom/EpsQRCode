@@ -12,6 +12,7 @@ import {
   Folder,
   Handshake,
   Pencil,
+  QrCode,
   Trash2,
 } from 'lucide-react';
 import { useIntl } from 'react-intl';
@@ -43,20 +44,27 @@ export interface UseMaterialColumnsParams {
   onEdit: (material: Material) => void;
   onHandover: (material: Material) => void;
   onDelete: (material: Material) => void;
+  onPrint: (material: Material) => void;
 }
 
 interface MaterialActionMenuProps {
   material: Material;
+  canManage: boolean;
+  canPrint: boolean;
   onEdit: (material: Material) => void;
   onHandover: (material: Material) => void;
   onDelete: (material: Material) => void;
+  onPrint: (material: Material) => void;
 }
 
 function MaterialActionMenu({
   material,
+  canManage,
+  canPrint,
   onEdit,
   onHandover,
   onDelete,
+  onPrint,
 }: MaterialActionMenuProps) {
   const intl = useIntl();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -96,27 +104,39 @@ function MaterialActionMenu({
           openedByPointer.current = false;
         }}
       >
-        <DropdownMenuItem
-          disabled={Boolean(material.reservedHandoverId)}
-          onSelect={() => onEdit(material)}
-        >
-          <Pencil />
-          {intl.formatMessage({ id: 'project.materials.actions.editMaterial' })}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={Boolean(material.reservedHandoverId)}
-          onSelect={() => onHandover(material)}
-        >
-          <Handshake />
-          {intl.formatMessage({ id: 'project.materials.actions.handover' })}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          variant="destructive"
-          onSelect={() => onDelete(material)}
-        >
-          <Trash2 />
-          {intl.formatMessage({ id: 'project.materials.actions.delete' })}
-        </DropdownMenuItem>
+        {canPrint ? (
+          <DropdownMenuItem onSelect={() => onPrint(material)}>
+            <QrCode />
+            {intl.formatMessage({ id: 'project.materials.actions.printQr' })}
+          </DropdownMenuItem>
+        ) : null}
+        {canManage ? (
+          <>
+            <DropdownMenuItem
+              disabled={Boolean(material.reservedHandoverId)}
+              onSelect={() => onEdit(material)}
+            >
+              <Pencil />
+              {intl.formatMessage({
+                id: 'project.materials.actions.editMaterial',
+              })}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              disabled={Boolean(material.reservedHandoverId)}
+              onSelect={() => onHandover(material)}
+            >
+              <Handshake />
+              {intl.formatMessage({ id: 'project.materials.actions.handover' })}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => onDelete(material)}
+            >
+              <Trash2 />
+              {intl.formatMessage({ id: 'project.materials.actions.delete' })}
+            </DropdownMenuItem>
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -137,6 +157,7 @@ export function useMaterialColumns({
   onEdit,
   onHandover,
   onDelete,
+  onPrint,
 }: UseMaterialColumnsParams): ColumnDef<Material>[] {
   const intl = useIntl();
 
@@ -250,7 +271,8 @@ export function useMaterialColumns({
       col.actions({
         cellClassName: 'text-right',
         header: '',
-        size: canManage ? 112 : getDataGridActionsColumnSize(1),
+        size:
+          canManage || Boolean(onPrint) ? 112 : getDataGridActionsColumnSize(1),
         enableSorting: false,
         cell: (row) => (
           <div className="flex items-center justify-end gap-2">
@@ -266,12 +288,15 @@ export function useMaterialColumns({
                 id: 'project.materials.actions.viewShort',
               })}
             </DataGridActionButton>
-            {canManage ? (
+            {canManage || Boolean(onPrint) ? (
               <MaterialActionMenu
                 material={row}
+                canManage={canManage}
+                canPrint={Boolean(onPrint)}
                 onEdit={onEdit}
                 onHandover={onHandover}
                 onDelete={onDelete}
+                onPrint={onPrint}
               />
             ) : null}
           </div>
@@ -286,6 +311,7 @@ export function useMaterialColumns({
     onHandover,
     onDelete,
     onView,
+    onPrint,
     partyNameById,
     groupNameById,
     pendingAvailabilityIds,

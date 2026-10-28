@@ -21,6 +21,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.selection.title': 'Chọn vật tư',
   'project.materials.selection.confirm': 'Xác nhận',
   'project.materials.bulk.handover': 'Bàn giao vật tư',
+  'project.materials.bulk.printQr': 'In nhãn QR đã chọn',
   'project.materials.bulk.delete': 'Xóa vật tư',
   'project.materials.bulk.deleteTitle': 'Xóa {count} vật tư?',
   'project.materials.bulk.deleteDescription':
@@ -226,6 +227,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.selection.title': 'Select materials',
   'project.materials.selection.confirm': 'Confirm',
   'project.materials.bulk.handover': 'Hand over materials',
+  'project.materials.bulk.printQr': 'Print selected QR labels',
   'project.materials.bulk.delete': 'Delete materials',
   'project.materials.bulk.deleteTitle': 'Delete {count} materials?',
   'project.materials.bulk.deleteDescription':

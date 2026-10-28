@@ -5,6 +5,7 @@
 import { accountMessagesVi } from '@/project/accounts/messages';
 import { custodianMessagesVi } from '@/project/custodians/messages';
 import { handoverMessagesVi } from '@/project/handover/messages';
+import { materialLabelMessagesVi } from '@/project/material-labels/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
 import { receiptMessagesVi } from '@/project/receipts/messages';
 import { warehouseMessagesVi } from '@/project/warehouses/messages';
@@ -16,6 +17,7 @@ export const vi: Record<string, string> = {
   'common.select.loadError': 'Không thể tải dữ liệu',
   'common.select.minSearch': 'Nhập ít nhất {count} ký tự để tìm kiếm',
   ...materialMessagesVi,
+  ...materialLabelMessagesVi,
   ...warehouseMessagesVi,
   ...accountMessagesVi,
   ...custodianMessagesVi,

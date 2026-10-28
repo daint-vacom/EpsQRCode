@@ -20,6 +20,10 @@ const OPERATION_MENU_ACCESS: Record<
     permission: MATERIAL_PERMISSION_CODES.view,
     messageId: 'project.navigation.materials',
   },
+  [ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES]: {
+    permission: MATERIAL_PERMISSION_CODES.view,
+    messageId: 'project.navigation.materialLabelTemplates',
+  },
   [ROUTES.PROJECT.HANDOVERS]: {
     permission: HANDOVER_PERMISSION_CODES.view,
     messageId: 'project.navigation.handovers',

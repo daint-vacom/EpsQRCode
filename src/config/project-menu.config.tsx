@@ -8,6 +8,7 @@ import {
   Folder,
   FolderOpen,
   Package,
+  QrCode,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -62,6 +63,12 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         labelMessageId: 'project.navigation.materialModels',
         icon: Boxes,
         path: ROUTES.PROJECT.MATERIAL_MODELS,
+      },
+      {
+        label: 'Mẫu tem nhãn QR',
+        labelMessageId: 'project.navigation.materialLabelTemplates',
+        icon: QrCode,
+        path: ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES,
       },
       {
         label: 'Nhóm vật tư',
