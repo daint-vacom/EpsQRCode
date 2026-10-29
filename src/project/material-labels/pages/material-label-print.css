@@ -1,3 +1,8 @@
+/* The real-size output is mounted for printing, but must not occupy screen layout. */
+.material-label-print-document {
+  display: none;
+}
+
 @media print {
   @page {
     margin: 0;
@@ -20,6 +25,7 @@
   }
 
   .material-label-print-document {
+    display: block !important;
     position: absolute !important;
     inset: 0 auto auto 0 !important;
     display: block !important;

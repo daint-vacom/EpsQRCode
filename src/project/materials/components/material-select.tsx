@@ -226,7 +226,11 @@ function MaterialFetchSelect({
       {...props}
       value={value}
       cacheKey={[...materialKeys.all, 'select', userId]}
-      filters={{ ...filters, excludeReserved: true, allowReservedByHandoverId }}
+      filters={{
+        ...filters,
+        excludeReserved: filters.excludeReserved ?? true,
+        allowReservedByHandoverId,
+      }}
       loadOptions={async ({
         search,
         filters: requestFilters,

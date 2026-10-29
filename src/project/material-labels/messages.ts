@@ -13,8 +13,17 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.page.printDescription':
     'Chọn mẫu nhãn để in cho vật tư đã chọn.',
   'project.materialLabels.print.materialCount': 'Số vật tư: {count}',
+  'project.materialLabels.print.selectedMaterials': 'Vật tư đã chọn',
+  'project.materialLabels.print.filteredCount': '{count} kết quả',
+  'project.materialLabels.print.paginationInfo': '{from}–{to} / {count}',
   'project.materialLabels.print.labelNote': 'Ghi chú nhãn',
   'project.materialLabels.print.labelNoteBinding': 'Ghi chú nhãn (nhập khi in)',
+  'project.materialLabels.print.labelSize': 'Kích thước nhãn',
+  'project.materialLabels.print.displayedInformation': 'Thông tin hiển thị',
+  'project.materialLabels.select.templatePlaceholder': 'Chọn mẫu nhãn',
+  'project.materialLabels.select.searchTemplates': 'Tìm theo tên hoặc mô tả',
+  'project.materialLabels.select.emptyTemplates': 'Không có mẫu nhãn phù hợp.',
+  'project.materialLabels.select.noDescription': 'Chưa có mô tả',
   'project.materialLabels.actions.create': 'Tạo mẫu nhãn',
   'project.materialLabels.actions.edit': 'Chỉnh sửa mẫu',
   'project.materialLabels.actions.deactivate': 'Tắt mẫu',
@@ -25,6 +34,12 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.actions.cancel': 'Hủy',
   'project.materialLabels.actions.print': 'In nhãn QR',
   'project.materialLabels.actions.printBulk': 'In nhãn đã chọn',
+  'project.materialLabels.actions.startPrint': 'Bắt đầu in',
+  'project.materialLabels.actions.chooseMaterials': 'Chọn vật tư',
+  'project.materialLabels.actions.removeMaterialFromPrint':
+    'Bỏ vật tư khỏi danh sách in',
+  'project.materialLabels.actions.previousPage': 'Trang trước',
+  'project.materialLabels.actions.nextPage': 'Trang sau',
   'project.materialLabels.actions.addQr': 'Thêm mã QR',
   'project.materialLabels.actions.addText': 'Thêm văn bản',
   'project.materialLabels.actions.addImage': 'Thêm ảnh',
@@ -33,11 +48,17 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.actions.addLine': 'Đường kẻ',
   'project.materialLabels.actions.zoomIn': 'Phóng to canvas',
   'project.materialLabels.actions.zoomOut': 'Thu nhỏ canvas',
+  'project.materialLabels.actions.undo': 'Hoàn tác',
+  'project.materialLabels.actions.redo': 'Làm lại',
   'project.materialLabels.actions.addField': 'Thêm thông tin vật tư',
   'project.materialLabels.actions.deleteElement': 'Xóa thành phần',
   'project.materialLabels.actions.duplicateElement': 'Nhân bản',
   'project.materialLabels.actions.centerElement': 'Căn giữa nhãn',
   'project.materialLabels.actions.retry': 'Thử tải lại',
+  'project.materialLabels.actions.choosePreviewMaterial':
+    'Chọn vật tư xem trước',
+  'project.materialLabels.actions.changePreviewMaterial': 'Thay đổi vật tư',
+  'project.materialLabels.actions.clearPreviewMaterial': 'Bỏ chọn',
   'project.materialLabels.fields.name': 'Tên mẫu',
   'project.materialLabels.fields.description': 'Mô tả',
   'project.materialLabels.fields.width': 'Chiều rộng (mm)',
@@ -47,6 +68,8 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.fields.default': 'Mẫu mặc định',
   'project.materialLabels.fields.template': 'Mẫu nhãn',
   'project.materialLabels.fields.material': 'Vật tư',
+  'project.materialLabels.fields.searchMaterials': 'Tìm vật tư',
+  'project.materialLabels.fields.previewMaterial': 'Vật tư xem trước',
   'project.materialLabels.fields.fontSize': 'Cỡ chữ',
   'project.materialLabels.fields.fontFamily': 'Phông chữ',
   'project.materialLabels.fields.searchFont': 'Tìm phông chữ',
@@ -70,8 +93,6 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.editor.dataTab': 'Dữ liệu',
   'project.materialLabels.editor.geometry': 'Kích thước và vị trí',
   'project.materialLabels.editor.typography': 'Kiểu chữ',
-  'project.materialLabels.editor.noSelection':
-    'Chọn một thành phần để chỉnh sửa thuộc tính.',
   'project.materialLabels.editor.staticTextBinding': 'Văn bản tĩnh',
   'project.materialLabels.editor.qrBinding': 'Liên kết chi tiết vật tư',
   'project.materialLabels.editor.qrBindingHelp':
@@ -98,6 +119,10 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.empty.description':
     'Tạo mẫu đầu tiên để bắt đầu in nhãn QR cho vật tư.',
   'project.materialLabels.empty.search': 'Không tìm thấy mẫu tem nhãn phù hợp.',
+  'project.materialLabels.empty.searchMaterials':
+    'Không tìm thấy vật tư phù hợp.',
+  'project.materialLabels.empty.noMaterials':
+    'Chưa có vật tư. Hãy chọn vật tư để xem trước và in nhãn.',
   'project.materialLabels.errors.loadTitle': 'Không tải được mẫu tem nhãn',
   'project.materialLabels.errors.loadDescription':
     'Kiểm tra kết nối rồi thử tải lại danh sách mẫu.',
@@ -121,6 +146,7 @@ export const materialLabelMessagesVi: Record<string, string> = {
   'project.materialLabels.elements.line': 'Đường kẻ',
   'project.materialLabels.defaults.newText': 'Văn bản mới',
   'project.materialLabels.materialFields.code': 'Mã vật tư',
+  'project.materialLabels.materialFields.qrCode': 'Mã QR',
   'project.materialLabels.materialFields.name': 'Tên vật tư',
   'project.materialLabels.materialFields.modelName': 'Tên mẫu vật tư',
   'project.materialLabels.materialFields.serialNumber': 'Số sê-ri',
@@ -154,9 +180,21 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.page.printDescription':
     'Choose a label template for the selected materials.',
   'project.materialLabels.print.materialCount': 'Materials: {count}',
+  'project.materialLabels.print.selectedMaterials': 'Selected materials',
+  'project.materialLabels.print.filteredCount': '{count} results',
+  'project.materialLabels.print.paginationInfo': '{from}–{to} / {count}',
   'project.materialLabels.print.labelNote': 'Label note',
   'project.materialLabels.print.labelNoteBinding':
     'Label note (enter when printing)',
+  'project.materialLabels.print.labelSize': 'Label size',
+  'project.materialLabels.print.displayedInformation': 'Displayed information',
+  'project.materialLabels.select.templatePlaceholder':
+    'Choose a label template',
+  'project.materialLabels.select.searchTemplates':
+    'Search by name or description',
+  'project.materialLabels.select.emptyTemplates':
+    'No matching label templates.',
+  'project.materialLabels.select.noDescription': 'No description',
   'project.materialLabels.actions.create': 'Create template',
   'project.materialLabels.actions.edit': 'Edit template',
   'project.materialLabels.actions.deactivate': 'Deactivate template',
@@ -167,6 +205,12 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.actions.cancel': 'Cancel',
   'project.materialLabels.actions.print': 'Print QR label',
   'project.materialLabels.actions.printBulk': 'Print selected labels',
+  'project.materialLabels.actions.startPrint': 'Start printing',
+  'project.materialLabels.actions.chooseMaterials': 'Choose materials',
+  'project.materialLabels.actions.removeMaterialFromPrint':
+    'Remove material from print list',
+  'project.materialLabels.actions.previousPage': 'Previous page',
+  'project.materialLabels.actions.nextPage': 'Next page',
   'project.materialLabels.actions.addQr': 'Add QR code',
   'project.materialLabels.actions.addText': 'Add text',
   'project.materialLabels.actions.addImage': 'Add image',
@@ -175,11 +219,17 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.actions.addLine': 'Line',
   'project.materialLabels.actions.zoomIn': 'Zoom in canvas',
   'project.materialLabels.actions.zoomOut': 'Zoom out canvas',
+  'project.materialLabels.actions.undo': 'Undo',
+  'project.materialLabels.actions.redo': 'Redo',
   'project.materialLabels.actions.addField': 'Add material field',
   'project.materialLabels.actions.deleteElement': 'Delete element',
   'project.materialLabels.actions.duplicateElement': 'Duplicate',
   'project.materialLabels.actions.centerElement': 'Center on label',
   'project.materialLabels.actions.retry': 'Retry',
+  'project.materialLabels.actions.choosePreviewMaterial':
+    'Choose preview material',
+  'project.materialLabels.actions.changePreviewMaterial': 'Change material',
+  'project.materialLabels.actions.clearPreviewMaterial': 'Clear selection',
   'project.materialLabels.fields.name': 'Template name',
   'project.materialLabels.fields.description': 'Description',
   'project.materialLabels.fields.width': 'Width (mm)',
@@ -189,6 +239,8 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.fields.default': 'Default template',
   'project.materialLabels.fields.template': 'Label template',
   'project.materialLabels.fields.material': 'Material',
+  'project.materialLabels.fields.searchMaterials': 'Search materials',
+  'project.materialLabels.fields.previewMaterial': 'Preview material',
   'project.materialLabels.fields.fontSize': 'Font size',
   'project.materialLabels.fields.fontFamily': 'Font family',
   'project.materialLabels.fields.searchFont': 'Search fonts',
@@ -211,8 +263,6 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.editor.dataTab': 'Data',
   'project.materialLabels.editor.geometry': 'Size and position',
   'project.materialLabels.editor.typography': 'Typography',
-  'project.materialLabels.editor.noSelection':
-    'Select a component to edit its properties.',
   'project.materialLabels.editor.staticTextBinding': 'Static text',
   'project.materialLabels.editor.qrBinding': 'Material detail link',
   'project.materialLabels.editor.qrBindingHelp':
@@ -239,6 +289,10 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.empty.description':
     'Create your first template to print material QR labels.',
   'project.materialLabels.empty.search': 'No matching label templates found.',
+  'project.materialLabels.empty.searchMaterials':
+    'No matching materials found.',
+  'project.materialLabels.empty.noMaterials':
+    'No materials selected. Choose materials to preview and print labels.',
   'project.materialLabels.errors.loadTitle': 'Could not load label templates',
   'project.materialLabels.errors.loadDescription':
     'Check your connection and retry loading the templates.',
@@ -264,6 +318,7 @@ export const materialLabelMessagesEn: Record<string, string> = {
   'project.materialLabels.elements.line': 'Line',
   'project.materialLabels.defaults.newText': 'New text',
   'project.materialLabels.materialFields.code': 'Material code',
+  'project.materialLabels.materialFields.qrCode': 'QR code',
   'project.materialLabels.materialFields.name': 'Material name',
   'project.materialLabels.materialFields.modelName': 'Material model',
   'project.materialLabels.materialFields.serialNumber': 'Serial number',

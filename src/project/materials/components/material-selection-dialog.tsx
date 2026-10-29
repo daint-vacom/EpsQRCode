@@ -33,6 +33,9 @@ export interface MaterialSelectionDialogProps {
   allowReservedByHandoverId?: string;
   initialSearch?: string;
   title?: ReactNode;
+  selectionMode?: 'multiple' | 'single';
+  excludeReserved?: boolean;
+  allowReservedSelection?: boolean;
 }
 
 export function MaterialSelectionDialog({
@@ -44,6 +47,9 @@ export function MaterialSelectionDialog({
   allowReservedByHandoverId,
   initialSearch = '',
   title,
+  selectionMode = 'multiple',
+  excludeReserved = true,
+  allowReservedSelection = false,
 }: MaterialSelectionDialogProps) {
   const intl = useIntl();
   const [search, setSearch] = useState(initialSearch);
@@ -71,13 +77,13 @@ export function MaterialSelectionDialog({
   const listFilters = useMemo<MaterialListFilters>(
     () => ({
       ...filters,
-      excludeReserved: true,
+      excludeReserved,
       allowReservedByHandoverId,
       search: search.trim() || undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [allowReservedByHandoverId, filters, pagination, search],
+    [allowReservedByHandoverId, excludeReserved, filters, pagination, search],
   );
   const query = useMaterialsQuery(listFilters, open);
   const items = query.data?.items ?? [];
@@ -95,6 +101,7 @@ export function MaterialSelectionDialog({
     manualPagination: true,
     rowCount: total,
     enableRowSelection: (row) =>
+      allowReservedSelection ||
       !row.original.reservedHandoverId ||
       row.original.reservedHandoverId === allowReservedByHandoverId,
     state: {
@@ -108,7 +115,14 @@ export function MaterialSelectionDialog({
         draftSelectedMaterialIds.map((id) => [id, true]),
       );
       const next = typeof updater === 'function' ? updater(current) : updater;
-      const nextIds = Object.keys(next).filter((id) => Boolean(next[id]));
+      const selectedIds = Object.keys(next).filter((id) => Boolean(next[id]));
+      const newlySelectedIds = selectedIds.filter((id) => !current[id]);
+      const nextIds =
+        selectionMode === 'single'
+          ? newlySelectedIds.length > 0
+            ? newlySelectedIds.slice(-1)
+            : selectedIds.slice(0, 1)
+          : selectedIds;
       for (const material of items) {
         const wasSelected = selectedIdSet.has(material.id);
         const isSelected = Boolean(next[material.id]);

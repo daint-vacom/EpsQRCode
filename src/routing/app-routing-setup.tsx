@@ -249,10 +249,6 @@ export function AppRoutingSetup() {
             path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES}
             element={<MaterialLabelTemplatesPage />}
           />
-          <Route
-            path={ROUTES.PROJECT.MATERIAL_LABEL_PRINT}
-            element={<MaterialLabelPrintPage />}
-          />
           <Route path={ROUTES.PROJECT.HANDOVERS} element={<HandoversPage />} />
           <Route path={ROUTES.PROJECT.REPORTS} element={<ReportsPage />} />
           <Route
@@ -305,6 +301,10 @@ export function AppRoutingSetup() {
           />
         </Route>
         <Route element={<DetailEntryLayout />}>
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_LABEL_PRINT}
+            element={<MaterialLabelPrintPage />}
+          />
           <Route
             path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATE_CREATE}
             element={<MaterialLabelTemplateEditorPage />}

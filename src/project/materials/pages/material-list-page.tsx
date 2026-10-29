@@ -3,6 +3,10 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import {
+  MATERIAL_LABEL_SELECTION_STATE_KEY,
+  storeMaterialLabelSelection,
+} from '@/project/material-labels/utils/material-label-print-selection';
+import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
@@ -52,6 +56,12 @@ const DEFAULT_PAGE_SIZE = 25;
 export function MaterialListPage() {
   const intl = useIntl();
   const navigate = useNavigate();
+  const navigateToLabelPrint = (materialIds: readonly string[]) => {
+    const selectionKey = storeMaterialLabelSelection(materialIds);
+    navigate(ROUTES.PROJECT.MATERIAL_LABEL_PRINT, {
+      state: { [MATERIAL_LABEL_SELECTION_STATE_KEY]: selectionKey },
+    });
+  };
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
@@ -142,10 +152,7 @@ export function MaterialListPage() {
         `${ROUTES.PROJECT.HANDOVER_CREATE}?materialId=${encodeURIComponent(material.id)}`,
       ),
     onDelete: (material) => setDeletingMaterials([material]),
-    onPrint: (material) =>
-      navigate(
-        `${ROUTES.PROJECT.MATERIAL_LABEL_PRINT}?ids=${encodeURIComponent(material.id)}`,
-      ),
+    onPrint: (material) => navigateToLabelPrint([material.id]),
   });
   const table = useReactTable({
     data: items,
@@ -366,10 +373,8 @@ export function MaterialListPage() {
               variant="primary"
               size="sm"
               onClick={() =>
-                navigate(
-                  `${ROUTES.PROJECT.MATERIAL_LABEL_PRINT}?ids=${encodeURIComponent(
-                    selectedMaterials.map((material) => material.id).join(','),
-                  )}`,
+                navigateToLabelPrint(
+                  selectedMaterials.map((material) => material.id),
                 )
               }
             >

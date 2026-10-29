@@ -1,49 +1,61 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { MaterialSelectionDialog } from '@/project/materials/components/material-selection-dialog';
 import { useMaterialsByIdsQuery } from '@/project/materials/hooks/use-materials';
 import type { Material } from '@/project/materials/model/material';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
-import { Printer, QrCode } from 'lucide-react';
+import {
+  Boxes,
+  ChevronLeft,
+  ChevronRight,
+  Printer,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/inputs/search-input';
 import { Label } from '@/components/ui/label';
-import { OptionSelect } from '@/components/ui/option-select';
-import { PageHeader } from '@/components/ui/page-header';
+import { SelectOptionContent } from '@/components/ui/select-option-content';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
+import { MaterialLabelTemplateSelect } from '../components/material-label-template-select';
 import {
   useMaterialLabelTemplatePreferencesQuery,
   useMaterialLabelTemplatesQuery,
   useSaveMaterialLabelTemplatePreferencesMutation,
 } from '../hooks/use-material-label-templates';
 import {
+  MATERIAL_LABEL_BINDING_FIELDS,
   MATERIAL_LABEL_NOTE_BINDING,
   renderMaterialLabelSvg,
 } from '../utils/material-label-design';
+import {
+  getMaterialLabelSelectionKey,
+  MATERIAL_LABEL_SELECTION_STATE_KEY,
+  readMaterialLabelSelection,
+  storeMaterialLabelSelection,
+} from '../utils/material-label-print-selection';
 import './material-label-print.css';
-
-function getMaterialIds(search: string): string[] {
-  const raw = new URLSearchParams(search).get('ids') ?? '';
-  return [
-    ...new Set(
-      raw
-        .split(',')
-        .map((id) => id.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
-
-function getMaterialLabel(material: Material) {
-  return `${material.code} · ${material.nameOverride?.trim() || material.modelSnapshot.name}`;
-}
 
 export function MaterialLabelPrintPage() {
   const intl = useIntl();
@@ -52,11 +64,26 @@ export function MaterialLabelPrintPage() {
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
-  const materialIds = useMemo(
-    () => getMaterialIds(location.search),
-    [location.search],
+  const materialSelectionKey = getMaterialLabelSelectionKey(location.state);
+  const [materialIds, setMaterialIds] = useState(() =>
+    readMaterialLabelSelection(materialSelectionKey),
   );
   const materialIdsKey = materialIds.join(',');
+  const updateMaterialSelection = useCallback(
+    (nextIds: readonly string[]) => {
+      const uniqueIds = [...new Set(nextIds.filter(Boolean))];
+      const selectionKey = storeMaterialLabelSelection(
+        uniqueIds,
+        materialSelectionKey,
+      );
+      setMaterialIds(uniqueIds);
+      navigate(location.pathname, {
+        replace: true,
+        state: { [MATERIAL_LABEL_SELECTION_STATE_KEY]: selectionKey },
+      });
+    },
+    [location.pathname, materialSelectionKey, navigate],
+  );
   const materialQueries = useMaterialsByIdsQuery(
     materialIds,
     canView && !isPermissionsPending,
@@ -70,26 +97,43 @@ export function MaterialLabelPrintPage() {
   );
   const savePreferencesMutation =
     useSaveMaterialLabelTemplatePreferencesMutation();
+  const savePreferences = savePreferencesMutation.mutateAsync;
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [labelNotes, setLabelNotes] = useState<Record<string, string>>({});
   const [labelSvgs, setLabelSvgs] = useState<Record<string, string>>({});
+  const [isMaterialSelectionOpen, setIsMaterialSelectionOpen] = useState(false);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [materialPageIndex, setMaterialPageIndex] = useState(0);
+  const [previewListSize, setPreviewListSize] = useState({
+    width: 0,
+    height: 0,
+    cardHeight: 0,
+  });
+  const previewListRef = useRef<HTMLDivElement>(null);
+  const previewGridRef = useRef<HTMLDivElement>(null);
+  const previewCardRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [renderError, setRenderError] = useState<unknown>(null);
   const [renderNonce, setRenderNonce] = useState(0);
   const materialDataKey = materialQueries
     .map((query) => query.dataUpdatedAt)
     .join(',');
-
   const materialQueriesRef = useRef(materialQueries);
   materialQueriesRef.current = materialQueries;
   const materials = useMemo(() => {
-    const updateMarkers = materialDataKey ? materialDataKey.split(',') : [];
+    const expectedCount = materialIdsKey ? materialIdsKey.split(',').length : 0;
+    const queryMarkers = materialDataKey ? materialDataKey.split(',') : [];
     const currentQueries = materialQueriesRef.current;
-    if (updateMarkers.length !== currentQueries.length) return [];
+    if (
+      currentQueries.length !== expectedCount ||
+      queryMarkers.length !== expectedCount
+    ) {
+      return [];
+    }
     return currentQueries
       .map((query) => query.data)
       .filter((material): material is Material => Boolean(material));
-  }, [materialDataKey]);
+  }, [materialDataKey, materialIdsKey]);
   const activeTemplates = useMemo(
     () => (templatesQuery.data ?? []).filter((template) => template.isActive),
     [templatesQuery.data],
@@ -109,16 +153,123 @@ export function MaterialLabelPrintPage() {
       )
     );
   }, [selectedTemplate]);
-  const templateOptions = activeTemplates.map((template) => ({
-    value: template.id,
-    label: `${template.name} · ${template.widthMm} × ${template.heightMm} mm`,
-    searchableText: `${template.name} ${template.widthMm} ${template.heightMm}`,
-  }));
+  const selectedTemplateFields = useMemo(() => {
+    const objects = selectedTemplate?.design?.objects;
+    if (!Array.isArray(objects)) return [];
+
+    const seen = new Set<string>();
+    const messageIds: string[] = [];
+    objects.forEach((object) => {
+      if (object === null || typeof object !== 'object') return;
+      const binding = Reflect.get(object, 'labelBinding');
+      if (typeof binding === 'string' && !seen.has(binding)) {
+        const field = MATERIAL_LABEL_BINDING_FIELDS.find(
+          (candidate) => candidate.key === binding,
+        );
+        if (field) {
+          seen.add(binding);
+          messageIds.push(field.messageId);
+        }
+      }
+      if (
+        (Reflect.get(object, 'labelElementType') === 'qr' ||
+          Reflect.get(object, 'qrCode') === true) &&
+        !seen.has('qrCode')
+      ) {
+        seen.add('qrCode');
+        messageIds.push('project.materialLabels.materialFields.qrCode');
+      }
+    });
+
+    return messageIds.map((id) => intl.formatMessage({ id }));
+  }, [intl, selectedTemplate]);
+  const filteredMaterials = useMemo(() => {
+    const query = materialSearch.trim().toLocaleLowerCase();
+    if (!query) return materials;
+    return materials.filter((material) =>
+      [
+        material.code,
+        material.nameOverride,
+        material.modelSnapshot.code,
+        material.modelSnapshot.name,
+        material.serialNumber,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(query),
+    );
+  }, [materialSearch, materials]);
+  const materialCardColumns =
+    previewListSize.width >= 1080 ? 3 : previewListSize.width >= 600 ? 2 : 1;
+  const previewRows =
+    previewListSize.height > 0 && previewListSize.cardHeight > 0
+      ? Math.max(
+          1,
+          Math.floor(
+            (previewListSize.height + 12) / (previewListSize.cardHeight + 12),
+          ),
+        )
+      : 1;
+  const materialPageSize = Math.max(1, materialCardColumns * previewRows);
+  const materialPageCount = Math.max(
+    1,
+    Math.ceil(filteredMaterials.length / materialPageSize),
+  );
+  const currentMaterialPage = Math.min(
+    materialPageIndex,
+    materialPageCount - 1,
+  );
+  const visibleMaterials = filteredMaterials.slice(
+    currentMaterialPage * materialPageSize,
+    (currentMaterialPage + 1) * materialPageSize,
+  );
+  const firstVisibleMaterialId = visibleMaterials[0]?.id;
 
   useEffect(() => {
-    setSelectedTemplateId('');
-    setLabelNotes({});
+    const viewport = previewListRef.current;
+    if (!viewport) return;
+    const measure = () => {
+      const next = {
+        width: viewport.clientWidth,
+        height: viewport.clientHeight,
+        cardHeight: previewCardRef.current?.getBoundingClientRect().height ?? 0,
+      };
+      setPreviewListSize((current) =>
+        current.width === next.width &&
+        current.height === next.height &&
+        current.cardHeight === next.cardHeight
+          ? current
+          : next,
+      );
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    if (previewGridRef.current) observer.observe(previewGridRef.current);
+    if (previewCardRef.current) observer.observe(previewCardRef.current);
+    measure();
+    return () => observer.disconnect();
+  }, [firstVisibleMaterialId, hasLabelNoteInput, selectedTemplate?.id]);
+
+  useEffect(() => {
+    setMaterialIds(readMaterialLabelSelection(materialSelectionKey));
+  }, [materialSelectionKey]);
+
+  useEffect(() => {
+    setMaterialPageIndex(0);
+    const selectedIds = new Set(
+      materialIdsKey ? materialIdsKey.split(',') : [],
+    );
+    setLabelNotes((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([id]) => selectedIds.has(id)),
+      ),
+    );
   }, [materialIdsKey]);
+
+  useEffect(() => {
+    setMaterialPageIndex(0);
+  }, [materialSearch, materialPageSize]);
 
   useEffect(() => {
     if (
@@ -154,11 +305,11 @@ export function MaterialLabelPrintPage() {
   ]);
 
   useEffect(() => {
-    if (!selectedTemplate) {
+    if (!selectedTemplate || materials.length === 0) {
       setLabelSvgs({});
+      setIsRendering(false);
       return;
     }
-    if (materials.length === 0) return;
     let cancelled = false;
     setIsRendering(true);
     setRenderError(null);
@@ -204,7 +355,9 @@ export function MaterialLabelPrintPage() {
     (canView &&
       (materialQueries.some((query) => query.isPending) ||
         templatesQuery.isPending ||
-        preferencesQuery.isPending));
+        (!selectedTemplateId &&
+          materialIds.length > 0 &&
+          preferencesQuery.isPending)));
   const printDisabled =
     !selectedTemplate ||
     materials.length === 0 ||
@@ -212,10 +365,10 @@ export function MaterialLabelPrintPage() {
     Object.keys(labelSvgs).length !== materials.length ||
     savePreferencesMutation.isPending;
 
-  const printLabels = async () => {
+  const printLabels = useCallback(async () => {
     if (!selectedTemplate || materials.length === 0 || printDisabled) return;
     try {
-      await savePreferencesMutation.mutateAsync({
+      await savePreferences({
         materialIds: materials.map((material) => material.id),
         templateId: selectedTemplate.id,
       });
@@ -228,36 +381,26 @@ export function MaterialLabelPrintPage() {
       toast.error(getApiErrorMessage(error));
     }
     window.print();
-  };
+  }, [intl, materials, printDisabled, savePreferences, selectedTemplate]);
+
+  const header = useMemo(
+    () => ({
+      title: intl.formatMessage({
+        id: 'project.materialLabels.page.printTitle',
+      }),
+      icon: Printer,
+      showBackButton: true,
+      backLabel: intl.formatMessage({
+        id: 'project.materials.actions.back',
+      }),
+      onBack: () => navigate(ROUTES.PROJECT.MATERIALS),
+    }),
+    [intl, navigate],
+  );
+  useDetailEntryLayoutHeader(header);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
-      <PageHeader
-        title={intl.formatMessage({
-          id: 'project.materialLabels.page.printTitle',
-        })}
-        icon={Printer}
-        showBackButton
-        backLabel={intl.formatMessage({ id: 'project.materials.actions.back' })}
-        onBack={() => navigate(ROUTES.PROJECT.MATERIALS)}
-        actions={
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            disabled={printDisabled}
-            loading={savePreferencesMutation.isPending}
-            loadingText={intl.formatMessage({
-              id: 'project.materialLabels.actions.saving',
-            })}
-            onClick={() => void printLabels()}
-          >
-            <Printer />
-            {intl.formatMessage({ id: 'project.materialLabels.actions.print' })}
-          </Button>
-        }
-      />
-
       <div className="material-label-screen-controls min-h-0 flex-1 overflow-auto">
         {!isPermissionsPending && !canView ? (
           <ErrorState
@@ -266,15 +409,6 @@ export function MaterialLabelPrintPage() {
             })}
             description={intl.formatMessage({
               id: 'project.materialLabels.errors.permission',
-            })}
-          />
-        ) : materialIds.length === 0 ? (
-          <ErrorState
-            title={intl.formatMessage({
-              id: 'project.materialLabels.errors.noMaterial',
-            })}
-            description={intl.formatMessage({
-              id: 'project.materialLabels.errors.noMaterial',
             })}
           />
         ) : materialError ? (
@@ -306,16 +440,6 @@ export function MaterialLabelPrintPage() {
               id: 'project.materialLabels.states.loading',
             })}
           </div>
-        ) : activeTemplates.length === 0 ? (
-          <ErrorState
-            title={intl.formatMessage({
-              id: 'project.materialLabels.errors.noActiveTemplate',
-            })}
-            description={intl.formatMessage({
-              id: 'project.materialLabels.errors.noActiveTemplate',
-            })}
-            onRetry={() => void templatesQuery.refetch()}
-          />
         ) : renderError ? (
           <ErrorState
             title={intl.formatMessage({
@@ -325,40 +449,98 @@ export function MaterialLabelPrintPage() {
             onRetry={() => setRenderNonce((current) => current + 1)}
           />
         ) : (
-          <div className="mx-auto flex max-w-5xl flex-col gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {intl.formatMessage({
-                    id: 'project.materialLabels.page.printDescription',
-                  })}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
+          <div className="grid min-h-0 gap-4 lg:h-full lg:grid-cols-[minmax(19rem,25rem)_minmax(0,1fr)]">
+            <Card className="flex min-h-0 flex-col">
+              <CardContent className="flex flex-1 flex-col gap-5 p-4">
+                <div className="flex items-center gap-3 rounded-lg border border-admin-primary-foam bg-admin-primary-foam/40 px-4 py-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-admin-primary text-white">
+                    <Boxes className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {intl.formatMessage({
+                        id: 'project.materialLabels.print.selectedMaterials',
+                      })}
+                    </p>
+                    <p className="text-2xl font-semibold leading-tight text-admin-primary">
+                      {materials.length}
+                    </p>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={intl.formatMessage({
+                          id: 'project.materialLabels.actions.chooseMaterials',
+                        })}
+                        onClick={() => setIsMaterialSelectionOpen(true)}
+                      >
+                        <RefreshCw />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {intl.formatMessage({
+                        id: 'project.materialLabels.actions.chooseMaterials',
+                      })}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
                   <span className="text-sm font-medium">
                     {intl.formatMessage({
                       id: 'project.materialLabels.fields.template',
                     })}
                   </span>
-                  <OptionSelect
+                  <MaterialLabelTemplateSelect
                     ariaLabel={intl.formatMessage({
                       id: 'project.materialLabels.fields.template',
                     })}
                     value={selectedTemplateId}
-                    options={templateOptions}
+                    sourceMode="options"
+                    templates={activeTemplates}
                     onChange={setSelectedTemplateId}
-                    searchable={false}
-                    canDeselect={false}
+                    disabled={activeTemplates.length === 0}
                   />
                 </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <QrCode className="size-4" aria-hidden="true" />
-                  {intl.formatMessage(
-                    { id: 'project.materialLabels.print.materialCount' },
-                    { count: materials.length },
-                  )}
+                <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center">
+                  <span className="text-sm font-medium">
+                    {intl.formatMessage({
+                      id: 'project.materialLabels.print.labelSize',
+                    })}
+                  </span>
+                  <span className="text-sm text-foreground">
+                    {selectedTemplate
+                      ? `${selectedTemplate.widthMm} × ${selectedTemplate.heightMm} mm`
+                      : '—'}
+                  </span>
                 </div>
+                <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start">
+                  <span className="pt-0.5 text-sm font-medium">
+                    {intl.formatMessage({
+                      id: 'project.materialLabels.print.displayedInformation',
+                    })}
+                  </span>
+                  <div className="flex min-w-0 flex-wrap gap-1.5">
+                    {selectedTemplateFields.length > 0 ? (
+                      selectedTemplateFields.map((field) => (
+                        <Badge key={field} variant="secondary" size="md">
+                          {field}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
+                  </div>
+                </div>
+                {activeTemplates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {intl.formatMessage({
+                      id: 'project.materialLabels.errors.noActiveTemplate',
+                    })}
+                  </p>
+                ) : null}
                 {isRendering ? (
                   <p className="text-sm text-muted-foreground">
                     {intl.formatMessage({
@@ -366,73 +548,239 @@ export function MaterialLabelPrintPage() {
                     })}
                   </p>
                 ) : null}
+                <div className="mt-auto border-t pt-4">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    className="w-full"
+                    disabled={printDisabled}
+                    loading={savePreferencesMutation.isPending}
+                    loadingText={intl.formatMessage({
+                      id: 'project.materialLabels.actions.saving',
+                    })}
+                    onClick={() => void printLabels()}
+                  >
+                    <Printer />
+                    {intl.formatMessage({
+                      id: 'project.materialLabels.actions.startPrint',
+                    })}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {materials.map((material) => (
-                <Card key={material.id} className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="truncate text-sm">
-                      {getMaterialLabel(material)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent
-                    className={
-                      hasLabelNoteInput
-                        ? 'space-y-4'
-                        : 'flex justify-center pb-4'
-                    }
+            <Card className="flex min-h-[60vh] min-w-0 flex-col overflow-hidden lg:h-full">
+              <CardHeader className="shrink-0 flex-row items-center gap-3 space-y-0">
+                <SearchInput
+                  aria-label={intl.formatMessage({
+                    id: 'project.materialLabels.fields.searchMaterials',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'project.materialLabels.fields.searchMaterials',
+                  })}
+                  value={materialSearch}
+                  onSearch={setMaterialSearch}
+                  className="min-w-0 flex-1"
+                />
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {intl.formatMessage(
+                    { id: 'project.materialLabels.print.filteredCount' },
+                    { count: filteredMaterials.length },
+                  )}
+                </span>
+              </CardHeader>
+              <CardContent
+                ref={previewListRef}
+                className="min-h-0 flex-1 overflow-auto p-4"
+              >
+                {visibleMaterials.length > 0 ? (
+                  <div
+                    ref={previewGridRef}
+                    className="grid gap-3"
+                    style={{
+                      gridTemplateColumns: `repeat(${materialCardColumns}, minmax(0, 1fr))`,
+                    }}
                   >
-                    {hasLabelNoteInput ? (
-                      <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
-                        <Label htmlFor={`material-label-note-${material.id}`}>
-                          {intl.formatMessage({
-                            id: 'project.materialLabels.print.labelNote',
-                          })}
-                        </Label>
-                        <Input
-                          id={`material-label-note-${material.id}`}
-                          value={labelNotes[material.id] ?? ''}
-                          onChange={(event) =>
-                            setLabelNotes((current) => ({
-                              ...current,
-                              [material.id]: event.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    ) : null}
-                    <div
-                      className={
-                        hasLabelNoteInput ? 'flex justify-center' : undefined
+                    {visibleMaterials.map((material, index) => {
+                      const previewWidth = selectedTemplate?.widthMm ?? 60;
+                      const previewHeight = selectedTemplate?.heightMm ?? 35;
+                      const previewScale = Math.min(
+                        280 / previewWidth,
+                        144 / previewHeight,
+                      );
+                      return (
+                        <Card
+                          key={material.id}
+                          ref={index === 0 ? previewCardRef : undefined}
+                          className="min-w-0 overflow-hidden"
+                        >
+                          <CardHeader className="pb-2">
+                            <div className="flex w-full min-w-0 items-center gap-2">
+                              <SelectOptionContent
+                                className="flex-1"
+                                title={
+                                  material.nameOverride?.trim() ||
+                                  material.modelSnapshot.name
+                                }
+                                description={material.code}
+                              />
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    appearance="ghost"
+                                    mode="icon"
+                                    size="sm"
+                                    aria-label={intl.formatMessage({
+                                      id: 'project.materialLabels.actions.removeMaterialFromPrint',
+                                    })}
+                                    onClick={() =>
+                                      updateMaterialSelection(
+                                        materialIds.filter(
+                                          (id) => id !== material.id,
+                                        ),
+                                      )
+                                    }
+                                  >
+                                    <X />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {intl.formatMessage({
+                                    id: 'project.materialLabels.actions.removeMaterialFromPrint',
+                                  })}
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="flex flex-col gap-3">
+                            {hasLabelNoteInput ? (
+                              <div className="grid gap-2">
+                                <Label
+                                  htmlFor={`material-label-note-${material.id}`}
+                                >
+                                  {intl.formatMessage({
+                                    id: 'project.materialLabels.print.labelNote',
+                                  })}
+                                </Label>
+                                <Input
+                                  id={`material-label-note-${material.id}`}
+                                  value={labelNotes[material.id] ?? ''}
+                                  onChange={(event) =>
+                                    setLabelNotes((current) => ({
+                                      ...current,
+                                      [material.id]: event.target.value,
+                                    }))
+                                  }
+                                />
+                              </div>
+                            ) : null}
+                            <div className="flex h-36 items-center justify-center overflow-hidden">
+                              {labelSvgs[material.id] ? (
+                                <div
+                                  className="overflow-hidden border bg-white shadow-sm [&>svg]:block [&>svg]:size-full"
+                                  style={{
+                                    width: `${previewWidth * previewScale}px`,
+                                    height: `${previewHeight * previewScale}px`,
+                                  }}
+                                  dangerouslySetInnerHTML={{
+                                    __html: labelSvgs[material.id] ?? '',
+                                  }}
+                                />
+                              ) : (
+                                <div className="text-sm text-muted-foreground">
+                                  {intl.formatMessage({
+                                    id: 'project.materialLabels.states.rendering',
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex h-full min-h-40 items-center justify-center text-sm text-muted-foreground">
+                    {intl.formatMessage({
+                      id: materialSearch.trim()
+                        ? 'project.materialLabels.empty.searchMaterials'
+                        : 'project.materialLabels.empty.noMaterials',
+                    })}
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="shrink-0 justify-between gap-3 border-t">
+                <span className="text-sm text-muted-foreground">
+                  {intl.formatMessage(
+                    { id: 'project.materialLabels.print.paginationInfo' },
+                    {
+                      from:
+                        filteredMaterials.length > 0
+                          ? currentMaterialPage * materialPageSize + 1
+                          : 0,
+                      to: Math.min(
+                        (currentMaterialPage + 1) * materialPageSize,
+                        filteredMaterials.length,
+                      ),
+                      count: filteredMaterials.length,
+                    },
+                  )}
+                </span>
+                {materialPageCount > 1 ? (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      mode="icon"
+                      variant="ghost"
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.previousPage',
+                      })}
+                      disabled={currentMaterialPage === 0}
+                      onClick={() =>
+                        setMaterialPageIndex(currentMaterialPage - 1)
                       }
                     >
-                      {labelSvgs[material.id] ? (
-                        <div
-                          className="overflow-hidden border bg-white shadow-sm [&>svg]:block [&>svg]:size-full"
-                          style={{
-                            width: `${selectedTemplate?.widthMm ?? 60}mm`,
-                            height: `${selectedTemplate?.heightMm ?? 35}mm`,
-                          }}
-                          dangerouslySetInnerHTML={{
-                            __html: labelSvgs[material.id] ?? '',
-                          }}
-                        />
-                      ) : (
-                        <div className="flex h-28 items-center justify-center text-sm text-muted-foreground">
-                          {intl.formatMessage({
-                            id: 'project.materialLabels.states.rendering',
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <ChevronLeft />
+                    </Button>
+                    <span className="min-w-12 text-center text-sm tabular-nums">
+                      {currentMaterialPage + 1} / {materialPageCount}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      mode="icon"
+                      variant="ghost"
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.nextPage',
+                      })}
+                      disabled={currentMaterialPage >= materialPageCount - 1}
+                      onClick={() =>
+                        setMaterialPageIndex(currentMaterialPage + 1)
+                      }
+                    >
+                      <ChevronRight />
+                    </Button>
+                  </div>
+                ) : null}
+              </CardFooter>
+            </Card>
           </div>
         )}
       </div>
+
+      <MaterialSelectionDialog
+        open={isMaterialSelectionOpen}
+        onOpenChange={setIsMaterialSelectionOpen}
+        title={intl.formatMessage({
+          id: 'project.materialLabels.actions.chooseMaterials',
+        })}
+        selectedMaterialIds={materialIds}
+        selectionMode="multiple"
+        onConfirm={updateMaterialSelection}
+      />
 
       {selectedTemplate && labelSvgs && materials.length > 0 ? (
         <div

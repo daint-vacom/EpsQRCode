@@ -24,6 +24,26 @@ export const LABEL_MIN_HEIGHT_MM = 10;
 export const LABEL_MAX_HEIGHT_MM = 120;
 export const MATERIAL_LABEL_NOTE_BINDING = 'print.labelNote';
 
+export function normalizeMaterialLabelTextbox(object: FabricObject) {
+  if (object.type !== 'textbox') return;
+  const textbox = object as Textbox;
+  textbox.set({
+    clipPath: undefined,
+    labelTextAreaHeight: undefined,
+    lockScalingY: true,
+  });
+  textbox.setControlsVisibility({
+    mt: false,
+    mb: false,
+    tl: false,
+    tr: false,
+    bl: false,
+    br: false,
+  });
+  textbox.initDimensions();
+  textbox.setCoords();
+}
+
 export const MATERIAL_LABEL_FIELDS = [
   {
     key: 'code',
@@ -127,6 +147,8 @@ function createLabelTextbox({
     top,
     width,
     fontSize,
+    originX: 'left',
+    originY: 'top',
     fontFamily: 'Arial',
     fontWeight,
     fill: '#111827',
@@ -189,6 +211,7 @@ export async function loadMaterialLabelDesign(
       if (object.get('labelElementType') === 'qr' || object.get('qrCode')) {
         object.set({ labelElementType: 'qr', qrCode: true });
       }
+      normalizeMaterialLabelTextbox(object);
     });
   } else {
     const margin = Math.round(width * 0.05);
@@ -227,20 +250,36 @@ export async function loadMaterialLabelDesign(
 export function serializeMaterialLabelDesign(
   canvas: Canvas,
 ): MaterialLabelTemplateDesign {
+  const design = canvas.toObject([
+    'labelElementId',
+    'labelElementType',
+    'labelBinding',
+    'name',
+    'editorLocked',
+    'qrCode',
+    'labelSampleValue',
+    'labelSampleImageSrc',
+  ]) as Record<string, unknown>;
+  if (Array.isArray(design.objects)) {
+    design.objects = design.objects.map((rawObject) => {
+      const object = rawObject as Record<string, unknown>;
+      const isBoundText =
+        typeof object.labelBinding === 'string' &&
+        Boolean(object.labelBinding) &&
+        (object.type === 'textbox' || object.type === 'text') &&
+        typeof object.labelSampleValue === 'string';
+      return isBoundText
+        ? { ...object, text: object.labelSampleValue }
+        : object;
+    });
+  }
   return {
-    ...(canvas.toObject([
-      'labelElementId',
-      'labelElementType',
-      'labelBinding',
-      'name',
-      'editorLocked',
-      'qrCode',
-    ]) as Record<string, unknown>),
+    ...design,
     version: 1,
   };
 }
 
-function getMaterialBindingValue(
+export function getMaterialBindingValue(
   material: Material,
   binding: MaterialLabelMaterialFieldKey,
 ) {
@@ -258,6 +297,101 @@ function getMaterialBindingValue(
     case 'ownerCode':
       return material.ownerSnapshot.code;
   }
+}
+
+async function getMaterialCoverImageUrl(material: Material) {
+  const materialCover = material.images.find((image) => image.isCover);
+  const modelCover = material.modelSnapshot.images.find(
+    (image) => image.isCover,
+  );
+  return (
+    materialCover?.url ||
+    materialCover?.externalUrl ||
+    modelCover?.externalUrl ||
+    (modelCover?.storagePath
+      ? await createSignedStorageUrl(
+          MATERIAL_MODEL_IMAGES_BUCKET,
+          modelCover.storagePath,
+          3600,
+        )
+      : '')
+  );
+}
+
+export async function applyMaterialLabelPreview(
+  canvas: Canvas,
+  material: Material | null,
+  fallbackMaterialId: string,
+  isCurrent: () => boolean = () => true,
+) {
+  const qrDataUrl = await createQrImageDataUrl(
+    getMaterialQrUrl(material?.id ?? fallbackMaterialId),
+  );
+  const materialCoverUrl = material
+    ? await getMaterialCoverImageUrl(material)
+    : '';
+  if (!isCurrent()) return;
+
+  for (const object of canvas.getObjects()) {
+    if (!isCurrent()) return;
+    const binding = object.get('labelBinding');
+    if (
+      typeof binding === 'string' &&
+      binding &&
+      (object.type === 'textbox' || object.type === 'text')
+    ) {
+      const field = MATERIAL_LABEL_FIELDS.find((item) => item.key === binding);
+      if (material && field?.kind === 'text') {
+        object.set(
+          'text',
+          getMaterialBindingValue(
+            material,
+            field.key as MaterialLabelTextFieldKey,
+          ),
+        );
+      } else {
+        const sampleValue = object.get('labelSampleValue');
+        if (typeof sampleValue === 'string') object.set('text', sampleValue);
+      }
+      normalizeMaterialLabelTextbox(object);
+    }
+
+    if (
+      binding === 'coverImage' &&
+      object.type === 'image' &&
+      (material || object.get('labelSampleImageSrc'))
+    ) {
+      const image = object as FabricImage;
+      const sampleSrc = String(object.get('labelSampleImageSrc') ?? '');
+      const nextSrc = materialCoverUrl || sampleSrc;
+      if (nextSrc && image.getSrc() !== nextSrc) {
+        const displayWidth = image.getScaledWidth();
+        const displayHeight = image.getScaledHeight();
+        await image.setSrc(nextSrc, { crossOrigin: 'anonymous' });
+        if (!isCurrent()) return;
+        image.set({
+          scaleX: displayWidth / Math.max(1, image.width ?? displayWidth),
+          scaleY: displayHeight / Math.max(1, image.height ?? displayHeight),
+        });
+      }
+    }
+
+    if (object.get('labelElementType') === 'qr' || object.get('qrCode')) {
+      const image = object as FabricImage;
+      const displayWidth = image.getScaledWidth();
+      const displayHeight = image.getScaledHeight();
+      await image.setSrc(qrDataUrl);
+      if (!isCurrent()) return;
+      image.set({
+        scaleX: displayWidth / Math.max(1, image.width ?? displayWidth),
+        scaleY: displayHeight / Math.max(1, image.height ?? displayHeight),
+        qrCode: true,
+        labelElementType: 'qr',
+      });
+    }
+  }
+
+  canvas.requestRenderAll();
 }
 
 export async function renderMaterialLabelSvg(
@@ -302,6 +436,12 @@ export async function renderMaterialLabelSvg(
       await interactiveCanvas.dispose();
     }
 
+    canvas.getObjects().forEach((object) => {
+      object.set({ originX: 'left', originY: 'top' });
+      normalizeMaterialLabelTextbox(object);
+      object.setCoords();
+    });
+
     const qrDataUrl = await createQrImageDataUrl(getMaterialQrUrl(material.id));
     for (const object of canvas.getObjects()) {
       const binding = object.get('labelBinding');
@@ -324,6 +464,7 @@ export async function renderMaterialLabelSvg(
                 field.key as MaterialLabelTextFieldKey,
               ),
             );
+            normalizeMaterialLabelTextbox(object);
           } else if (field.kind === 'image' && object.type === 'image') {
             const materialCover = material.images.find(
               (image) => image.isCover,

@@ -1,4 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { MaterialSelectionDialog } from '@/project/materials/components/material-selection-dialog';
+import type { Material } from '@/project/materials/model/material';
 import type { FabricObject } from 'fabric';
 import {
   AlignCenter,
@@ -14,6 +16,7 @@ import {
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/inputs/numeric-input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -26,6 +29,7 @@ import {
 import { SelectSearch } from '@/components/ui/select-search';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MaterialIdentity } from '@/components/material-identity';
 import {
   LABEL_EDITOR_PIXELS_PER_MM,
   MATERIAL_LABEL_BINDING_FIELDS,
@@ -82,6 +86,71 @@ function PropertyRow({
   );
 }
 
+function NumericDraftInput({
+  value,
+  onCommit,
+  decimalScale = 1,
+  ...props
+}: {
+  value: number;
+  onCommit: (value: number) => void;
+  decimalScale?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
+  'aria-label'?: string;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const pendingValueRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!isEditing) setDraft(String(value));
+  }, [isEditing, value]);
+
+  const commit = () => {
+    const pendingValue = pendingValueRef.current;
+    pendingValueRef.current = undefined;
+    setIsEditing(false);
+    if (pendingValue !== undefined && Number.isFinite(pendingValue)) {
+      setDraft(String(pendingValue));
+      onCommit(pendingValue);
+    } else {
+      setDraft(String(value));
+    }
+  };
+
+  return (
+    <NumericInput
+      {...props}
+      decimalScale={decimalScale}
+      inputMode="decimal"
+      value={isEditing ? draft : value}
+      onFocus={() => {
+        pendingValueRef.current = undefined;
+        setDraft(String(value));
+        setIsEditing(true);
+      }}
+      onChange={(event) => setDraft(event.currentTarget.value)}
+      onValueChange={(nextValue) => {
+        if (isEditing) pendingValueRef.current = nextValue;
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.currentTarget.blur();
+        } else if (event.key === 'Escape') {
+          pendingValueRef.current = undefined;
+          setDraft(String(value));
+          setIsEditing(false);
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
 function getBindingOptions(component: FabricObject) {
   if (component.type === 'textbox' || component.type === 'text') {
     return MATERIAL_LABEL_BINDING_FIELDS.filter(
@@ -102,6 +171,8 @@ export function MaterialLabelPropertiesPanel({
   onUpdateObject,
   onUpdateMeasurement,
   onUpdateBinding,
+  previewMaterial,
+  onPreviewMaterialChange,
   onDuplicate,
   onDelete,
   onCenter,
@@ -118,19 +189,24 @@ export function MaterialLabelPropertiesPanel({
     value: string,
   ) => void;
   onUpdateBinding: (value: string) => void;
+  previewMaterial: Material | null;
+  onPreviewMaterialChange: (material: Material | undefined) => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onCenter: () => void;
 }) {
   const intl = useIntl();
   const hasSelectedObject = selectedObject !== null;
-  const [activeTab, setActiveTab] = useState<MaterialLabelPropertiesTab>(
-    hasSelectedObject ? 'design' : 'template',
-  );
+  const [activeTab, setActiveTab] =
+    useState<MaterialLabelPropertiesTab>('data');
+  const [isPreviewMaterialDialogOpen, setIsPreviewMaterialDialogOpen] =
+    useState(false);
   useEffect(() => {
     setActiveTab((currentTab) => {
-      if (!hasSelectedObject) return 'template';
-      return currentTab === 'template' ? 'design' : currentTab;
+      if (!hasSelectedObject && currentTab === 'design') return 'data';
+      return hasSelectedObject && currentTab === 'template'
+        ? 'design'
+        : currentTab;
     });
   }, [hasSelectedObject]);
   const isQr =
@@ -160,11 +236,11 @@ export function MaterialLabelPropertiesPanel({
     ? selectedColor
     : '#111827';
   const objectWidth = selectedObject
-    ? (selectedObject.getScaledWidth() / LABEL_EDITOR_PIXELS_PER_MM).toFixed(1)
-    : '';
+    ? selectedObject.getScaledWidth() / LABEL_EDITOR_PIXELS_PER_MM
+    : 0;
   const objectHeight = selectedObject
-    ? (selectedObject.getScaledHeight() / LABEL_EDITOR_PIXELS_PER_MM).toFixed(1)
-    : '';
+    ? selectedObject.getScaledHeight() / LABEL_EDITOR_PIXELS_PER_MM
+    : 0;
   const bindingTitle = intl.formatMessage({
     id: isQr
       ? 'project.materialLabels.editor.qrBinding'
@@ -186,19 +262,17 @@ export function MaterialLabelPropertiesPanel({
         >
           <TabsList variant="line" size="md" className="w-full">
             {hasSelectedObject ? (
-              <>
-                <TabsTrigger value="design">
-                  {intl.formatMessage({
-                    id: 'project.materialLabels.editor.designTab',
-                  })}
-                </TabsTrigger>
-                <TabsTrigger value="data">
-                  {intl.formatMessage({
-                    id: 'project.materialLabels.editor.dataTab',
-                  })}
-                </TabsTrigger>
-              </>
+              <TabsTrigger value="design">
+                {intl.formatMessage({
+                  id: 'project.materialLabels.editor.designTab',
+                })}
+              </TabsTrigger>
             ) : null}
+            <TabsTrigger value="data">
+              {intl.formatMessage({
+                id: 'project.materialLabels.editor.dataTab',
+              })}
+            </TabsTrigger>
             <TabsTrigger value="template">
               {intl.formatMessage({
                 id: 'project.materialLabels.editor.templateSettings',
@@ -207,483 +281,67 @@ export function MaterialLabelPropertiesPanel({
           </TabsList>
 
           {hasSelectedObject ? (
-            <>
-              <TabsContent value="design" className="space-y-4 pt-3">
-                {selectedObject ? (
-                  <>
-                    <section className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate text-sm font-medium">
-                          {bindingTitle}
-                          {isLocked
-                            ? ` · ${intl.formatMessage({ id: 'project.materialLabels.layers.lock' })}`
-                            : ''}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          mode="icon"
-                          aria-label={intl.formatMessage({
-                            id: isLocked
-                              ? 'project.materialLabels.layers.unlock'
-                              : 'project.materialLabels.layers.lock',
-                          })}
-                          title={intl.formatMessage({
-                            id: isLocked
-                              ? 'project.materialLabels.layers.unlock'
-                              : 'project.materialLabels.layers.lock',
-                          })}
-                          disabled={isQr}
-                          onClick={() =>
-                            onUpdateObject('editorLocked', !isLocked)
-                          }
-                        >
-                          {isLocked ? <LockKeyhole /> : <LockKeyholeOpen />}
-                        </Button>
-                      </div>
-
-                      <PropertyRow
-                        label={intl.formatMessage({
-                          id: 'project.materialLabels.fields.componentName',
+            <TabsContent value="design" className="space-y-4 pt-3">
+              {selectedObject ? (
+                <>
+                  <section className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm font-medium">
+                        {bindingTitle}
+                        {isLocked
+                          ? ` · ${intl.formatMessage({ id: 'project.materialLabels.layers.lock' })}`
+                          : ''}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        mode="icon"
+                        aria-label={intl.formatMessage({
+                          id: isLocked
+                            ? 'project.materialLabels.layers.unlock'
+                            : 'project.materialLabels.layers.lock',
                         })}
+                        title={intl.formatMessage({
+                          id: isLocked
+                            ? 'project.materialLabels.layers.unlock'
+                            : 'project.materialLabels.layers.lock',
+                        })}
+                        disabled={isQr}
+                        onClick={() =>
+                          onUpdateObject('editorLocked', !isLocked)
+                        }
                       >
-                        <Input
-                          value={String(selectedObject.get('name') ?? '')}
-                          disabled={isLocked || isQr}
-                          onChange={(event) =>
-                            onUpdateObject('name', event.target.value)
-                          }
-                        />
-                      </PropertyRow>
+                        {isLocked ? <LockKeyhole /> : <LockKeyholeOpen />}
+                      </Button>
+                    </div>
 
-                      {isText ? (
-                        <PropertyRow
-                          label={intl.formatMessage({
-                            id: 'project.materialLabels.fields.text',
-                          })}
-                        >
-                          <Input
-                            value={String(selectedObject.get('text') ?? '')}
-                            disabled={isLocked}
-                            onChange={(event) =>
-                              onUpdateObject('text', event.target.value)
-                            }
-                          />
-                        </PropertyRow>
-                      ) : null}
-
-                      {selectedObject ? (
-                        <>
-                          <div className="border-t pt-3">
-                            <h3 className="mb-3 text-sm font-semibold">
-                              {intl.formatMessage({
-                                id: 'project.materialLabels.editor.geometry',
-                              })}
-                            </h3>
-                            <div className="space-y-2">
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.x',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  value={
-                                    selectedObject
-                                      ? (
-                                          Number(selectedObject.left ?? 0) /
-                                          LABEL_EDITOR_PIXELS_PER_MM
-                                        ).toFixed(1)
-                                      : ''
-                                  }
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'left',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.y',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  step="0.1"
-                                  value={
-                                    selectedObject
-                                      ? (
-                                          Number(selectedObject.top ?? 0) /
-                                          LABEL_EDITOR_PIXELS_PER_MM
-                                        ).toFixed(1)
-                                      : ''
-                                  }
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'top',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.objectWidth',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  min="0.1"
-                                  step="0.1"
-                                  value={objectWidth}
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'width',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.objectHeight',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  min="0.1"
-                                  step="0.1"
-                                  value={objectHeight}
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'height',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.rotation',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  step="1"
-                                  value={String(
-                                    Math.round(
-                                      Number(selectedObject.angle ?? 0),
-                                    ),
-                                  )}
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'angle',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                              <PropertyRow
-                                label={intl.formatMessage({
-                                  id: 'project.materialLabels.fields.opacity',
-                                })}
-                              >
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={String(
-                                    Math.round(
-                                      Number(selectedObject.opacity ?? 1) * 100,
-                                    ),
-                                  )}
-                                  disabled={isLocked}
-                                  onChange={(event) =>
-                                    onUpdateMeasurement(
-                                      'opacity',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </PropertyRow>
-                            </div>
-                          </div>
-                        </>
-                      ) : null}
-
-                      {isText ? (
-                        <div className="space-y-2 border-t pt-3">
-                          <h3 className="text-sm font-semibold">
-                            {intl.formatMessage({
-                              id: 'project.materialLabels.editor.typography',
-                            })}
-                          </h3>
-                          <PropertyRow
-                            label={intl.formatMessage({
-                              id: 'project.materialLabels.fields.fontFamily',
-                            })}
-                          >
-                            <SelectSearch
-                              ariaLabel={intl.formatMessage({
-                                id: 'project.materialLabels.fields.fontFamily',
-                              })}
-                              value={selectedFontFamily}
-                              options={fontFamilyOptions}
-                              searchable
-                              searchPlaceholder={intl.formatMessage({
-                                id: 'project.materialLabels.fields.searchFont',
-                              })}
-                              emptyMessage={intl.formatMessage({
-                                id: 'project.materialLabels.fields.noFontMatches',
-                              })}
-                              canDeselect={false}
-                              disabled={isLocked}
-                              onChange={(value) =>
-                                onUpdateObject('fontFamily', value)
-                              }
-                            />
-                          </PropertyRow>
-                          <PropertyRow
-                            label={intl.formatMessage({
-                              id: 'project.materialLabels.fields.fontSize',
-                            })}
-                          >
-                            <Input
-                              type="number"
-                              min="6"
-                              max="96"
-                              value={String(
-                                selectedObject.get('fontSize') ?? 12,
-                              )}
-                              disabled={isLocked}
-                              onChange={(event) =>
-                                onUpdateObject(
-                                  'fontSize',
-                                  Number(event.target.value),
-                                )
-                              }
-                            />
-                          </PropertyRow>
-                          <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-3">
-                            <Label>
-                              {intl.formatMessage({
-                                id: 'project.materialLabels.fields.alignment',
-                              })}
-                            </Label>
-                            <div className="flex gap-1">
-                              {[
-                                ['left', AlignLeft],
-                                ['center', AlignCenter],
-                                ['right', AlignRight],
-                              ].map(([alignment, Icon]) => {
-                                const AlignIcon = Icon as typeof AlignLeft;
-                                return (
-                                  <Button
-                                    key={alignment as string}
-                                    type="button"
-                                    variant={
-                                      selectedObject.get('textAlign') ===
-                                      alignment
-                                        ? 'secondary'
-                                        : 'ghost'
-                                    }
-                                    size="icon"
-                                    mode="icon"
-                                    disabled={isLocked}
-                                    aria-label={String(alignment)}
-                                    onClick={() =>
-                                      onUpdateObject('textAlign', alignment)
-                                    }
-                                  >
-                                    <AlignIcon />
-                                  </Button>
-                                );
-                              })}
-                              <Button
-                                type="button"
-                                variant={
-                                  selectedObject.get('fontWeight') === 'bold'
-                                    ? 'secondary'
-                                    : 'ghost'
-                                }
-                                size="icon"
-                                mode="icon"
-                                disabled={isLocked}
-                                aria-label={intl.formatMessage({
-                                  id: 'project.materialLabels.actions.toggleBold',
-                                })}
-                                onClick={() =>
-                                  onUpdateObject(
-                                    'fontWeight',
-                                    selectedObject.get('fontWeight') === 'bold'
-                                      ? 'normal'
-                                      : 'bold',
-                                  )
-                                }
-                              >
-                                <Bold />
-                              </Button>
-                              <Button
-                                type="button"
-                                variant={
-                                  selectedObject.get('fontStyle') === 'italic'
-                                    ? 'secondary'
-                                    : 'ghost'
-                                }
-                                size="icon"
-                                mode="icon"
-                                disabled={isLocked}
-                                aria-label={intl.formatMessage({
-                                  id: 'project.materialLabels.actions.toggleItalic',
-                                })}
-                                onClick={() =>
-                                  onUpdateObject(
-                                    'fontStyle',
-                                    selectedObject.get('fontStyle') === 'italic'
-                                      ? 'normal'
-                                      : 'italic',
-                                  )
-                                }
-                              >
-                                <Italic />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {isText || isShape ? (
-                        <PropertyRow
-                          label={intl.formatMessage({
-                            id:
-                              colorProperty === 'stroke'
-                                ? 'project.materialLabels.fields.stroke'
-                                : 'project.materialLabels.fields.fill',
-                          })}
-                        >
-                          <Input
-                            type="color"
-                            value={colorValue}
-                            disabled={isLocked}
-                            onChange={(event) =>
-                              onUpdateObject(colorProperty, event.target.value)
-                            }
-                          />
-                        </PropertyRow>
-                      ) : null}
-
-                      <div className="space-y-2 border-t pt-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="md"
-                          className="w-full justify-start"
-                          disabled={isLocked || isQr}
-                          onClick={onDuplicate}
-                        >
-                          <Copy />
-                          {intl.formatMessage({
-                            id: 'project.materialLabels.actions.duplicateElement',
-                          })}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="md"
-                          className="w-full justify-start"
-                          disabled={isLocked || isQr}
-                          onClick={onCenter}
-                        >
-                          <AlignCenter />
-                          {intl.formatMessage({
-                            id: 'project.materialLabels.actions.centerElement',
-                          })}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="md"
-                          className="w-full justify-start"
-                          disabled={isLocked || isQr}
-                          onClick={onDelete}
-                        >
-                          <Trash2 />
-                          {intl.formatMessage({
-                            id: 'project.materialLabels.actions.deleteElement',
-                          })}
-                        </Button>
-                      </div>
-                    </section>
-                  </>
-                ) : (
-                  <p className="rounded-md border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
-                    {intl.formatMessage({
-                      id: 'project.materialLabels.editor.noSelection',
-                    })}
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="data" className="space-y-4 pt-3">
-                {isQr ? (
-                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                    <p className="text-sm font-medium">
-                      {intl.formatMessage({
-                        id: 'project.materialLabels.editor.qrBinding',
-                      })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {intl.formatMessage({
-                        id: 'project.materialLabels.editor.qrBindingHelp',
-                      })}
-                    </p>
-                  </div>
-                ) : selectedObject && bindings.length > 0 ? (
-                  <>
                     <PropertyRow
                       label={intl.formatMessage({
-                        id: 'project.materialLabels.fields.binding',
+                        id: 'project.materialLabels.fields.componentName',
                       })}
                     >
-                      <Select
-                        value={selectedBinding || '__static__'}
-                        disabled={isLocked}
-                        onValueChange={onUpdateBinding}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__static__">
-                            {intl.formatMessage({
-                              id: 'project.materialLabels.editor.staticTextBinding',
-                            })}
-                          </SelectItem>
-                          {bindings.map((field) => (
-                            <SelectItem key={field.key} value={field.key}>
-                              {intl.formatMessage({ id: field.messageId })}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        value={String(selectedObject.get('name') ?? '')}
+                        disabled={isLocked || isQr}
+                        onChange={(event) =>
+                          onUpdateObject('name', event.target.value)
+                        }
+                      />
                     </PropertyRow>
+
                     {isText ? (
                       <PropertyRow
                         label={intl.formatMessage({
-                          id: 'project.materialLabels.fields.sampleValue',
+                          id: 'project.materialLabels.fields.text',
                         })}
                       >
                         <Input
-                          value={String(selectedObject?.get('text') ?? '')}
+                          value={String(
+                            selectedObject.get('labelSampleValue') ??
+                              selectedObject.get('text') ??
+                              '',
+                          )}
                           disabled={isLocked}
                           onChange={(event) =>
                             onUpdateObject('text', event.target.value)
@@ -691,23 +349,462 @@ export function MaterialLabelPropertiesPanel({
                         />
                       </PropertyRow>
                     ) : null}
-                  </>
-                ) : selectedObject ? (
-                  <p className="rounded-md border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
-                    {intl.formatMessage({
-                      id: 'project.materialLabels.editor.noDataForComponent',
-                    })}
-                  </p>
-                ) : (
-                  <p className="rounded-md border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
-                    {intl.formatMessage({
-                      id: 'project.materialLabels.editor.noSelection',
-                    })}
-                  </p>
-                )}
-              </TabsContent>
-            </>
+
+                    {selectedObject ? (
+                      <>
+                        <div className="border-t pt-3">
+                          <h3 className="mb-3 text-sm font-semibold">
+                            {intl.formatMessage({
+                              id: 'project.materialLabels.editor.geometry',
+                            })}
+                          </h3>
+                          <div className="space-y-2">
+                            <PropertyRow
+                              label={intl.formatMessage({
+                                id: 'project.materialLabels.fields.x',
+                              })}
+                            >
+                              <NumericDraftInput
+                                step={0.1}
+                                value={
+                                  Number(selectedObject.left ?? 0) /
+                                  LABEL_EDITOR_PIXELS_PER_MM
+                                }
+                                disabled={isLocked}
+                                onCommit={(value) =>
+                                  onUpdateMeasurement('left', String(value))
+                                }
+                              />
+                            </PropertyRow>
+                            <PropertyRow
+                              label={intl.formatMessage({
+                                id: 'project.materialLabels.fields.y',
+                              })}
+                            >
+                              <NumericDraftInput
+                                step={0.1}
+                                value={
+                                  Number(selectedObject.top ?? 0) /
+                                  LABEL_EDITOR_PIXELS_PER_MM
+                                }
+                                disabled={isLocked}
+                                onCommit={(value) =>
+                                  onUpdateMeasurement('top', String(value))
+                                }
+                              />
+                            </PropertyRow>
+                            <PropertyRow
+                              label={intl.formatMessage({
+                                id: 'project.materialLabels.fields.objectWidth',
+                              })}
+                            >
+                              <NumericDraftInput
+                                min={0.1}
+                                step={0.1}
+                                value={objectWidth}
+                                disabled={isLocked}
+                                onCommit={(value) =>
+                                  onUpdateMeasurement('width', String(value))
+                                }
+                              />
+                            </PropertyRow>
+                            {!isText ? (
+                              <PropertyRow
+                                label={intl.formatMessage({
+                                  id: 'project.materialLabels.fields.objectHeight',
+                                })}
+                              >
+                                <NumericDraftInput
+                                  min={0.1}
+                                  step={0.1}
+                                  value={objectHeight}
+                                  disabled={isLocked}
+                                  onCommit={(value) =>
+                                    onUpdateMeasurement('height', String(value))
+                                  }
+                                />
+                              </PropertyRow>
+                            ) : null}
+                            <PropertyRow
+                              label={intl.formatMessage({
+                                id: 'project.materialLabels.fields.rotation',
+                              })}
+                            >
+                              <NumericDraftInput
+                                decimalScale={0}
+                                step={1}
+                                value={Math.round(
+                                  Number(selectedObject.angle ?? 0),
+                                )}
+                                disabled={isLocked}
+                                onCommit={(value) =>
+                                  onUpdateMeasurement('angle', String(value))
+                                }
+                              />
+                            </PropertyRow>
+                            <PropertyRow
+                              label={intl.formatMessage({
+                                id: 'project.materialLabels.fields.opacity',
+                              })}
+                            >
+                              <NumericDraftInput
+                                decimalScale={0}
+                                min={0}
+                                max={100}
+                                value={Math.round(
+                                  Number(selectedObject.opacity ?? 1) * 100,
+                                )}
+                                disabled={isLocked}
+                                onCommit={(value) =>
+                                  onUpdateMeasurement('opacity', String(value))
+                                }
+                              />
+                            </PropertyRow>
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+
+                    {isText ? (
+                      <div className="space-y-2 border-t pt-3">
+                        <h3 className="text-sm font-semibold">
+                          {intl.formatMessage({
+                            id: 'project.materialLabels.editor.typography',
+                          })}
+                        </h3>
+                        <PropertyRow
+                          label={intl.formatMessage({
+                            id: 'project.materialLabels.fields.fontFamily',
+                          })}
+                        >
+                          <SelectSearch
+                            ariaLabel={intl.formatMessage({
+                              id: 'project.materialLabels.fields.fontFamily',
+                            })}
+                            value={selectedFontFamily}
+                            options={fontFamilyOptions}
+                            searchable
+                            searchPlaceholder={intl.formatMessage({
+                              id: 'project.materialLabels.fields.searchFont',
+                            })}
+                            emptyMessage={intl.formatMessage({
+                              id: 'project.materialLabels.fields.noFontMatches',
+                            })}
+                            canDeselect={false}
+                            disabled={isLocked}
+                            onChange={(value) =>
+                              onUpdateObject('fontFamily', value)
+                            }
+                          />
+                        </PropertyRow>
+                        <PropertyRow
+                          label={intl.formatMessage({
+                            id: 'project.materialLabels.fields.fontSize',
+                          })}
+                        >
+                          <NumericDraftInput
+                            decimalScale={0}
+                            min={6}
+                            max={96}
+                            value={Number(selectedObject.get('fontSize') ?? 12)}
+                            disabled={isLocked}
+                            onCommit={(value) =>
+                              onUpdateObject('fontSize', value)
+                            }
+                          />
+                        </PropertyRow>
+                        <div className="grid grid-cols-[8.75rem_minmax(0,1fr)] items-center gap-3">
+                          <Label>
+                            {intl.formatMessage({
+                              id: 'project.materialLabels.fields.alignment',
+                            })}
+                          </Label>
+                          <div className="flex gap-1">
+                            {[
+                              ['left', AlignLeft],
+                              ['center', AlignCenter],
+                              ['right', AlignRight],
+                            ].map(([alignment, Icon]) => {
+                              const AlignIcon = Icon as typeof AlignLeft;
+                              return (
+                                <Button
+                                  key={alignment as string}
+                                  type="button"
+                                  variant={
+                                    selectedObject.get('textAlign') ===
+                                    alignment
+                                      ? 'secondary'
+                                      : 'ghost'
+                                  }
+                                  size="icon"
+                                  mode="icon"
+                                  disabled={isLocked}
+                                  aria-label={String(alignment)}
+                                  onClick={() =>
+                                    onUpdateObject('textAlign', alignment)
+                                  }
+                                >
+                                  <AlignIcon />
+                                </Button>
+                              );
+                            })}
+                            <Button
+                              type="button"
+                              variant={
+                                selectedObject.get('fontWeight') === 'bold'
+                                  ? 'secondary'
+                                  : 'ghost'
+                              }
+                              size="icon"
+                              mode="icon"
+                              disabled={isLocked}
+                              aria-label={intl.formatMessage({
+                                id: 'project.materialLabels.actions.toggleBold',
+                              })}
+                              onClick={() =>
+                                onUpdateObject(
+                                  'fontWeight',
+                                  selectedObject.get('fontWeight') === 'bold'
+                                    ? 'normal'
+                                    : 'bold',
+                                )
+                              }
+                            >
+                              <Bold />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={
+                                selectedObject.get('fontStyle') === 'italic'
+                                  ? 'secondary'
+                                  : 'ghost'
+                              }
+                              size="icon"
+                              mode="icon"
+                              disabled={isLocked}
+                              aria-label={intl.formatMessage({
+                                id: 'project.materialLabels.actions.toggleItalic',
+                              })}
+                              onClick={() =>
+                                onUpdateObject(
+                                  'fontStyle',
+                                  selectedObject.get('fontStyle') === 'italic'
+                                    ? 'normal'
+                                    : 'italic',
+                                )
+                              }
+                            >
+                              <Italic />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {isText || isShape ? (
+                      <PropertyRow
+                        label={intl.formatMessage({
+                          id:
+                            colorProperty === 'stroke'
+                              ? 'project.materialLabels.fields.stroke'
+                              : 'project.materialLabels.fields.fill',
+                        })}
+                      >
+                        <Input
+                          type="color"
+                          value={colorValue}
+                          disabled={isLocked}
+                          onChange={(event) =>
+                            onUpdateObject(colorProperty, event.target.value)
+                          }
+                        />
+                      </PropertyRow>
+                    ) : null}
+
+                    <div className="space-y-2 border-t pt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        className="w-full justify-start"
+                        disabled={isLocked || isQr}
+                        onClick={onDuplicate}
+                      >
+                        <Copy />
+                        {intl.formatMessage({
+                          id: 'project.materialLabels.actions.duplicateElement',
+                        })}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        className="w-full justify-start"
+                        disabled={isLocked || isQr}
+                        onClick={onCenter}
+                      >
+                        <AlignCenter />
+                        {intl.formatMessage({
+                          id: 'project.materialLabels.actions.centerElement',
+                        })}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="md"
+                        className="w-full justify-start"
+                        disabled={isLocked || isQr}
+                        onClick={onDelete}
+                      >
+                        <Trash2 />
+                        {intl.formatMessage({
+                          id: 'project.materialLabels.actions.deleteElement',
+                        })}
+                      </Button>
+                    </div>
+                  </section>
+                </>
+              ) : null}
+            </TabsContent>
           ) : null}
+
+          <TabsContent value="data" className="space-y-4 pt-3">
+            <section className="space-y-3">
+              <p className="text-sm font-medium">
+                {intl.formatMessage({
+                  id: 'project.materialLabels.fields.previewMaterial',
+                })}
+              </p>
+              {previewMaterial ? (
+                <>
+                  <div className="rounded-md border border-border p-3">
+                    <MaterialIdentity
+                      name={
+                        previewMaterial.nameOverride?.trim() ||
+                        previewMaterial.modelSnapshot.name
+                      }
+                      code={previewMaterial.code}
+                      imageUrl={
+                        previewMaterial.images.find((image) => image.isCover)
+                          ?.url
+                      }
+                    />
+                    {previewMaterial.serialNumber ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {intl.formatMessage({
+                          id: 'project.materials.fields.serialNumber',
+                        })}
+                        : {previewMaterial.serialNumber}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="md"
+                      onClick={() => setIsPreviewMaterialDialogOpen(true)}
+                    >
+                      {intl.formatMessage({
+                        id: 'project.materialLabels.actions.changePreviewMaterial',
+                      })}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="md"
+                      onClick={() => onPreviewMaterialChange(undefined)}
+                    >
+                      {intl.formatMessage({
+                        id: 'project.materialLabels.actions.clearPreviewMaterial',
+                      })}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  className="w-full"
+                  onClick={() => setIsPreviewMaterialDialogOpen(true)}
+                >
+                  {intl.formatMessage({
+                    id: 'project.materialLabels.actions.choosePreviewMaterial',
+                  })}
+                </Button>
+              )}
+            </section>
+            {isQr ? (
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                <p className="text-sm font-medium">
+                  {intl.formatMessage({
+                    id: 'project.materialLabels.editor.qrBinding',
+                  })}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({
+                    id: 'project.materialLabels.editor.qrBindingHelp',
+                  })}
+                </p>
+              </div>
+            ) : selectedObject && bindings.length > 0 ? (
+              <>
+                <PropertyRow
+                  label={intl.formatMessage({
+                    id: 'project.materialLabels.fields.binding',
+                  })}
+                >
+                  <Select
+                    value={selectedBinding || '__static__'}
+                    disabled={isLocked}
+                    onValueChange={onUpdateBinding}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__static__">
+                        {intl.formatMessage({
+                          id: 'project.materialLabels.editor.staticTextBinding',
+                        })}
+                      </SelectItem>
+                      {bindings.map((field) => (
+                        <SelectItem key={field.key} value={field.key}>
+                          {intl.formatMessage({ id: field.messageId })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </PropertyRow>
+                {isText ? (
+                  <PropertyRow
+                    label={intl.formatMessage({
+                      id: 'project.materialLabels.fields.sampleValue',
+                    })}
+                  >
+                    <Input
+                      value={String(
+                        selectedObject?.get('labelSampleValue') ??
+                          selectedObject?.get('text') ??
+                          '',
+                      )}
+                      disabled={isLocked}
+                      onChange={(event) =>
+                        onUpdateObject('text', event.target.value)
+                      }
+                    />
+                  </PropertyRow>
+                ) : null}
+              </>
+            ) : selectedObject ? (
+              <p className="rounded-md border border-dashed px-3 py-5 text-center text-sm text-muted-foreground">
+                {intl.formatMessage({
+                  id: 'project.materialLabels.editor.noDataForComponent',
+                })}
+              </p>
+            ) : null}
+          </TabsContent>
 
           <TabsContent value="template" className="space-y-3 pt-3">
             <section className="space-y-3">
@@ -740,18 +837,12 @@ export function MaterialLabelPropertiesPanel({
                   id: 'project.materialLabels.fields.width',
                 })}
               >
-                <Input
-                  type="number"
-                  min="20"
-                  max="200"
-                  step="0.1"
+                <NumericDraftInput
+                  min={20}
+                  max={200}
+                  step={0.1}
                   value={metadata.widthMm}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    if (Number.isFinite(value) && value > 0) {
-                      onMetadataChange({ widthMm: value });
-                    }
-                  }}
+                  onCommit={(widthMm) => onMetadataChange({ widthMm })}
                 />
               </PropertyRow>
               <PropertyRow
@@ -759,18 +850,12 @@ export function MaterialLabelPropertiesPanel({
                   id: 'project.materialLabels.fields.height',
                 })}
               >
-                <Input
-                  type="number"
-                  min="10"
-                  max="120"
-                  step="0.1"
+                <NumericDraftInput
+                  min={10}
+                  max={120}
+                  step={0.1}
                   value={metadata.heightMm}
-                  onChange={(event) => {
-                    const value = Number(event.target.value);
-                    if (Number.isFinite(value) && value > 0) {
-                      onMetadataChange({ heightMm: value });
-                    }
-                  }}
+                  onCommit={(heightMm) => onMetadataChange({ heightMm })}
                 />
               </PropertyRow>
               <div className="flex items-center justify-between gap-3">
@@ -809,6 +894,22 @@ export function MaterialLabelPropertiesPanel({
           </TabsContent>
         </Tabs>
       </div>
+      <MaterialSelectionDialog
+        open={isPreviewMaterialDialogOpen}
+        onOpenChange={setIsPreviewMaterialDialogOpen}
+        selectionMode="single"
+        excludeReserved={false}
+        allowReservedSelection
+        selectedMaterialIds={previewMaterial ? [previewMaterial.id] : []}
+        onConfirm={(ids, addedMaterials) => {
+          const selectedId = ids[0];
+          const material = addedMaterials.find(
+            (item) => item.id === selectedId,
+          );
+          if (material) onPreviewMaterialChange(material);
+          else if (!selectedId) onPreviewMaterialChange(undefined);
+        }}
+      />
     </ScrollArea>
   );
 }

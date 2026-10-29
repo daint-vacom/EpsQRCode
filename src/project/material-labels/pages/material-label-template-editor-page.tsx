@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import type { Material } from '@/project/materials/model/material';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import { getMaterialQrUrl } from '@/project/materials/utils/material-qr';
 import {
@@ -15,8 +16,10 @@ import {
   AlignCenter,
   Copy,
   QrCode,
+  Redo2,
   Save,
   Trash2,
+  Undo2,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -29,7 +32,7 @@ import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
-import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/inputs/numeric-input';
 import { PageLoading } from '@/components/ui/loading';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MaterialLabelLayerPanel } from '../components/material-label-layer-panel';
@@ -40,6 +43,8 @@ import {
 } from '../hooks/use-material-label-templates';
 import {
   addQrImageToCanvas,
+  applyMaterialLabelPreview,
+  getMaterialBindingValue,
   LABEL_DEFAULT_HEIGHT_MM,
   LABEL_DEFAULT_WIDTH_MM,
   LABEL_EDITOR_PIXELS_PER_MM,
@@ -49,9 +54,12 @@ import {
   LABEL_MIN_WIDTH_MM,
   loadMaterialLabelDesign,
   MATERIAL_LABEL_BINDING_FIELDS,
+  MATERIAL_LABEL_FIELDS,
   MATERIAL_LABEL_NOTE_BINDING,
+  normalizeMaterialLabelTextbox,
   serializeMaterialLabelDesign,
   type MaterialLabelFieldKey,
+  type MaterialLabelMaterialFieldKey,
 } from '../utils/material-label-design';
 
 const EDITOR_SAMPLE_MATERIAL_ID = '00000000-0000-4000-8000-000000000001';
@@ -96,6 +104,12 @@ export function MaterialLabelTemplateEditorPage() {
   const canvasElementRef = useRef<HTMLCanvasElement>(null);
   const labelCardRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<Canvas | null>(null);
+  const historyRef = useRef<string[]>([]);
+  const historyIndexRef = useRef(-1);
+  const historyReadyRef = useRef(false);
+  const restoringHistoryRef = useRef(false);
+  const historyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [historyRevision, setHistoryRevision] = useState(0);
   const [selectedObject, setSelectedObject] = useState<FabricObject | null>(
     null,
   );
@@ -110,6 +124,9 @@ export function MaterialLabelTemplateEditorPage() {
     isDefault: false,
     isActive: true,
   });
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const previewRequestRef = useRef(0);
 
   const refreshEditorState = useCallback(() => {
     const canvas = canvasRef.current;
@@ -117,6 +134,141 @@ export function MaterialLabelTemplateEditorPage() {
     setSelectedObject(canvas.getActiveObject() ?? null);
     setLayers(canvas.getObjects().slice().reverse());
   }, []);
+
+  const commitHistory = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !historyReadyRef.current || restoringHistoryRef.current) {
+      return;
+    }
+    const snapshot = JSON.stringify({
+      width: canvas.getWidth(),
+      height: canvas.getHeight(),
+      design: serializeMaterialLabelDesign(canvas),
+    });
+    if (snapshot === historyRef.current[historyIndexRef.current]) return;
+
+    const nextHistory = historyRef.current.slice(
+      0,
+      historyIndexRef.current + 1,
+    );
+    nextHistory.push(snapshot);
+    if (nextHistory.length > 100) nextHistory.shift();
+    historyRef.current = nextHistory;
+    historyIndexRef.current = nextHistory.length - 1;
+    setHistoryRevision((revision) => revision + 1);
+  }, []);
+
+  const scheduleHistoryCommit = useCallback(() => {
+    if (historyTimerRef.current) clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = setTimeout(() => {
+      historyTimerRef.current = null;
+      commitHistory();
+    }, 300);
+  }, [commitHistory]);
+
+  const restoreHistorySnapshot = useCallback(
+    async (index: number) => {
+      const canvas = canvasRef.current;
+      const serialized = historyRef.current[index];
+      if (!canvas || !serialized || restoringHistoryRef.current) return;
+      if (historyTimerRef.current) {
+        clearTimeout(historyTimerRef.current);
+        historyTimerRef.current = null;
+      }
+
+      const snapshot = JSON.parse(serialized) as {
+        width: number;
+        height: number;
+        design: ReturnType<typeof serializeMaterialLabelDesign>;
+      };
+      restoringHistoryRef.current = true;
+      try {
+        canvas.discardActiveObject();
+        await canvas.loadFromJSON(snapshot.design);
+        canvas.setDimensions({
+          width: snapshot.width,
+          height: snapshot.height,
+        });
+        canvas.getObjects().forEach((object) => {
+          normalizeMaterialLabelTextbox(object);
+          object.setCoords();
+        });
+        const previewRequestId = ++previewRequestRef.current;
+        await applyMaterialLabelPreview(
+          canvas,
+          previewMaterial,
+          EDITOR_SAMPLE_MATERIAL_ID,
+          () => previewRequestId === previewRequestRef.current,
+        );
+        canvas.requestRenderAll();
+        historyIndexRef.current = index;
+        setMetadata((current) => ({
+          ...current,
+          widthMm: snapshot.width / LABEL_EDITOR_PIXELS_PER_MM,
+          heightMm: snapshot.height / LABEL_EDITOR_PIXELS_PER_MM,
+        }));
+        refreshEditorState();
+        setHistoryRevision((revision) => revision + 1);
+      } finally {
+        restoringHistoryRef.current = false;
+      }
+    },
+    [previewMaterial, refreshEditorState],
+  );
+
+  const handleUndo = useCallback(() => {
+    if (historyTimerRef.current) {
+      clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
+    }
+    commitHistory();
+    if (historyIndexRef.current > 0) {
+      void restoreHistorySnapshot(historyIndexRef.current - 1);
+    }
+  }, [commitHistory, restoreHistorySnapshot]);
+
+  const handleRedo = useCallback(() => {
+    if (historyTimerRef.current) {
+      clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
+    }
+    commitHistory();
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      void restoreHistorySnapshot(historyIndexRef.current + 1);
+    }
+  }, [commitHistory, restoreHistorySnapshot]);
+
+  useEffect(() => {
+    const handleHistoryKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.closest('input, textarea, select, [contenteditable="true"]'))
+      ) {
+        return;
+      }
+      const activeObject = canvasRef.current?.getActiveObject() as
+        | (FabricObject & { isEditing?: boolean })
+        | undefined;
+      if (activeObject?.isEditing) return;
+
+      const key = event.key.toLowerCase();
+      if (key === 'z' && event.shiftKey) {
+        event.preventDefault();
+        handleRedo();
+      } else if (key === 'z') {
+        event.preventDefault();
+        handleUndo();
+      } else if (key === 'y') {
+        event.preventDefault();
+        handleRedo();
+      }
+    };
+    window.addEventListener('keydown', handleHistoryKeyDown);
+    return () => window.removeEventListener('keydown', handleHistoryKeyDown);
+  }, [handleRedo, handleUndo]);
 
   const templates = useMemo(
     () => templatesQuery.data ?? [],
@@ -170,12 +322,20 @@ export function MaterialLabelTemplateEditorPage() {
       renderOnAddRemove: true,
     });
     canvasRef.current = canvas;
+    historyReadyRef.current = false;
     canvas.on('selection:created', refreshEditorState);
     canvas.on('selection:updated', refreshEditorState);
     canvas.on('selection:cleared', refreshEditorState);
     canvas.on('object:added', refreshEditorState);
     canvas.on('object:removed', refreshEditorState);
     canvas.on('object:modified', refreshEditorState);
+    canvas.on('object:added', commitHistory);
+    canvas.on('object:removed', commitHistory);
+    canvas.on('object:modified', commitHistory);
+    canvas.on('text:changed', scheduleHistoryCommit);
+    canvas.on('text:changed', ({ target }) => {
+      if (target?.type === 'textbox') normalizeMaterialLabelTextbox(target);
+    });
 
     let cancelled = false;
     void loadMaterialLabelDesign(
@@ -203,6 +363,22 @@ export function MaterialLabelTemplateEditorPage() {
                     ? 'line'
                     : 'shape');
           const isLocked = object.get('editorLocked') === true;
+          const binding = object.get('labelBinding');
+          if (
+            typeof binding === 'string' &&
+            binding &&
+            (object.type === 'textbox' || object.type === 'text') &&
+            typeof object.get('labelSampleValue') !== 'string'
+          ) {
+            object.set('labelSampleValue', String(object.get('text') ?? ''));
+          }
+          if (
+            binding === 'coverImage' &&
+            object.type === 'image' &&
+            typeof object.get('labelSampleImageSrc') !== 'string'
+          ) {
+            object.set('labelSampleImageSrc', (object as FabricImage).getSrc());
+          }
           object.set({
             originX: 'left',
             originY: 'top',
@@ -219,6 +395,7 @@ export function MaterialLabelTemplateEditorPage() {
             lockScalingX: isLocked,
             lockScalingY: isLocked,
           });
+          normalizeMaterialLabelTextbox(object);
         });
         const hasQr = canvas
           .getObjects()
@@ -233,9 +410,18 @@ export function MaterialLabelTemplateEditorPage() {
             { left: 12, top: 12, size: Math.min(height - 24, 96) },
           );
         }
+        await applyMaterialLabelPreview(
+          canvas,
+          null,
+          EDITOR_SAMPLE_MATERIAL_ID,
+        );
         canvas.discardActiveObject();
         canvas.requestRenderAll();
         refreshEditorState();
+        historyRef.current = [];
+        historyIndexRef.current = -1;
+        historyReadyRef.current = true;
+        commitHistory();
         setCanvasReady(true);
       })
       .catch(() => {
@@ -250,6 +436,11 @@ export function MaterialLabelTemplateEditorPage() {
 
     return () => {
       cancelled = true;
+      historyReadyRef.current = false;
+      if (historyTimerRef.current) {
+        clearTimeout(historyTimerRef.current);
+        historyTimerRef.current = null;
+      }
       canvasRef.current = null;
       void canvas.dispose();
     };
@@ -261,7 +452,28 @@ export function MaterialLabelTemplateEditorPage() {
     templateId,
     templatesQuery.isPending,
     refreshEditorState,
+    commitHistory,
+    scheduleHistoryCommit,
   ]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !canvasReady) return;
+    const requestId = ++previewRequestRef.current;
+    void applyMaterialLabelPreview(
+      canvas,
+      previewMaterial,
+      EDITOR_SAMPLE_MATERIAL_ID,
+      () => requestId === previewRequestRef.current,
+    ).then(() => {
+      if (requestId === previewRequestRef.current) refreshEditorState();
+    });
+    return () => {
+      if (requestId === previewRequestRef.current) {
+        previewRequestRef.current += 1;
+      }
+    };
+  }, [canvasReady, previewMaterial, previewRevision, refreshEditorState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -279,7 +491,8 @@ export function MaterialLabelTemplateEditorPage() {
       height: Math.round(metadata.heightMm * LABEL_EDITOR_PIXELS_PER_MM),
     });
     canvas.renderAll();
-  }, [canvasReady, metadata.heightMm, metadata.widthMm]);
+    commitHistory();
+  }, [canvasReady, commitHistory, metadata.heightMm, metadata.widthMm]);
 
   const addCanvasObject = useCallback(
     (object: FabricObject, elementType: string, name = '') => {
@@ -295,9 +508,11 @@ export function MaterialLabelTemplateEditorPage() {
         selectable: true,
         evented: true,
       });
+      normalizeMaterialLabelTextbox(object);
       canvas.add(object);
       canvas.setActiveObject(object);
       canvas.requestRenderAll();
+      setPreviewRevision((revision) => revision + 1);
       refreshEditorState();
     },
     [refreshEditorState],
@@ -310,6 +525,14 @@ export function MaterialLabelTemplateEditorPage() {
         (item) => item.key === fieldKey,
       );
       if (!canvas || !definition) return;
+      const sampleValue = getFieldSample(fieldKey);
+      const previewValue =
+        previewMaterial && definition.kind === 'text'
+          ? getMaterialBindingValue(
+              previewMaterial,
+              fieldKey as MaterialLabelMaterialFieldKey,
+            )
+          : sampleValue;
       const textbox = new Textbox(getFieldSample(fieldKey), {
         left: Math.max(10, canvas.getWidth() * 0.42),
         top: Math.max(10, canvas.getHeight() * 0.35),
@@ -318,10 +541,14 @@ export function MaterialLabelTemplateEditorPage() {
         fontSize: Math.max(10, Math.round(canvas.getHeight() * 0.12)),
         fill: '#111827',
       });
-      textbox.set({ labelBinding: fieldKey });
+      textbox.set({
+        labelBinding: fieldKey,
+        labelSampleValue: sampleValue,
+        text: previewValue,
+      });
       addCanvasObject(textbox, 'text');
     },
-    [addCanvasObject, getFieldSample],
+    [addCanvasObject, getFieldSample, previewMaterial],
   );
 
   const addStaticText = useCallback(() => {
@@ -461,7 +688,7 @@ export function MaterialLabelTemplateEditorPage() {
     }
     const qr = await addQrImageToCanvas(
       canvas,
-      getMaterialQrUrl(EDITOR_SAMPLE_MATERIAL_ID),
+      getMaterialQrUrl(previewMaterial?.id ?? EDITOR_SAMPLE_MATERIAL_ID),
       { size: Math.min(canvas.getHeight() * 0.72, 110) },
     );
     qr.set({
@@ -470,8 +697,10 @@ export function MaterialLabelTemplateEditorPage() {
       name: '',
       editorLocked: false,
     });
+    setPreviewRevision((revision) => revision + 1);
+    commitHistory();
     refreshEditorState();
-  }, [intl, refreshEditorState]);
+  }, [commitHistory, intl, previewMaterial, refreshEditorState]);
 
   const selectLayer = useCallback(
     (object: FabricObject) => {
@@ -490,53 +719,65 @@ export function MaterialLabelTemplateEditorPage() {
     [refreshEditorState],
   );
 
-  const toggleLayerLock = useCallback((object: FabricObject) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const lock = object.get('editorLocked') !== true;
-    object.set({
-      editorLocked: lock,
-      selectable: !lock,
-      evented: !lock,
-      lockMovementX: lock,
-      lockMovementY: lock,
-      lockRotation: lock,
-      lockScalingX: lock,
-      lockScalingY: lock,
-    });
-    if (lock) {
-      canvas.discardActiveObject();
-      setSelectedObject(object);
-    } else {
-      canvas.setActiveObject(object);
-    }
-    canvas.requestRenderAll();
-    setLayers(canvas.getObjects().slice().reverse());
-  }, []);
+  const toggleLayerLock = useCallback(
+    (object: FabricObject) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const lock = object.get('editorLocked') !== true;
+      object.set({
+        editorLocked: lock,
+        selectable: !lock,
+        evented: !lock,
+        lockMovementX: lock,
+        lockMovementY: lock,
+        lockRotation: lock,
+        lockScalingX: lock,
+        lockScalingY: lock,
+      });
+      if (lock) {
+        canvas.discardActiveObject();
+        setSelectedObject(object);
+      } else {
+        canvas.setActiveObject(object);
+      }
+      canvas.requestRenderAll();
+      setLayers(canvas.getObjects().slice().reverse());
+      commitHistory();
+    },
+    [commitHistory],
+  );
 
-  const toggleLayerVisibility = useCallback((object: FabricObject) => {
-    const canvas = canvasRef.current;
-    if (!canvas || object.get('labelElementType') === 'qr') return;
-    const visible = object.visible === false;
-    object.set('visible', visible);
-    if (!visible && canvas.getActiveObject() === object) {
-      canvas.discardActiveObject();
-      setSelectedObject(object);
-    }
-    canvas.requestRenderAll();
-    setLayers(canvas.getObjects().slice().reverse());
-  }, []);
+  const toggleLayerVisibility = useCallback(
+    (object: FabricObject) => {
+      const canvas = canvasRef.current;
+      if (!canvas || object.get('labelElementType') === 'qr') return;
+      const visible = object.visible === false;
+      object.set('visible', visible);
+      if (!visible && canvas.getActiveObject() === object) {
+        canvas.discardActiveObject();
+        setSelectedObject(object);
+      }
+      canvas.requestRenderAll();
+      setLayers(canvas.getObjects().slice().reverse());
+      commitHistory();
+    },
+    [commitHistory],
+  );
 
-  const reorderLayers = useCallback((orderedLayers: FabricObject[]) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    orderedLayers
-      .slice()
-      .reverse()
-      .forEach((object, index) => canvas.moveObjectTo(object, index));
-    canvas.requestRenderAll();
-    setLayers(canvas.getObjects().slice().reverse());
-  }, []);
+  const reorderLayers = useCallback(
+    (orderedLayers: FabricObject[]) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      orderedLayers
+        .slice()
+        .reverse()
+        .forEach((object, index) => canvas.moveObjectTo(object, index));
+      canvas.requestRenderAll();
+      setLayers(canvas.getObjects().slice().reverse());
+      commitHistory();
+    },
+    [commitHistory],
+  );
 
   const updateSelectedObject = useCallback(
     (property: string, value: unknown) => {
@@ -566,14 +807,24 @@ export function MaterialLabelTemplateEditorPage() {
         } else {
           canvas.setActiveObject(selectedObject);
         }
+      } else if (property === 'text' && selectedObject.get('labelBinding')) {
+        const binding = selectedObject.get('labelBinding');
+        const isMaterialTextBinding = MATERIAL_LABEL_FIELDS.some(
+          (field) => field.key === binding && field.kind === 'text',
+        );
+        selectedObject.set('labelSampleValue', value);
+        if (!previewMaterial || !isMaterialTextBinding) {
+          selectedObject.set(property, value);
+        }
       } else {
         selectedObject.set(property, value);
       }
       selectedObject.setCoords();
       canvas.requestRenderAll();
       setLayers(canvas.getObjects().slice().reverse());
+      commitHistory();
     },
-    [selectedObject],
+    [commitHistory, previewMaterial, selectedObject],
   );
 
   const updateSelectedMeasurement = useCallback(
@@ -591,7 +842,15 @@ export function MaterialLabelTemplateEditorPage() {
       ) {
         return;
       }
-      if (property === 'left' || property === 'top') {
+      if (selectedObject.type === 'textbox' && property === 'width') {
+        selectedObject.set({
+          width: Math.max(1, parsed * LABEL_EDITOR_PIXELS_PER_MM),
+          scaleX: 1,
+        });
+        selectedObject.initDimensions();
+      } else if (selectedObject.type === 'textbox' && property === 'height') {
+        return;
+      } else if (property === 'left' || property === 'top') {
         selectedObject.set(property, parsed * LABEL_EDITOR_PIXELS_PER_MM);
       } else if (property === 'width' || property === 'height') {
         const scaleProperty = property === 'width' ? 'scaleX' : 'scaleY';
@@ -608,8 +867,9 @@ export function MaterialLabelTemplateEditorPage() {
       selectedObject.setCoords();
       canvas.requestRenderAll();
       setLayers(canvas.getObjects().slice().reverse());
+      commitHistory();
     },
-    [selectedObject],
+    [commitHistory, selectedObject],
   );
 
   const updateSelectedBinding = useCallback(
@@ -620,13 +880,35 @@ export function MaterialLabelTemplateEditorPage() {
       const field = MATERIAL_LABEL_BINDING_FIELDS.find(
         (item) => item.key === fieldKey,
       );
-      if (field) selectedObject.set('text', getFieldSample(fieldKey));
+      if (field?.kind === 'text') {
+        const sampleValue = getFieldSample(fieldKey);
+        selectedObject.set({
+          labelSampleValue: sampleValue,
+          text:
+            previewMaterial &&
+            field?.kind === 'text' &&
+            fieldKey !== MATERIAL_LABEL_NOTE_BINDING
+              ? getMaterialBindingValue(
+                  previewMaterial,
+                  fieldKey as MaterialLabelMaterialFieldKey,
+                )
+              : sampleValue,
+        });
+        normalizeMaterialLabelTextbox(selectedObject);
+      } else if (field?.kind === 'image' && selectedObject.type === 'image') {
+        selectedObject.set(
+          'labelSampleImageSrc',
+          (selectedObject as FabricImage).getSrc(),
+        );
+      }
       canvasRef.current?.requestRenderAll();
       if (canvasRef.current) {
         setLayers(canvasRef.current.getObjects().slice().reverse());
       }
+      setPreviewRevision((revision) => revision + 1);
+      commitHistory();
     },
-    [getFieldSample, selectedObject],
+    [commitHistory, getFieldSample, previewMaterial, selectedObject],
   );
 
   const duplicateSelectedObject = useCallback(() => {
@@ -663,6 +945,7 @@ export function MaterialLabelTemplateEditorPage() {
           lockScalingX: false,
           lockScalingY: false,
         });
+        normalizeMaterialLabelTextbox(clone);
         canvas.add(clone);
         canvas.setActiveObject(clone);
         canvas.requestRenderAll();
@@ -725,7 +1008,8 @@ export function MaterialLabelTemplateEditorPage() {
     selectedObject.setCoords();
     canvas.requestRenderAll();
     setLayers(canvas.getObjects().slice().reverse());
-  }, [selectedObject]);
+    commitHistory();
+  }, [commitHistory, selectedObject]);
 
   const handleSave = useCallback(async () => {
     const canvas = canvasRef.current;
@@ -905,47 +1189,8 @@ export function MaterialLabelTemplateEditorPage() {
               </Card>
 
               <Card className="h-[34rem] min-h-0 min-w-0 overflow-hidden md:col-span-2 md:row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1 xl:h-full">
-                <CardHeader className="justify-end border-b px-4 py-2">
+                <CardHeader className="justify-between border-b px-4 py-2">
                   <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      mode="icon"
-                      title={intl.formatMessage({
-                        id: 'project.materialLabels.actions.zoomOut',
-                      })}
-                      aria-label={intl.formatMessage({
-                        id: 'project.materialLabels.actions.zoomOut',
-                      })}
-                      disabled={zoomPercent <= 60}
-                      onClick={() =>
-                        setZoomPercent((current) => Math.max(60, current - 10))
-                      }
-                    >
-                      <ZoomOut />
-                    </Button>
-                    <span className="w-10 text-center text-sm tabular-nums text-muted-foreground">
-                      {zoomPercent}%
-                    </span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      mode="icon"
-                      title={intl.formatMessage({
-                        id: 'project.materialLabels.actions.zoomIn',
-                      })}
-                      aria-label={intl.formatMessage({
-                        id: 'project.materialLabels.actions.zoomIn',
-                      })}
-                      disabled={zoomPercent >= 220}
-                      onClick={() =>
-                        setZoomPercent((current) => Math.min(220, current + 10))
-                      }
-                    >
-                      <ZoomIn />
-                    </Button>
                     <Button
                       type="button"
                       variant="ghost"
@@ -1005,6 +1250,84 @@ export function MaterialLabelTemplateEditorPage() {
                       onClick={deleteSelectedObject}
                     >
                       <Trash2 />
+                    </Button>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      mode="icon"
+                      title={intl.formatMessage({
+                        id: 'project.materialLabels.actions.undo',
+                      })}
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.undo',
+                      })}
+                      disabled={
+                        historyRevision === 0 || historyIndexRef.current <= 0
+                      }
+                      onClick={handleUndo}
+                    >
+                      <Undo2 />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      mode="icon"
+                      title={intl.formatMessage({
+                        id: 'project.materialLabels.actions.redo',
+                      })}
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.redo',
+                      })}
+                      disabled={
+                        historyRevision === 0 ||
+                        historyIndexRef.current >= historyRef.current.length - 1
+                      }
+                      onClick={handleRedo}
+                    >
+                      <Redo2 />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      mode="icon"
+                      title={intl.formatMessage({
+                        id: 'project.materialLabels.actions.zoomOut',
+                      })}
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.zoomOut',
+                      })}
+                      disabled={zoomPercent <= 60}
+                      onClick={() =>
+                        setZoomPercent((current) => Math.max(60, current - 10))
+                      }
+                    >
+                      <ZoomOut />
+                    </Button>
+                    <span className="w-10 text-center text-sm tabular-nums text-muted-foreground">
+                      {zoomPercent}%
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      mode="icon"
+                      title={intl.formatMessage({
+                        id: 'project.materialLabels.actions.zoomIn',
+                      })}
+                      aria-label={intl.formatMessage({
+                        id: 'project.materialLabels.actions.zoomIn',
+                      })}
+                      disabled={zoomPercent >= 220}
+                      onClick={() =>
+                        setZoomPercent((current) => Math.min(220, current + 10))
+                      }
+                    >
+                      <ZoomIn />
                     </Button>
                   </div>
                 </CardHeader>
@@ -1104,6 +1427,10 @@ export function MaterialLabelTemplateEditorPage() {
                   selectedObject={selectedObject}
                   metadata={metadata}
                   isEditing={isEditing}
+                  previewMaterial={previewMaterial}
+                  onPreviewMaterialChange={(material) =>
+                    setPreviewMaterial(material ?? null)
+                  }
                   onMetadataChange={(patch) =>
                     setMetadata((current) => ({ ...current, ...patch }))
                   }
@@ -1159,11 +1486,11 @@ function DimensionRulerValue({
 
   if (isEditing) {
     return (
-      <Input
+      <NumericInput
         autoFocus
         aria-label={label}
         className="w-20 text-center"
-        min="1"
+        min={1}
         onBlur={commit}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
@@ -1174,8 +1501,9 @@ function DimensionRulerValue({
           }
         }}
         onPointerDown={(event) => event.stopPropagation()}
-        step="0.1"
-        type="number"
+        step={0.1}
+        decimalScale={1}
+        inputMode="decimal"
         value={draft}
         variant="sm"
       />
