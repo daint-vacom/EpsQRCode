@@ -1,8 +1,8 @@
 import { PanelLeft } from 'lucide-react';
-import { useLayout } from './context';
-import { Button } from '@/components/ui/button';
 import { Link } from 'react-router';
 import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
+import { useLayout } from './context';
 
 export function SidebarHeader() {
   const { sidebarToggle } = useLayout();
@@ -22,7 +22,11 @@ export function SidebarHeader() {
                 shadow-[0_0_0_1px_#000]
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[18px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[18px]"
+              />
             </div>
             <span className="text-white text-lg font-semibold hidden lg:block">
               Metronic
@@ -38,7 +42,7 @@ export function SidebarHeader() {
           >
             <PanelLeft className="size-5 opacity-100" />
           </Button>
-        </div>        
+        </div>
       </div>
     </div>
   );

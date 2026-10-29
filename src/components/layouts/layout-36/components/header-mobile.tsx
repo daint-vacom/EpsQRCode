@@ -1,14 +1,20 @@
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
 import { useState } from 'react';
+import { Menu } from 'lucide-react';
 import { Link } from 'react-router';
 import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import SidebarCalendar from './sidebar-calendar';
-import { SidebarFooter } from './sidebar-footer';
-import { SidebarCalendarMenu } from './sidebar-calendar-menu';
 import { Separator } from '@/components/ui/separator';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import SidebarCalendar from './sidebar-calendar';
+import { SidebarCalendarMenu } from './sidebar-calendar-menu';
+import { SidebarFooter } from './sidebar-footer';
 
 export function HeaderMobile() {
   const [isSidebarSheetOpen, setIsSidebarSheetOpen] = useState(false);
@@ -27,16 +33,21 @@ export function HeaderMobile() {
                 shadow-[0_0_0_1px_#000]
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[15px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[15px]"
+              />
             </div>
-            <span className="text-white text-lg font-semibold">
-              Metronic
-            </span>
+            <span className="text-white text-lg font-semibold">Metronic</span>
           </Link>
 
           <div className="flex items-center gap-2">
             {/* Sidebar */}
-            <Sheet open={isSidebarSheetOpen} onOpenChange={setIsSidebarSheetOpen}>
+            <Sheet
+              open={isSidebarSheetOpen}
+              onOpenChange={setIsSidebarSheetOpen}
+            >
               <SheetTrigger asChild>
                 <Button variant="ghost" mode="icon">
                   <Menu />
@@ -58,7 +69,7 @@ export function HeaderMobile() {
                 </SheetBody>
               </SheetContent>
             </Sheet>
-          </div>   
+          </div>
         </div>
       </div>
     </header>

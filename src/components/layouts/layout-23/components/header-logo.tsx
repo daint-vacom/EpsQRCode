@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { useLayout } from './context';
+import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { HeaderMenuMobile } from './header-menu-mobile';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -11,10 +10,11 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import { useLayout } from './context';
+import { HeaderMenuMobile } from './header-menu-mobile';
 import { SidebarHeader } from './sidebar-header';
-import { SidebarSearch } from './sidebar-search';
 import { SidebarMenu } from './sidebar-menu';
+import { SidebarSearch } from './sidebar-search';
 
 export function HeaderLogo() {
   const { pathname } = useLocation();
@@ -31,7 +31,11 @@ export function HeaderLogo() {
       {isMobile && (
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" mode="icon" className="text-muted-foreground hover:text-white hover:bg-[#26272F]">
+            <Button
+              variant="ghost"
+              mode="icon"
+              className="text-muted-foreground hover:text-white hover:bg-[#26272F]"
+            >
               <Menu />
             </Button>
           </SheetTrigger>
@@ -60,7 +64,11 @@ export function HeaderLogo() {
             shadow-[0_0_0_1px_#009229]
           "
         >
-          <img src={toAbsoluteUrl('/media/app/logo-33.svg')} alt="image" className="min-w-[18px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-w-[18px]"
+          />
         </div>
         <span className="text-white text-xl font-medium hidden lg:block">
           Metronic

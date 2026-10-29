@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { useLayout } from './context';
+import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { HeaderMenuMobile } from './header-menu-mobile';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -11,7 +10,8 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import { useLayout } from './context';
+import { HeaderMenuMobile } from './header-menu-mobile';
 import { SidebarMenu } from './sidebar-menu';
 
 export function HeaderLogo() {
@@ -48,12 +48,12 @@ export function HeaderLogo() {
       )}
       <Link to="/layout-11">
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="dark:hidden size-6"
           alt="image"
         />
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="hidden dark:inline-block size-6"
           alt="image"
         />

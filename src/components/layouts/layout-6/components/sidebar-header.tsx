@@ -31,12 +31,12 @@ export function SidebarHeader() {
       <div className="flex items-center justify-between gap-2.5 px-3.5 h-[70px]">
         <Link to="/layout-6">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden h-[42px]"
             alt=""
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:inline-block h-[42px]"
             alt=""
           />

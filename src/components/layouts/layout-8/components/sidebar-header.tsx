@@ -6,12 +6,12 @@ export function SidebarHeader() {
     <div className="hidden lg:flex items-center justify-center shrink-0 pt-8 pb-3.5">
       <Link to="/layout-8">
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-square-gray.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="dark:hidden min-h-[42px]"
           alt=""
         />
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-square-gray-dark.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="hidden dark:block min-h-[42px]"
           alt=""
         />

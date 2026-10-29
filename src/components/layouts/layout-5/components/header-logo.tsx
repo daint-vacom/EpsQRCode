@@ -29,7 +29,6 @@ import {
 import { SidebarMenuDashboard } from './sidebar-menu-dashboard';
 import { SidebarMenuDefault } from './sidebar-menu-default';
 
-
 interface HeaderLogoTeam {
   title: string;
   icon?: LucideIcon;
@@ -113,12 +112,12 @@ export function HeaderLogo() {
     <div className="flex items-center gap-1.5 lg:gap-5">
       <Link to="/layout-5">
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-circle.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="dark:hidden min-h-[34px]"
           alt="logo"
         />
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-circle-dark.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="hidden dark:inline-block min-h-[34px]"
           alt="logo"
         />

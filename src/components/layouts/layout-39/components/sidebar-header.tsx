@@ -1,8 +1,8 @@
+import { PanelLeft, PanelRight } from 'lucide-react';
 import { Link } from 'react-router';
-import { useLayout } from './context';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
-import { PanelLeft, PanelRight } from 'lucide-react';
+import { useLayout } from './context';
 
 export function SidebarHeader() {
   const { sidebarToggle, isSidebarOpen } = useLayout();
@@ -10,7 +10,12 @@ export function SidebarHeader() {
   if (!isSidebarOpen) {
     return (
       <div className="flex items-center justify-center shrink-0 px-3 py-3.5">
-        <Button mode="icon" variant="ghost" onClick={() => sidebarToggle()} className="hidden lg:inline-flex shrink-0">
+        <Button
+          mode="icon"
+          variant="ghost"
+          onClick={() => sidebarToggle()}
+          className="hidden lg:inline-flex shrink-0"
+        >
           <PanelRight />
         </Button>
       </div>
@@ -32,12 +37,21 @@ export function SidebarHeader() {
             transition-opacity
           "
         >
-          <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[16px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-w-[16px]"
+          />
         </div>
         <span className="text-mono text-sm font-medium">KeenTodo</span>
       </Link>
 
-      <Button mode="icon" variant="ghost" onClick={() => sidebarToggle()} className="hidden lg:inline-flex shrink-0">
+      <Button
+        mode="icon"
+        variant="ghost"
+        onClick={() => sidebarToggle()}
+        className="hidden lg:inline-flex shrink-0"
+      >
         <PanelLeft />
       </Button>
     </div>

@@ -48,6 +48,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.actions.save': 'Lưu vật tư',
   'project.materials.actions.back': 'Quay lại danh sách vật tư',
   'project.materials.actions.retry': 'Thử tải lại',
+  'project.materials.actions.reprintLastLabel': 'In lại nhãn gần nhất',
   'project.materials.actions.cancel': 'Hủy',
   'project.materials.actions.saving': 'Đang lưu',
   'project.materials.actions.customize': 'Chỉnh sửa giá trị',
@@ -162,6 +163,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.sections.currentState': 'Tình trạng hiện tại',
   'project.materials.sections.materialInfo': 'Thông tin vật tư',
   'project.materials.sections.qr': 'Mã QR vật tư',
+  'project.materials.sections.printedQrLabel': 'Nhãn QR vật tư đã in',
   'project.materials.form.chooseModelHint':
     'Chọn mẫu vật tư để xem thông tin được lưu khi tạo.',
   'project.materials.form.inheritedSpecifications':
@@ -214,6 +216,8 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.states.loading': 'Đang tải',
   'project.materials.states.error': 'Đã xảy ra lỗi',
   'project.materials.states.loadFailed': 'Không tải được thông tin',
+  'project.materials.states.lastPrintedLabel': 'Nhãn đã in lần cuối',
+  'project.materials.states.notPrintedLabel': 'Vật tư chưa in tem nhãn',
   'project.materials.states.reserved':
     'Vật tư đang nằm trong phiếu bàn giao chưa hoàn tất.',
   'project.materials.history.actor': 'Người thực hiện',
@@ -272,6 +276,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.actions.save': 'Save material',
   'project.materials.actions.back': 'Back to materials',
   'project.materials.actions.retry': 'Retry',
+  'project.materials.actions.reprintLastLabel': 'Reprint last label',
   'project.materials.actions.cancel': 'Cancel',
   'project.materials.actions.saving': 'Saving',
   'project.materials.actions.customize': 'Edit value',
@@ -387,6 +392,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.sections.currentState': 'Current state',
   'project.materials.sections.materialInfo': 'Material information',
   'project.materials.sections.qr': 'Material QR code',
+  'project.materials.sections.printedQrLabel': 'Printed material QR label',
   'project.materials.form.chooseModelHint':
     'Choose a material model to preview information captured when the material is created.',
   'project.materials.form.inheritedSpecifications':
@@ -439,6 +445,9 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.states.loading': 'Loading',
   'project.materials.states.error': 'An error occurred',
   'project.materials.states.loadFailed': 'Could not load information',
+  'project.materials.states.lastPrintedLabel': 'Last printed label',
+  'project.materials.states.notPrintedLabel':
+    'No label printed for this material',
   'project.materials.states.reserved':
     'This material is reserved by an unfinished handover.',
   'project.materials.history.actor': 'Actor',

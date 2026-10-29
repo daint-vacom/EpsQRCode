@@ -1,5 +1,6 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
+  MaterialLabelPrintSnapshot,
   MaterialLabelTemplate,
   MaterialLabelTemplateInput,
   MaterialLabelTemplatePreference,
@@ -55,15 +56,32 @@ export async function loadMaterialLabelTemplatePreferences(
   );
 }
 
+export async function loadMaterialLabelPrintSnapshot(
+  materialId: string,
+  signal?: AbortSignal,
+): Promise<MaterialLabelPrintSnapshot | null> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_last_label_print',
+      { p_material_id: materialId },
+      { signal },
+    ),
+  );
+}
+
 export async function saveMaterialLabelTemplatePreferences(
   materialIds: string[],
-  templateId: string,
+  template: MaterialLabelTemplate,
+  previews: Record<string, string>,
 ): Promise<void> {
   assertSupabaseConfigured();
   await request(
     supabaseApi.post('/rpc/save_material_label_template_preferences', {
       p_material_ids: materialIds,
-      p_template_id: templateId,
+      p_template_id: template.id,
+      p_template_snapshot: template,
+      p_material_previews: previews,
     }),
   );
 }

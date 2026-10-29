@@ -373,7 +373,8 @@ export function MaterialLabelPrintPage() {
     try {
       await savePreferences({
         materialIds: materials.map((material) => material.id),
-        templateId: selectedTemplate.id,
+        template: selectedTemplate,
+        previews: labelSvgs,
       });
       toast.success(
         intl.formatMessage({
@@ -382,9 +383,17 @@ export function MaterialLabelPrintPage() {
       );
     } catch (error) {
       toast.error(getApiErrorMessage(error));
+      return;
     }
     window.print();
-  }, [intl, materials, printDisabled, savePreferences, selectedTemplate]);
+  }, [
+    intl,
+    labelSvgs,
+    materials,
+    printDisabled,
+    savePreferences,
+    selectedTemplate,
+  ]);
 
   const header = useMemo(
     () => ({

@@ -1,3 +1,8 @@
+import { useEffect, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -5,23 +10,18 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { SidebarContent } from './sidebar-content';
-import { toAbsoluteUrl } from '@/lib/helpers';
-import { Link, useLocation } from 'react-router';
 import { SidebarFooter } from './sidebar-footer';
 
 export function Header() {
   const { pathname } = useLocation();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  
+
   // Close sheet when route changes
   useEffect(() => {
     setIsSheetOpen(false);
   }, [pathname]);
-  
+
   return (
     <header className="transition-[start,end] duration-300 fixed top-0 start-0 lg:start-[calc(0.6rem+var(--sidebar-collapsed-width))] lg:in-data-[sidebar-open=true]:start-[calc(var(--sidebar-width)+0.7rem)] end-0 z-50 flex items-center shrink-0 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-muted h-(--header-height-mobile) lg:h-[var(--header-height)] pe-[var(--removed-body-scroll-bar-size,0px)]">
       <div className="container-fluid grow flex items-center justify-between gap-2">
@@ -37,7 +37,11 @@ export function Header() {
                 shadow-lg
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-34.svg')} alt="image" className="min-w-[16px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[16px]"
+              />
             </div>
           </Link>
 
@@ -58,7 +62,7 @@ export function Header() {
               </SheetBody>
             </SheetContent>
           </Sheet>
-        </div >
+        </div>
 
         <SidebarFooter />
       </div>

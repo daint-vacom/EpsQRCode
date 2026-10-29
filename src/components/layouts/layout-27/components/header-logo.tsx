@@ -1,14 +1,20 @@
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useLayout } from './context';
-import { useState } from 'react';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { SidebarMenu } from './sidebar-menu';
-import { HeaderTitle } from './header-title';
 import { HeaderBreadcrumbs } from './header-breadcrumbs';
+import { HeaderTitle } from './header-title';
 import { Sidebar } from './sidebar';
+import { SidebarMenu } from './sidebar-menu';
 
 export function HeaderLogo() {
   const { isMobile } = useLayout();
@@ -22,12 +28,12 @@ export function HeaderLogo() {
         <div className="flex items-center justify-center min-w-15">
           <Link to="/layout-27" className="">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="dark:hidden shrink-0 size-7.5"
               alt="image"
             />
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="hidden dark:inline-block shrink-0 size-7.5"
               alt="image"
             />
@@ -57,7 +63,7 @@ export function HeaderLogo() {
       )}
 
       <HeaderTitle />
-      {!isMobile && <HeaderBreadcrumbs/>}
+      {!isMobile && <HeaderBreadcrumbs />}
     </div>
   );
 }

@@ -1,29 +1,29 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { toAbsoluteUrl } from '@/lib/helpers';
-import { cn } from '@/lib/utils';
 import {
+  Building2,
+  Clock,
+  Download,
+  ExternalLink,
   FolderCode,
+  LogOut,
   Mails,
+  Moon,
   NotepadText,
   ScrollText,
   Settings,
+  Shield,
   ShieldUser,
+  Sun,
+  SwatchBook,
+  Target,
+  User,
   UserCircle,
   Users,
-  User,
-  Clock,
-  Shield,
-  Building2,
-  LogOut,
-  Download,
-  ExternalLink,
   Zap,
-  Target,
-  Sun,
-  Moon,
-  SwatchBook
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { cn } from '@/lib/utils';
 import {
   Avatar,
   AvatarFallback,
@@ -31,11 +31,8 @@ import {
   AvatarIndicator,
   AvatarStatus,
 } from '@/components/ui/avatar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,9 +40,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const menuItems = [
   {
@@ -86,7 +86,7 @@ const menuItems = [
     icon: FolderCode,
     tooltip: 'Security Logs',
     path: '#',
-    rootPath: '#',  
+    rootPath: '#',
     active: false,
   },
   {
@@ -95,7 +95,7 @@ const menuItems = [
     path: '#',
     rootPath: '#',
     active: false,
-  }
+  },
 ];
 
 export function Sidebar() {
@@ -113,7 +113,11 @@ export function Sidebar() {
       {/* Logo */}
       <div className="items-center justify-center shrink-0 hidden lg:flex py-2.5">
         <Link to="/layout-24">
-          <img src={toAbsoluteUrl('/media/app/mini-logo-white.svg')} alt="image" className="min-h-[25px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-h-[25px]"
+          />
         </Link>
       </div>
 
@@ -141,7 +145,9 @@ export function Sidebar() {
                   </Button>
                 </TooltipTrigger>
 
-                <TooltipContent side="right" sideOffset={20}>{item.tooltip}</TooltipContent>
+                <TooltipContent side="right" sideOffset={20}>
+                  {item.tooltip}
+                </TooltipContent>
               </Tooltip>
             ))}
           </div>
@@ -160,7 +166,7 @@ export function Sidebar() {
               'text-white/60 hover:text-white hover:bg-zinc-800',
             )}
           >
-            <Mails className="size-5 opacity-100"/>
+            <Mails className="size-5 opacity-100" />
           </Button>
 
           <Button
@@ -172,9 +178,9 @@ export function Sidebar() {
               'text-white/60 hover:text-white hover:bg-zinc-800',
             )}
           >
-            <NotepadText className="size-5 opacity-100"/>
+            <NotepadText className="size-5 opacity-100" />
           </Button>
-          
+
           <Button
             variant="ghost"
             mode="icon"
@@ -184,39 +190,61 @@ export function Sidebar() {
               'text-white/60 hover:text-white hover:bg-zinc-800',
             )}
           >
-            <Settings className="size-5 opacity-100"/>
+            <Settings className="size-5 opacity-100" />
           </Button>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer mb-2.5">
             <Avatar className="size-8.5">
-              <AvatarImage src={toAbsoluteUrl('/media/avatars/300-2.png')} alt="@reui" />
+              <AvatarImage
+                src={toAbsoluteUrl('/media/avatars/300-2.png')}
+                alt="@reui"
+              />
               <AvatarFallback>CH</AvatarFallback>
               <AvatarIndicator className="-end-2 -top-2">
                 <AvatarStatus variant="online" className="size-2.5" />
               </AvatarIndicator>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64 mb-4" side="right" align="start" sideOffset={11}>
+          <DropdownMenuContent
+            className="w-64 mb-4"
+            side="right"
+            align="start"
+            sideOffset={11}
+          >
             {/* User Information Section */}
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar>
-                <AvatarImage src={toAbsoluteUrl('/media/avatars/300-2.png')} alt="@reui" />
+                <AvatarImage
+                  src={toAbsoluteUrl('/media/avatars/300-2.png')}
+                  alt="@reui"
+                />
                 <AvatarFallback>CH</AvatarFallback>
                 <AvatarIndicator className="-end-1.5 -top-1.5">
                   <AvatarStatus variant="online" className="size-2.5" />
                 </AvatarIndicator>
               </Avatar>
               <div className="flex flex-col items-start">
-                <span className="text-sm font-semibold text-foreground">Chris Harris</span>
-                <span className="text-xs text-muted-foreground">Senior Developer</span>
-                <Badge variant="success" appearance="outline" size="sm" className="mt-1">Pro Plan</Badge>
+                <span className="text-sm font-semibold text-foreground">
+                  Chris Harris
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Senior Developer
+                </span>
+                <Badge
+                  variant="success"
+                  appearance="outline"
+                  size="sm"
+                  className="mt-1"
+                >
+                  Pro Plan
+                </Badge>
               </div>
             </div>
-            
+
             <DropdownMenuItem className="cursor-pointer py-1 rounded-md border border-border hover:bg-muted">
-              <Clock/>
+              <Clock />
               <span>Set availability</span>
             </DropdownMenuItem>
 
@@ -224,18 +252,25 @@ export function Sidebar() {
 
             {/* Core Actions */}
             <DropdownMenuItem>
-              <Target/>
+              <Target />
               <span>My Projects</span>
-              <Badge variant="info" size="sm" appearance="outline" className="ms-auto">3</Badge>
+              <Badge
+                variant="info"
+                size="sm"
+                appearance="outline"
+                className="ms-auto"
+              >
+                3
+              </Badge>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Users/>
+              <Users />
               <span>Team Management</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Building2/>
+              <Building2 />
               <span>Organization</span>
             </DropdownMenuItem>
 
@@ -243,17 +278,17 @@ export function Sidebar() {
 
             {/* Settings */}
             <DropdownMenuItem>
-              <User/>
+              <User />
               <span>Profile Settings</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Settings/>
+              <Settings />
               <span>Preferences</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Shield/>
+              <Shield />
               <span>Security</span>
             </DropdownMenuItem>
 
@@ -261,7 +296,11 @@ export function Sidebar() {
 
             {/* Theme Toggle */}
             <DropdownMenuItem onClick={toggleTheme}>
-              {isDarkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {isDarkMode ? (
+                <Sun className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
               <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </DropdownMenuItem>
 
@@ -269,22 +308,22 @@ export function Sidebar() {
 
             {/* Developer Tools */}
             <DropdownMenuItem>
-              <Zap/>
+              <Zap />
               <span>API Documentation</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Zap/>
+              <Zap />
               <span>Code Repository</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Zap/>
+              <Zap />
               <span>Testing Suite</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Download/>
+              <Download />
               <span>Download SDK</span>
               <ExternalLink className="size-3 ms-auto" />
             </DropdownMenuItem>
@@ -293,7 +332,7 @@ export function Sidebar() {
 
             {/* Action Items */}
             <DropdownMenuItem>
-              <LogOut/>
+              <LogOut />
               <span>Sign out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -29,12 +29,12 @@ const HeaderLogo = () => {
       <div className="flex items-center gap-2.5">
         <Link to="/layout-7">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-primary.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden min-h-[34px]"
             alt="logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-primary-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:inline-block min-h-[34px]"
             alt="logo"
           />

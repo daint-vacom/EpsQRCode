@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Menu, PanelRight } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { useLayout } from './context';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Sheet,
   SheetBody,
@@ -10,14 +12,12 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { useLayout } from './context';
 import { HeaderSearch } from './header-search';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { SidebarFeeds } from "./sidebar-feeds";
-import { SidebarCommunities } from "./sidebar-communities";
-import { SidebarPrimaryMenu } from "./sidebar-primary-menu";
-import { SidebarResourcesMenu } from "./sidebar-resources-menu";
+import { SidebarCommunities } from './sidebar-communities';
+import { SidebarFeeds } from './sidebar-feeds';
+import { SidebarPrimaryMenu } from './sidebar-primary-menu';
+import { SidebarResourcesMenu } from './sidebar-resources-menu';
 
 export function HeaderLogo() {
   const { pathname } = useLocation();
@@ -67,12 +67,12 @@ export function HeaderLogo() {
         {/* Logo */}
         <Link to="/layout-12" className="flex items-center gap-2">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden shrink-0 size-6"
             alt="image"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:inline-block shrink-0 size-6"
             alt="image"
           />

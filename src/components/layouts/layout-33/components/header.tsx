@@ -1,4 +1,8 @@
-import { useLayout } from './context';
+import { useEffect, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { Link, useLocation } from 'react-router';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -6,25 +10,21 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { SidebarContent } from './sidebar-content';
-import { toAbsoluteUrl } from '@/lib/helpers';
-import { Link, useLocation } from 'react-router';
-import { ToolbarActions } from './toolbar';
+import { useLayout } from './context';
 import { Navbar } from './navbar';
+import { SidebarContent } from './sidebar-content';
+import { ToolbarActions } from './toolbar';
 
 export function Header() {
   const { isMobile } = useLayout();
   const { pathname } = useLocation();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  
+
   // Close sheet when route changes
   useEffect(() => {
     setIsSheetOpen(false);
   }, [pathname]);
-  
+
   return (
     <header className="transition-[left,right] duration-300 fixed top-0 start-0 lg:start-[calc(0.6rem+var(--sidebar-collapsed-width))] lg:in-data-[sidebar-open=true]:start-[calc(var(--sidebar-width)+0.7rem)] end-0 z-50 flex items-center shrink-0 bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 h-(--header-height-mobile) lg:h-[var(--header-height)] pe-[var(--removed-body-scroll-bar-size,0px)]">
       <div className="container-fluid grow flex items-center justify-between gap-2">
@@ -32,12 +32,12 @@ export function Header() {
         <div className="flex items-center gap-2">
           <Link to="/layout-33">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="dark:hidden min-h-[30px]"
               alt="Logo"
             />
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="hidden dark:block min-h-[30px]"
               alt="Logo"
             />
@@ -59,7 +59,7 @@ export function Header() {
               </SheetBody>
             </SheetContent>
           </Sheet>
-        </div >
+        </div>
         {isMobile && (
           <ToolbarActions>
             <Navbar />

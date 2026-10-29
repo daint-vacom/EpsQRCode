@@ -1,11 +1,17 @@
-import { toAbsoluteUrl } from "@/lib/helpers";
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { SidebarContent } from "./sidebar-content";
-import { useLocation } from "react-router";
+import { useEffect, useState } from 'react';
+import { Menu } from 'lucide-react';
+import { useLocation } from 'react-router';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { SidebarContent } from './sidebar-content';
 
 export function HeaderBrand() {
   const { pathname } = useLocation();
@@ -16,10 +22,14 @@ export function HeaderBrand() {
   useEffect(() => {
     setIsSheetOpen(false);
   }, [pathname]);
-  
+
   return (
     <div className="flex items-center -ms-1">
-      <img src={toAbsoluteUrl('/media/app/mini-logo.svg')} alt="" className="h-4"/>
+      <img
+        src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+        alt=""
+        className="h-4"
+      />
       {isMobile && (
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
@@ -41,5 +51,4 @@ export function HeaderBrand() {
       )}
     </div>
   );
-};
-
+}

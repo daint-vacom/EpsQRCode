@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { MENU_ROOT } from '@/config/layout-2.config';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
 import {
@@ -9,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MENU_ROOT } from '@/config/layout-2.config';
 
 export function HeaderLogo() {
   const { pathname } = useLocation();
@@ -28,12 +28,12 @@ export function HeaderLogo() {
       {/* Logo Section */}
       <Link to="/layout-2" className="shrink-0">
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-circle.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="dark:hidden min-h-[42px]"
           alt="logo"
         />
         <img
-          src={toAbsoluteUrl('/media/app/mini-logo-circle-dark.svg')}
+          src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
           className="hidden dark:inline-block min-h-[42px]"
           alt="logo"
         />

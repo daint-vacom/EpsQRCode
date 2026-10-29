@@ -1,12 +1,22 @@
+import { useEffect, useState } from 'react';
+import { Check, ChevronsUpDown, Menu } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useLayout } from './context';
-import { useEffect, useState } from 'react';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
 import { SidebarContent } from './sidebar-content';
 
 interface Project {
@@ -27,20 +37,20 @@ export function HeaderLogo() {
   const projects: Project[] = [
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "Store Admin",
+      name: 'Store Admin',
     },
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "Store Retail",
+      name: 'Store Retail',
     },
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "CRM System",
-    }
+      name: 'CRM System',
+    },
   ];
 
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
-  
+
   return (
     <div className="flex items-center gap-5 lg:gap-2.5">
       {/* Brand */}
@@ -52,11 +62,7 @@ export function HeaderLogo() {
                 <Menu />
               </Button>
             </SheetTrigger>
-            <SheetContent
-              className="p-0 gap-0 w-16"
-              side="left"
-              close={false}
-            >
+            <SheetContent className="p-0 gap-0 w-16" side="left" close={false}>
               <SheetHeader className="p-0 space-y-0" />
               <SheetBody className="flex flex-col grow py-5 lg:px-0 lg:py-0 [--sidebar-space-x:calc(var(--spacing)*2.5)]">
                 <SidebarContent />
@@ -66,14 +72,17 @@ export function HeaderLogo() {
         )}
 
         {/* Logo */}
-        <Link to="/layout-17" className="flex items-center gap-2 -ms-2.5 lg:ms-0">
+        <Link
+          to="/layout-17"
+          className="flex items-center gap-2 -ms-2.5 lg:ms-0"
+        >
           <img
-            src={toAbsoluteUrl('/media/app/logo-32.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden shrink-0 size-7.5"
             alt="image"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:inline-block shrink-0 size-7.5"
             alt="image"
           />
@@ -87,11 +96,8 @@ export function HeaderLogo() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="px-4">
-            <img
-              src={toAbsoluteUrl('/media/app/item.png')}
-              alt="image"
-            />
-            {!isMobile && "Store Admin"}
+            <img src={toAbsoluteUrl('/media/app/item.png')} alt="image" />
+            {!isMobile && 'Store Admin'}
             <ChevronsUpDown className="opacity-100" />
           </Button>
         </DropdownMenuTrigger>
@@ -102,7 +108,11 @@ export function HeaderLogo() {
           sideOffset={2}
         >
           {projects.map((project: Project) => (
-            <DropdownMenuItem key={project.name} onClick={() => setSelectedProject(project)} data-active={selectedProject.name === project.name}>
+            <DropdownMenuItem
+              key={project.name}
+              onClick={() => setSelectedProject(project)}
+              data-active={selectedProject.name === project.name}
+            >
               <img src={project.logo} alt={project.name} />
               <span>{project.name}</span>
               {selectedProject.name === project.name && (

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Menu, PanelRight } from 'lucide-react';
-import { useLayout } from './context';
+import { Link, useLocation } from 'react-router-dom';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -9,8 +10,7 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { toAbsoluteUrl } from '@/lib/helpers';
+import { useLayout } from './context';
 import { Sidebar } from './sidebar';
 
 export function HeaderLogo() {
@@ -52,12 +52,12 @@ export function HeaderLogo() {
         <div className="flex w-full grow items-center justify-between lg:ps-5 px-2.5 gap-2.5">
           <Link to="/layout-34" className="flex items-center gap-2">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="dark:hidden shrink-0 size-6"
               alt="image"
             />
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="hidden dark:inline-block shrink-0 size-6"
               alt="image"
             />
@@ -75,7 +75,7 @@ export function HeaderLogo() {
           >
             <PanelRight className="-rotate-180 in-data-[sidebar-open=false]:rotate-0 opacity-100" />
           </Button>
-        </div>        
+        </div>
       </div>
     </div>
   );

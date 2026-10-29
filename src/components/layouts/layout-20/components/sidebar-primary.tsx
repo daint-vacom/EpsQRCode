@@ -1,29 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { toAbsoluteUrl } from '@/lib/helpers';
-import { cn } from '@/lib/utils';
 import {
   BarChart3,
+  Building2,
+  Clock,
+  Download,
+  ExternalLink,
   FolderCode,
+  LogOut,
   Mails,
+  Moon,
   NotepadText,
   ScrollText,
   Settings,
+  Shield,
   ShieldUser,
+  Sun,
+  Target,
+  User,
   UserCircle,
   Users,
-  User,
-  Clock,
-  Shield,
-  Building2,
-  LogOut,
-  Download,
-  ExternalLink,
   Zap,
-  Target,
-  Sun,
-  Moon,
 } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { toAbsoluteUrl } from '@/lib/helpers';
+import { cn } from '@/lib/utils';
 import {
   Avatar,
   AvatarFallback,
@@ -31,11 +31,8 @@ import {
   AvatarIndicator,
   AvatarStatus,
 } from '@/components/ui/avatar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,9 +43,12 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const menuItems = [
   {
@@ -61,7 +61,7 @@ const menuItems = [
     icon: BarChart3,
     tooltip: 'Dashboard',
     path: '/layout-20',
-    rootPath: '/layout-20'
+    rootPath: '/layout-20',
   },
   {
     icon: Settings,
@@ -92,7 +92,7 @@ const menuItems = [
     tooltip: 'Files',
     path: '#',
     rootPath: '#',
-  }
+  },
 ];
 
 export function SidebarPrimary() {
@@ -122,7 +122,11 @@ export function SidebarPrimary() {
       {/* Logo */}
       <div className="flex items-center justify-center shrink-0">
         <Link to="/layout-20">
-          <img src={toAbsoluteUrl('/media/app/mini-logo-white.svg')} alt="image" className="min-h-[25px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-h-[25px]"
+          />
         </Link>
       </div>
 
@@ -158,47 +162,81 @@ export function SidebarPrimary() {
 
       {/* Footer */}
       <div className="flex flex-col items-center gap-2.5 shrink-0">
-        <Button variant="ghost" mode="icon" className="text-muted-foreground hover:text-foreground">
-          <Mails className="opacity-100"/>
+        <Button
+          variant="ghost"
+          mode="icon"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Mails className="opacity-100" />
         </Button>
 
-        <Button variant="ghost" mode="icon" className="text-muted-foreground hover:text-foreground">
-          <NotepadText className="opacity-100"/>
+        <Button
+          variant="ghost"
+          mode="icon"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <NotepadText className="opacity-100" />
         </Button>
-        
-        <Button variant="ghost" mode="icon" className="text-muted-foreground hover:text-foreground">
-          <Settings className="opacity-100"/>
+
+        <Button
+          variant="ghost"
+          mode="icon"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Settings className="opacity-100" />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer mb-2.5">
             <Avatar className="size-7">
-              <AvatarImage src={toAbsoluteUrl('/media/avatars/300-2.png')} alt="@reui" />
+              <AvatarImage
+                src={toAbsoluteUrl('/media/avatars/300-2.png')}
+                alt="@reui"
+              />
               <AvatarFallback>CH</AvatarFallback>
               <AvatarIndicator className="-end-2 -top-2">
                 <AvatarStatus variant="online" className="size-2.5" />
               </AvatarIndicator>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-64 mb-4" side="right" align="start" sideOffset={11}>
+          <DropdownMenuContent
+            className="w-64 mb-4"
+            side="right"
+            align="start"
+            sideOffset={11}
+          >
             {/* User Information Section */}
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar>
-                <AvatarImage src={toAbsoluteUrl('/media/avatars/300-2.png')} alt="@reui" />
+                <AvatarImage
+                  src={toAbsoluteUrl('/media/avatars/300-2.png')}
+                  alt="@reui"
+                />
                 <AvatarFallback>CH</AvatarFallback>
                 <AvatarIndicator className="-end-1.5 -top-1.5">
                   <AvatarStatus variant="online" className="size-2.5" />
                 </AvatarIndicator>
               </Avatar>
               <div className="flex flex-col items-start">
-                <span className="text-sm font-semibold text-foreground">Chris Harris</span>
-                <span className="text-xs text-muted-foreground">Senior Developer</span>
-                <Badge variant="success" appearance="outline" size="sm" className="mt-1">Pro Plan</Badge>
+                <span className="text-sm font-semibold text-foreground">
+                  Chris Harris
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Senior Developer
+                </span>
+                <Badge
+                  variant="success"
+                  appearance="outline"
+                  size="sm"
+                  className="mt-1"
+                >
+                  Pro Plan
+                </Badge>
               </div>
             </div>
-            
+
             <DropdownMenuItem className="cursor-pointer py-1 rounded-md border border-border hover:bg-muted">
-              <Clock/>
+              <Clock />
               <span>Set availability</span>
             </DropdownMenuItem>
 
@@ -206,18 +244,25 @@ export function SidebarPrimary() {
 
             {/* Core Actions */}
             <DropdownMenuItem>
-              <Target/>
+              <Target />
               <span>My Projects</span>
-              <Badge variant="info" size="sm" appearance="outline" className="ms-auto">3</Badge>
+              <Badge
+                variant="info"
+                size="sm"
+                appearance="outline"
+                className="ms-auto"
+              >
+                3
+              </Badge>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Users/>
+              <Users />
               <span>Team Management</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Building2/>
+              <Building2 />
               <span>Organization</span>
             </DropdownMenuItem>
 
@@ -225,17 +270,17 @@ export function SidebarPrimary() {
 
             {/* Settings */}
             <DropdownMenuItem>
-              <User/>
+              <User />
               <span>Profile Settings</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Settings/>
+              <Settings />
               <span>Preferences</span>
             </DropdownMenuItem>
 
             <DropdownMenuItem>
-              <Shield/>
+              <Shield />
               <span>Security</span>
             </DropdownMenuItem>
 
@@ -243,7 +288,11 @@ export function SidebarPrimary() {
 
             {/* Theme Toggle */}
             <DropdownMenuItem onClick={toggleTheme}>
-              {isDarkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {isDarkMode ? (
+                <Sun className="size-4" />
+              ) : (
+                <Moon className="size-4" />
+              )}
               <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </DropdownMenuItem>
 
@@ -252,7 +301,7 @@ export function SidebarPrimary() {
             {/* Developer Tools */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
-                <Zap/>
+                <Zap />
                 <span>Developer Tools</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-48">
@@ -263,7 +312,7 @@ export function SidebarPrimary() {
             </DropdownMenuSub>
 
             <DropdownMenuItem>
-              <Download/>
+              <Download />
               <span>Download SDK</span>
               <ExternalLink className="size-3 ms-auto" />
             </DropdownMenuItem>
@@ -272,7 +321,7 @@ export function SidebarPrimary() {
 
             {/* Action Items */}
             <DropdownMenuItem>
-              <LogOut/>
+              <LogOut />
               <span>Sign out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

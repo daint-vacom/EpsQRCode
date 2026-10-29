@@ -58,7 +58,7 @@ export function Header() {
         <div className="flex lg:hidden items-center gap-2.5">
           <Link to="/" className="shrink-0">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="h-[25px] w-full"
               alt="mini-logo"
             />
@@ -112,9 +112,7 @@ export function Header() {
         </div>
 
         {/* Mega Menu */}
-        {!mobileMode && (
-          <MegaMenu />
-        )}
+        {!mobileMode && <MegaMenu />}
 
         {/* HeaderTopbar */}
         <div className="flex items-center gap-3">

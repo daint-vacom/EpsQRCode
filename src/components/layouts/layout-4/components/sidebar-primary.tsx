@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { AppsDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/apps-dropdown-menu';
-import { ChatSheet } from '@/components/layouts/layout-1/shared/topbar/chat-sheet';
-import { UserDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/user-dropdown-menu';
 import {
   BarChart3,
   Bell,
@@ -28,6 +25,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { AppsDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/apps-dropdown-menu';
+import { ChatSheet } from '@/components/layouts/layout-1/shared/topbar/chat-sheet';
+import { UserDropdownMenu } from '@/components/layouts/layout-1/shared/topbar/user-dropdown-menu';
 
 interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -131,12 +131,12 @@ export function SidebarPrimary() {
         >
           <Link to="/layout-4">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="dark:hidden min-h-[30px]"
               alt=""
             />
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="hidden dark:block min-h-[30px]"
               alt=""
             />

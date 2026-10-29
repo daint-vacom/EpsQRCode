@@ -17,10 +17,14 @@ export function SidebarHeader() {
                 shadow-[0_0_0_1px_#000]
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[18px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[18px]"
+              />
             </div>
           </Link>
-        </div>        
+        </div>
       </div>
     </div>
   );

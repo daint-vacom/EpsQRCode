@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  loadMaterialLabelPrintSnapshot,
   loadMaterialLabelTemplatePreferences,
   loadMaterialLabelTemplates,
   saveMaterialLabelTemplate,
   saveMaterialLabelTemplatePreferences,
 } from '../api/material-label-templates.api';
-import type { MaterialLabelTemplateInput } from '../model/material-label-template';
+import type {
+  MaterialLabelTemplate,
+  MaterialLabelTemplateInput,
+} from '../model/material-label-template';
 
 export const materialLabelTemplateKeys = {
   all: ['project', 'material-label-templates'] as const,
@@ -15,6 +19,8 @@ export const materialLabelTemplateKeys = {
       'preferences',
       [...materialIds].sort(),
     ] as const,
+  lastPrint: (materialId: string) =>
+    [...materialLabelTemplateKeys.all, 'last-print', materialId] as const,
 };
 
 export function useMaterialLabelTemplatesQuery(enabled = true) {
@@ -22,6 +28,19 @@ export function useMaterialLabelTemplatesQuery(enabled = true) {
     queryKey: materialLabelTemplateKeys.all,
     queryFn: ({ signal }) => loadMaterialLabelTemplates(signal),
     enabled,
+    retry: 0,
+    staleTime: 60_000,
+  });
+}
+
+export function useMaterialLabelPrintSnapshotQuery(
+  materialId: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: materialLabelTemplateKeys.lastPrint(materialId),
+    queryFn: ({ signal }) => loadMaterialLabelPrintSnapshot(materialId, signal),
+    enabled: enabled && Boolean(materialId),
     retry: 0,
     staleTime: 60_000,
   });
@@ -58,11 +77,13 @@ export function useSaveMaterialLabelTemplatePreferencesMutation() {
   return useMutation({
     mutationFn: ({
       materialIds,
-      templateId,
+      template,
+      previews,
     }: {
       materialIds: string[];
-      templateId: string;
-    }) => saveMaterialLabelTemplatePreferences(materialIds, templateId),
+      template: MaterialLabelTemplate;
+      previews: Record<string, string>;
+    }) => saveMaterialLabelTemplatePreferences(materialIds, template, previews),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: materialLabelTemplateKeys.all,

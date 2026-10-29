@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   Boxes,
   ClipboardCheck,
@@ -10,6 +10,7 @@ import {
   Info,
   Maximize2,
   MessageSquareWarning,
+  Printer,
   QrCode,
   ShieldCheck,
   StickyNote,
@@ -17,6 +18,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import Lightbox from 'yet-another-react-lightbox';
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Inline from 'yet-another-react-lightbox/plugins/inline';
@@ -24,6 +26,7 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import { useMaterialLabelPrintSnapshotQuery } from '@/project/material-labels/hooks/use-material-label-templates';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -42,11 +45,13 @@ import {
 } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageBackButton } from '@/components/ui/page-back-button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MaterialQrCode } from '../components/material-qr-code';
+import { MaterialQrCodeHoverCard } from '../components/material-qr-code-hover-card';
 import { useMaterialQuery } from '../hooks/use-materials';
 import type { Material } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
+import '@/project/material-labels/pages/material-label-print.css';
 
 const MATERIAL_DETAIL_TABS = [
   { value: 'general', messageId: 'project.materials.tabs.general', icon: Info },
@@ -214,7 +219,6 @@ export function MaterialDetailPage() {
                     </div>
                     <MaterialSummarySidebar
                       material={material}
-                      title={modelName}
                       groupName={group?.name}
                       groupLoading={groupsQuery.isPending}
                       groupError={groupsQuery.isError}
@@ -558,7 +562,6 @@ function MaterialSpecificationsCard({ material }: { material: Material }) {
 
 function MaterialSummarySidebar({
   material,
-  title,
   groupName,
   groupLoading,
   groupError,
@@ -570,7 +573,6 @@ function MaterialSummarySidebar({
   onRetryOwner,
 }: {
   material: Material;
-  title: string;
   groupName?: string;
   groupLoading: boolean;
   groupError: boolean;
@@ -605,10 +607,11 @@ function MaterialSummarySidebar({
               className="flex min-w-0 flex-1 flex-col"
             />
             <span className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-admin-primary-foam bg-white p-1">
-              <MaterialQrCode
+              <MaterialQrCodeHoverCard
                 materialId={material.id}
                 materialCode={material.code}
                 size={56}
+                previewSize={240}
               />
             </span>
           </div>
@@ -655,12 +658,7 @@ function MaterialSummarySidebar({
         </div>
       </PublicInfoCard>
 
-      <MaterialQrLabelCard
-        materialId={material.id}
-        title={title}
-        code={material.code}
-        issuedDate={formatDate(material.createdAt)}
-      />
+      <MaterialQrLabelCard materialId={material.id} />
 
       <PublicInfoCard
         title={intl.formatMessage({
@@ -675,7 +673,7 @@ function MaterialSummarySidebar({
               <HardHat className="size-4" />
             </span>
             <div className="flex min-w-0 flex-col">
-              <span className="text-[11px] font-medium uppercase text-admin-blue-dark">
+              <span className="text-[11px] font-medium text-admin-blue-dark">
                 {statusText}
               </span>
               <span className="text-sm font-medium text-admin-neutral-800">
@@ -691,52 +689,104 @@ function MaterialSummarySidebar({
   );
 }
 
-function MaterialQrLabelCard({
-  materialId,
-  title,
-  code,
-  issuedDate,
-}: {
-  materialId: string;
-  title: string;
-  code: string;
-  issuedDate: string;
-}) {
+function MaterialQrLabelCard({ materialId }: { materialId: string }) {
   const intl = useIntl();
+  const printSnapshotQuery = useMaterialLabelPrintSnapshotQuery(materialId);
+  const printSnapshot = printSnapshotQuery.data;
+
+  useEffect(() => {
+    if (!printSnapshot?.templateSnapshot || !printSnapshot.previewSvg) return;
+    const style = document.createElement('style');
+    style.dataset.materialLabelPrint = 'true';
+    style.textContent = `@page { size: ${printSnapshot.templateSnapshot.widthMm}mm ${printSnapshot.templateSnapshot.heightMm}mm; margin: 0; }`;
+    document.head.append(style);
+    return () => style.remove();
+  }, [printSnapshot]);
+
   return (
-    <PublicInfoCard
-      title={intl.formatMessage({ id: 'project.materials.sections.qr' })}
-      icon={QrCode}
-    >
-      <div className="grid min-h-24 grid-cols-[88px_minmax(0,1fr)_minmax(124px,0.8fr)] overflow-hidden rounded-lg border border-admin-neutral-300 bg-white text-admin-neutral-950 max-sm:grid-cols-[76px_minmax(0,1fr)]">
-        <div className="row-span-2 flex items-center justify-center border-r border-admin-neutral-300 p-2">
-          <MaterialQrCode
-            materialId={materialId}
-            materialCode={code}
-            className="size-16 shrink-0"
-            size={64}
-          />
-        </div>
-        <div className="col-span-2 flex min-w-0 items-center justify-center border-b border-admin-neutral-300 px-2.5 py-3 max-sm:col-span-1">
-          <h3 className="truncate text-center text-sm font-semibold leading-5">
-            {title}
-          </h3>
-        </div>
-        <div className="flex min-w-0 items-center overflow-hidden border-r border-admin-neutral-300 px-2 py-3 max-sm:border-r-0">
-          <span className="min-w-0 truncate text-[12px] font-semibold">
-            {code}
-          </span>
-        </div>
-        <div className="flex min-w-0 items-center justify-end overflow-hidden px-2 py-3 max-sm:col-span-2 max-sm:justify-start max-sm:border-t max-sm:border-admin-neutral-300">
-          <span className="min-w-0 truncate text-right text-[12px] font-semibold max-sm:text-left">
+    <>
+      <PublicInfoCard
+        title={intl.formatMessage({
+          id: 'project.materials.sections.printedQrLabel',
+        })}
+        icon={QrCode}
+      >
+        {printSnapshotQuery.isPending ? (
+          <div className="flex min-h-28 items-center justify-center rounded-lg border border-admin-neutral-300 bg-white p-4">
+            <Skeleton className="h-20 w-36 rounded" />
+          </div>
+        ) : printSnapshotQuery.isError ? (
+          <div className="flex min-h-24 items-center justify-between gap-3 rounded-lg border border-admin-neutral-300 bg-white p-3 text-sm">
+            <span className="text-destructive">
+              {intl.formatMessage({
+                id: 'project.materials.states.loadFailed',
+              })}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => void printSnapshotQuery.refetch()}
+            >
+              {intl.formatMessage({ id: 'project.materials.actions.retry' })}
+            </Button>
+          </div>
+        ) : printSnapshot?.previewSvg ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-admin-neutral-300 bg-admin-neutral-50 p-3">
+            <div className="flex min-h-28 items-center justify-center overflow-hidden rounded bg-white p-2">
+              <img
+                src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(printSnapshot.previewSvg)}`}
+                alt={intl.formatMessage({
+                  id: 'project.materials.states.lastPrintedLabel',
+                })}
+                className="max-h-48 max-w-full object-contain"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="md"
+                onClick={() => {
+                  window.print();
+                }}
+              >
+                <Printer />
+                {intl.formatMessage({
+                  id: 'project.materials.actions.reprintLastLabel',
+                })}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-admin-neutral-300 bg-admin-neutral-50 px-4 py-6 text-center text-sm text-admin-neutral-600">
             {intl.formatMessage({
-              id: 'project.materials.fields.issuedDate',
+              id: 'project.materials.states.notPrintedLabel',
             })}
-            : {issuedDate}
-          </span>
-        </div>
-      </div>
-    </PublicInfoCard>
+          </div>
+        )}
+      </PublicInfoCard>
+      {printSnapshot?.templateSnapshot && printSnapshot.previewSvg
+        ? createPortal(
+            <div
+              className="material-label-print-document"
+              style={
+                {
+                  '--material-label-width': `${printSnapshot.templateSnapshot.widthMm}mm`,
+                  '--material-label-height': `${printSnapshot.templateSnapshot.heightMm}mm`,
+                } as CSSProperties
+              }
+            >
+              <div className="material-label-print-item">
+                <img
+                  src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(printSnapshot.previewSvg)}`}
+                  alt=""
+                />
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
   );
 }
 
@@ -773,7 +823,7 @@ function PublicInfoCard({
         >
           <Icon className="size-3.5" />
         </span>
-        <CardTitle className="text-[12px] font-semibold uppercase tracking-[0.08em]">
+        <CardTitle className="text-[12px] font-semibold tracking-[0.08em]">
           {title}
         </CardTitle>
       </CardHeader>
@@ -804,7 +854,7 @@ function DetailFact({
     <div className="flex items-center gap-3">
       <FactIcon icon={Icon} tone={tone} />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[11px] font-medium uppercase tracking-[0.04em] text-admin-neutral-500">
+        <span className="text-[11px] font-medium tracking-[0.04em] text-admin-neutral-500">
           {label}
         </span>
         {error ? (
@@ -860,19 +910,12 @@ function Fact({
 }) {
   return (
     <span className={className}>
-      <span className="text-[11px] font-medium uppercase tracking-[0.04em] text-admin-neutral-500">
+      <span className="text-[11px] font-medium tracking-[0.04em] text-admin-neutral-500">
         {label}
       </span>
       <span className="truncate text-sm font-medium text-admin-neutral-800">
         {value}
       </span>
     </span>
-  );
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short' }).format(
-    new Date(value),
   );
 }

@@ -1,10 +1,16 @@
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useLayout } from './context';
-import { useState } from 'react';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
 import { HeaderMenu } from './header-menu';
 import { SidebarContent } from './sidebar-content';
 
@@ -20,12 +26,12 @@ export function HeaderLogo() {
         <div className="flex items-center justify-center min-w-15">
           <Link to="/layout-28" className="">
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="dark:hidden shrink-0 size-7.5"
               alt="image"
             />
             <img
-              src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
               className="hidden dark:inline-block shrink-0 size-7.5"
               alt="image"
             />

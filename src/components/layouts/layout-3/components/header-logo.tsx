@@ -4,6 +4,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { MENU_ROOT } from '@/config/layout-3.config';
 import { toAbsoluteUrl } from '@/lib/helpers';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetBody,
@@ -11,13 +18,6 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { SidebarMenu } from './sidebar-menu';
 
 export function HeaderLogo() {
@@ -56,12 +56,12 @@ export function HeaderLogo() {
 
         <Link to="/layout-3" className="mx-1">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-primary.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden min-h-[24px]"
             alt="logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-primary-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:inline-block min-h-[24px]"
             alt="logo"
           />

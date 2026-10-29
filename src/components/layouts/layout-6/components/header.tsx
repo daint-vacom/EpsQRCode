@@ -11,9 +11,9 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { SidebarFooter } from './sidebar-footer';
 import { SidebarHeader } from './sidebar-header';
 import { SidebarMenu } from './sidebar-menu';
-import { SidebarFooter } from './sidebar-footer';
 
 const Header = () => {
   const { pathname } = useLocation();
@@ -30,12 +30,12 @@ const Header = () => {
       <div className="container flex items-center justify-between flex-wrap gap-3">
         <Link to="/layout-6">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-gray.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="dark:hidden min-h-[30px]"
             alt="image"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-gray-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="hidden dark:block min-h-[30px]"
             alt="image"
           />

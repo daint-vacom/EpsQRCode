@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
 import { Menu, Sparkles } from 'lucide-react';
+import { Link } from 'react-router';
 import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
-  SheetTrigger,
+  SheetBody,
   SheetContent,
   SheetHeader,
-  SheetBody,
+  SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { SidebarContent } from './sidebar-content';
 import { Aside } from './aside';
-import { UserDropdownMenu } from './user-dropdown-menu';
+import { SidebarContent } from './sidebar-content';
 import { SidebarFooter } from './sidebar-footer';
+import { UserDropdownMenu } from './user-dropdown-menu';
 
 export function HeaderMobile() {
   const [isSidebarSheetOpen, setIsSidebarSheetOpen] = useState(false);
@@ -36,14 +36,21 @@ export function HeaderMobile() {
                 transition-opacity
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[16px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[16px]"
+              />
             </div>
             <span className="text-mono text-sm font-medium">KeenTodo</span>
           </Link>
 
           <div className="flex items-center gap-2">
             {/* Sidebar */}
-            <Sheet open={isSidebarSheetOpen} onOpenChange={setIsSidebarSheetOpen}>
+            <Sheet
+              open={isSidebarSheetOpen}
+              onOpenChange={setIsSidebarSheetOpen}
+            >
               <SheetTrigger asChild>
                 <Button variant="ghost" mode="icon">
                   <Menu />

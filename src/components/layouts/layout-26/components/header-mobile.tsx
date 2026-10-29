@@ -1,13 +1,19 @@
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from '@/components/ui/sheet';
-import { Menu, PanelTopBottomDashed, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import { SidebarSearch } from './sidebar-search';
-import { SidebarMenu } from './sidebar-menu';
-import { Aside } from './aside';
-import { AsideToolbar } from './aside-toolbar';
+import { Menu, PanelTopBottomDashed, SlidersHorizontal } from 'lucide-react';
 import { Link } from 'react-router';
 import { toAbsoluteUrl } from '@/lib/helpers';
+import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Aside } from './aside';
+import { AsideToolbar } from './aside-toolbar';
+import { SidebarMenu } from './sidebar-menu';
+import { SidebarSearch } from './sidebar-search';
 
 export function HeaderMobile() {
   const [isSidebarSheetOpen, setIsSidebarSheetOpen] = useState(false);
@@ -28,16 +34,21 @@ export function HeaderMobile() {
                 shadow-[0_0_0_1px_#000]
               "
             >
-              <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[15px]" />
+              <img
+                src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+                alt="image"
+                className="min-w-[15px]"
+              />
             </div>
-            <span className="text-mono text-lg font-semibold">
-              Metronic
-            </span>
+            <span className="text-mono text-lg font-semibold">Metronic</span>
           </Link>
 
           <div className="flex items-center gap-2">
             {/* Sidebar */}
-            <Sheet open={isSidebarSheetOpen} onOpenChange={setIsSidebarSheetOpen}>
+            <Sheet
+              open={isSidebarSheetOpen}
+              onOpenChange={setIsSidebarSheetOpen}
+            >
               <SheetTrigger asChild>
                 <Button variant="ghost" mode="icon">
                   <Menu />
@@ -76,7 +87,10 @@ export function HeaderMobile() {
             </Sheet>
 
             {/* Aside Toolbar */}
-            <Sheet open={isAsideToolbarSheetOpen} onOpenChange={setIsAsideToolbarSheetOpen}>
+            <Sheet
+              open={isAsideToolbarSheetOpen}
+              onOpenChange={setIsAsideToolbarSheetOpen}
+            >
               <SheetTrigger asChild>
                 <Button variant="ghost" mode="icon">
                   <SlidersHorizontal />
@@ -93,7 +107,7 @@ export function HeaderMobile() {
                 </SheetBody>
               </SheetContent>
             </Sheet>
-          </div>   
+          </div>
         </div>
       </div>
     </header>

@@ -1,10 +1,15 @@
+import { useState } from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useLayout } from './context';
-import { useState } from 'react';
 
 interface Project {
   logo: string;
@@ -17,16 +22,16 @@ export function HeaderLogo() {
   const projects: Project[] = [
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "Store Admin",
+      name: 'Store Admin',
     },
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "Store Retail",
+      name: 'Store Retail',
     },
     {
       logo: toAbsoluteUrl('/media/app/item.png'),
-      name: "CRM System",
-    }
+      name: 'CRM System',
+    },
   ];
 
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
@@ -44,7 +49,11 @@ export function HeaderLogo() {
             shadow-[0_0_0_1px_#000]
           "
         >
-          <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[16px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-w-[16px]"
+          />
         </div>
       </Link>
 
@@ -52,11 +61,8 @@ export function HeaderLogo() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="px-1.5">
-            <img
-              src={toAbsoluteUrl('/media/app/item.png')}
-              alt="image"
-            />
-            {!isMobile && "Store Admin"}
+            <img src={toAbsoluteUrl('/media/app/item.png')} alt="image" />
+            {!isMobile && 'Store Admin'}
             <ChevronsUpDown className="opacity-100" />
           </Button>
         </DropdownMenuTrigger>
@@ -67,7 +73,11 @@ export function HeaderLogo() {
           sideOffset={2}
         >
           {projects.map((project: Project) => (
-            <DropdownMenuItem key={project.name} onClick={() => setSelectedProject(project)} data-active={selectedProject.name === project.name}>
+            <DropdownMenuItem
+              key={project.name}
+              onClick={() => setSelectedProject(project)}
+              data-active={selectedProject.name === project.name}
+            >
               <img src={project.logo} alt={project.name} />
               <span>{project.name}</span>
               {selectedProject.name === project.name && (

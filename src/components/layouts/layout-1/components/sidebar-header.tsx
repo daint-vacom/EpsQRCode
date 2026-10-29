@@ -17,24 +17,24 @@ export function SidebarHeader() {
       <Link to="/layout-1">
         <div className="dark:hidden">
           <img
-            src={toAbsoluteUrl('/media/app/default-logo.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-vertical.webp')}
             className="default-logo h-[22px] max-w-none"
             alt="Default Logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="small-logo h-[22px] max-w-none"
             alt="Mini Logo"
           />
         </div>
         <div className="hidden dark:block">
           <img
-            src={toAbsoluteUrl('/media/app/default-logo-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="default-logo h-[22px] max-w-none"
             alt="Default Dark Logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="small-logo h-[22px] max-w-none"
             alt="Mini Logo"
           />

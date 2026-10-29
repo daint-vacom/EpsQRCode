@@ -33,6 +33,14 @@ export interface MaterialLabelTemplatePreference {
   lastPrintedAt: string;
 }
 
+export interface MaterialLabelPrintSnapshot {
+  materialId: string;
+  templateId: string | null;
+  templateSnapshot: MaterialLabelTemplate | null;
+  previewSvg: string | null;
+  lastPrintedAt: string;
+}
+
 export interface MaterialLabelTemplateRow extends MaterialLabelTemplate {
   sizeLabel: string;
   statusLabel: string;

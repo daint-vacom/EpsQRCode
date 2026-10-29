@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
-import { useLayout } from './context';
+import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { HeaderMenuMobile } from './header-menu-mobile';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetBody,
@@ -11,9 +10,10 @@ import {
   SheetHeader,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { SidebarMenu } from './sidebar-menu';
+import { useLayout } from './context';
+import { HeaderMenuMobile } from './header-menu-mobile';
 import { HeaderSecondaryMenuMobile } from './header-secondary-menu-mobile';
+import { SidebarMenu } from './sidebar-menu';
 
 export function HeaderLogo() {
   const { pathname } = useLocation();
@@ -37,7 +37,11 @@ export function HeaderLogo() {
             shadow-[0_0_0_1px_#009229]
           "
         >
-          <img src={toAbsoluteUrl('/media/app/logo-33.svg')} alt="image" className="min-w-[18px]" />
+          <img
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+            alt="image"
+            className="min-w-[18px]"
+          />
         </div>
         <span className="text-mono text-xl font-medium hidden lg:block">
           Metronic

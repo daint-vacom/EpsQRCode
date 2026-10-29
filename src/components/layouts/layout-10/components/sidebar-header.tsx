@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { SearchDialog } from '@/components/layouts/layout-1/shared/dialogs/search/search-dialog';
 import { ChevronsUpDown, Plus, Search } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { MENU_ROOT } from '@/config/layout-10.config';
@@ -12,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SearchDialog } from '@/components/layouts/layout-1/shared/dialogs/search/search-dialog';
 
 export function SidebarHeader() {
   const { pathname } = useLocation();
@@ -30,7 +30,7 @@ export function SidebarHeader() {
       <div className="flex items-center justify-between gap-2.5 px-3.5 h-[70px]">
         <Link to="/layout-10">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-success.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="h-[34px]"
             alt=""
           />

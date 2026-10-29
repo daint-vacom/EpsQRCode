@@ -30,7 +30,7 @@ export function Header() {
       <div className="container flex items-center justify-between flex-wrap gap-3">
         <Link to="/layout-10">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-success.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="h-[34px]"
             alt=""
           />

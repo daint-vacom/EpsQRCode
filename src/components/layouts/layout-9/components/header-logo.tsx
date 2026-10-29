@@ -28,12 +28,12 @@ export function HeaderLogo() {
       <div className="flex items-center gap-2 shrink-0">
         <Link to="/layout-9">
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="shrink-0 dark:hidden min-h-[34px]"
             alt="logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-circle-dark.svg')}
+            src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
             className="shrink-0 hidden dark:inline-block min-h-[34px]"
             alt="logo"
           />

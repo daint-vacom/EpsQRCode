@@ -1,15 +1,24 @@
+import { useEffect, useState } from 'react';
+import { Check, Grip, Menu } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { toAbsoluteUrl } from '@/lib/helpers';
-import { HeaderSearch } from './header-search';
-import { useLayout } from './context';
 import { Button } from '@/components/ui/button';
-import { Check, Grip } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetBody } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetHeader,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { useLayout } from './context';
+import { HeaderSearch } from './header-search';
 import { SidebarMenu } from './sidebar-menu';
-import { useEffect } from 'react';
 
 interface Project {
   logo: string;
@@ -18,25 +27,24 @@ interface Project {
 
 export function HeaderLogo() {
   const { pathname } = useLocation();
-  const {isMobile} = useLayout();
+  const { isMobile } = useLayout();
 
   const projects: Project[] = [
     {
       logo: toAbsoluteUrl('/media/app/item1.png'),
-      name: "Browse App",
+      name: 'Browse App',
     },
     {
       logo: toAbsoluteUrl('/media/app/item1.png'),
-      name: "Analytics",
+      name: 'Analytics',
     },
     {
       logo: toAbsoluteUrl('/media/app/item1.png'),
-      name: "Dashboard",
-    }
+      name: 'Dashboard',
+    },
   ];
 
   const [selectedProject, setSelectedProject] = useState<Project>(projects[0]);
-
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
@@ -47,7 +55,6 @@ export function HeaderLogo() {
 
   return (
     <div className="flex items-center gap-5">
-
       <div className="flex items-center gap-1">
         {isMobile && (
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -80,7 +87,11 @@ export function HeaderLogo() {
               shadow-[0_0_0_1px_#000]
             "
           >
-            <img src={toAbsoluteUrl('/media/app/logo-35.svg')} alt="image" className="min-w-[18px]" />
+            <img
+              src={toAbsoluteUrl('/media/logos/evn-genco3-no-text.png')}
+              alt="image"
+              className="min-w-[18px]"
+            />
           </div>
         </Link>
       </div>
@@ -89,10 +100,7 @@ export function HeaderLogo() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="ps-1.5 pe-2.5">
-            <img
-              src={toAbsoluteUrl('/media/app/item1.png')}
-              alt="image"
-            />
+            <img src={toAbsoluteUrl('/media/app/item1.png')} alt="image" />
             {!isMobile && <span>{selectedProject.name}</span>}
             <Grip className="size-3.5" />
           </Button>
@@ -104,7 +112,11 @@ export function HeaderLogo() {
           sideOffset={2}
         >
           {projects.map((project: Project) => (
-            <DropdownMenuItem key={project.name} onClick={() => setSelectedProject(project)} data-active={selectedProject.name === project.name}>
+            <DropdownMenuItem
+              key={project.name}
+              onClick={() => setSelectedProject(project)}
+              data-active={selectedProject.name === project.name}
+            >
               <img src={project.logo} alt={project.name} />
               <span>{project.name}</span>
               {selectedProject.name === project.name && (
