@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
-import { Boxes, Save } from 'lucide-react';
+import { Boxes, Eye, Save } from 'lucide-react';
 import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -12,9 +12,11 @@ import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
+import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
@@ -36,7 +38,9 @@ import {
 import type {
   MaterialModelFormValues,
   MaterialModelImageDraft,
+  MaterialPublicDisplaySettings,
 } from '../model/material-model';
+import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '../model/material-model';
 import { MATERIAL_MODEL_PERMISSION_CODES } from '../model/material-model-permissions';
 import { MaterialSpecificationsTable } from '../table/material-specifications-table';
 
@@ -64,6 +68,10 @@ export function MaterialModelEditorPage() {
   const [galleryImages, setGalleryImages] = useState<MaterialModelImageDraft[]>(
     [],
   );
+  const [publicDisplaySettings, setPublicDisplaySettings] =
+    useState<MaterialPublicDisplaySettings>(
+      DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+    );
   const [activeTab, setActiveTab] = useState('general');
   const requiresInspection = form.watch('requiresInspection');
   const specificationCount = form.watch('specifications')?.length ?? 0;
@@ -86,9 +94,14 @@ export function MaterialModelEditorPage() {
           sortOrder: image.sortOrder,
         })),
       );
+      setPublicDisplaySettings(
+        editingModel.publicDisplaySettings ??
+          DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+      );
     } else if (!isEdit) {
       form.reset();
       setGalleryImages([]);
+      setPublicDisplaySettings(DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS);
     }
   }, [editingModel, form, isEdit]);
 
@@ -129,6 +142,7 @@ export function MaterialModelEditorPage() {
           values,
           images: galleryImages,
           previousImages: editingModel?.images ?? [],
+          publicDisplaySettings,
         },
         {
           onSuccess: () => {
@@ -143,7 +157,7 @@ export function MaterialModelEditorPage() {
       return;
     }
     createMutation.mutate(
-      { values, images: galleryImages },
+      { values, images: galleryImages, publicDisplaySettings },
       {
         onSuccess: () => {
           toast.success(
@@ -240,7 +254,7 @@ export function MaterialModelEditorPage() {
         <form
           id="materialModel-form"
           onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
-          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] xl:overflow-hidden"
+          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.35fr)_minmax(0,0.65fr)] xl:overflow-hidden"
         >
           <MaterialModelGalleryCard
             key={id ?? 'create'}
@@ -276,9 +290,9 @@ export function MaterialModelEditorPage() {
             </TabsList>
             <TabsContent
               value="general"
-              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
             >
-              <Card className="min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <Card className="min-w-0 shrink-0">
                 <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5">
                   <MaterialModelForm
                     form={form}
@@ -290,13 +304,64 @@ export function MaterialModelEditorPage() {
                   />
                 </CardContent>
               </Card>
+              <Card className="min-w-0 shrink-0">
+                <CardHeader className="min-h-0 px-5 py-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Eye className="size-4 text-primary" aria-hidden="true" />
+                    {intl.formatMessage({
+                      id: 'project.materials.form.publicDisplay.title',
+                    })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4 p-5 pt-1">
+                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
+                    <Label htmlFor="model-public-basic-info">
+                      {intl.formatMessage({
+                        id: 'project.materials.form.publicDisplay.basicInfo',
+                      })}
+                    </Label>
+                    <Switch
+                      id="model-public-basic-info"
+                      checked={publicDisplaySettings.basicInfo}
+                      onCheckedChange={(basicInfo) =>
+                        setPublicDisplaySettings((current) => ({
+                          ...current,
+                          basicInfo,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
+                    <Label htmlFor="model-public-specifications">
+                      {intl.formatMessage({
+                        id: 'project.materials.form.publicDisplay.specifications',
+                      })}
+                    </Label>
+                    <Switch
+                      id="model-public-specifications"
+                      checked={publicDisplaySettings.specifications}
+                      disabled={!publicDisplaySettings.basicInfo}
+                      onCheckedChange={(specifications) =>
+                        setPublicDisplaySettings((current) => ({
+                          ...current,
+                          specifications,
+                        }))
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             <TabsContent
               value="technical"
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
               <Card className="min-h-[32rem] min-w-0 flex-1 flex-col overflow-hidden">
-                <MaterialSpecificationsTable mode="model" form={form} />
+                <MaterialSpecificationsTable
+                  mode="model"
+                  form={form}
+                  publicVisibilityDisabled={!publicDisplaySettings.basicInfo}
+                />
               </Card>
             </TabsContent>
             {requiresInspection && (

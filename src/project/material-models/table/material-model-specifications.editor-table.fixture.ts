@@ -25,6 +25,12 @@ const spec: EditorTableSpec = {
   columns: [
     {
       kind: 'custom',
+      id: 'visibility',
+      header: 'Hiển thị',
+      widthClass: 'w-24',
+    },
+    {
+      kind: 'custom',
       id: 'specification',
       header: 'Thông số',
       widthClass: 'min-w-[260px]',

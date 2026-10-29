@@ -2,6 +2,7 @@ import type {
   MaterialModelImage,
   MaterialModelImageDraft,
   MaterialModelSpecification,
+  MaterialPublicDisplaySettings,
 } from '@/project/material-models/model/material-model';
 
 export type MaterialCondition = 'good' | 'damaged';
@@ -17,6 +18,7 @@ export interface MaterialModelSnapshot {
   description: string;
   requiresInspection: boolean;
   specifications: MaterialModelSpecification[];
+  publicDisplaySettings?: MaterialPublicDisplaySettings;
   images: Omit<MaterialModelImage, 'url'>[];
   capturedAt: string;
 }
@@ -51,6 +53,36 @@ export interface MaterialOwnerSnapshot {
   phone: string;
   email: string;
   capturedAt: string;
+}
+
+export interface MaterialPublicDetailSpecification {
+  id: string;
+  name: string;
+  dataType: string;
+  isList: boolean;
+  values: string[];
+  valueLabels: string[];
+}
+
+export interface MaterialPublicDetail {
+  basicInfo: {
+    code: string;
+    name: string;
+    description: string;
+    condition: MaterialCondition;
+    status: MaterialStatus;
+    note: string | null;
+    groupName: string | null;
+    ownerName: string | null;
+    representativeName: string | null;
+    images: MaterialImage[];
+    lastPrintedLabel: {
+      widthMm: number;
+      heightMm: number;
+      previewSvg: string;
+    } | null;
+  } | null;
+  specifications: MaterialPublicDetailSpecification[] | null;
 }
 
 export type MaterialBorrowerSnapshot = Pick<
@@ -110,6 +142,8 @@ export interface Material {
   version: number;
   createdAt: string;
   updatedAt: string;
+  publicDisplaySettings?: MaterialPublicDisplaySettings;
+  publicSpecificationSettings: Record<string, boolean>;
 }
 
 export interface MaterialFormValues {
@@ -132,6 +166,8 @@ export type SaveMaterialInput = {
   values: MaterialFormValues;
   images: MaterialImageDraft[];
   previousImages: MaterialImage[];
+  publicDisplaySettings: MaterialPublicDisplaySettings;
+  publicSpecificationSettings: Record<string, boolean>;
 };
 
 export interface MaterialImage extends MaterialModelImage {
@@ -189,7 +225,10 @@ export interface ApplyMaterialModelSyncInput {
 }
 
 export type MaterialHistoryAction =
-  'created' | 'updated' | 'model_synced' | 'handover';
+  | 'created'
+  | 'updated'
+  | 'model_synced'
+  | 'handover';
 export interface MaterialHistoryEntry {
   id: string;
   materialId: string;

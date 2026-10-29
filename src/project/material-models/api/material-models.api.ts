@@ -10,8 +10,12 @@ import type {
   MaterialModelImage,
   MaterialModelImageDraft,
   MaterialModelRow,
+  MaterialPublicDisplaySettings,
 } from '../model/material-model';
-import { mapMaterialModelRow } from '../model/material-model';
+import {
+  DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+  mapMaterialModelRow,
+} from '../model/material-model';
 
 export const MATERIAL_MODEL_IMAGES_BUCKET = 'material-model-images';
 
@@ -141,6 +145,7 @@ async function saveMaterialModel(
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
   previousImages: MaterialModelImage[],
+  publicDisplaySettings: MaterialPublicDisplaySettings,
 ): Promise<void> {
   assertSupabaseConfigured();
   const uploadedPaths: string[] = [];
@@ -173,6 +178,7 @@ async function saveMaterialModel(
           .split(/\r?\n/)
           .map((value) => value.trim())
           .filter(Boolean),
+        p_public_display_settings: publicDisplaySettings,
       }),
     );
 
@@ -210,8 +216,9 @@ async function saveMaterialModel(
 export function createMaterialModel(
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
+  publicDisplaySettings: MaterialPublicDisplaySettings = DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
 ): Promise<void> {
-  return saveMaterialModel(null, values, images, []);
+  return saveMaterialModel(null, values, images, [], publicDisplaySettings);
 }
 
 export function updateMaterialModel(
@@ -219,8 +226,15 @@ export function updateMaterialModel(
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
   previousImages: MaterialModelImage[],
+  publicDisplaySettings: MaterialPublicDisplaySettings,
 ): Promise<void> {
-  return saveMaterialModel(id, values, images, previousImages);
+  return saveMaterialModel(
+    id,
+    values,
+    images,
+    previousImages,
+    publicDisplaySettings,
+  );
 }
 
 export async function updateMaterialModelAvailability(

@@ -1,3 +1,5 @@
+import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '@/project/material-models/model/material-model';
+import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
 import {
   createSignedStorageUrl,
   removeStorageObjects,
@@ -13,6 +15,7 @@ import type {
   MaterialListFilters,
   MaterialListResult,
   MaterialModelSyncPreview,
+  MaterialPublicDetail,
 } from '../model/material';
 
 export const MATERIAL_IMAGES_BUCKET = 'material-images';
@@ -54,6 +57,41 @@ export async function loadMaterial(
     supabaseApi.post('/rpc/get_material', { p_id: id }, { signal }),
   );
   return resolveMaterialImages(material);
+}
+
+export async function loadPublicMaterialDetail(
+  id: string,
+  signal?: AbortSignal,
+): Promise<MaterialPublicDetail | null> {
+  assertSupabaseConfigured();
+  const detail = await request<MaterialPublicDetail | null>(
+    supabaseApi.post(
+      '/rpc/get_material_public_detail',
+      { p_id: id },
+      { signal },
+    ),
+  );
+  if (!detail?.basicInfo) return detail;
+
+  const images = await Promise.all(
+    detail.basicInfo.images.map(async (image) => ({
+      ...image,
+      url:
+        image.externalUrl ??
+        (image.storageBucket && image.storagePath
+          ? await createSignedStorageUrl(
+              image.storageBucket,
+              image.storagePath,
+              300,
+            ).catch(() => '')
+          : ''),
+    })),
+  );
+
+  return {
+    ...detail,
+    basicInfo: { ...detail.basicInfo, images },
+  };
 }
 
 async function resolveMaterialImages(
@@ -103,6 +141,8 @@ export async function saveMaterial(
   values: MaterialFormValues,
   images: MaterialImageDraft[],
   previousImages: MaterialImage[],
+  publicDisplaySettings: MaterialPublicDisplaySettings = DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+  publicSpecificationSettings: Record<string, boolean> = {},
 ): Promise<string> {
   assertSupabaseConfigured();
   const uploadedPaths: string[] = [];
@@ -134,7 +174,7 @@ export async function saveMaterial(
     }
 
     const savedId = await request<string>(
-      supabaseApi.post('/rpc/save_material', {
+      supabaseApi.post('/rpc/save_material_with_public_display_settings', {
         p_id: id,
         p_expected_version: expectedVersion,
         p_values: {
@@ -142,6 +182,8 @@ export async function saveMaterial(
           specificationOverrideLabels: values.specificationOverrideLabels ?? {},
           images: imagePayload,
         },
+        p_public_display_settings: publicDisplaySettings,
+        p_public_specification_settings: publicSpecificationSettings,
       }),
     );
 

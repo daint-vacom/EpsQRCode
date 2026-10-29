@@ -8,8 +8,10 @@ import {
   HardHat,
   History,
   Info,
+  LockKeyhole,
   Maximize2,
   MessageSquareWarning,
+  PackageX,
   Printer,
   QrCode,
   ShieldCheck,
@@ -43,13 +45,17 @@ import {
   CardTable,
   CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageBackButton } from '@/components/ui/page-back-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MaterialQrCodeHoverCard } from '../components/material-qr-code-hover-card';
-import { useMaterialQuery } from '../hooks/use-materials';
-import type { Material } from '../model/material';
+import {
+  useMaterialQuery,
+  usePublicMaterialDetailQuery,
+} from '../hooks/use-materials';
+import type { Material, MaterialPublicDetail } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import '@/project/material-labels/pages/material-label-print.css';
 
@@ -85,7 +91,11 @@ const MATERIAL_DETAIL_TABS = [
 type MaterialDetailTabValue = (typeof MATERIAL_DETAIL_TABS)[number]['value'];
 type GallerySlide = { src: string; alt: string; imageFit: 'contain' };
 
-export function MaterialDetailPage() {
+export function MaterialDetailPage({
+  publicMode = false,
+}: {
+  publicMode?: boolean;
+}) {
   const intl = useIntl();
   const navigate = useNavigate();
   const { id = '' } = useParams();
@@ -93,20 +103,48 @@ export function MaterialDetailPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
-  const queryEnabled = !isPermissionsPending && canView;
+  const queryEnabled = !publicMode && !isPermissionsPending && canView;
   const materialQuery = useMaterialQuery(id, queryEnabled);
-  const material = materialQuery.data;
+  const publicDetailQuery = usePublicMaterialDetailQuery(id, publicMode);
+  const material = publicMode ? undefined : materialQuery.data;
+  const publicDetail = publicMode ? publicDetailQuery.data : undefined;
   const groupsQuery = useMaterialGroupsQuery(queryEnabled && Boolean(material));
   const [activeTab, setActiveTab] = useState<MaterialDetailTabValue>('general');
-  const modelName =
-    material?.nameOverride?.trim() ||
-    material?.modelSnapshot.name ||
-    intl.formatMessage({ id: 'project.materials.page.detailTitle' });
-  const isLoading =
-    isPermissionsPending || (canView && materialQuery.isPending);
+  const modelName = publicMode
+    ? publicDetail?.basicInfo?.name ||
+      intl.formatMessage({ id: 'project.materials.page.detailTitle' })
+    : material?.nameOverride?.trim() ||
+      material?.modelSnapshot.name ||
+      intl.formatMessage({ id: 'project.materials.page.detailTitle' });
+  const isLoading = publicMode
+    ? publicDetailQuery.isPending
+    : isPermissionsPending || (canView && materialQuery.isPending);
   const group = groupsQuery.data?.find(
     (item) => item.id === material?.modelSnapshot.groupId,
   );
+
+  if (
+    publicMode &&
+    !isLoading &&
+    !publicDetailQuery.isError &&
+    !publicDetail?.basicInfo
+  ) {
+    return (
+      <div className="fixed inset-0 flex h-dvh w-full items-center justify-center bg-muted">
+        <EmptyState
+          icon={PackageX}
+          iconSize="lg"
+          title={intl.formatMessage({
+            id: 'project.materials.publicDetail.unavailable',
+          })}
+          description={intl.formatMessage({
+            id: 'project.materials.publicDetail.unavailableDescription',
+          })}
+          className="flex-1"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-muted">
@@ -120,7 +158,9 @@ export function MaterialDetailPage() {
             <div className="flex items-center justify-between gap-4 pt-4 pb-1">
               <div className="flex min-w-0 items-center gap-3">
                 <PageBackButton
-                  onClick={() => navigate(ROUTES.PROJECT.MATERIALS)}
+                  onClick={() =>
+                    navigate(publicMode ? -1 : ROUTES.PROJECT.MATERIALS)
+                  }
                   label={intl.formatMessage({
                     id: 'project.materials.actions.back',
                   })}
@@ -129,7 +169,7 @@ export function MaterialDetailPage() {
                   {modelName}
                 </h1>
               </div>
-              {material && canManage ? (
+              {material && canManage && !publicMode ? (
                 <Button
                   type="button"
                   size="md"
@@ -165,7 +205,7 @@ export function MaterialDetailPage() {
 
         <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain py-8">
           <DetailShell>
-            {!isPermissionsPending && !canView ? (
+            {!publicMode && !isPermissionsPending && !canView ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: 'project.materials.errors.authorizationTitle',
@@ -185,15 +225,23 @@ export function MaterialDetailPage() {
                 <Card className="aspect-4/3 animate-pulse sm:aspect-[16/10]" />
                 <Card className="min-h-80 animate-pulse" />
               </div>
-            ) : materialQuery.isError ? (
+            ) : (
+                publicMode ? publicDetailQuery.isError : materialQuery.isError
+              ) ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: 'project.materials.errors.loadDetailTitle',
                 })}
-                description={getApiErrorMessage(materialQuery.error)}
-                onRetry={() => void materialQuery.refetch()}
+                description={getApiErrorMessage(
+                  publicMode ? publicDetailQuery.error : materialQuery.error,
+                )}
+                onRetry={() =>
+                  void (publicMode
+                    ? publicDetailQuery.refetch()
+                    : materialQuery.refetch())
+                }
               />
-            ) : !material ? (
+            ) : (publicMode ? !publicDetail : !material) ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: 'project.materials.errors.notFoundTitle',
@@ -210,26 +258,48 @@ export function MaterialDetailPage() {
                   forceMount
                 >
                   <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
-                    <div className="flex min-w-0 flex-col gap-6">
-                      <MaterialGalleryCard
-                        material={material}
-                        title={modelName}
-                      />
-                      <MaterialSpecificationsCard material={material} />
+                    <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-6">
+                      <div className="order-1 min-w-0 xl:order-none">
+                        {publicMode ? (
+                          publicDetail?.basicInfo ? (
+                            <MaterialGalleryCard
+                              title={modelName}
+                              publicImages={publicDetail.basicInfo.images}
+                            />
+                          ) : null
+                        ) : material ? (
+                          <MaterialGalleryCard
+                            material={material}
+                            title={modelName}
+                          />
+                        ) : null}
+                      </div>
+                      <div className="order-3 min-w-0 xl:order-none">
+                        <MaterialSpecificationsCard
+                          material={material}
+                          publicMode={publicMode}
+                          publicSpecifications={publicDetail?.specifications}
+                        />
+                      </div>
                     </div>
-                    <MaterialSummarySidebar
-                      material={material}
-                      groupName={group?.name}
-                      groupLoading={groupsQuery.isPending}
-                      groupError={groupsQuery.isError}
-                      onRetryGroup={() => void groupsQuery.refetch()}
-                      ownerName={material.ownerSnapshot.name}
-                      representativeName={
-                        material.ownerSnapshot.representativeName
-                      }
-                      ownerLoading={false}
-                      ownerError={false}
-                    />
+                    <div className="order-2 min-w-0 xl:order-none">
+                      <MaterialSummarySidebar
+                        material={material}
+                        materialId={id}
+                        publicMode={publicMode}
+                        publicBasicInfo={publicDetail?.basicInfo}
+                        groupName={group?.name}
+                        groupLoading={groupsQuery.isPending}
+                        groupError={groupsQuery.isError}
+                        onRetryGroup={() => void groupsQuery.refetch()}
+                        ownerName={material?.ownerSnapshot.name}
+                        representativeName={
+                          material?.ownerSnapshot.representativeName
+                        }
+                        ownerLoading={false}
+                        ownerError={false}
+                      />
+                    </div>
                   </div>
                 </TabsContent>
                 {MATERIAL_DETAIL_TABS.filter(
@@ -258,28 +328,41 @@ function DetailShell({ children }: { children: ReactNode }) {
   );
 }
 
+function PublicHiddenContent() {
+  const intl = useIntl();
+  return (
+    <div className="flex min-h-24 flex-col items-center justify-center gap-2 py-5 text-center text-sm text-muted-foreground">
+      <LockKeyhole className="size-5" aria-hidden="true" />
+      <span>
+        {intl.formatMessage({ id: 'project.materials.publicDetail.notShared' })}
+      </span>
+    </div>
+  );
+}
+
 function MaterialGalleryCard({
   material,
+  publicImages,
   title,
 }: {
-  material: Material;
+  material?: Material;
+  publicImages?: Material['images'];
   title: string;
 }) {
   const intl = useIntl();
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [slides, setSlides] = useState<GallerySlide[]>([]);
-  const sourceImages = useMemo(
-    () =>
-      material.images.length > 0
-        ? material.images
-        : material.modelSnapshot.images.map((image) => ({
-            ...image,
-            storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
-            url: '',
-          })),
-    [material.images, material.modelSnapshot.images],
-  );
+  const sourceImages = useMemo(() => {
+    if (!material) return publicImages ?? [];
+    return material.images.length > 0
+      ? material.images
+      : material.modelSnapshot.images.map((image) => ({
+          ...image,
+          storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
+          url: '',
+        }));
+  }, [material, publicImages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -319,7 +402,7 @@ function MaterialGalleryCard({
     return () => {
       cancelled = true;
     };
-  }, [material.id, sourceImages, title]);
+  }, [material?.id, sourceImages, title]);
 
   const activeImage = slides[activeIndex];
 
@@ -450,48 +533,52 @@ function MaterialGalleryCard({
   );
 }
 
-function MaterialSpecificationsCard({ material }: { material: Material }) {
+function MaterialSpecificationsCard({
+  material,
+  publicMode = false,
+  publicSpecifications,
+}: {
+  material?: Material;
+  publicMode?: boolean;
+  publicSpecifications?: MaterialPublicDetail['specifications'];
+}) {
   const intl = useIntl();
-  const specifications = useMemo(
-    () =>
-      material.modelSnapshot.specifications.map((specification) => {
-        const hasOverride = Object.prototype.hasOwnProperty.call(
-          material.specificationOverrides,
-          specification.id,
-        );
-        const values = hasOverride
-          ? material.specificationOverrides[specification.id]
-          : specification.values.length === 1
-            ? [specification.values[0]]
-            : [];
-        const labelsByValue = new Map(
-          specification.values.map((value, index) => [
-            value,
-            specification.valueLabels[index],
-          ]),
-        );
-        const labelOverrides =
-          material.specificationOverrideLabels[specification.id] ?? [];
+  const specifications = useMemo(() => {
+    if (publicMode) return publicSpecifications ?? [];
+    if (!material) return [];
+    return material.modelSnapshot.specifications.map((specification) => {
+      const hasOverride = Object.prototype.hasOwnProperty.call(
+        material.specificationOverrides,
+        specification.id,
+      );
+      const values = hasOverride
+        ? material.specificationOverrides[specification.id]
+        : specification.values.length === 1
+          ? [specification.values[0]]
+          : [];
+      const labelsByValue = new Map(
+        specification.values.map((value, index) => [
+          value,
+          specification.valueLabels[index],
+        ]),
+      );
+      const labelOverrides =
+        material.specificationOverrideLabels[specification.id] ?? [];
 
-        return {
-          ...specification,
-          values,
-          valueLabels:
-            specification.dataType === 'color'
-              ? values.map((value, index) =>
-                  Object.prototype.hasOwnProperty.call(labelOverrides, index)
-                    ? labelOverrides[index]
-                    : (labelsByValue.get(value) ?? ''),
-                )
-              : specification.valueLabels,
-        };
-      }),
-    [
-      material.modelSnapshot.specifications,
-      material.specificationOverrides,
-      material.specificationOverrideLabels,
-    ],
-  );
+      return {
+        ...specification,
+        values,
+        valueLabels:
+          specification.dataType === 'color'
+            ? values.map((value, index) =>
+                Object.prototype.hasOwnProperty.call(labelOverrides, index)
+                  ? labelOverrides[index]
+                  : (labelsByValue.get(value) ?? ''),
+              )
+            : specification.valueLabels,
+      };
+    });
+  }, [material, publicMode, publicSpecifications]);
 
   return (
     <Card className="overflow-hidden">
@@ -502,66 +589,75 @@ function MaterialSpecificationsCard({ material }: { material: Material }) {
           })}
         </CardTitle>
       </CardHeader>
-      <CardTable>
-        <table className="w-full table-fixed text-left text-sm">
-          <colgroup>
-            <col className="w-[42%]" />
-            <col className="w-[58%]" />
-          </colgroup>
-          <thead className="bg-muted">
-            <tr className="border-b border-border">
-              <th className="px-3 py-2.5 text-xs font-semibold text-secondary-foreground sm:px-4">
-                {intl.formatMessage({
-                  id: 'project.materials.fields.specificationName',
-                })}
-              </th>
-              <th className="px-3 py-2.5 text-xs font-semibold text-secondary-foreground sm:px-4">
-                {intl.formatMessage({
-                  id: 'project.materials.fields.specificationValue',
-                })}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {specifications.map((specification) => (
-              <tr
-                key={specification.id}
-                className="border-b border-border last:border-b-0"
-              >
-                <td className="break-words whitespace-normal px-3 py-2.5 align-top font-medium text-admin-neutral-800 sm:px-4">
-                  {specification.name}
-                </td>
-                <td className="break-words whitespace-normal px-3 py-2.5 align-top text-admin-neutral-700 sm:px-4">
-                  {specification.values
-                    .map((value, valueIndex) => {
-                      if (specification.dataType !== 'color') return value;
-                      return specification.valueLabels[valueIndex] || value;
-                    })
-                    .join(', ')}
-                </td>
-              </tr>
-            ))}
-            {specifications.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={2}
-                  className="px-3 py-4 text-sm text-muted-foreground sm:px-4"
-                >
+      {publicMode && publicSpecifications == null ? (
+        <CardContent>
+          <PublicHiddenContent />
+        </CardContent>
+      ) : (
+        <CardTable>
+          <table className="w-full table-fixed text-left text-sm">
+            <colgroup>
+              <col className="w-[42%]" />
+              <col className="w-[58%]" />
+            </colgroup>
+            <thead className="bg-muted">
+              <tr className="border-b border-border">
+                <th className="px-3 py-2.5 text-xs font-semibold text-secondary-foreground sm:px-4">
                   {intl.formatMessage({
-                    id: 'project.materials.empty.specifications',
+                    id: 'project.materials.fields.specificationName',
                   })}
-                </td>
+                </th>
+                <th className="px-3 py-2.5 text-xs font-semibold text-secondary-foreground sm:px-4">
+                  {intl.formatMessage({
+                    id: 'project.materials.fields.specificationValue',
+                  })}
+                </th>
               </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </CardTable>
+            </thead>
+            <tbody>
+              {specifications.map((specification) => (
+                <tr
+                  key={specification.id}
+                  className="border-b border-border last:border-b-0"
+                >
+                  <td className="break-words whitespace-normal px-3 py-2.5 align-top font-medium text-admin-neutral-800 sm:px-4">
+                    {specification.name}
+                  </td>
+                  <td className="break-words whitespace-normal px-3 py-2.5 align-top text-admin-neutral-700 sm:px-4">
+                    {specification.values
+                      .map((value, valueIndex) => {
+                        if (specification.dataType !== 'color') return value;
+                        return specification.valueLabels[valueIndex] || value;
+                      })
+                      .join(', ')}
+                  </td>
+                </tr>
+              ))}
+              {specifications.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={2}
+                    className="px-3 py-4 text-sm text-muted-foreground sm:px-4"
+                  >
+                    {intl.formatMessage({
+                      id: 'project.materials.empty.specifications',
+                    })}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </CardTable>
+      )}
     </Card>
   );
 }
 
 function MaterialSummarySidebar({
   material,
+  materialId,
+  publicMode = false,
+  publicBasicInfo,
   groupName,
   groupLoading,
   groupError,
@@ -572,7 +668,10 @@ function MaterialSummarySidebar({
   ownerError,
   onRetryOwner,
 }: {
-  material: Material;
+  material?: Material;
+  materialId: string;
+  publicMode?: boolean;
+  publicBasicInfo?: MaterialPublicDetail['basicInfo'];
   groupName?: string;
   groupLoading: boolean;
   groupError: boolean;
@@ -584,6 +683,119 @@ function MaterialSummarySidebar({
   onRetryOwner?: () => void;
 }) {
   const intl = useIntl();
+  if (publicMode) {
+    return (
+      <aside className="flex min-w-0 flex-col gap-4">
+        <PublicInfoCard
+          title={intl.formatMessage({
+            id: 'project.materials.sections.materialInfo',
+          })}
+          icon={Info}
+        >
+          {publicBasicInfo ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <FactIcon icon={QrCode} tone="primary" />
+                <Fact
+                  label={intl.formatMessage({
+                    id: 'project.materials.fields.code',
+                  })}
+                  value={publicBasicInfo.code}
+                  className="flex min-w-0 flex-1 flex-col"
+                />
+                <span className="flex size-16 shrink-0 items-center justify-center rounded-lg border border-admin-primary-foam bg-white p-1">
+                  <MaterialQrCodeHoverCard
+                    materialId={materialId}
+                    materialCode={publicBasicInfo.code}
+                    size={56}
+                    previewSize={240}
+                  />
+                </span>
+              </div>
+              <DetailFact
+                icon={Boxes}
+                label={intl.formatMessage({
+                  id: 'project.materials.fields.group',
+                })}
+                value={publicBasicInfo.groupName}
+                tone="muted"
+              />
+              <DetailFact
+                icon={Factory}
+                label={intl.formatMessage({
+                  id: 'project.materials.fields.managedBy',
+                })}
+                value={publicBasicInfo.ownerName}
+                tone="primary"
+              />
+              {publicBasicInfo.representativeName ? (
+                <DetailFact
+                  icon={UserRound}
+                  label={intl.formatMessage({
+                    id: 'project.materials.fields.representative',
+                  })}
+                  value={publicBasicInfo.representativeName}
+                  tone="muted"
+                />
+              ) : null}
+              {publicBasicInfo.note ? (
+                <DetailFact
+                  icon={StickyNote}
+                  label={intl.formatMessage({
+                    id: 'project.materials.fields.note',
+                  })}
+                  value={publicBasicInfo.note}
+                  tone="muted"
+                />
+              ) : null}
+            </div>
+          ) : (
+            <PublicHiddenContent />
+          )}
+        </PublicInfoCard>
+
+        <MaterialQrLabelCard
+          materialId={materialId}
+          publicMode
+          publicPreview={publicBasicInfo?.lastPrintedLabel}
+        />
+
+        <PublicInfoCard
+          title={intl.formatMessage({
+            id: 'project.materials.sections.currentState',
+          })}
+          icon={ShieldCheck}
+          tone="blue"
+        >
+          {publicBasicInfo ? (
+            <div className="rounded-2xl border border-admin-blue-border bg-admin-blue-bg p-3">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-admin-blue-primary text-white">
+                  <HardHat className="size-4" />
+                </span>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-[11px] font-medium text-admin-blue-dark">
+                    {intl.formatMessage({
+                      id: `project.materials.status.${publicBasicInfo.status}`,
+                    })}
+                  </span>
+                  <span className="text-sm font-medium text-admin-neutral-800">
+                    {intl.formatMessage({
+                      id: `project.materials.condition.${publicBasicInfo.condition}`,
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <PublicHiddenContent />
+          )}
+        </PublicInfoCard>
+      </aside>
+    );
+  }
+  if (!material) return null;
+
   const statusText = intl.formatMessage({
     id: `project.materials.status.${material.status}`,
   });
@@ -689,19 +901,41 @@ function MaterialSummarySidebar({
   );
 }
 
-function MaterialQrLabelCard({ materialId }: { materialId: string }) {
+function MaterialQrLabelCard({
+  materialId,
+  publicMode = false,
+  publicPreview,
+}: {
+  materialId: string;
+  publicMode?: boolean;
+  publicPreview?: NonNullable<
+    MaterialPublicDetail['basicInfo']
+  >['lastPrintedLabel'];
+}) {
   const intl = useIntl();
-  const printSnapshotQuery = useMaterialLabelPrintSnapshotQuery(materialId);
+  const printSnapshotQuery = useMaterialLabelPrintSnapshotQuery(
+    materialId,
+    !publicMode,
+  );
   const printSnapshot = printSnapshotQuery.data;
+  const previewSvg = publicMode
+    ? publicPreview?.previewSvg
+    : printSnapshot?.previewSvg;
+  const widthMm = publicMode
+    ? publicPreview?.widthMm
+    : printSnapshot?.templateSnapshot?.widthMm;
+  const heightMm = publicMode
+    ? publicPreview?.heightMm
+    : printSnapshot?.templateSnapshot?.heightMm;
 
   useEffect(() => {
-    if (!printSnapshot?.templateSnapshot || !printSnapshot.previewSvg) return;
+    if (!previewSvg || !widthMm || !heightMm) return;
     const style = document.createElement('style');
     style.dataset.materialLabelPrint = 'true';
-    style.textContent = `@page { size: ${printSnapshot.templateSnapshot.widthMm}mm ${printSnapshot.templateSnapshot.heightMm}mm; margin: 0; }`;
+    style.textContent = `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`;
     document.head.append(style);
     return () => style.remove();
-  }, [printSnapshot]);
+  }, [previewSvg, widthMm, heightMm]);
 
   return (
     <>
@@ -711,11 +945,11 @@ function MaterialQrLabelCard({ materialId }: { materialId: string }) {
         })}
         icon={QrCode}
       >
-        {printSnapshotQuery.isPending ? (
+        {!publicMode && printSnapshotQuery.isPending ? (
           <div className="flex min-h-28 items-center justify-center rounded-lg border border-admin-neutral-300 bg-white p-4">
             <Skeleton className="h-20 w-36 rounded" />
           </div>
-        ) : printSnapshotQuery.isError ? (
+        ) : !publicMode && printSnapshotQuery.isError ? (
           <div className="flex min-h-24 items-center justify-between gap-3 rounded-lg border border-admin-neutral-300 bg-white p-3 text-sm">
             <span className="text-destructive">
               {intl.formatMessage({
@@ -731,54 +965,48 @@ function MaterialQrLabelCard({ materialId }: { materialId: string }) {
               {intl.formatMessage({ id: 'project.materials.actions.retry' })}
             </Button>
           </div>
-        ) : printSnapshot?.previewSvg ? (
-          <div className="flex flex-col gap-3 rounded-lg border border-admin-neutral-300 bg-admin-neutral-50 p-3">
-            <div className="flex min-h-28 items-center justify-center overflow-hidden rounded bg-white p-2">
-              <img
-                src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(printSnapshot.previewSvg)}`}
-                alt={intl.formatMessage({
-                  id: 'project.materials.states.lastPrintedLabel',
-                })}
-                className="max-h-48 max-w-full object-contain"
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                size="md"
-                onClick={() => {
-                  window.print();
-                }}
-              >
-                <Printer />
-                {intl.formatMessage({
-                  id: 'project.materials.actions.reprintLastLabel',
-                })}
-              </Button>
-            </div>
+        ) : previewSvg ? (
+          <div className="flex min-h-28 items-center justify-center overflow-hidden rounded bg-white p-2">
+            <img
+              src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewSvg)}`}
+              alt={intl.formatMessage({
+                id: 'project.materials.states.lastPrintedLabel',
+              })}
+              className="max-h-48 max-w-full object-contain"
+            />
           </div>
         ) : (
-          <div className="flex min-h-24 items-center justify-center rounded-lg border border-dashed border-admin-neutral-300 bg-admin-neutral-50 px-4 py-6 text-center text-sm text-admin-neutral-600">
+          <p className="text-sm text-admin-neutral-600">
             {intl.formatMessage({
               id: 'project.materials.states.notPrintedLabel',
             })}
-          </div>
+          </p>
         )}
+        {previewSvg && widthMm && heightMm ? (
+          <div className="mt-3 flex justify-end">
+            <Button type="button" size="md" onClick={() => window.print()}>
+              <Printer />
+              {intl.formatMessage({
+                id: 'project.materials.actions.printLabel',
+              })}
+            </Button>
+          </div>
+        ) : null}
       </PublicInfoCard>
-      {printSnapshot?.templateSnapshot && printSnapshot.previewSvg
+      {previewSvg && widthMm && heightMm
         ? createPortal(
             <div
               className="material-label-print-document"
               style={
                 {
-                  '--material-label-width': `${printSnapshot.templateSnapshot.widthMm}mm`,
-                  '--material-label-height': `${printSnapshot.templateSnapshot.heightMm}mm`,
+                  '--material-label-width': `${widthMm}mm`,
+                  '--material-label-height': `${heightMm}mm`,
                 } as CSSProperties
               }
             >
               <div className="material-label-print-item">
                 <img
-                  src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(printSnapshot.previewSvg)}`}
+                  src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(previewSvg)}`}
                   alt=""
                 />
               </div>

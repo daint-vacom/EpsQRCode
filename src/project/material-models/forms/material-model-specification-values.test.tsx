@@ -75,6 +75,7 @@ describe('material model color values editor', () => {
         dataType: 'color',
         name: 'Màu sắc',
         isList: false,
+        isPublic: false,
         valueLabels: [],
         values: ['#1677ff'],
       }).success,

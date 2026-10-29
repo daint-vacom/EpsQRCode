@@ -57,9 +57,9 @@ import { MaterialLabelTemplatesPage } from '@/project/material-labels/pages/mate
 import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
 import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
 import { MaterialSpecificationsPage } from '@/project/material-specifications/pages/material-specifications-page';
-import { MaterialDetailPage } from '@/project/materials/pages/material-detail-page';
 import { MaterialEditorPage } from '@/project/materials/pages/material-editor-page';
 import { MaterialListPage } from '@/project/materials/pages/material-list-page';
+import { MaterialPublicAccessPage } from '@/project/materials/pages/material-public-detail-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
@@ -117,6 +117,10 @@ export function AppRoutingSetup() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route
+        path={ROUTES.PROJECT.MATERIAL_DETAIL}
+        element={<MaterialPublicAccessPage />}
+      />
       <Route element={<Layout1 />}>
         <Route path="/layout-1" element={<Layout1Page />} />
         <Route path="/layout-1/dark-sidebar" element={<Layout1Page />} />
@@ -236,10 +240,6 @@ export function AppRoutingSetup() {
         <Route path="/layout-39" element={<Layout39Page />} />
       </Route>
       <Route element={<ProtectedRoute />}>
-        <Route
-          path={ROUTES.PROJECT.MATERIAL_DETAIL}
-          element={<MaterialDetailPage />}
-        />
         <Route element={<ProjectMainLayout />}>
           <Route
             path={ROUTES.PROJECT.MATERIALS}

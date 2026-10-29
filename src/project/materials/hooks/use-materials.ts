@@ -10,6 +10,7 @@ import {
   loadMaterial,
   loadMaterialHistory,
   loadMaterials,
+  loadPublicMaterialDetail,
   previewMaterialModelSync,
   saveMaterial,
   updateMaterialAvailability,
@@ -18,6 +19,7 @@ import type {
   ApplyMaterialModelSyncInput,
   Material,
   MaterialListFilters,
+  MaterialPublicDetail,
   SaveMaterialInput,
 } from '../model/material';
 
@@ -30,6 +32,8 @@ export const materialKeys = {
     filters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>,
   ) => [...materialKeys.all, 'select', filters] as const,
   detail: (id: string) => [...materialKeys.all, 'detail', id] as const,
+  publicDetail: (id: string) =>
+    [...materialKeys.all, 'public-detail', id] as const,
   history: (id: string) => [...materialKeys.all, 'history', id] as const,
   syncPreview: (id: string) =>
     [...materialKeys.all, 'sync-preview', id] as const,
@@ -51,6 +55,15 @@ export function useMaterialQuery(id: string, enabled = true) {
   return useQuery({
     queryKey: materialKeys.detail(id),
     queryFn: ({ signal }) => loadMaterial(id, signal),
+    enabled: Boolean(id) && enabled,
+    retry: 0,
+  });
+}
+
+export function usePublicMaterialDetailQuery(id: string, enabled = true) {
+  return useQuery<MaterialPublicDetail | null>({
+    queryKey: materialKeys.publicDetail(id),
+    queryFn: ({ signal }) => loadPublicMaterialDetail(id, signal),
     enabled: Boolean(id) && enabled,
     retry: 0,
   });
@@ -84,8 +97,18 @@ export function useSaveMaterialMutation() {
       values,
       images,
       previousImages,
+      publicDisplaySettings,
+      publicSpecificationSettings,
     }: SaveMaterialInput) =>
-      saveMaterial(id, expectedVersion, values, images, previousImages),
+      saveMaterial(
+        id,
+        expectedVersion,
+        values,
+        images,
+        previousImages,
+        publicDisplaySettings,
+        publicSpecificationSettings,
+      ),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialKeys.all }),
   });

@@ -48,7 +48,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.actions.save': 'Lưu vật tư',
   'project.materials.actions.back': 'Quay lại danh sách vật tư',
   'project.materials.actions.retry': 'Thử tải lại',
-  'project.materials.actions.reprintLastLabel': 'In lại nhãn gần nhất',
+  'project.materials.actions.printLabel': 'In nhãn',
   'project.materials.actions.cancel': 'Hủy',
   'project.materials.actions.saving': 'Đang lưu',
   'project.materials.actions.customize': 'Chỉnh sửa giá trị',
@@ -92,6 +92,9 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.fields.specificationName': 'Thông số',
   'project.materials.fields.specificationValue': 'Giá trị',
   'project.materials.fields.specificationEdit': 'Sửa',
+  'project.materials.fields.specificationVisible': 'Hiển thị',
+  'project.materials.fields.specificationPublicLabel':
+    'Cho phép hiển thị thông số {name} khi xem công khai',
   'project.materials.fields.specificationEditLabel':
     'Cho phép sửa thông số {name}',
   'project.materials.fields.issuedDate': 'Ngày cấp',
@@ -166,6 +169,21 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.sections.printedQrLabel': 'Nhãn QR vật tư đã in',
   'project.materials.form.chooseModelHint':
     'Chọn mẫu vật tư để xem thông tin được lưu khi tạo.',
+  'project.materials.form.publicDisplay.title': 'Thông tin hiển thị công khai',
+  'project.materials.form.publicDisplay.basicInfo': 'Cho phép xem vật tư',
+  'project.materials.form.publicDisplay.specifications':
+    'Cho phép xem thông số kỹ thuật',
+  'project.materials.publicDetail.title': 'Thông tin vật tư',
+  'project.materials.publicDetail.basicInfo': 'Thông tin cơ bản',
+  'project.materials.publicDetail.specifications': 'Thông số kỹ thuật',
+  'project.materials.publicDetail.emptySpecifications':
+    'Vật tư chưa có thông số kỹ thuật.',
+  'project.materials.publicDetail.notShared': 'Thông tin không được công khai',
+  'project.materials.publicDetail.unavailable': 'Không thể xem vật tư',
+  'project.materials.publicDetail.unavailableDescription':
+    'Vật tư không được cho phép hiển thị công khai hoặc đã ngừng hoạt động.',
+  'project.materials.publicDetail.errors.loadTitle':
+    'Không tải được thông tin vật tư',
   'project.materials.form.inheritedSpecifications':
     'Thông số kế thừa ({count})',
   'project.materials.form.chooseSpecificationValue': 'Chọn giá trị gợi ý',
@@ -276,7 +294,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.actions.save': 'Save material',
   'project.materials.actions.back': 'Back to materials',
   'project.materials.actions.retry': 'Retry',
-  'project.materials.actions.reprintLastLabel': 'Reprint last label',
+  'project.materials.actions.printLabel': 'Print label',
   'project.materials.actions.cancel': 'Cancel',
   'project.materials.actions.saving': 'Saving',
   'project.materials.actions.customize': 'Edit value',
@@ -316,6 +334,9 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.fields.specificationName': 'Specification',
   'project.materials.fields.specificationValue': 'Value',
   'project.materials.fields.specificationEdit': 'Edit',
+  'project.materials.fields.specificationVisible': 'Visible',
+  'project.materials.fields.specificationPublicLabel':
+    'Allow public viewers to see {name}',
   'project.materials.fields.specificationEditLabel': 'Allow editing {name}',
   'project.materials.fields.issuedDate': 'Issued',
   'project.materials.fields.status': 'Use status',
@@ -395,6 +416,22 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.sections.printedQrLabel': 'Printed material QR label',
   'project.materials.form.chooseModelHint':
     'Choose a material model to preview information captured when the material is created.',
+  'project.materials.form.publicDisplay.title': 'Publicly visible information',
+  'project.materials.form.publicDisplay.basicInfo': 'Allow viewing material',
+  'project.materials.form.publicDisplay.specifications':
+    'Allow viewing technical specifications',
+  'project.materials.publicDetail.title': 'Material information',
+  'project.materials.publicDetail.basicInfo': 'Basic information',
+  'project.materials.publicDetail.specifications': 'Technical specifications',
+  'project.materials.publicDetail.emptySpecifications':
+    'This material has no technical specifications.',
+  'project.materials.publicDetail.notShared': 'This information is not public.',
+  'project.materials.publicDetail.unavailable':
+    'This material cannot be viewed.',
+  'project.materials.publicDetail.unavailableDescription':
+    'Public viewing is disabled for this material or it has been deactivated.',
+  'project.materials.publicDetail.errors.loadTitle':
+    'Could not load material information',
   'project.materials.form.inheritedSpecifications':
     'Inherited specifications ({count})',
   'project.materials.form.chooseSpecificationValue': 'Choose a suggested value',

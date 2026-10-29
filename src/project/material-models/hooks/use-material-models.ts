@@ -11,6 +11,7 @@ import type {
   MaterialModelFormValues,
   MaterialModelImage,
   MaterialModelImageDraft,
+  MaterialPublicDisplaySettings,
 } from '../model/material-model';
 
 export const materialModelKeys = {
@@ -33,10 +34,12 @@ export function useCreateMaterialModelMutation() {
     mutationFn: ({
       values,
       images,
+      publicDisplaySettings,
     }: {
       values: MaterialModelFormValues;
       images: MaterialModelImageDraft[];
-    }) => createMaterialModel(values, images),
+      publicDisplaySettings: MaterialPublicDisplaySettings;
+    }) => createMaterialModel(values, images, publicDisplaySettings),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
   });
@@ -50,12 +53,21 @@ export function useUpdateMaterialModelMutation() {
       values,
       images,
       previousImages,
+      publicDisplaySettings,
     }: {
       id: string;
       values: MaterialModelFormValues;
       images: MaterialModelImageDraft[];
       previousImages: MaterialModelImage[];
-    }) => updateMaterialModel(id, values, images, previousImages),
+      publicDisplaySettings: MaterialPublicDisplaySettings;
+    }) =>
+      updateMaterialModel(
+        id,
+        values,
+        images,
+        previousImages,
+        publicDisplaySettings,
+      ),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
   });

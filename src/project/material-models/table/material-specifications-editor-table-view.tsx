@@ -14,6 +14,7 @@ import { MaterialSpecificationsTableHeader } from './material-specifications-tab
 export type MaterialSpecificationsEditorTableMode = 'model' | 'material';
 export type MaterialSpecificationsEditorTableRowProps = {
   edit?: ReactNode;
+  visible?: ReactNode;
   rowRef?: Ref<HTMLTableRowElement>;
   rowStyle?: CSSProperties;
   isDragging?: boolean;
@@ -44,7 +45,7 @@ export function MaterialSpecificationsEditorTableView({
   children,
 }: MaterialSpecificationsEditorTableViewProps) {
   const intl = useIntl();
-  const columnCount = mode === 'model' ? 4 : 3;
+  const columnCount = mode === 'model' ? 5 : 4;
   const headerProps =
     mode === 'model' ? { mode, count, onAddRow } : { mode, count };
 
@@ -65,6 +66,11 @@ export function MaterialSpecificationsEditorTableView({
                   {mode === 'model' ? (
                     <TableHead className="sticky top-0 z-20 w-12 bg-muted" />
                   ) : null}
+                  <TableHead className="sticky top-0 z-20 w-24 bg-muted text-center">
+                    {intl.formatMessage({
+                      id: 'project.materials.fields.specificationVisible',
+                    })}
+                  </TableHead>
                   <TableHead className="sticky top-0 z-20 min-w-[260px] bg-muted">
                     {intl.formatMessage({
                       id: 'materialModels.specifications.column',
@@ -119,13 +125,20 @@ export function MaterialSpecificationsEditorTableRow({
   name,
   value,
   edit,
+  visible,
   rowRef,
   rowStyle,
   isDragging,
 }: MaterialSpecificationsEditorTableRowProps &
   (
     | { mode: 'model'; children: ReactNode }
-    | { mode: 'material'; name: ReactNode; value: ReactNode; edit: ReactNode }
+    | {
+        mode: 'material';
+        name: ReactNode;
+        value: ReactNode;
+        visible: ReactNode;
+        edit: ReactNode;
+      }
   )) {
   return (
     <TableRow
@@ -138,6 +151,9 @@ export function MaterialSpecificationsEditorTableRow({
         children
       ) : (
         <>
+          <TableCell className="w-24 px-2 py-2 text-center align-top">
+            {visible}
+          </TableCell>
           <TableCell className="px-2 py-2 align-top">{name}</TableCell>
           <TableCell className="px-2 py-2 align-top">{value}</TableCell>
           <TableCell className="w-20 px-2 py-2 text-center align-top">

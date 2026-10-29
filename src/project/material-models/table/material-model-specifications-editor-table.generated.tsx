@@ -59,6 +59,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { TableCell, TableRow } from '@/components/ui/table';
 import {
   Tooltip,
@@ -104,10 +105,12 @@ function MaterialModelSpecificationsSortableRow({
 
 interface MaterialModelSpecificationsEditorTableProps {
   form: UseFormReturn<MaterialModelFormValues>;
+  publicVisibilityDisabled?: boolean;
 }
 
 export function MaterialModelSpecificationsEditorTable({
   form,
+  publicVisibilityDisabled,
 }: MaterialModelSpecificationsEditorTableProps) {
   const intl = useIntl();
   const catalogQuery = useMaterialSpecificationsQuery();
@@ -143,6 +146,7 @@ export function MaterialModelSpecificationsEditorTable({
         id: crypto.randomUUID(),
         dataType,
         name: '',
+        isPublic: true,
         isList: false,
         valueLabels: [],
         values: dataType === 'boolean' ? ['false'] : [],
@@ -283,7 +287,8 @@ export function MaterialModelSpecificationsEditorTable({
             >
               {fields.map((field, index) => {
                 const row = watchedRows[index] as
-                  MaterialModelSpecification | undefined;
+                  | MaterialModelSpecification
+                  | undefined;
 
                 return (
                   <MaterialModelSpecificationsSortableRow
@@ -324,6 +329,25 @@ export function MaterialModelSpecificationsEditorTable({
                                 })}
                               </TooltipContent>
                             </Tooltip>
+                          </TableCell>
+                          <TableCell className="w-24 px-2 py-2 text-center align-top">
+                            <FormField
+                              control={form.control}
+                              name={`specifications.${index}.isPublic`}
+                              render={({ field: visibilityField }) => (
+                                <Switch
+                                  checked={visibilityField.value}
+                                  disabled={publicVisibilityDisabled}
+                                  aria-label={intl.formatMessage(
+                                    {
+                                      id: 'project.materials.fields.specificationPublicLabel',
+                                    },
+                                    { name: row?.name || index + 1 },
+                                  )}
+                                  onCheckedChange={visibilityField.onChange}
+                                />
+                              )}
+                            />
                           </TableCell>
                           <TableCell className="px-2 py-2 align-top">
                             <div className="flex min-w-0 items-start gap-2">
@@ -589,6 +613,10 @@ function handleChooseCatalogSpecification(
     shouldValidate: true,
   });
   form.setValue(`${base}.isList`, false, {
+    shouldDirty: true,
+    shouldValidate: true,
+  });
+  form.setValue(`${base}.isPublic`, true, {
     shouldDirty: true,
     shouldValidate: true,
   });

@@ -7,6 +7,7 @@ export const materialModelSpecificationSchema = z
     dataType: materialSpecificationDataTypeSchema,
     name: z.string().trim().min(1, 'Vui lòng nhập tên thông số.'),
     isList: z.boolean(),
+    isPublic: z.boolean(),
     valueLabels: z.array(z.string().trim()),
     values: z
       .array(z.string().trim())
@@ -36,6 +37,29 @@ export const materialModelFormSchema = z.object({
   specifications: z.array(materialModelSpecificationSchema),
 });
 
+export interface MaterialPublicDisplaySettings {
+  basicInfo: boolean;
+  specifications: boolean;
+}
+
+export const DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS: MaterialPublicDisplaySettings =
+  {
+    basicInfo: true,
+    specifications: true,
+  };
+
+export function mapPublicSpecificationSettings(
+  specifications: MaterialModelSpecification[],
+  overrides: Record<string, boolean> = {},
+): Record<string, boolean> {
+  return Object.fromEntries(
+    specifications.map((specification) => [
+      specification.id,
+      overrides[specification.id] ?? specification.isPublic,
+    ]),
+  );
+}
+
 export type MaterialModelFormValues = z.infer<typeof materialModelFormSchema>;
 export type MaterialModelSpecification = z.infer<
   typeof materialModelSpecificationSchema
@@ -52,6 +76,7 @@ export interface MaterialModel {
   externalCodes: string[];
   requiresInspection: boolean;
   specifications: MaterialModelSpecification[];
+  publicDisplaySettings: MaterialPublicDisplaySettings;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -86,6 +111,7 @@ export interface MaterialModelRow {
   external_codes: string[];
   requires_inspection: boolean;
   specifications: MaterialModelSpecification[];
+  public_display_settings: MaterialPublicDisplaySettings;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -107,6 +133,7 @@ export function mapMaterialModelRow(
     externalCodes: row.external_codes ?? [],
     requiresInspection: row.requires_inspection,
     specifications: row.specifications,
+    publicDisplaySettings: row.public_display_settings,
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

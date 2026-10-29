@@ -4,8 +4,13 @@ import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { MaterialModelGalleryCard } from '@/project/material-models/forms/material-model-gallery-card';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
+import {
+  DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+  mapPublicSpecificationSettings,
+} from '@/project/material-models/model/material-model';
+import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
-import { Boxes, Save } from 'lucide-react';
+import { Boxes, Eye, Save } from 'lucide-react';
 import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -16,7 +21,9 @@ import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
+import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MATERIAL_IMAGES_BUCKET } from '../api/materials.api';
@@ -52,6 +59,12 @@ export function MaterialEditorPage() {
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const form = useMaterialForm();
   const [galleryImages, setGalleryImages] = useState<MaterialImageDraft[]>([]);
+  const [publicDisplaySettings, setPublicDisplaySettings] =
+    useState<MaterialPublicDisplaySettings>(
+      DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+    );
+  const [publicSpecificationSettings, setPublicSpecificationSettings] =
+    useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState('general');
   const materialQuery = useMaterialQuery(
     id,
@@ -79,10 +92,22 @@ export function MaterialEditorPage() {
     if (isEdit && editingMaterial) {
       form.reset(mapMaterialToForm(editingMaterial));
       setGalleryImages(editingMaterial.images);
+      setPublicDisplaySettings(
+        editingMaterial.publicDisplaySettings ??
+          DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+      );
+      setPublicSpecificationSettings(
+        mapPublicSpecificationSettings(
+          editingMaterial.modelSnapshot.specifications,
+          editingMaterial.publicSpecificationSettings,
+        ),
+      );
       previousModelId.current = editingMaterial.modelId;
     } else if (!isEdit) {
       form.reset(materialDefaultValues);
       setGalleryImages([]);
+      setPublicDisplaySettings(DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS);
+      setPublicSpecificationSettings({});
       previousModelId.current = '';
       hydratedModelId.current = '';
     }
@@ -102,6 +127,10 @@ export function MaterialEditorPage() {
     if (selectionChanged) {
       form.setValue('specificationOverrides', {}, { shouldDirty: true });
       form.setValue('specificationOverrideLabels', {}, { shouldDirty: true });
+      setPublicDisplaySettings(currentModel.publicDisplaySettings);
+      setPublicSpecificationSettings(
+        mapPublicSpecificationSettings(currentModel.specifications),
+      );
 
       const inheritedImages = (currentModel.images ?? []).map((image) => ({
         ...image,
@@ -247,6 +276,8 @@ export function MaterialEditorPage() {
         values: payload,
         images: galleryImages,
         previousImages: editingMaterial?.images ?? [],
+        publicDisplaySettings,
+        publicSpecificationSettings,
       },
       {
         onSuccess: (savedId) => {
@@ -319,7 +350,7 @@ export function MaterialEditorPage() {
         <form
           id={FORM_ID}
           onSubmit={form.handleSubmit(handleSubmit, handleInvalidSubmit)}
-          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] xl:overflow-hidden"
+          className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto xl:grid-cols-[minmax(0,0.35fr)_minmax(0,0.65fr)] xl:overflow-hidden"
         >
           <MaterialModelGalleryCard
             key={id ?? 'create'}
@@ -388,6 +419,53 @@ export function MaterialEditorPage() {
                 }
                 onRetry={() => void custodiansQuery.refetch()}
               />
+              <Card className="min-w-0 shrink-0">
+                <CardHeader className="min-h-0 px-5 py-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Eye className="size-4 text-primary" aria-hidden="true" />
+                    {intl.formatMessage({
+                      id: 'project.materials.form.publicDisplay.title',
+                    })}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4 p-5 pt-1">
+                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
+                    <Label htmlFor="material-public-basic-info">
+                      {intl.formatMessage({
+                        id: 'project.materials.form.publicDisplay.basicInfo',
+                      })}
+                    </Label>
+                    <Switch
+                      id="material-public-basic-info"
+                      checked={publicDisplaySettings.basicInfo}
+                      onCheckedChange={(basicInfo) =>
+                        setPublicDisplaySettings((current) => ({
+                          ...current,
+                          basicInfo,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
+                    <Label htmlFor="material-public-specifications">
+                      {intl.formatMessage({
+                        id: 'project.materials.form.publicDisplay.specifications',
+                      })}
+                    </Label>
+                    <Switch
+                      id="material-public-specifications"
+                      checked={publicDisplaySettings.specifications}
+                      disabled={!publicDisplaySettings.basicInfo}
+                      onCheckedChange={(specifications) =>
+                        setPublicDisplaySettings((current) => ({
+                          ...current,
+                          specifications,
+                        }))
+                      }
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
             <TabsContent
               value="technical"
@@ -398,10 +476,13 @@ export function MaterialEditorPage() {
                   <MaterialSpecificationsTable
                     mode="material"
                     specifications={snapshot.specifications}
+                    publicVisibilityDisabled={!publicDisplaySettings.basicInfo}
                     values={form.watch('specificationOverrides') ?? {}}
                     valueLabels={
                       form.watch('specificationOverrideLabels') ?? {}
                     }
+                    publicSettings={publicSpecificationSettings}
+                    onPublicSettingsChange={setPublicSpecificationSettings}
                     onChange={(next) =>
                       form.setValue('specificationOverrides', next, {
                         shouldDirty: true,
@@ -419,10 +500,13 @@ export function MaterialEditorPage() {
                   <MaterialSpecificationsTable
                     mode="material"
                     specifications={null}
+                    publicVisibilityDisabled={!publicDisplaySettings.basicInfo}
                     values={form.watch('specificationOverrides') ?? {}}
                     valueLabels={
                       form.watch('specificationOverrideLabels') ?? {}
                     }
+                    publicSettings={publicSpecificationSettings}
+                    onPublicSettingsChange={setPublicSpecificationSettings}
                     onChange={(next) =>
                       form.setValue('specificationOverrides', next, {
                         shouldDirty: true,

@@ -3,6 +3,7 @@ import { MaterialSpecificationDataTypeIcon } from '@/project/material-specificat
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { MaterialModelSpecificationValues } from '../forms/material-model-specification-values';
 import type {
   MaterialModelFormValues,
@@ -16,9 +17,12 @@ import {
 
 type MaterialModeProps = {
   mode: 'material';
+  publicVisibilityDisabled?: boolean;
   specifications: MaterialModelSpecification[] | null;
   values: Record<string, string[]>;
   valueLabels: Record<string, string[]>;
+  publicSettings: Record<string, boolean>;
+  onPublicSettingsChange: (settings: Record<string, boolean>) => void;
   onChange: (values: Record<string, string[]>) => void;
   onValueLabelsChange: (labels: Record<string, string[]>) => void;
 };
@@ -26,13 +30,19 @@ type MaterialModeProps = {
 type ModelModeProps = {
   mode: 'model';
   form: UseFormReturn<MaterialModelFormValues>;
+  publicVisibilityDisabled?: boolean;
 };
 
 export function MaterialSpecificationsTable(
   props: MaterialModeProps | ModelModeProps,
 ) {
   if (props.mode === 'model') {
-    return <MaterialModelSpecificationsEditorTable form={props.form} />;
+    return (
+      <MaterialModelSpecificationsEditorTable
+        form={props.form}
+        publicVisibilityDisabled={props.publicVisibilityDisabled}
+      />
+    );
   }
 
   return <MaterialSpecificationsMaterialMode {...props} />;
@@ -44,6 +54,9 @@ function MaterialSpecificationsMaterialMode({
   valueLabels,
   onChange,
   onValueLabelsChange,
+  publicSettings,
+  onPublicSettingsChange,
+  publicVisibilityDisabled,
 }: Omit<MaterialModeProps, 'mode'>) {
   const intl = useIntl();
   const [editableRows, setEditableRows] = useState<Record<string, boolean>>({});
@@ -130,6 +143,24 @@ function MaterialSpecificationsMaterialMode({
           <MaterialSpecificationsEditorTableRow
             key={specification.id}
             mode="material"
+            visible={
+              <Switch
+                disabled={publicVisibilityDisabled}
+                checked={
+                  publicSettings[specification.id] ?? specification.isPublic
+                }
+                aria-label={intl.formatMessage(
+                  { id: 'project.materials.fields.specificationPublicLabel' },
+                  { name: specification.name },
+                )}
+                onCheckedChange={(isPublic) =>
+                  onPublicSettingsChange({
+                    ...publicSettings,
+                    [specification.id]: isPublic,
+                  })
+                }
+              />
+            }
             edit={
               <Checkbox
                 checked={isEditable}

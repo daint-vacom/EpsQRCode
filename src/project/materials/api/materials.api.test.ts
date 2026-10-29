@@ -47,16 +47,28 @@ describe('materials API RPC contract', () => {
     await saveMaterial(null, null, values, [], []);
     await saveMaterial('material-1', 4, values, [], []);
 
-    expect(post).toHaveBeenNthCalledWith(1, '/rpc/save_material', {
-      p_id: null,
-      p_expected_version: null,
-      p_values: { ...values, images: [] },
-    });
-    expect(post).toHaveBeenNthCalledWith(2, '/rpc/save_material', {
-      p_id: 'material-1',
-      p_expected_version: 4,
-      p_values: { ...values, images: [] },
-    });
+    expect(post).toHaveBeenNthCalledWith(
+      1,
+      '/rpc/save_material_with_public_display_settings',
+      {
+        p_id: null,
+        p_expected_version: null,
+        p_values: { ...values, images: [] },
+        p_public_display_settings: { basicInfo: false, specifications: false },
+        p_public_specification_settings: {},
+      },
+    );
+    expect(post).toHaveBeenNthCalledWith(
+      2,
+      '/rpc/save_material_with_public_display_settings',
+      {
+        p_id: 'material-1',
+        p_expected_version: 4,
+        p_values: { ...values, images: [] },
+        p_public_display_settings: { basicInfo: false, specifications: false },
+        p_public_specification_settings: {},
+      },
+    );
   });
 
   it('binds model sync approval to both material and model revisions', async () => {
