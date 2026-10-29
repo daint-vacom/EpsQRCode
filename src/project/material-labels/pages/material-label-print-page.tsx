@@ -31,7 +31,9 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { SearchInput } from '@/components/ui/inputs/search-input';
 import { Label } from '@/components/ui/label';
+import { PageLoading } from '@/components/ui/loading';
 import { SelectOptionContent } from '@/components/ui/select-option-content';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
@@ -312,6 +314,7 @@ export function MaterialLabelPrintPage() {
     }
     let cancelled = false;
     setIsRendering(true);
+    setLabelSvgs({});
     setRenderError(null);
     void Promise.all(
       materials.map(
@@ -435,11 +438,11 @@ export function MaterialLabelPrintPage() {
             }}
           />
         ) : isLoading ? (
-          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            {intl.formatMessage({
-              id: 'project.materialLabels.states.loading',
+          <PageLoading
+            label={intl.formatMessage({
+              id: 'common.state.loading',
             })}
-          </div>
+          />
         ) : renderError ? (
           <ErrorState
             title={intl.formatMessage({
@@ -689,11 +692,14 @@ export function MaterialLabelPrintPage() {
                                   }}
                                 />
                               ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  {intl.formatMessage({
-                                    id: 'project.materialLabels.states.rendering',
-                                  })}
-                                </div>
+                                <Skeleton
+                                  aria-hidden="true"
+                                  className="rounded-sm"
+                                  style={{
+                                    width: `${previewWidth * previewScale}px`,
+                                    height: `${previewHeight * previewScale}px`,
+                                  }}
+                                />
                               )}
                             </div>
                           </CardContent>

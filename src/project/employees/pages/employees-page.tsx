@@ -106,6 +106,7 @@ export function EmployeesPage() {
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(
     null,
   );
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [deletingEmployees, setDeletingEmployees] = useState<Employee[]>([]);
   const [resettingPasswordFor, setResettingPasswordFor] =
     useState<Employee | null>(null);
@@ -489,10 +490,6 @@ export function EmployeesPage() {
 
   const listError = accountQuery.error ?? workspaceQuery.error;
   const isListLoading = accountQuery.isPending || workspaceQuery.isLoading;
-  const selectedEmployees = table
-    .getSelectedRowModel()
-    .rows.map((row) => row.original);
-
   if (accountQuery.isError || workspaceQuery.isError) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
@@ -666,10 +663,10 @@ export function EmployeesPage() {
             <DataGridPagination />
           </CardFooter>
         </Card>
-        <DataGridActionBar>
+        <DataGridActionBar onSelectionChange={setSelectedEmployees}>
           <Button
             variant="destructive"
-            size="sm"
+            size="md"
             onClick={() => setDeletingEmployees(selectedEmployees)}
           >
             <Trash2 />

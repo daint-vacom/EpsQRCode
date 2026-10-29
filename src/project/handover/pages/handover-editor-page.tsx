@@ -109,6 +109,7 @@ export function HandoverEditorPage() {
     canManage && !isEdit,
   );
   const processedBulkMaterialIds = useRef(new Set<string>());
+  const processedBulkSenderPrefill = useRef(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachmentFiles, setPendingAttachmentFiles] = useState<File[]>(
     [],
@@ -315,6 +316,72 @@ export function HandoverEditorPage() {
     }
     lastSenderPartyIdRef.current = senderPartyId;
   }, [form, selectedSenderPartyId]);
+
+  useEffect(() => {
+    if (
+      isEdit ||
+      reverseFromHandoverId ||
+      !bulkMaterialIds.length ||
+      processedBulkSenderPrefill.current ||
+      bulkMaterialsQuery.length !== bulkMaterialIds.length ||
+      bulkMaterialsQuery.some((result) => result.isPending || result.isError)
+    ) {
+      return;
+    }
+
+    const selectedBulkMaterials = bulkMaterialsQuery.flatMap((result) =>
+      result.data ? [result.data] : [],
+    );
+    if (selectedBulkMaterials.length !== bulkMaterialIds.length) return;
+
+    const material = selectedBulkMaterials[0];
+    const owner = material.ownerSnapshot;
+    const senderParty = (custodiansQuery.data ?? []).find(
+      (party) => party.id === material.ownerPartyId,
+    );
+    if (owner.kind !== 'other' && custodiansQuery.isPending) return;
+
+    const senderPartyId =
+      owner.kind === 'other'
+        ? ''
+        : (material.ownerPartyId ??
+          owner.partyId ??
+          owner.catalogPartyId ??
+          '');
+    processedBulkSenderPrefill.current = true;
+    lastSenderPartyIdRef.current = senderPartyId;
+    senderSelectionInitializedRef.current = true;
+    form.reset({
+      ...form.getValues(),
+      senderPartyId,
+      senderPartyKind: owner.kind,
+      senderPartyCode: owner.code || senderParty?.code || '',
+      senderPartyName: owner.name || senderParty?.name || '',
+      senderPartyPhone: owner.phone || senderParty?.phone || '',
+      senderPartyEmail: owner.email || senderParty?.email || '',
+      senderRepresentativeName:
+        owner.representativeName ||
+        senderParty?.representativeName ||
+        senderParty?.representativeDisplayName ||
+        '',
+      senderPartyScopePartyId:
+        owner.kind === 'other'
+          ? (owner.scopePartyId ?? '')
+          : (senderParty?.handoverScopePartyId ?? ''),
+      senderRepresentativeUserId:
+        owner.kind === 'other'
+          ? null
+          : (senderParty?.representativeUserId ?? null),
+    });
+  }, [
+    bulkMaterialIds,
+    bulkMaterialsQuery,
+    custodiansQuery.data,
+    custodiansQuery.isPending,
+    form,
+    isEdit,
+    reverseFromHandoverId,
+  ]);
 
   useEffect(() => {
     if (isEdit || !bulkMaterialIds.length) return;

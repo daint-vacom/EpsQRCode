@@ -24,6 +24,7 @@ export const vi: Record<string, string> = {
   ...receiptMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.groups.workspace': 'Không gian làm việc',
+  'project.navigation.groups.warehouseManagement': 'Quản lý kho',
   'project.navigation.groups.reports': 'Báo cáo',
   'project.navigation.groups.organization': 'Quản trị tổ chức',
   'project.navigation.groups.system': 'Hệ thống',

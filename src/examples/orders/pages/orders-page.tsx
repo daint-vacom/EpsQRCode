@@ -36,6 +36,7 @@ import {
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUSES,
+  type Order,
   type OrderStatus,
 } from '../model/order';
 import { useOrderColumns } from '../table/order.columns.generated';
@@ -46,6 +47,7 @@ export function OrdersExamplePage() {
     pageSize: 10,
   });
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [selectedOrders, setSelectedOrders] = useState<Order[]>([]);
   const [bulkStatus, setBulkStatus] = useState<OrderStatus>('confirmed');
 
   const listQuery = useOrderListQuery({
@@ -78,16 +80,14 @@ export function OrdersExamplePage() {
   });
 
   const handleBulkStatus = useCallback(() => {
-    const ids = table
-      .getFilteredSelectedRowModel()
-      .rows.map((row) => row.original.id);
+    const ids = selectedOrders.map((order) => order.id);
     if (ids.length === 0) return;
 
     setStatusBulk(
       { ids, status: bulkStatus },
       { onSuccess: () => table.resetRowSelection() },
     );
-  }, [bulkStatus, setStatusBulk, table]);
+  }, [bulkStatus, selectedOrders, setStatusBulk, table]);
 
   if (listQuery.isError) {
     return (
@@ -139,12 +139,12 @@ export function OrdersExamplePage() {
           </CardFooter>
         </Card>
 
-        <DataGridActionBar>
+        <DataGridActionBar onSelectionChange={setSelectedOrders}>
           <Select
             value={bulkStatus}
             onValueChange={(value) => setBulkStatus(value as OrderStatus)}
           >
-            <SelectTrigger size="sm" className="w-[160px]">
+            <SelectTrigger size="md" className="w-[160px]">
               <SelectValue label="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -157,7 +157,7 @@ export function OrdersExamplePage() {
           </Select>
           <Button
             variant="primary"
-            size="sm"
+            size="md"
             onClick={handleBulkStatus}
             loading={isBulkPending}
             loadingText="Đang áp dụng"

@@ -29,16 +29,28 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.MATERIALS,
       },
       {
+        label: 'Phiếu bàn giao',
+        labelMessageId: 'project.navigation.handovers',
+        icon: ArrowRightLeft,
+        path: ROUTES.PROJECT.HANDOVERS,
+      },
+    ],
+  },
+  {
+    title: 'Quản lý kho',
+    titleMessageId: 'project.navigation.groups.warehouseManagement',
+    items: [
+      {
         label: 'Phiếu nhập vật tư',
         labelMessageId: 'project.navigation.receipts',
         icon: ClipboardPlus,
         path: ROUTES.PROJECT.RECEIPTS,
       },
       {
-        label: 'Phiếu bàn giao',
-        labelMessageId: 'project.navigation.handovers',
-        icon: ArrowRightLeft,
-        path: ROUTES.PROJECT.HANDOVERS,
+        label: 'Kho',
+        labelMessageId: 'project.navigation.warehouses',
+        icon: Building2,
+        path: ROUTES.PROJECT.WAREHOUSES,
       },
     ],
   },
@@ -81,12 +93,6 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         labelMessageId: 'project.navigation.materialSpecifications',
         icon: SlidersHorizontal,
         path: ROUTES.PROJECT.MATERIAL_SPECIFICATIONS,
-      },
-      {
-        label: 'Kho',
-        labelMessageId: 'project.navigation.warehouses',
-        icon: Building2,
-        path: ROUTES.PROJECT.WAREHOUSES,
       },
       {
         label: 'Đơn vị EPS',

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
@@ -13,13 +13,22 @@ import {
   type PaginationState,
   type RowSelectionState,
 } from '@tanstack/react-table';
-import { Boxes, Handshake, Plus, QrCode, Trash2 } from 'lucide-react';
+import {
+  Boxes,
+  CheckCircle2,
+  CircleAlert,
+  Handshake,
+  Plus,
+  QrCode,
+  Trash2,
+} from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -34,6 +43,7 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { MaterialHandoverPreflightDialogShell } from '../components/material-handover-preflight-dialog-shell.generated';
 import {
   useDeleteMaterialMutation,
   useMaterialsQuery,
@@ -52,6 +62,57 @@ import {
 import { useMaterialTableMainColumnWidth } from '../table/use-material-table-main-column-width';
 
 const DEFAULT_PAGE_SIZE = 25;
+type MaterialBulkAction = 'printQr' | 'handover' | 'delete' | '';
+
+function getMaterialOwnerIdentity(material: Material): string | null {
+  const snapshot = material.ownerSnapshot;
+  if (snapshot.kind === 'other') {
+    const scopePartyId = snapshot.scopePartyId?.trim();
+    const name = snapshot.name.trim().toLocaleLowerCase();
+    return scopePartyId && name ? `other:${scopePartyId}:${name}` : null;
+  }
+
+  const partyId =
+    material.ownerPartyId ?? snapshot.partyId ?? snapshot.catalogPartyId;
+  return partyId ? `${snapshot.kind}:${partyId}` : null;
+}
+
+function HandoverCheckRow({
+  label,
+  passed,
+  passedLabel,
+  failedLabel,
+}: {
+  label: string;
+  passed: boolean;
+  passedLabel: string;
+  failedLabel: string;
+}) {
+  const Icon = passed ? CheckCircle2 : CircleAlert;
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <Icon
+        className={
+          passed
+            ? 'size-4 text-[var(--color-success-accent,var(--color-green-600))]'
+            : 'size-4 text-destructive'
+        }
+        aria-hidden="true"
+      />
+      <span className="flex-1">{label}</span>
+      <span
+        className={
+          passed
+            ? 'text-[var(--color-success-accent,var(--color-green-600))]'
+            : 'text-destructive'
+        }
+        role="status"
+      >
+        {passed ? passedLabel : failedLabel}
+      </span>
+    </div>
+  );
+}
 
 export function MaterialListPage() {
   const intl = useIntl();
@@ -69,6 +130,10 @@ export function MaterialListPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [deletingMaterials, setDeletingMaterials] = useState<Material[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+  const [bulkAction, setBulkAction] = useState<MaterialBulkAction>('');
+  const [isHandoverPreflightOpen, setIsHandoverPreflightOpen] = useState(false);
+  const handoverNavigationStarted = useRef(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
     ReadonlySet<string>
@@ -172,29 +237,97 @@ export function MaterialListPage() {
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
   });
-  const selectedMaterials = table
-    .getFilteredSelectedRowModel()
-    .rows.map((row) => row.original);
   const handleBulkHandover = () => {
     if (!canManage || selectedMaterials.length === 0) return;
-    if (selectedMaterials.some((material) => material.reservedHandoverId)) {
-      toast.error(
-        intl.formatMessage({ id: 'project.materials.states.reserved' }),
+    handoverNavigationStarted.current = false;
+    setIsHandoverPreflightOpen(true);
+  };
+  const ownerIdentities = selectedMaterials.map(getMaterialOwnerIdentity);
+  const missingOwnerMaterials = selectedMaterials.filter(
+    (material) => getMaterialOwnerIdentity(material) === null,
+  );
+  const hasSameOwner =
+    selectedMaterials.length > 0 &&
+    missingOwnerMaterials.length === 0 &&
+    new Set(ownerIdentities).size === 1;
+  const unavailableMaterials = selectedMaterials.filter(
+    (material) => material.status !== 'available',
+  );
+  const reservedMaterials = selectedMaterials.filter(
+    (material) => material.reservedHandoverId,
+  );
+  const handoverErrors = [
+    ...missingOwnerMaterials.map((material) =>
+      intl.formatMessage(
+        { id: 'project.materials.bulk.handover.errors.missingOwner' },
+        { code: material.code },
+      ),
+    ),
+    ...(new Set(ownerIdentities.filter(Boolean)).size > 1
+      ? [
+          intl.formatMessage({
+            id: 'project.materials.bulk.handover.errors.mixedOwners',
+          }),
+        ]
+      : []),
+    ...unavailableMaterials.map((material) =>
+      intl.formatMessage(
+        { id: 'project.materials.bulk.handover.errors.notAvailable' },
+        { code: material.code },
+      ),
+    ),
+    ...reservedMaterials.map((material) => {
+      const statusId =
+        material.reservationStatus === 'pending'
+          ? 'project.handover.status.pending'
+          : 'project.handover.status.draft';
+      return intl.formatMessage(
+        { id: 'project.materials.bulk.handover.errors.reserved' },
+        {
+          code: material.code,
+          status: intl.formatMessage({ id: statusId }),
+        },
       );
-      return;
-    }
+    }),
+  ];
+  useEffect(() => {
     if (
-      new Set(selectedMaterials.map((material) => material.status)).size > 1
+      !isHandoverPreflightOpen ||
+      handoverErrors.length > 0 ||
+      !canManage ||
+      selectedMaterials.length === 0 ||
+      handoverNavigationStarted.current
     ) {
-      toast.error(
-        intl.formatMessage({ id: 'project.materials.errors.mixedStatuses' }),
-      );
       return;
     }
+
+    handoverNavigationStarted.current = true;
     const query = new URLSearchParams({
       materialIds: selectedMaterials.map((material) => material.id).join(','),
     });
     navigate(`${ROUTES.PROJECT.HANDOVER_CREATE}?${query.toString()}`);
+  }, [
+    canManage,
+    handoverErrors.length,
+    isHandoverPreflightOpen,
+    navigate,
+    selectedMaterials,
+  ]);
+  const handleApplyBulkAction = () => {
+    switch (bulkAction) {
+      case 'printQr':
+        if (!canView || selectedMaterials.length === 0) return;
+        navigateToLabelPrint(selectedMaterials.map((material) => material.id));
+        break;
+      case 'handover':
+        handleBulkHandover();
+        break;
+      case 'delete':
+        if (!canManage || selectedMaterials.length === 0) return;
+        setDeletingMaterials(selectedMaterials);
+        break;
+    }
+    setBulkAction('');
   };
   const tableViewportRef = useMaterialTableMainColumnWidth(table);
   const statusOptions: SelectOption[] = [
@@ -360,6 +493,7 @@ export function MaterialListPage() {
           </CardFooter>
         </Card>
         <DataGridActionBar
+          onSelectionChange={setSelectedMaterials}
           selectionLabel={(count) =>
             intl.formatMessage(
               { id: 'project.materials.bulk.selectedCount' },
@@ -367,57 +501,86 @@ export function MaterialListPage() {
             )
           }
         >
-          {canView ? (
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() =>
-                navigateToLabelPrint(
-                  selectedMaterials.map((material) => material.id),
-                )
-              }
-            >
-              <QrCode />
-              {intl.formatMessage({ id: 'project.materials.bulk.printQr' })}
-            </Button>
-          ) : null}
-          {canManage ? (
-            <>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={selectedMaterials.some((material) =>
-                  Boolean(material.reservedHandoverId),
-                )}
-                onClick={handleBulkHandover}
-              >
-                <Handshake />
-                {intl.formatMessage({ id: 'project.materials.bulk.handover' })}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={deleteMutation.isPending}
-                onClick={() => setDeletingMaterials(selectedMaterials)}
-              >
-                <Trash2 />
-                {intl.formatMessage({ id: 'project.materials.bulk.delete' })}
-              </Button>
-            </>
-          ) : null}
+          <OptionSelect
+            value={bulkAction}
+            onChange={(value) => setBulkAction(value as MaterialBulkAction)}
+            options={[
+              ...(canView
+                ? [
+                    {
+                      value: 'printQr',
+                      label: intl.formatMessage({
+                        id: 'project.materials.bulk.printQr',
+                      }),
+                    },
+                  ]
+                : []),
+              ...(canManage
+                ? [
+                    {
+                      value: 'handover',
+                      label: intl.formatMessage({
+                        id: 'project.materials.bulk.handover',
+                      }),
+                    },
+                    {
+                      value: 'delete',
+                      label: intl.formatMessage({
+                        id: 'project.materials.bulk.delete',
+                      }),
+                    },
+                  ]
+                : []),
+            ]}
+            placeholder={intl.formatMessage({
+              id: 'project.materials.bulk.chooseAction',
+            })}
+            ariaLabel={intl.formatMessage({
+              id: 'project.materials.bulk.chooseAction',
+            })}
+            searchable={false}
+            size="md"
+            className="w-56"
+            renderOption={(option) => {
+              const Icon =
+                option.value === 'printQr'
+                  ? QrCode
+                  : option.value === 'handover'
+                    ? Handshake
+                    : Trash2;
+              const isDestructive = option.value === 'delete';
+
+              return (
+                <span className="flex items-center gap-2">
+                  <Icon
+                    className={`size-4 shrink-0 ${isDestructive ? 'text-destructive' : ''}`}
+                  />
+                  <span className={isDestructive ? 'text-destructive' : ''}>
+                    {option.label}
+                  </span>
+                </span>
+              );
+            }}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            disabled={
+              !bulkAction ||
+              (bulkAction === 'delete' && deleteMutation.isPending)
+            }
+            onClick={handleApplyBulkAction}
+          >
+            {intl.formatMessage({ id: 'project.materials.bulk.apply' })}
+          </Button>
         </DataGridActionBar>
       </DataGrid>
       <ConfirmDialog
         open={deletingMaterials.length > 0}
         onOpenChange={(open) => !open && setDeletingMaterials([])}
         title={intl.formatMessage({
-          id:
-            deletingMaterials.length > 1
-              ? 'project.materials.bulk.deleteTitle'
-              : 'project.materials.dialogs.deleteTitle',
+          id: 'project.materials.dialogs.deleteTitle',
         })}
         description={
           deletingMaterials.length > 1
@@ -450,6 +613,92 @@ export function MaterialListPage() {
         closeOnConfirm={false}
         onConfirm={handleDelete}
       />
+      <MaterialHandoverPreflightDialogShell
+        open={isHandoverPreflightOpen}
+        onOpenChange={setIsHandoverPreflightOpen}
+        onCancel={() => setIsHandoverPreflightOpen(false)}
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <HandoverCheckRow
+              label={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.sameOwner',
+              })}
+              passed={hasSameOwner}
+              passedLabel={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.passed',
+              })}
+              failedLabel={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.failed',
+              })}
+            />
+            <HandoverCheckRow
+              label={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.ready',
+              })}
+              passed={
+                unavailableMaterials.length === 0 &&
+                reservedMaterials.length === 0
+              }
+              passedLabel={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.passed',
+              })}
+              failedLabel={intl.formatMessage({
+                id: 'project.materials.bulk.handover.check.failed',
+              })}
+            />
+          </div>
+          {handoverErrors.length > 0 ? (
+            <ul
+              role="alert"
+              className="list-inside list-disc space-y-1 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              {handoverErrors.map((error, index) => (
+                <li key={`${index}-${error}`}>{error}</li>
+              ))}
+            </ul>
+          ) : null}
+          <ul className="max-h-64 divide-y overflow-y-auto rounded-md border border-border">
+            {selectedMaterials.map((material) => (
+              <li
+                key={material.id}
+                className="flex items-center justify-between gap-3 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {material.code} ·{' '}
+                    {material.nameOverride?.trim() ||
+                      material.modelSnapshot.name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {material.ownerSnapshot.name || '—'}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge
+                    size="sm"
+                    variant={
+                      material.status === 'available' ? 'success' : 'warning'
+                    }
+                    appearance="light"
+                  >
+                    {intl.formatMessage({
+                      id: `project.materials.status.${material.status}`,
+                    })}
+                  </Badge>
+                  {material.reservationStatus ? (
+                    <Badge size="sm" variant="destructive" appearance="light">
+                      {intl.formatMessage({
+                        id: `project.handover.status.${material.reservationStatus}`,
+                      })}
+                    </Badge>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </MaterialHandoverPreflightDialogShell>
     </div>
   );
 }

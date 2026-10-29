@@ -1,9 +1,17 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   type ColumnFiltersState,
   type RowData,
+  type RowSelectionState,
   type SortingState,
   type Table,
 } from '@tanstack/react-table';
@@ -41,6 +49,7 @@ export type DataGridApiResponse<T> = {
 export interface DataGridContextProps<TData extends object> {
   props: DataGridProps<TData>;
   table: Table<TData>;
+  selectedRows: TData[];
   recordCount: number;
   isLoading: boolean;
   isFetching: boolean;
@@ -101,12 +110,14 @@ const DataGridContext = createContext<
   DataGridContextProps<any> | undefined
 >(undefined);
 
-function useDataGrid() {
+const EMPTY_ROW_SELECTION: RowSelectionState = {};
+
+function useDataGrid<TData extends object = object>() {
   const context = useContext(DataGridContext);
   if (!context) {
     throw new Error('useDataGrid must be used within a DataGridProvider');
   }
-  return context;
+  return context as DataGridContextProps<TData>;
 }
 
 function DataGridProvider<TData extends object>({
@@ -114,11 +125,45 @@ function DataGridProvider<TData extends object>({
   table,
   ...props
 }: DataGridProps<TData> & { table: Table<TData> }) {
+  const selectedRowCache = useRef(new Map<string, TData>());
+  const [selectedRows, setSelectedRows] = useState<TData[]>([]);
+  const currentRows = table.getCoreRowModel().rows;
+  const rowSelection = table.getState().rowSelection ?? EMPTY_ROW_SELECTION;
+
+  useLayoutEffect(() => {
+    const cache = selectedRowCache.current;
+    const selectedIds = new Set(
+      Object.entries(rowSelection)
+        .filter(([, selected]) => selected)
+        .map(([id]) => id),
+    );
+
+    for (const row of currentRows) {
+      if (selectedIds.has(row.id)) cache.set(row.id, row.original);
+      else cache.delete(row.id);
+    }
+    for (const id of cache.keys()) {
+      if (!selectedIds.has(id)) cache.delete(id);
+    }
+
+    const nextRows = [...selectedIds].flatMap((id) => {
+      const row = cache.get(id);
+      return row ? [row] : [];
+    });
+    setSelectedRows((current) =>
+      current.length === nextRows.length &&
+      current.every((row, index) => row === nextRows[index])
+        ? current
+        : nextRows,
+    );
+  }, [currentRows, rowSelection]);
+
   return (
     <DataGridContext.Provider
       value={{
         props,
         table,
+        selectedRows,
         recordCount: props.recordCount,
         isLoading: props.isLoading || false,
         isFetching: props.isFetching ?? props.isLoading ?? false,

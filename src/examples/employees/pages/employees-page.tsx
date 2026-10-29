@@ -49,6 +49,7 @@ export function EmployeesExamplePage() {
   const [roleFilter, setRoleFilter] = useState<EmployeeRole[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [bulkStatus, setBulkStatus] = useState<EmployeeStatus>('active');
   const {
     keyword,
@@ -120,16 +121,14 @@ export function EmployeesExamplePage() {
   const { mutate: setStatusBulk } = useSetEmployeesStatusMutation();
 
   const handleBulkStatus = useCallback(() => {
-    const ids = table
-      .getFilteredSelectedRowModel()
-      .rows.map((row) => row.original.id);
+    const ids = selectedEmployees.map((employee) => employee.id);
     if (ids.length === 0) return;
 
     setStatusBulk(
       { ids, status: bulkStatus },
       { onSuccess: () => table.resetRowSelection() },
     );
-  }, [table, setStatusBulk, bulkStatus]);
+  }, [selectedEmployees, table, setStatusBulk, bulkStatus]);
 
   if (isError) {
     return (
@@ -194,12 +193,12 @@ export function EmployeesExamplePage() {
         </Card>
 
         {canManage ? (
-          <DataGridActionBar>
+          <DataGridActionBar onSelectionChange={setSelectedEmployees}>
             <Select
               value={bulkStatus}
               onValueChange={(value) => setBulkStatus(value as EmployeeStatus)}
             >
-              <SelectTrigger size="sm" className="w-[150px]">
+              <SelectTrigger size="md" className="w-[150px]">
                 <SelectValue label="Trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -211,7 +210,7 @@ export function EmployeesExamplePage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="primary" size="sm" onClick={handleBulkStatus}>
+            <Button variant="primary" size="md" onClick={handleBulkStatus}>
               Áp dụng
             </Button>
           </DataGridActionBar>

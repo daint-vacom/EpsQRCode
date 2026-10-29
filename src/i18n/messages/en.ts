@@ -28,6 +28,7 @@ export const en: Record<string, string> = {
   'permissions.scopes.assignedWarehouses': 'Assigned warehouses',
   'permissions.scopes.all': 'All EPS data',
   'project.navigation.groups.workspace': 'Workspace',
+  'project.navigation.groups.warehouseManagement': 'Warehouse management',
   'project.navigation.groups.reports': 'Reports',
   'project.navigation.groups.organization': 'Organization management',
   'project.navigation.groups.system': 'System',

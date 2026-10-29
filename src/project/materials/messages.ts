@@ -17,13 +17,31 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.actions.handover': 'Bàn giao vật tư',
   'project.materials.actions.delete': 'Xóa vật tư',
   'project.materials.bulk.selectedCount': 'Đã chọn {count} vật tư',
+  'project.materials.bulk.chooseAction': 'Chọn thao tác',
+  'project.materials.bulk.apply': 'Áp dụng',
   'project.materials.selection.selectedCount': 'Đã chọn {count} vật tư',
   'project.materials.selection.title': 'Chọn vật tư',
   'project.materials.selection.confirm': 'Xác nhận',
   'project.materials.bulk.handover': 'Bàn giao vật tư',
-  'project.materials.bulk.printQr': 'In nhãn QR đã chọn',
+  'project.materials.bulk.handover.dialog.title':
+    'Kiểm tra trước khi lập phiếu bàn giao',
+  'project.materials.bulk.handover.dialog.close': 'Đóng',
+  'project.materials.bulk.handover.check.sameOwner':
+    'Tất cả vật tư cùng một đối tượng sở hữu',
+  'project.materials.bulk.handover.check.ready':
+    'Tất cả vật tư sẵn sàng để bàn giao',
+  'project.materials.bulk.handover.check.passed': 'Đạt',
+  'project.materials.bulk.handover.check.failed': 'Cần kiểm tra',
+  'project.materials.bulk.handover.errors.mixedOwners':
+    'Các vật tư đã chọn không cùng một đối tượng sở hữu.',
+  'project.materials.bulk.handover.errors.missingOwner':
+    'Không xác định được chủ sở hữu của vật tư {code}.',
+  'project.materials.bulk.handover.errors.notAvailable':
+    'Vật tư {code} chưa ở trạng thái sẵn sàng để bàn giao.',
+  'project.materials.bulk.handover.errors.reserved':
+    'Vật tư {code} đang được giữ trong một phiếu bàn giao ({status}).',
+  'project.materials.bulk.printQr': 'In nhãn QR',
   'project.materials.bulk.delete': 'Xóa vật tư',
-  'project.materials.bulk.deleteTitle': 'Xóa {count} vật tư?',
   'project.materials.bulk.deleteDescription':
     'Bạn có chắc muốn xóa {count} vật tư đã chọn? Hành động này không thể hoàn tác.',
   'project.materials.bulk.deleteConfirm': 'Xóa {count} vật tư',
@@ -109,7 +127,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.errors.mixedStatuses':
     'Vui lòng chỉ chọn vật tư cùng trạng thái để lập một phiếu bàn giao.',
   'project.materials.errors.notFound': 'Vật tư không tồn tại hoặc đã bị xóa.',
-  'project.materials.dialogs.deleteTitle': 'Xóa vật tư',
+  'project.materials.dialogs.deleteTitle': 'Xác nhận xóa vật tư',
   'project.materials.dialogs.deleteConfirm': 'Xóa vật tư',
   'project.materials.dialogs.deleteDescription':
     'Bạn có chắc muốn xóa “{name}”? Hành động này không thể hoàn tác.',
@@ -223,13 +241,31 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.actions.handover': 'Hand over material',
   'project.materials.actions.delete': 'Delete material',
   'project.materials.bulk.selectedCount': '{count} materials selected',
+  'project.materials.bulk.chooseAction': 'Choose an action',
+  'project.materials.bulk.apply': 'Apply',
   'project.materials.selection.selectedCount': '{count} materials selected',
   'project.materials.selection.title': 'Select materials',
   'project.materials.selection.confirm': 'Confirm',
   'project.materials.bulk.handover': 'Hand over materials',
-  'project.materials.bulk.printQr': 'Print selected QR labels',
+  'project.materials.bulk.handover.dialog.title':
+    'Check before creating a handover',
+  'project.materials.bulk.handover.dialog.close': 'Close',
+  'project.materials.bulk.handover.check.sameOwner':
+    'All materials have the same owner',
+  'project.materials.bulk.handover.check.ready':
+    'All materials are ready for handover',
+  'project.materials.bulk.handover.check.passed': 'Passed',
+  'project.materials.bulk.handover.check.failed': 'Needs attention',
+  'project.materials.bulk.handover.errors.mixedOwners':
+    'The selected materials do not have the same owner.',
+  'project.materials.bulk.handover.errors.missingOwner':
+    'The owner of material {code} could not be identified.',
+  'project.materials.bulk.handover.errors.notAvailable':
+    'Material {code} is not in a ready state for handover.',
+  'project.materials.bulk.handover.errors.reserved':
+    'Material {code} is reserved by a handover ({status}).',
+  'project.materials.bulk.printQr': 'Print QR labels',
   'project.materials.bulk.delete': 'Delete materials',
-  'project.materials.bulk.deleteTitle': 'Delete {count} materials?',
   'project.materials.bulk.deleteDescription':
     'Are you sure you want to delete the {count} selected materials? This cannot be undone.',
   'project.materials.bulk.deleteConfirm': 'Delete {count} materials',
@@ -310,7 +346,7 @@ export const materialMessagesEn: Record<string, string> = {
     'Select materials with the same status to create one handover.',
   'project.materials.errors.notFound':
     'This material does not exist or has been deleted.',
-  'project.materials.dialogs.deleteTitle': 'Delete material',
+  'project.materials.dialogs.deleteTitle': 'Confirm material deletion',
   'project.materials.dialogs.deleteConfirm': 'Delete material',
   'project.materials.dialogs.deleteDescription':
     'Are you sure you want to delete “{name}”? This action cannot be undone.',
