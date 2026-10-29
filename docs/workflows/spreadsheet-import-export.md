@@ -7,6 +7,7 @@ Tài liệu này áp dụng chung cho các chức năng nhập và xuất Excel 
 - Frontend đọc workbook, nhận diện trang tính và dòng tiêu đề, ánh xạ cột, chuẩn hóa dữ liệu, kiểm tra lỗi, xem trước kết quả nhập và tạo file xuất.
 - Backend nhận DTO đã chuẩn hóa và cung cấp API tạo hàng loạt khi cần. Không chuyển quy tắc ánh xạ theo cột Excel vào backend.
 - Mẫu Excel hệ thống có thể được cập nhật mà không đổi mã ánh xạ, miễn là giữ khóa trường trong marker.
+- Biểu mẫu nhập và biểu mẫu xuất luôn có cấu hình, khóa lưu trữ và tệp riêng trong hệ thống. Hai tệp có thể dùng cùng cấu trúc hiện tại để hỗ trợ xuất, chỉnh sửa rồi nhập lại; nội dung của chúng được phép phát triển độc lập, ví dụ biểu mẫu xuất có thể bổ sung sheet báo cáo hoặc biểu đồ.
 
 ## Nhận diện trường và ánh xạ
 
@@ -17,6 +18,8 @@ Tài liệu này áp dụng chung cho các chức năng nhập và xuất Excel 
 - Dữ liệu được ghi từ hàng ngay sau hàng marker. Với xuất vật tư có marker ở hàng 2, hàng 3 được để trống và ẩn để dữ liệu bắt đầu ở hàng 4. Hàng marker được giữ trong tệp xuất nhưng ẩn đi để bảo toàn ánh xạ cho lần nhập lại.
 - Khi xuất, lấy style của từng ô marker và áp dụng xuống các ô cùng cột cho từng bản ghi. Nội dung tĩnh phía trên hàng dữ liệu và ở các cột không được đánh dấu được giữ nguyên.
 - Không thêm hàng mẫu dữ liệu riêng: style của ô marker là mẫu cho dữ liệu, nên workbook mặc định chỉ cần hàng tiêu đề và hàng marker.
+- Biểu mẫu nhập vật tư và xuất vật tư hiện dùng cùng cấu trúc cột để hỗ trợ xuất, chỉnh sửa rồi nhập lại, nhưng vẫn được lưu thành hai tệp riêng. Các trường metadata mẫu (`Tên mẫu`, `Mã nhóm`, `Mô tả mẫu`, `Thông số mẫu`) đứng sau `Mã mẫu vật tư`; thông số của từng vật tư vẫn được gom vào một cột `Thông số kỹ thuật`.
+- Cột enum trong biểu mẫu hệ thống nên có data-validation dropdown để chọn nhanh. Dùng mã số ổn định trước nhãn, ví dụ `1 - Còn tốt`; áp dụng validation cho vùng dữ liệu, không cho hàng marker.
 - Xuất vật tư gom các thông số đang có giá trị vào một cột `Thông số kỹ thuật`, mỗi dòng theo dạng `Tên thông số: Giá trị`; thông số không được chọn thì không xuất. Marker của cột này là `material.specifications`.
 - Biểu mẫu nhập cũ có thể tiếp tục dùng marker slot như `material.specification.slot.1`; ứng dụng ánh xạ slot đó tới thông số tương ứng của danh mục hiện tại.
 - Mẫu mặc định vật tư dùng Times New Roman cỡ 14, có viền rõ ở tiêu đề, hàng marker và các ô dữ liệu.
@@ -27,8 +30,9 @@ Tài liệu này áp dụng chung cho các chức năng nhập và xuất Excel 
 ## Nhãn và giá trị nghiệp vụ
 
 - Tên cột xuất phải dùng nhãn nghiệp vụ đang hiển thị trên UI; không đưa tên thuộc tính nội bộ như `Override` hoặc cách gọi sai nghiệp vụ như “Tên vật tư riêng”.
-- Giá trị enum xuất dưới dạng nhãn dễ hiểu đã dịch, không xuất mã nội bộ như `good`, `damaged`, `eps` hoặc `warehouse`.
-- Khi nhập, chuẩn hóa nhãn đã dịch về enum/DTO chuẩn. Có thể chấp nhận mã enum cũ như alias để đọc lại các file đã phát hành trước đó.
+- Giá trị enum xuất dưới dạng `<mã ổn định> - <nhãn dễ hiểu>`, không xuất chuỗi mã nội bộ như `good`, `damaged`, `eps` hoặc `warehouse` làm giá trị hiển thị.
+- Mỗi enum cần có bảng mã số ổn định, không đổi khi nhãn được dịch hoặc đổi tên. Với vật tư: tình trạng `1 = good`, `2 = damaged`; loại chủ sở hữu `1 = eps`, `2 = external`, `3 = warehouse`, `4 = other`.
+- Khi nhập, ưu tiên chuẩn hóa theo mã số đứng trước nhãn; vẫn chấp nhận nhãn hiện tại và alias cũ để đọc các file đã phát hành trước đó.
 - Tên cột của thuộc tính động, như thông số kỹ thuật, phải là tên thuộc tính thực tế. Marker giữ khóa ổn định của thuộc tính; không dùng “Thông số 1”, “Thông số 2” làm nhãn cuối cùng.
 - Thông số màu xuất nhãn màu đã chọn thay vì mã hex. Khi nhập, đổi nhãn khớp với lựa chọn của mẫu về giá trị chuẩn; có thể chấp nhận mã màu cũ để đọc file đã phát hành trước đó.
 - Giá trị xuất phải phản ánh dữ liệu người dùng nhìn thấy. Với trường có giá trị kế thừa từ mẫu/đối tượng cha, xuất giá trị hiệu lực thay vì để trống chỉ vì không có override.
@@ -55,8 +59,10 @@ Tài liệu này áp dụng chung cho các chức năng nhập và xuất Excel 
 - Đặt marker ở hàng khác nhau: mẫu bị từ chối trước khi thay thế mẫu đang dùng.
 - Đặt marker ở hàng tùy chọn: dữ liệu bắt đầu ở hàng kế tiếp, mỗi cột kế thừa style từ ô marker của nó.
 - Xuất rồi nhập lại: hàng marker được ẩn nhưng vẫn giữ ánh xạ.
+- Tải lên hoặc thay biểu mẫu nhập không làm thay đổi tệp biểu mẫu xuất, và ngược lại.
 - Thêm một cột cho trường đã có: marker/alias ánh xạ đúng và không phụ thuộc vị trí.
 - Xuất rồi nhập lại enum và trường động: dữ liệu được chuẩn hóa về đúng giá trị nội bộ.
+- Enum hiển thị dạng `mã - nhãn`, dropdown có đúng các mã hợp lệ, và đổi nhãn dịch không làm thay đổi giá trị enum nhập vào.
 - Xuất rồi nhập lại cột thông số gộp: nhãn và giá trị được ghép về đúng thông số của mẫu vật tư.
 - Trường kế thừa không có override: file vẫn có giá trị đang hiển thị trên UI.
 - Mẫu mặc định có thứ tự nhóm chuẩn; cả mẫu hệ thống và mẫu tải lên đều giữ vị trí marker đã cấu hình.

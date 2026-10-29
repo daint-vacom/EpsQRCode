@@ -415,7 +415,7 @@ function StepperTitle({ children, className }: React.ComponentProps<'h3'>) {
       data-slot="stepper-title"
       data-state={state}
       className={cn(
-        'text-sm font-medium leading-none',
+        'text-sm font-medium leading-5',
         variant === 'success' &&
           'data-[state=completed]:text-[var(--color-success-accent,var(--color-green-600))]',
         className,

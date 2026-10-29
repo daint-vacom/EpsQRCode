@@ -1,6 +1,15 @@
-import { useMemo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import type { MaterialGroup } from '@/project/material-groups/model/material-group';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
+import { useMaterialSpecificationsQuery } from '@/project/material-specifications/hooks/use-material-specifications';
 import { useSpreadsheetTemplateQuery } from '@/project/spreadsheets/hooks/use-spreadsheet-templates';
 import { LoaderCircle } from 'lucide-react';
 import { useIntl } from 'react-intl';
@@ -28,7 +37,10 @@ interface MaterialSpreadsheetExportDialogProps extends MaterialSpreadsheetDialog
   filters: Omit<MaterialListFilters, 'page' | 'pageSize'>;
 }
 
-function useMaterialSpreadsheetOptions(enabled: boolean) {
+function useMaterialSpreadsheetOptions(
+  enabled: boolean,
+  groups: MaterialGroup[] = [],
+) {
   const intl = useIntl();
   const modelsQuery = useMaterialModelsQuery(enabled);
   const custodiansQuery = useCustodiansQuery(false, enabled);
@@ -39,10 +51,13 @@ function useMaterialSpreadsheetOptions(enabled: boolean) {
   );
   const fields = useMemo(
     () =>
-      getMaterialSpreadsheetFields(models, custodians, (id, values) =>
-        intl.formatMessage({ id }, values),
+      getMaterialSpreadsheetFields(
+        models,
+        custodians,
+        (id, values) => intl.formatMessage({ id }, values),
+        groups,
       ),
-    [custodians, intl, models],
+    [custodians, groups, intl, models],
   );
   const exportFields = useMemo(
     () =>
@@ -104,23 +119,40 @@ export function MaterialSpreadsheetImportDialog({
   open,
   onOpenChange,
 }: MaterialSpreadsheetDialogProps) {
-  const { hasPermission } = useUser();
-  const canLoadSharedTemplate = hasPermission('files:file_manager:view');
-  const sharedTemplateQuery = useSpreadsheetTemplateQuery(
-    'materialsImport',
-    open && canLoadSharedTemplate,
+  const [importFooter, setImportFooter] = useState<ReactNode>(null);
+  const handleImportFooterChange = useCallback(
+    (footer: ReactNode | null) => setImportFooter(footer),
+    [],
   );
+  useEffect(() => {
+    if (!open) setImportFooter(null);
+  }, [open]);
+
+  const { hasPermission } = useUser();
+  const canCreateModels = hasPermission(
+    'material_catalog:material_model:manage',
+  );
+  const groupsQuery = useMaterialGroupsQuery(open && canCreateModels);
   const { fields, models, custodians, modelsQuery, custodiansQuery } =
-    useMaterialSpreadsheetOptions(open);
-  const catalogsLoading = modelsQuery.isPending || custodiansQuery.isPending;
-  const catalogsError = modelsQuery.isError || custodiansQuery.isError;
+    useMaterialSpreadsheetOptions(open, groupsQuery.data ?? []);
+  const specificationsQuery = useMaterialSpecificationsQuery(
+    open && canCreateModels,
+  );
+  const catalogsLoading =
+    modelsQuery.isPending ||
+    custodiansQuery.isPending ||
+    (canCreateModels &&
+      (groupsQuery.isPending || specificationsQuery.isPending));
+  const catalogsError =
+    modelsQuery.isError ||
+    custodiansQuery.isError ||
+    (canCreateModels && (groupsQuery.isError || specificationsQuery.isError));
 
   return (
     <MaterialSpreadsheetImportDialogShell
       open={open}
       onOpenChange={onOpenChange}
-      onClose={() => onOpenChange(false)}
-      contentClassName="max-w-5xl"
+      footer={importFooter}
     >
       <CatalogState
         loading={catalogsLoading}
@@ -128,21 +160,25 @@ export function MaterialSpreadsheetImportDialog({
         onRetry={() => {
           void modelsQuery.refetch();
           void custodiansQuery.refetch();
+          if (canCreateModels) {
+            void groupsQuery.refetch();
+            void specificationsQuery.refetch();
+          }
         }}
       />
       {!catalogsLoading && !catalogsError ? (
-        <MaterialSpreadsheetImportPanel
-          fields={fields}
-          models={models}
-          custodians={custodians}
-          sharedTemplate={sharedTemplateQuery.data ?? null}
-          sharedTemplateLoading={
-            canLoadSharedTemplate && sharedTemplateQuery.isPending
-          }
-          sharedTemplateError={
-            !canLoadSharedTemplate || sharedTemplateQuery.isError
-          }
-        />
+        open ? (
+          <MaterialSpreadsheetImportPanel
+            open={open}
+            onFooterChange={handleImportFooterChange}
+            fields={fields}
+            models={models}
+            custodians={custodians}
+            groups={groupsQuery.data ?? []}
+            specifications={specificationsQuery.data ?? []}
+            canCreateModels={canCreateModels}
+          />
+        ) : null
       ) : null}
     </MaterialSpreadsheetImportDialogShell>
   );
@@ -155,14 +191,17 @@ export function MaterialSpreadsheetExportDialog({
 }: MaterialSpreadsheetExportDialogProps) {
   const { hasPermission } = useUser();
   const canLoadSharedTemplate = hasPermission('files:file_manager:view');
+  const groupsQuery = useMaterialGroupsQuery(open);
   const sharedTemplateQuery = useSpreadsheetTemplateQuery(
     'materialsExport',
     open && canLoadSharedTemplate,
   );
   const { exportFields, modelsQuery, custodiansQuery } =
-    useMaterialSpreadsheetOptions(open);
-  const catalogsLoading = modelsQuery.isPending || custodiansQuery.isPending;
-  const catalogsError = modelsQuery.isError || custodiansQuery.isError;
+    useMaterialSpreadsheetOptions(open, groupsQuery.data ?? []);
+  const catalogsLoading =
+    modelsQuery.isPending || custodiansQuery.isPending || groupsQuery.isPending;
+  const catalogsError =
+    modelsQuery.isError || custodiansQuery.isError || groupsQuery.isError;
   const sharedTemplate = sharedTemplateQuery.data ?? null;
   const sharedTemplateLoading =
     canLoadSharedTemplate && sharedTemplateQuery.isPending;
@@ -196,6 +235,7 @@ export function MaterialSpreadsheetExportDialog({
           onRetry={() => {
             void modelsQuery.refetch();
             void custodiansQuery.refetch();
+            void groupsQuery.refetch();
           }}
         />
       ) : (

@@ -141,7 +141,7 @@ async function saveMaterialModel(
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
   previousImages: MaterialModelImage[],
-): Promise<void> {
+): Promise<string> {
   assertSupabaseConfigured();
   const uploadedPaths: string[] = [];
 
@@ -159,7 +159,7 @@ async function saveMaterialModel(
       });
     }
 
-    await request<string>(
+    const savedId = await request<string>(
       supabaseApi.post('/rpc/save_material_model', {
         p_id: id,
         p_code: values.code.trim() || null,
@@ -196,6 +196,7 @@ async function saveMaterialModel(
         safeToRemovePaths,
       ).catch(() => undefined);
     }
+    return savedId;
   } catch (error) {
     if (uploadedPaths.length > 0) {
       await removeStorageObjects(
@@ -210,17 +211,17 @@ async function saveMaterialModel(
 export function createMaterialModel(
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
-): Promise<void> {
+): Promise<string> {
   return saveMaterialModel(null, values, images, []);
 }
 
-export function updateMaterialModel(
+export async function updateMaterialModel(
   id: string,
   values: MaterialModelFormValues,
   images: MaterialModelImageDraft[],
   previousImages: MaterialModelImage[],
 ): Promise<void> {
-  return saveMaterialModel(id, values, images, previousImages);
+  await saveMaterialModel(id, values, images, previousImages);
 }
 
 export async function updateMaterialModelAvailability(

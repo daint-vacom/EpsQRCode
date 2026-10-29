@@ -10,6 +10,9 @@ const WIDTH_CLASS: Record<NonNullable<DialogSpec['width']>, string> = {
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
 };
 
 function quote(value: string): string {
@@ -137,7 +140,9 @@ export function buildDialogModule(input: DialogSpec): string {
     "import { type ReactNode } from 'react';",
     ...(hasIntl ? ["import { useIntl } from 'react-intl';"] : []),
     iconImports,
-    "import { Button } from '@/components/ui/button';",
+    ...(spec.actions.length > 0
+      ? ["import { Button } from '@/components/ui/button';"]
+      : []),
     'import {',
     ...dialogImports,
     "} from '@/components/ui/dialog';",
@@ -146,6 +151,7 @@ export function buildDialogModule(input: DialogSpec): string {
     '  open: boolean;',
     '  onOpenChange: (open: boolean) => void;',
     '  children: ReactNode;',
+    '  footer?: ReactNode;',
     spec.titleProp ? `  ${spec.titleProp}: ReactNode;` : '',
     actionProps,
     stateProps,
@@ -155,6 +161,7 @@ export function buildDialogModule(input: DialogSpec): string {
     '  open,',
     '  onOpenChange,',
     '  children,',
+    '  footer,',
     spec.titleProp ? `  ${spec.titleProp},` : '',
     ...spec.actions.map((action) => `  ${handlerName(action)},`),
     ...actionPropNamesForSpec.map((name) => `  ${name} = false,`),
@@ -171,9 +178,23 @@ export function buildDialogModule(input: DialogSpec): string {
     '          {children}',
     '        </DialogBody>',
     '',
-    '        <DialogFooter className="shrink-0 px-6 py-4">',
-    actions,
-    '        </DialogFooter>',
+    ...(spec.actions.length > 0
+      ? [
+          '        <DialogFooter className="shrink-0 px-6 py-4">',
+          '          {footer ?? (',
+          '            <>',
+          actions,
+          '            </>',
+          '          )}',
+          '        </DialogFooter>',
+        ]
+      : [
+          '        {footer ? (',
+          '          <DialogFooter className="shrink-0 px-6 py-4">',
+          '            {footer}',
+          '          </DialogFooter>',
+          '        ) : null}',
+        ]),
     '      </DialogContent>',
     '    </Dialog>',
     '  );',

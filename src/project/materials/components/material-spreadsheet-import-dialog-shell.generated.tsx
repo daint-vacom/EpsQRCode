@@ -5,7 +5,6 @@
  */
 import { type ReactNode } from 'react';
 import { useIntl } from 'react-intl';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogBody,
@@ -19,18 +18,18 @@ export interface MaterialSpreadsheetImportDialogShellProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
-  onClose: () => void;
+  footer?: ReactNode;
 }
 export function MaterialSpreadsheetImportDialogShell({
   open,
   onOpenChange,
   children,
-  onClose,
+  footer,
 }: MaterialSpreadsheetImportDialogShellProps) {
   const intl = useIntl();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">
           <DialogTitle>
             {intl.formatMessage({
@@ -41,11 +40,9 @@ export function MaterialSpreadsheetImportDialogShell({
         <DialogBody className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           {children}
         </DialogBody>
-        <DialogFooter className="shrink-0 px-6 py-4">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {intl.formatMessage({ id: 'project.materials.spreadsheet.close' })}
-          </Button>
-        </DialogFooter>
+        {footer ? (
+          <DialogFooter className="shrink-0 px-6 py-4">{footer}</DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

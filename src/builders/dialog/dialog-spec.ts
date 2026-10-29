@@ -40,9 +40,11 @@ export const dialogSpecSchema = z
     titleProp: identifierSchema.optional(),
     description: z.string().optional(),
     descriptionMessageId: z.string().min(1).optional(),
-    width: z.enum(['sm', 'md', 'lg', 'xl', '2xl']).default('lg'),
+    width: z
+      .enum(['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl'])
+      .default('lg'),
     specPath: z.string().optional(),
-    actions: z.array(dialogActionSchema).min(1).max(4),
+    actions: z.array(dialogActionSchema).max(4).default([]),
   })
   .superRefine((spec, ctx) => {
     const names = new Set<string>();

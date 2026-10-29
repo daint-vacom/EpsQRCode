@@ -37,19 +37,17 @@ export function SpreadsheetTemplatesSettings({
 }) {
   const intl = useIntl();
   const { userId } = useUser();
-  const importTemplate = useSpreadsheetTemplateQuery('materialsImport');
-  const exportTemplate = useSpreadsheetTemplateQuery('materialsExport');
+  const templateQueries = {
+    materialsImport: useSpreadsheetTemplateQuery('materialsImport'),
+    materialsExport: useSpreadsheetTemplateQuery('materialsExport'),
+  };
   const saveMutation = useSaveSpreadsheetTemplateMutation();
   const [downloadingKey, setDownloadingKey] =
     useState<SpreadsheetTemplateKey | null>(null);
-  const queries = {
-    materialsImport: importTemplate,
-    materialsExport: exportTemplate,
-  };
   const failedQuery = templateKeys
-    .map((key) => queries[key])
+    .map((key) => templateQueries[key])
     .find((query) => query.isError);
-  const isLoading = templateKeys.some((key) => queries[key].isPending);
+  const isLoading = templateKeys.some((key) => templateQueries[key].isPending);
 
   const handleFile = (key: SpreadsheetTemplateKey, file?: File) => {
     if (!file || !userId) return;
@@ -113,15 +111,16 @@ export function SpreadsheetTemplatesSettings({
             })}
             description={getApiErrorMessage(failedQuery.error)}
             onRetry={() => {
-              void importTemplate.refetch();
-              void exportTemplate.refetch();
+              templateKeys.forEach((key) => {
+                void templateQueries[key].refetch();
+              });
             }}
           />
         ) : (
           <div className="space-y-5">
             {templateKeys.map((key) => {
               const definition = SPREADSHEET_TEMPLATE_DEFINITIONS[key];
-              const query = queries[key];
+              const query = templateQueries[key];
               const isUploading =
                 saveMutation.isPending && saveMutation.variables?.key === key;
               return (

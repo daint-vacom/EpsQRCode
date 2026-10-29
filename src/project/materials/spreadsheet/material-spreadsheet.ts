@@ -1,4 +1,5 @@
 import type { Custodian } from '@/project/custodians/model/custodian';
+import type { MaterialGroup } from '@/project/material-groups/model/material-group';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
 import type {
   SpreadsheetDataRow,
@@ -34,10 +35,23 @@ export interface MaterialImportRow {
   error: string | null;
 }
 
+// Keep these numeric identifiers stable even when localized enum labels change.
+const OWNER_KIND_ENUM_CODES: Record<MaterialOwnerKind, number> = {
+  eps: 1,
+  external: 2,
+  warehouse: 3,
+  other: 4,
+};
+
+function formatNumberedEnum(code: number, label: string) {
+  return `${code} - ${label}`;
+}
+
 export function getMaterialSpreadsheetFields(
   models: MaterialModel[],
   custodians: Custodian[],
   translate: TranslateMaterialSpreadsheetMessage,
+  groups: MaterialGroup[] = [],
 ): SpreadsheetField<Material>[] {
   const fields: SpreadsheetField<Material>[] = [
     {
@@ -51,6 +65,44 @@ export function getMaterialSpreadsheetFields(
       label: translate('project.materials.spreadsheet.fields.modelCode'),
       required: true,
       read: (row) => row.modelSnapshot.code,
+    },
+    {
+      key: 'material.model.name',
+      label: translate('project.materials.spreadsheet.fields.modelName'),
+      read: (row) => row.modelSnapshot.name,
+    },
+    {
+      key: 'material.model.group.code',
+      label: translate('project.materials.spreadsheet.fields.modelGroupCode'),
+      read: (row) =>
+        groups.find((group) => group.id === row.modelSnapshot.groupId)?.code ??
+        '',
+    },
+    {
+      key: 'material.model.description',
+      label: translate('project.materials.spreadsheet.fields.modelDescription'),
+      read: (row) => row.modelSnapshot.description,
+    },
+    {
+      key: 'material.model.specifications',
+      label: translate(
+        'project.materials.spreadsheet.fields.modelSpecifications',
+      ),
+      read: (row) =>
+        row.modelSnapshot.specifications
+          .map((specification) => {
+            const values = specification.values
+              .map(
+                (value, index) =>
+                  specification.valueLabels[index]?.trim() || value,
+              )
+              .filter(Boolean);
+            return values.length > 0
+              ? `${specification.name}: ${values.join('; ')}`
+              : '';
+          })
+          .filter(Boolean)
+          .join('\n'),
     },
     {
       key: 'material.nameOverride',
@@ -80,7 +132,11 @@ export function getMaterialSpreadsheetFields(
       headerAliases: [
         translate('project.materials.spreadsheet.fields.conditionLegacy'),
       ],
-      read: (row) => translate(`project.materials.condition.${row.condition}`),
+      read: (row) =>
+        formatNumberedEnum(
+          row.condition === 'good' ? 1 : 2,
+          translate(`project.materials.condition.${row.condition}`),
+        ),
     },
     {
       key: 'material.note',
@@ -186,8 +242,11 @@ export function getMaterialSpreadsheetFields(
         translate('project.materials.spreadsheet.fields.ownerKindLegacy'),
       ],
       read: (row) =>
-        translate(
-          `project.handover.partyDialog.kind.${row.ownerSnapshot.kind}`,
+        formatNumberedEnum(
+          OWNER_KIND_ENUM_CODES[row.ownerSnapshot.kind],
+          translate(
+            `project.handover.partyDialog.kind.${row.ownerSnapshot.kind}`,
+          ),
         ),
     },
     {
@@ -501,26 +560,10 @@ export function mapMaterialImportRows(
     }
 
     const specificationOverrides: Record<string, string[]> = {};
-    for (const field of fields) {
-      const fieldKey = field.key;
-      if (!fieldKey.startsWith('material.specification.')) continue;
-      const specificationId = fieldKey.slice('material.specification.'.length);
-      const specification = model.specifications.find(
-        (item) => item.id === specificationId,
-      );
-      if (!specification) {
-        return {
-          rowNumber: row.rowNumber,
-          code,
-          values: null,
-          error: translate(
-            'project.materials.spreadsheet.errors.specificationModel',
-            {
-              name: field.label,
-            },
-          ),
-        };
-      }
+    for (const specification of model.specifications) {
+      const specificationId = specification.id;
+      const fieldKey = `material.specification.${specificationId}`;
+      const field = fields.find((item) => item.key === fieldKey);
       const rawValue = valueOf(row, fieldKey);
       const combinedValues =
         combinedSpecifications.valuesBySpecificationId.get(specificationId);
@@ -553,7 +596,7 @@ export function mapMaterialImportRows(
             values: null,
             error: translate(
               'project.materials.spreadsheet.errors.specificationValue',
-              { name: field.label },
+              { name: field?.label ?? specification.name },
             ),
           };
         }
@@ -609,6 +652,10 @@ export function mapMaterialImportRows(
 }
 
 function parseCondition(value: string): MaterialCondition | null {
+  const code = parseNumberedEnumCode(value);
+  if (code === 1) return 'good';
+  if (code === 2) return 'damaged';
+
   const normalized = value.trim().toLocaleLowerCase();
   if (!normalized || normalized === 'còn tốt' || normalized === 'good')
     return 'good';
@@ -620,6 +667,15 @@ function parseOwnerKind(
   value: string,
   translate: TranslateMaterialSpreadsheetMessage,
 ): MaterialOwnerKind | null {
+  const code = parseNumberedEnumCode(value);
+  const kindByCode: Record<number, MaterialOwnerKind> = {
+    1: 'eps',
+    2: 'external',
+    3: 'warehouse',
+    4: 'other',
+  };
+  if (code !== null) return kindByCode[code] ?? null;
+
   const normalized = normalizeHeader(value);
   if (!normalized) return null;
 
@@ -634,6 +690,13 @@ function parseOwnerKind(
           ),
     ) ?? null
   );
+}
+
+function parseNumberedEnumCode(value: string): number | null {
+  const match = value.trim().match(/^(\d+)(?:\s*-\s*.*)?$/);
+  if (!match?.[1]) return null;
+  const code = Number(match[1]);
+  return Number.isInteger(code) ? code : null;
 }
 
 function valueOf(row: SpreadsheetDataRow, key: string): string {
