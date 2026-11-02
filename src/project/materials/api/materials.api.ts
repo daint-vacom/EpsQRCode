@@ -180,6 +180,7 @@ export async function saveMaterial(
         p_values: {
           ...values,
           specificationOverrideLabels: values.specificationOverrideLabels ?? {},
+          hiddenSpecificationIds: values.hiddenSpecificationIds ?? [],
           images: imagePayload,
         },
         p_public_display_settings: publicDisplaySettings,

@@ -1,9 +1,18 @@
-import { Plus } from 'lucide-react';
+import { ClipboardPaste, MoreVertical, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
 import { CardHeader } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-type MaterialSpecificationsTableHeaderProps =
+type MaterialSpecificationsTableHeaderProps = {
+  clipboardCount?: number;
+  onPaste?: () => void;
+} & (
   | {
       mode: 'model';
       count: number;
@@ -12,7 +21,8 @@ type MaterialSpecificationsTableHeaderProps =
   | {
       mode: 'material';
       count: number;
-    };
+    }
+);
 
 export function MaterialSpecificationsTableHeader(
   props: MaterialSpecificationsTableHeaderProps,
@@ -27,17 +37,48 @@ export function MaterialSpecificationsTableHeader(
           { count: props.count },
         )}
       </span>
-      {props.mode === 'model' ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={props.onAddRow}
-        >
-          <Plus />
-          {intl.formatMessage({ id: 'materialModels.specifications.add' })}
-        </Button>
-      ) : null}
+      <div className="flex items-center gap-2">
+        {props.clipboardCount && props.clipboardCount > 0 && props.onPaste ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                mode="icon"
+                size="sm"
+                aria-label={intl.formatMessage({
+                  id: 'materialModels.specifications.selection.moreActions',
+                })}
+                title={intl.formatMessage({
+                  id: 'materialModels.specifications.selection.moreActions',
+                })}
+              >
+                <MoreVertical />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuItem onSelect={props.onPaste}>
+                <ClipboardPaste />
+                {intl.formatMessage(
+                  { id: 'materialModels.specifications.selection.pasteCount' },
+                  { count: props.clipboardCount },
+                )}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+        {props.mode === 'model' ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={props.onAddRow}
+          >
+            <Plus />
+            {intl.formatMessage({ id: 'materialModels.specifications.add' })}
+          </Button>
+        ) : null}
+      </div>
     </CardHeader>
   );
 }

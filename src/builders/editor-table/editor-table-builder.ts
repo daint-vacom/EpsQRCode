@@ -298,25 +298,27 @@ function emitHeaderCell(
 
 function emitHeaders(spec: NormalizedEditorTableSpec): string {
   const cells = spec.columns.map((column) => emitHeaderCell(spec, column));
+  if (spec.multiEdit.enabled) {
+    cells.unshift(`<TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
+  <div className="flex justify-center">
+    <Checkbox
+      aria-label="Chọn tất cả dòng"
+      checked={
+        fields.length > 0 &&
+        (selectedRowIds.length === fields.length ||
+          (selectedRowIds.length > 0 && 'indeterminate'))
+      }
+      disabled={fields.length === 0}
+      size="sm"
+      onCheckedChange={(checked) => handleSelectAllRows(!!checked)}
+    />
+  </div>
+</TableHead>`);
+  }
   if (spec.reorder.enabled) {
     cells.unshift(
-      `<TableHead className="sticky top-0 z-20 bg-muted ${spec.reorder.widthClass} text-center">${spec.reorder.header}</TableHead>`,
+      `<TableHead className="sticky top-0 z-20 bg-muted ${spec.reorder.widthClass} px-2 py-2 text-center align-middle">${spec.reorder.header}</TableHead>`,
     );
-  }
-  if (spec.multiEdit.enabled) {
-    cells.unshift(`<TableHead className="sticky top-0 z-20 bg-muted w-12">
-  <Checkbox
-    aria-label="Chọn tất cả dòng"
-    checked={
-      fields.length > 0 &&
-      (selectedRowIds.length === fields.length ||
-        (selectedRowIds.length > 0 && 'indeterminate'))
-    }
-    disabled={fields.length === 0}
-    size="sm"
-    onCheckedChange={(checked) => handleSelectAllRows(!!checked)}
-  />
-</TableHead>`);
   }
   if (hasRowActions(spec)) {
     cells.push(
@@ -355,7 +357,7 @@ function emitBulkEditSetup(spec: NormalizedEditorTableSpec) {
   const columns = bulkEditableColumns(spec);
   if (!hasMultiEdit(spec)) return '';
 
-  const defaultField = columns[0].name;
+  const defaultField = columns[0]?.name;
   const headerDefaults = columns
     .map((column) => `    ${column.name}: '',`)
     .join('\n');
@@ -369,27 +371,14 @@ function emitBulkEditSetup(spec: NormalizedEditorTableSpec) {
       return ${value};`;
     })
     .join('\n');
-
-  return `
-  type BulkFieldName = ${bulkFieldUnion(columns)};
+  const bulkSetup =
+    columns.length > 0
+      ? `  type BulkFieldName = ${bulkFieldUnion(columns)};
   const bulkFields = [
 ${emitBulkFieldOptions(columns)}
   ] as const;
-  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
-  const [bulkField, setBulkField] = useState<BulkFieldName>(${quote(defaultField)});
+  const [bulkField, setBulkField] = useState<BulkFieldName>(${quote(defaultField ?? '')});
   const [bulkValue, setBulkValue] = useState('');
-  const [headerBulkValues, setHeaderBulkValues] = useState<Record<BulkFieldName, string>>({
-${headerDefaults}
-  });
-  const selectedIndexes = useMemo(
-    () =>
-      fields
-        .map((field, index) =>
-          selectedRowIds.includes(field.fieldId) ? index : null,
-        )
-        .filter((index): index is number => index !== null),
-    [fields, selectedRowIds],
-  );
   const activeBulkField = bulkFields.find((field) => field.name === bulkField);
 
   const coerceBulkValue = (fieldName: BulkFieldName, rawValue: string) => {
@@ -409,26 +398,90 @@ ${cases}
     });
   };
 
+  const handleBulkApply = () => {
+    if (selectedIndexes.length === 0) return;
+    applyBulkValue(bulkField, bulkValue);
+  };`
+      : '';
+  const headerBulkSetup =
+    columns.length > 0 && spec.multiEdit.headerInputs
+      ? `  const [headerBulkValues, setHeaderBulkValues] = useState<Record<BulkFieldName, string>>({
+${headerDefaults}
+  });
+  const handleHeaderBulkChange = (fieldName: BulkFieldName, value: string) => {
+    setHeaderBulkValues((current) => ({ ...current, [fieldName]: value }));
+    if (selectedIndexes.length === 0) return;
+    applyBulkValue(fieldName, value);
+  };`
+      : '';
+  const copyHandler =
+    spec.multiEdit.actionBar && spec.multiEdit.actions.includes('copy')
+      ? `    if (action === 'copy') {
+      onCopySelected?.(selectedIndexes.map((index) =>
+        form.getValues('${spec.arrayName}')[index] as ${spec.entity},
+      ));
+      return;
+    }
+`
+      : '';
+  const pasteHandler =
+    spec.multiEdit.actionBar && spec.multiEdit.actions.includes('paste')
+      ? `    if (action === 'paste') {
+      onPaste?.();
+      return;
+    }
+`
+      : '';
+  const deleteHandler =
+    spec.multiEdit.actionBar && spec.multiEdit.actions.includes('delete')
+      ? `    if (action === 'delete') {
+      remove([...selectedIndexes].sort((a, b) => b - a));
+      setSelectedRowIds([]);
+      return;
+    }
+`
+      : '';
+  const editHandler =
+    spec.multiEdit.actionBar && columns.length > 0
+      ? `    if (action === 'edit') handleBulkApply();`
+      : '';
+  const actionBarState = spec.multiEdit.actionBar
+    ? `  const [selectionAction, setSelectionAction] = useState(${quote(spec.multiEdit.actions[0] ?? 'copy')});`
+    : '';
+  const actionBarHandler = spec.multiEdit.actionBar
+    ? `  const handleSelectionAction = (action: string) => {
+${copyHandler}${pasteHandler}${deleteHandler}${editHandler}
+  };`
+    : '';
+
+  return `
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+${actionBarState}
+  const selectedIndexes = useMemo(
+    () =>
+      fields
+        .map((field, index) =>
+          selectedRowIds.includes(field.fieldId) ? index : null,
+        )
+        .filter((index): index is number => index !== null),
+    [fields, selectedRowIds],
+  );
+${bulkSetup ? `${bulkSetup}\n` : ''}${headerBulkSetup ? `${headerBulkSetup}\n` : ''}
   const handleSelectAllRows = (checked: boolean) => {
     setSelectedRowIds(checked ? fields.map((field) => field.fieldId) : []);
   };
 
   const handleSelectRow = (rowId: string, checked: boolean) => {
     setSelectedRowIds((current) =>
-      checked ? [...current, rowId] : current.filter((id) => id !== rowId),
+      checked
+        ? current.includes(rowId)
+          ? current
+          : [...current, rowId]
+        : current.filter((id) => id !== rowId),
     );
   };
 
-  const handleBulkApply = () => {
-    if (selectedIndexes.length === 0) return;
-    applyBulkValue(bulkField, bulkValue);
-  };
-
-  const handleHeaderBulkChange = (fieldName: BulkFieldName, value: string) => {
-    setHeaderBulkValues((current) => ({ ...current, [fieldName]: value }));
-    if (selectedIndexes.length === 0) return;
-    applyBulkValue(fieldName, value);
-  };
+${actionBarHandler}
 `;
 }
 
@@ -467,83 +520,125 @@ function emitPaginationSetup(spec: NormalizedEditorTableSpec) {
 `;
 }
 
-function emitBulkActionBar() {
-  const dateControl = buildFormFieldControl({
-    kind: 'date',
-    surface: 'cell',
-    valueExpression: 'bulkValue',
-    onChangeExpression: 'setBulkValue',
-    variant: 'md',
-    ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
-    calendarLabel: 'Chọn giá trị áp dụng hàng loạt',
-  });
-  const numberControl = buildFormFieldControl({
-    kind: 'number',
-    surface: 'cell',
-    valueExpression: 'bulkValue',
-    variant: 'md',
-    className: 'w-36 text-right tabular-nums',
-    ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
-    onChangeHandlerExpression: '(event) => setBulkValue(event.target.value)',
-  });
-  const textControl = buildFormFieldControl({
-    kind: 'text',
-    surface: 'cell',
-    valueExpression: 'bulkValue',
-    variant: 'md',
-    className: 'w-48',
-    ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
-    onChangeHandlerExpression: '(event) => setBulkValue(event.target.value)',
-  });
+function emitBulkActionBar(spec: NormalizedEditorTableSpec) {
+  const columns = bulkEditableColumns(spec);
+  const pasteEnabled = spec.multiEdit.actions.includes('paste');
+  const actions = spec.multiEdit.actions
+    .map((action) => {
+      if (action === 'copy') {
+        return `...(selectedIndexes.length > 0 && onCopySelected ? [{ value: 'copy', label: intl.formatMessage({ id: 'editorTable.selection.copy' }), icon: 'copy' }] : []),`;
+      }
+      if (action === 'paste') {
+        return `...(clipboardCount > 0 && onPaste ? [{ value: 'paste', label: intl.formatMessage({ id: 'editorTable.selection.paste' }), icon: 'paste' }] : []),`;
+      }
+      return `...(selectedIndexes.length > 0 ? [{ value: 'delete', label: intl.formatMessage({ id: 'editorTable.selection.delete' }), icon: 'delete', destructive: true }] : []),`;
+    })
+    .join('\n');
+  const editAction =
+    columns.length > 0
+      ? `...(selectedIndexes.length > 0 ? [{ value: 'edit', label: intl.formatMessage({ id: 'editorTable.selection.edit' }), icon: 'edit' }] : []),`
+      : '';
+  const editControl =
+    columns.length > 0
+      ? `<>
+            <Select
+              value={bulkField}
+              onValueChange={(value) => {
+                setBulkField(value as BulkFieldName);
+                setBulkValue('');
+              }}
+            >
+              <SelectTrigger size="md" className="w-[150px]">
+                <SelectValue label="Trường" />
+              </SelectTrigger>
+              <SelectContent>
+                {bulkFields.map((field) => (
+                  <SelectItem key={field.name} value={field.name}>
+                    {field.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {activeBulkField?.kind === 'date' ? (
+              ${buildFormFieldControl({
+                kind: 'date',
+                surface: 'cell',
+                valueExpression: 'bulkValue',
+                onChangeExpression: 'setBulkValue',
+                variant: 'md',
+                ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
+                calendarLabel: 'Chọn giá trị áp dụng hàng loạt',
+              })}
+            ) : activeBulkField?.kind === 'number' ? (
+              ${buildFormFieldControl({
+                kind: 'number',
+                surface: 'cell',
+                valueExpression: 'bulkValue',
+                variant: 'md',
+                className: 'w-36 text-right tabular-nums',
+                ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
+                onChangeHandlerExpression:
+                  '(event) => setBulkValue(event.target.value)',
+              })}
+            ) : (
+              ${buildFormFieldControl({
+                kind: 'text',
+                surface: 'cell',
+                valueExpression: 'bulkValue',
+                variant: 'md',
+                className: 'w-48',
+                ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
+                onChangeHandlerExpression:
+                  '(event) => setBulkValue(event.target.value)',
+              })}
+            )}
+          </>`
+      : '';
+  const showActionBar = pasteEnabled
+    ? 'selectedIndexes.length > 0 || (clipboardCount > 0 && onPaste)'
+    : 'selectedIndexes.length > 0';
+  const emptySelectionLabel = pasteEnabled
+    ? "intl.formatMessage({ id: 'editorTable.selection.clipboardReady' }, { count: clipboardCount })"
+    : "''";
+  const applyDisabled = pasteEnabled
+    ? 'selectedIndexes.length === 0 && (!onPaste || clipboardCount === 0)'
+    : 'selectedIndexes.length === 0';
+  const extraControlProp =
+    columns.length > 0
+      ? "extraControl={selectionAction === 'edit' ? " + editControl + ' : null}'
+      : '';
 
-  return `      {selectedIndexes.length > 0 && (
-        <div
-          role="toolbar"
-          aria-label="Thao tác hàng loạt"
-          className="fixed inset-x-0 bottom-6 z-50 mx-auto flex w-fit items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2 shadow-lg"
-        >
-          <span className="px-1 text-sm font-medium text-foreground">
-            Đã chọn {selectedIndexes.length} dòng
-          </span>
-          <div className="h-5 w-px bg-border" />
-          <Select
-            value={bulkField}
-            onValueChange={(value) => {
-              setBulkField(value as BulkFieldName);
-              setBulkValue('');
-            }}
-          >
-            <SelectTrigger size="sm" className="w-[150px]">
-              <SelectValue label="Trường" />
-            </SelectTrigger>
-            <SelectContent>
-              {bulkFields.map((field) => (
-                <SelectItem key={field.name} value={field.name}>
-                  {field.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {activeBulkField?.kind === 'date' ? (
-            ${dateControl}
-          ) : activeBulkField?.kind === 'number' ? (
-            ${numberControl}
-          ) : (
-            ${textControl}
-          )}
-          <Button type="button" variant="primary" size="sm" onClick={handleBulkApply}>
-            Áp dụng
-          </Button>
-          <div className="h-5 w-px bg-border" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedRowIds([])}
-          >
-            Bỏ chọn
-          </Button>
-        </div>
+  return `      {(${showActionBar}) && (
+        <SelectionActionBar
+          ariaLabel={intl.formatMessage({ id: 'editorTable.selection.toolbar' })}
+          selectionLabel={
+            selectedIndexes.length > 0
+              ? intl.formatMessage(
+                  { id: 'editorTable.selection.selected' },
+                  { count: selectedIndexes.length },
+                )
+              : ${emptySelectionLabel}
+          }
+          actionLabel={intl.formatMessage({ id: 'editorTable.selection.action' })}
+          actionPlaceholder={intl.formatMessage({ id: 'editorTable.selection.chooseAction' })}
+          actions={([
+${actions}
+${editAction}
+          ]) as SelectionActionOption[]}
+          action={selectionAction}
+          onActionChange={(value) => {
+            setSelectionAction(value);
+${columns.length > 0 ? "            setBulkValue('');" : ''}
+          }}
+          applyLabel={intl.formatMessage({ id: 'editorTable.selection.apply' })}
+          onApply={handleSelectionAction}
+          applyDisabled={${applyDisabled}}
+          onClear={
+            selectedIndexes.length > 0 ? () => setSelectedRowIds([]) : undefined
+          }
+          clearLabel={intl.formatMessage({ id: 'editorTable.selection.clear' })}
+          ${extraControlProp}
+        />
       )}`;
 }
 
@@ -560,13 +655,15 @@ function emitCells(spec: NormalizedEditorTableSpec): string {
   });
 
   if (spec.multiEdit.enabled) {
-    cells.unshift(`<TableCell className="px-4 py-2">
-  <Checkbox
-    aria-label={\`Chọn dòng \${index + 1}\`}
-    checked={selectedRowIds.includes(field.fieldId)}
-    size="sm"
-    onCheckedChange={(checked) => handleSelectRow(field.fieldId, !!checked)}
-  />
+    cells.unshift(`<TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+  <div className="flex justify-center">
+    <Checkbox
+      aria-label={\`Chọn dòng \${index + 1}\`}
+      checked={selectedRowIds.includes(field.fieldId)}
+      size="sm"
+      onCheckedChange={(checked) => handleSelectRow(field.fieldId, !!checked)}
+    />
+  </div>
 </TableCell>`);
   }
 
@@ -622,8 +719,8 @@ ${actionButtons.join('\n')}
   return cells.join('\n');
 }
 
-function emitReorderCell(): string {
-  return `<TableCell className="w-12 px-2 py-2">
+function emitReorderCell(spec: NormalizedEditorTableSpec): string {
+  return `<TableCell className="${spec.reorder.widthClass} px-2 py-2 text-center align-middle">
   <Button
     type="button"
     variant="ghost"
@@ -708,7 +805,7 @@ function hasDateColumn(spec: NormalizedEditorTableSpec): boolean {
 }
 
 function hasMultiEdit(spec: NormalizedEditorTableSpec): boolean {
-  return spec.multiEdit.enabled && bulkEditableColumns(spec).length > 0;
+  return spec.multiEdit.enabled;
 }
 
 /**
@@ -725,6 +822,7 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const formattedNumber = hasFormattedNumberColumn(spec);
   const date = hasDateColumn(spec);
   const multiEdit = hasMultiEdit(spec);
+  const hasBulkFields = bulkEditableColumns(spec).length > 0;
   const pagination = Boolean(spec.pagination);
   const toolbarShortcut = Boolean(spec.toolbar?.addShortcut);
   const icons = [
@@ -737,6 +835,9 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   const rhfValues = editable ? 'Controller, useFieldArray' : 'useFieldArray';
 
   const lines = [
+    ...(multiEdit && spec.multiEdit.actionBar
+      ? ["import { useIntl } from 'react-intl';"]
+      : []),
     ...(spec.toolbar || spec.reorder.enabled
       ? ["import type { ReactNode } from 'react';"]
       : []),
@@ -768,6 +869,12 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   }
   if (multiEdit)
     lines.push("import { Checkbox } from '@/components/ui/checkbox';");
+  if (multiEdit && spec.multiEdit.actionBar) {
+    lines.push(
+      "import { SelectionActionBar } from '@/components/ui/selection-action-bar';",
+      "import type { SelectionActionOption } from '@/components/ui/selection-action-bar';",
+    );
+  }
   if (pagination) {
     lines.push(
       "import { getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';",
@@ -776,7 +883,7 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
       "import { DataGridPagination } from '@/components/ui/data-grid-pagination';",
     );
   }
-  if (plainInput || multiEdit)
+  if (plainInput || (multiEdit && hasBulkFields))
     lines.push("import { Input } from '@/components/ui/input';");
   if (autocomplete) {
     lines.push(
@@ -794,11 +901,11 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
     lines.push(
       "import { NumericInput } from '@/components/ui/inputs/numeric-input';",
     );
-  if (date || multiEdit)
+  if (date)
     lines.push(
       "import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';",
     );
-  if (multiEdit)
+  if (multiEdit && hasBulkFields)
     lines.push(
       "import {\n  Select,\n  SelectContent,\n  SelectItem,\n  SelectTrigger,\n  SelectValue,\n} from '@/components/ui/select';",
     );
@@ -827,6 +934,28 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
     spec.componentName ?? `${pascalCase(spec.entity)}EditorTable`;
   const createRowProp = spec.createRowProp ?? 'createRow';
   const multiEdit = hasMultiEdit(spec);
+  const actionBarProps =
+    multiEdit && spec.multiEdit.actionBar
+      ? [
+          ...(spec.multiEdit.actions.includes('copy')
+            ? [`onCopySelected?: (rows: ${spec.entity}[]) => void;`]
+            : []),
+          ...(spec.multiEdit.actions.includes('paste')
+            ? ['clipboardCount?: number;', 'onPaste?: () => void;']
+            : []),
+        ].join('\n  ')
+      : '';
+  const actionBarDestructuring =
+    multiEdit && spec.multiEdit.actionBar
+      ? [
+          ...(spec.multiEdit.actions.includes('copy')
+            ? ['onCopySelected']
+            : []),
+          ...(spec.multiEdit.actions.includes('paste')
+            ? ['clipboardCount = 0', 'onPaste']
+            : []),
+        ].join(',\n  ')
+      : '';
   const columnCount =
     spec.columns.length +
     (hasRowActions(spec) ? 1 : 0) +
@@ -848,6 +977,13 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
     fieldArrayOperations.push('insert');
   }
   if (hasRowActions(spec) && spec.actions.delete) {
+    fieldArrayOperations.push('remove');
+  }
+  if (
+    hasMultiEdit(spec) &&
+    spec.multiEdit.actions.includes('delete') &&
+    !fieldArrayOperations.includes('remove')
+  ) {
     fieldArrayOperations.push('remove');
   }
   if (spec.reorder.enabled) fieldArrayOperations.push('move');
@@ -974,7 +1110,7 @@ ${toolbarActions}
     : '';
   const toolbarClose = toolbar ? `    </div>\n` : '';
   const bulkActionBar =
-    multiEdit && spec.multiEdit.actionBar ? `\n${emitBulkActionBar()}` : '';
+    multiEdit && spec.multiEdit.actionBar ? `\n${emitBulkActionBar(spec)}` : '';
   const paginationFooter = spec.pagination
     ? `      {fields.length > 0 ? (
         <div className="shrink-0 border-t border-border px-4 py-2">
@@ -1030,6 +1166,7 @@ function ${componentName}SortableRow({
 interface ${componentName}Props {
   form: UseFormReturn<${spec.valuesType}>;
   ${createRowProp}: () => ${spec.entity};
+  ${actionBarProps}
   ${toolbar ? 'toolbarContent?: ReactNode;' : ''}
   ${toolbar?.titleProp ? `${toolbar.titleProp}?: ReactNode;` : ''}
 }
@@ -1037,6 +1174,7 @@ interface ${componentName}Props {
 export function ${componentName}({
   form,
   ${createRowProp},
+  ${actionBarDestructuring ? `${actionBarDestructuring},` : ''}
   ${toolbar ? 'toolbarContent,' : ''}
   ${toolbar?.titleProp ? `${toolbar.titleProp},` : ''}
 }: ${componentName}Props) {
@@ -1046,6 +1184,7 @@ export function ${componentName}({
     keyName: 'fieldId',
   });
   const watchedRows = form.watch('${spec.arrayName}') ?? [];
+  ${multiEdit && spec.multiEdit.actionBar ? 'const intl = useIntl();' : ''}
 
   const handleAddRow = () => {
     append(${createRowProp}());${
@@ -1104,7 +1243,7 @@ ${
                   id={field.fieldId}
                   renderCells={(sortable) => (
                     <>
-${indent(emitReorderCell(), 22)}
+${indent(emitReorderCell(spec), 22)}
 ${indent(emitCells(spec), 22)}
                     </>
                   )}

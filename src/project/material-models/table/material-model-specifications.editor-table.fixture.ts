@@ -22,6 +22,10 @@ const spec: EditorTableSpec = {
     header: '',
     widthClass: 'w-12',
   },
+  multiEdit: {
+    enabled: true,
+    actions: ['copy', 'paste', 'delete'],
+  },
   columns: [
     {
       kind: 'custom',

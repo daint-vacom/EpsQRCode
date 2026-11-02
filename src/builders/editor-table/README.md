@@ -99,10 +99,17 @@ field-array lifecycle, row actions, sticky headers, and horizontal scrolling.
 
 ## Multi Edit
 
-Set `multiEdit.enabled` and mark safe editable columns with `bulkEdit: true` to
-emit row selection plus a floating bulk action bar. When `headerInputs` is true,
-bulk-enabled headers also show compact inputs under the label; both action bar
-and header inputs apply only to selected rows.
+Set `multiEdit.enabled` to emit row selection and the floating action bar,
+including when the table has no bulk-editable fields. Its action list defaults
+to `copy` and `delete`; the generated component exposes `onCopySelected` for
+feature-owned copy behavior, and deletion removes the selected field-array rows.
+Add `paste` to `multiEdit.actions` when the feature provides `clipboardCount`
+and `onPaste`.
+
+Mark safe editable columns with `bulkEdit: true` to add the “Chỉnh sửa hàng
+loạt” action and its field/value controls. When `headerInputs` is true,
+bulk-enabled headers also show compact inputs under the label; header inputs
+apply only to selected rows.
 
 ## Example Spec
 

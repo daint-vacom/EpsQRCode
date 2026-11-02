@@ -3,7 +3,7 @@
  * You own this file now — fill computed cell stubs and wire it into the page/card layout. To change
  * columns or viewport behavior, edit the spec and re-gen to a scratch path, then reconcile your edits.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { MaterialSpecificationDataTypeIcon } from '@/project/material-specifications/components/material-specification-data-type-icon';
 import { useMaterialSpecificationsQuery } from '@/project/material-specifications/hooks/use-material-specifications';
@@ -42,7 +42,9 @@ import {
 import { useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   DropdownMenu,
@@ -67,11 +69,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { MaterialModelSpecificationValues } from '../forms/material-model-specification-values';
+import { useMaterialSpecificationsClipboard } from '../hooks/use-material-specifications-clipboard';
 import type {
   MaterialModelFormValues,
   MaterialModelSpecification,
 } from '../model/material-model';
 import { convertMaterialModelSpecificationValues } from '../model/material-model-specification-conversion';
+import {
+  appendClipboardToModelSpecifications,
+  createModelSpecificationsClipboard,
+} from '../model/material-specifications-clipboard';
 import {
   MaterialSpecificationsEditorTableRow,
   MaterialSpecificationsEditorTableView,
@@ -122,8 +129,17 @@ export function MaterialModelSpecificationsEditorTable({
   const [pendingSingleModeIndex, setPendingSingleModeIndex] = useState<
     number | null
   >(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [selectionAction, setSelectionAction] = useState('copy');
   const pendingFocusIndex = useRef<number | null>(null);
+  const { clipboard, copy } = useMaterialSpecificationsClipboard();
   const watchedRows = form.watch('specifications') ?? [];
+  const selectedRowIds = new Set(selectedRows);
+  const selectedCount = fields.filter((field) =>
+    selectedRowIds.has(field.fieldId),
+  ).length;
+  const allSelected = fields.length > 0 && selectedCount === fields.length;
+  const someSelected = selectedCount > 0 && !allSelected;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
@@ -159,6 +175,73 @@ export function MaterialModelSpecificationsEditorTable({
       pendingFocusIndex.current = null;
       form.setFocus(`specifications.${index}.name`);
     });
+  };
+
+  useEffect(() => {
+    const fieldIds = new Set(fields.map((field) => field.fieldId));
+    setSelectedRows((current) => {
+      const next = current.filter((id) => fieldIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [fields]);
+
+  const handleCopySelected = () => {
+    const selectedSpecifications = fields.flatMap((field, index) => {
+      if (!selectedRowIds.has(field.fieldId)) return [];
+      const specification = watchedRows[index];
+      return specification ? [specification] : [];
+    });
+    const nextClipboard = createModelSpecificationsClipboard(
+      selectedSpecifications,
+    );
+    if (!nextClipboard || !copy(nextClipboard)) {
+      toast.error(
+        intl.formatMessage({
+          id: 'materialModels.specifications.selection.copyError',
+        }),
+      );
+      return;
+    }
+    toast.success(
+      intl.formatMessage(
+        { id: 'materialModels.specifications.selection.copied' },
+        { count: nextClipboard.items.length },
+      ),
+    );
+  };
+
+  const handlePaste = () => {
+    if (!clipboard) return;
+    const result = appendClipboardToModelSpecifications(watchedRows, clipboard);
+    if (result.specifications.length === 0) return;
+    append(result.specifications, { shouldFocus: false });
+    toast.success(
+      intl.formatMessage(
+        { id: 'materialModels.specifications.selection.pasted' },
+        { count: result.specifications.length },
+      ),
+    );
+  };
+
+  const handleApplySelectionAction = (action: string) => {
+    if (action === 'copy') {
+      handleCopySelected();
+      return;
+    }
+    if (action === 'delete') {
+      const indexes = fields.flatMap((field, index) =>
+        selectedRowIds.has(field.fieldId) ? [index] : [],
+      );
+      if (indexes.length === 0) return;
+      remove(indexes);
+      setSelectedRows([]);
+      toast.success(
+        intl.formatMessage(
+          { id: 'materialModels.specifications.selection.deleted' },
+          { count: indexes.length },
+        ),
+      );
+    }
   };
 
   const handleChangeDataType = (
@@ -252,6 +335,18 @@ export function MaterialModelSpecificationsEditorTable({
         <MaterialSpecificationsEditorTableView
           mode="model"
           count={fields.length}
+          selectedCount={selectedCount}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          clipboardCount={clipboard?.items.length ?? 0}
+          onPaste={handlePaste}
+          onToggleAll={(checked) =>
+            setSelectedRows(checked ? fields.map((field) => field.fieldId) : [])
+          }
+          selectionAction={selectionAction}
+          onSelectionActionChange={setSelectionAction}
+          onApplySelectionAction={handleApplySelectionAction}
+          onClearSelection={() => setSelectedRows([])}
           onAddRow={() => handleAddRow()}
           emptyState={
             <span className="text-muted-foreground">
@@ -300,7 +395,7 @@ export function MaterialModelSpecificationsEditorTable({
                         {...rowProps}
                       >
                         <>
-                          <TableCell className="w-12 px-2 py-2 align-top">
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -329,6 +424,30 @@ export function MaterialModelSpecificationsEditorTable({
                                 })}
                               </TooltipContent>
                             </Tooltip>
+                          </TableCell>
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+                            <div className="flex justify-center">
+                              <Checkbox
+                                checked={selectedRowIds.has(field.fieldId)}
+                                aria-label={intl.formatMessage(
+                                  {
+                                    id: 'materialModels.specifications.selection.selectRow',
+                                  },
+                                  { name: row?.name || index + 1 },
+                                )}
+                                onCheckedChange={(checked) =>
+                                  setSelectedRows((current) =>
+                                    checked === true
+                                      ? current.includes(field.fieldId)
+                                        ? current
+                                        : [...current, field.fieldId]
+                                      : current.filter(
+                                          (id) => id !== field.fieldId,
+                                        ),
+                                  )
+                                }
+                              />
+                            </div>
                           </TableCell>
                           <TableCell className="w-24 px-2 py-2 text-center align-top">
                             <FormField
@@ -547,7 +666,7 @@ export function MaterialModelSpecificationsEditorTable({
                 );
               })}
               <TableRow hoverable={false}>
-                <TableCell colSpan={4} className="px-2 py-2">
+                <TableCell colSpan={5} className="px-2 py-2">
                   <Button
                     type="button"
                     variant="ghost"

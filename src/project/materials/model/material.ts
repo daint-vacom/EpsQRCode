@@ -18,6 +18,7 @@ export interface MaterialModelSnapshot {
   description: string;
   requiresInspection: boolean;
   specifications: MaterialModelSpecification[];
+  hiddenSpecificationIds?: string[];
   publicDisplaySettings?: MaterialPublicDisplaySettings;
   images: Omit<MaterialModelImage, 'url'>[];
   capturedAt: string;
@@ -153,6 +154,7 @@ export interface MaterialFormValues {
   descriptionOverride: string;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels?: Record<string, string[]>;
+  hiddenSpecificationIds?: string[];
   serialNumber: string;
   ownerPartyId: string;
   ownerSnapshot?: MaterialOwnerSnapshotDraft;

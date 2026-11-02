@@ -65,6 +65,9 @@ export function MaterialEditorPage() {
     );
   const [publicSpecificationSettings, setPublicSpecificationSettings] =
     useState<Record<string, boolean>>({});
+  const [hiddenSpecificationIds, setHiddenSpecificationIds] = useState<
+    string[]
+  >([]);
   const [activeTab, setActiveTab] = useState('general');
   const materialQuery = useMaterialQuery(
     id,
@@ -87,6 +90,10 @@ export function MaterialEditorPage() {
       model.id === (isEdit ? editingMaterial?.modelId : selectedModelId),
   );
   const snapshot = isEdit ? editingMaterial?.modelSnapshot : currentModel;
+  const snapshotSpecifications =
+    snapshot?.specifications.filter(
+      (specification) => !hiddenSpecificationIds.includes(specification.id),
+    ) ?? null;
 
   useEffect(() => {
     if (isEdit && editingMaterial) {
@@ -102,12 +109,16 @@ export function MaterialEditorPage() {
           editingMaterial.publicSpecificationSettings,
         ),
       );
+      setHiddenSpecificationIds(
+        editingMaterial.modelSnapshot.hiddenSpecificationIds ?? [],
+      );
       previousModelId.current = editingMaterial.modelId;
     } else if (!isEdit) {
       form.reset(materialDefaultValues);
       setGalleryImages([]);
       setPublicDisplaySettings(DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS);
       setPublicSpecificationSettings({});
+      setHiddenSpecificationIds([]);
       previousModelId.current = '';
       hydratedModelId.current = '';
     }
@@ -127,6 +138,7 @@ export function MaterialEditorPage() {
     if (selectionChanged) {
       form.setValue('specificationOverrides', {}, { shouldDirty: true });
       form.setValue('specificationOverrideLabels', {}, { shouldDirty: true });
+      setHiddenSpecificationIds([]);
       setPublicDisplaySettings(currentModel.publicDisplaySettings);
       setPublicSpecificationSettings(
         mapPublicSpecificationSettings(currentModel.specifications),
@@ -259,6 +271,7 @@ export function MaterialEditorPage() {
     );
     const payload: MaterialFormValues = {
       ...values,
+      hiddenSpecificationIds,
       nameOverride:
         values.nameOverride.trim() === selectedModel?.name.trim()
           ? ''
@@ -377,7 +390,7 @@ export function MaterialEditorPage() {
               </TabsTrigger>
               <TabsTrigger
                 value="technical"
-                count={snapshot?.specifications.length ?? 0}
+                count={snapshotSpecifications?.length ?? 0}
               >
                 {intl.formatMessage({
                   id: 'project.materials.tabs.specifications',
@@ -475,7 +488,7 @@ export function MaterialEditorPage() {
                 {snapshot ? (
                   <MaterialSpecificationsTable
                     mode="material"
-                    specifications={snapshot.specifications}
+                    specifications={snapshotSpecifications}
                     publicVisibilityDisabled={!publicDisplaySettings.basicInfo}
                     values={form.watch('specificationOverrides') ?? {}}
                     valueLabels={
@@ -494,6 +507,11 @@ export function MaterialEditorPage() {
                         shouldDirty: true,
                         shouldValidate: true,
                       })
+                    }
+                    onRemoveSpecifications={(ids) =>
+                      setHiddenSpecificationIds((current) =>
+                        Array.from(new Set([...current, ...ids])),
+                      )
                     }
                   />
                 ) : (
@@ -519,6 +537,7 @@ export function MaterialEditorPage() {
                         shouldValidate: true,
                       })
                     }
+                    onRemoveSpecifications={() => {}}
                   />
                 )}
               </Card>

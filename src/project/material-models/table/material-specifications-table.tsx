@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MaterialSpecificationDataTypeIcon } from '@/project/material-specifications/components/material-specification-data-type-icon';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
+import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { MaterialModelSpecificationValues } from '../forms/material-model-specification-values';
@@ -25,6 +26,7 @@ type MaterialModeProps = {
   onPublicSettingsChange: (settings: Record<string, boolean>) => void;
   onChange: (values: Record<string, string[]>) => void;
   onValueLabelsChange: (labels: Record<string, string[]>) => void;
+  onRemoveSpecifications: (ids: string[]) => void;
 };
 
 type ModelModeProps = {
@@ -57,20 +59,76 @@ function MaterialSpecificationsMaterialMode({
   publicSettings,
   onPublicSettingsChange,
   publicVisibilityDisabled,
+  onRemoveSpecifications,
 }: Omit<MaterialModeProps, 'mode'>) {
   const intl = useIntl();
   const [editableRows, setEditableRows] = useState<Record<string, boolean>>({});
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [selectionAction, setSelectionAction] = useState('delete');
   const configuredSpecifications = (specifications ?? [])
     .map((specification) => ({
       ...specification,
       values: specification.values.filter((value) => value.trim().length > 0),
     }))
     .filter((specification) => specification.values.length > 0);
+  const selectedRowIds = new Set(selectedRows);
+  const selectedCount = configuredSpecifications.filter((specification) =>
+    selectedRowIds.has(specification.id),
+  ).length;
+  const allSelected =
+    configuredSpecifications.length > 0 &&
+    selectedCount === configuredSpecifications.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
+  useEffect(() => {
+    const specificationIds = new Set(
+      (specifications ?? [])
+        .filter((specification) =>
+          specification.values.some((value) => value.trim().length > 0),
+        )
+        .map((specification) => specification.id),
+    );
+    setSelectedRows((current) => {
+      const next = current.filter((id) => specificationIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [specifications]);
+
+  const handleApplySelectionAction = (action: string) => {
+    if (action === 'delete') {
+      const deletedIds = configuredSpecifications
+        .filter((specification) => selectedRowIds.has(specification.id))
+        .map((specification) => specification.id);
+      if (deletedIds.length === 0) return;
+      onRemoveSpecifications(deletedIds);
+      setSelectedRows([]);
+      toast.success(
+        intl.formatMessage(
+          { id: 'materialModels.specifications.selection.deletedMaterial' },
+          { count: deletedIds.length },
+        ),
+      );
+    }
+  };
 
   return (
     <MaterialSpecificationsEditorTableView
       mode="material"
       count={configuredSpecifications.length}
+      selectedCount={selectedCount}
+      allSelected={allSelected}
+      someSelected={someSelected}
+      onToggleAll={(checked) =>
+        setSelectedRows(
+          checked
+            ? configuredSpecifications.map((specification) => specification.id)
+            : [],
+        )
+      }
+      selectionAction={selectionAction}
+      onSelectionActionChange={setSelectionAction}
+      onApplySelectionAction={handleApplySelectionAction}
+      onClearSelection={() => setSelectedRows([])}
       emptyState={
         <span className="text-muted-foreground">
           {intl.formatMessage({
@@ -143,6 +201,26 @@ function MaterialSpecificationsMaterialMode({
           <MaterialSpecificationsEditorTableRow
             key={specification.id}
             mode="material"
+            selection={
+              <Checkbox
+                checked={selectedRowIds.has(specification.id)}
+                aria-label={intl.formatMessage(
+                  {
+                    id: 'materialModels.specifications.selection.selectRow',
+                  },
+                  { name: specification.name },
+                )}
+                onCheckedChange={(checked) =>
+                  setSelectedRows((current) =>
+                    checked === true
+                      ? current.includes(specification.id)
+                        ? current
+                        : [...current, specification.id]
+                      : current.filter((id) => id !== specification.id),
+                  )
+                }
+              />
+            }
             visible={
               <Switch
                 disabled={publicVisibilityDisabled}

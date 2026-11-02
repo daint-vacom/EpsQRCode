@@ -144,8 +144,17 @@ export const editorTableSpecSchema = z.object({
       enabled: z.boolean().default(false),
       actionBar: z.boolean().default(true),
       headerInputs: z.boolean().default(false),
+      actions: z
+        .array(z.enum(['copy', 'paste', 'delete']))
+        .min(1)
+        .default(['copy', 'delete']),
     })
-    .default({ enabled: false, actionBar: true, headerInputs: false }),
+    .default({
+      enabled: false,
+      actionBar: true,
+      headerInputs: false,
+      actions: ['copy', 'delete'],
+    }),
   actions: z
     .object({
       enabled: z.boolean().default(true),

@@ -546,38 +546,43 @@ function MaterialSpecificationsCard({
   const specifications = useMemo(() => {
     if (publicMode) return publicSpecifications ?? [];
     if (!material) return [];
-    return material.modelSnapshot.specifications.map((specification) => {
-      const hasOverride = Object.prototype.hasOwnProperty.call(
-        material.specificationOverrides,
-        specification.id,
-      );
-      const values = hasOverride
-        ? material.specificationOverrides[specification.id]
-        : specification.values.length === 1
-          ? [specification.values[0]]
-          : [];
-      const labelsByValue = new Map(
-        specification.values.map((value, index) => [
-          value,
-          specification.valueLabels[index],
-        ]),
-      );
-      const labelOverrides =
-        material.specificationOverrideLabels[specification.id] ?? [];
+    const hiddenSpecificationIds = new Set(
+      material.modelSnapshot.hiddenSpecificationIds ?? [],
+    );
+    return material.modelSnapshot.specifications
+      .filter((specification) => !hiddenSpecificationIds.has(specification.id))
+      .map((specification) => {
+        const hasOverride = Object.prototype.hasOwnProperty.call(
+          material.specificationOverrides,
+          specification.id,
+        );
+        const values = hasOverride
+          ? material.specificationOverrides[specification.id]
+          : specification.values.length === 1
+            ? [specification.values[0]]
+            : [];
+        const labelsByValue = new Map(
+          specification.values.map((value, index) => [
+            value,
+            specification.valueLabels[index],
+          ]),
+        );
+        const labelOverrides =
+          material.specificationOverrideLabels[specification.id] ?? [];
 
-      return {
-        ...specification,
-        values,
-        valueLabels:
-          specification.dataType === 'color'
-            ? values.map((value, index) =>
-                Object.prototype.hasOwnProperty.call(labelOverrides, index)
-                  ? labelOverrides[index]
-                  : (labelsByValue.get(value) ?? ''),
-              )
-            : specification.valueLabels,
-      };
-    });
+        return {
+          ...specification,
+          values,
+          valueLabels:
+            specification.dataType === 'color'
+              ? values.map((value, index) =>
+                  Object.prototype.hasOwnProperty.call(labelOverrides, index)
+                    ? labelOverrides[index]
+                    : (labelsByValue.get(value) ?? ''),
+                )
+              : specification.valueLabels,
+        };
+      });
   }, [material, publicMode, publicSpecifications]);
 
   return (

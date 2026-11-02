@@ -14,6 +14,17 @@ export const en: Record<string, string> = {
   'common.select.loadingMore': 'Loading more',
   'common.select.loadError': 'Unable to load data',
   'common.select.minSearch': 'Enter at least {count} characters to search',
+  'editorTable.selection.toolbar': 'Bulk actions',
+  'editorTable.selection.selected': '{count} rows selected',
+  'editorTable.selection.clipboardReady': '{count} copied rows are ready',
+  'editorTable.selection.copy': 'Copy',
+  'editorTable.selection.paste': 'Paste',
+  'editorTable.selection.delete': 'Delete selected rows',
+  'editorTable.selection.edit': 'Bulk edit',
+  'editorTable.selection.action': 'Action',
+  'editorTable.selection.chooseAction': 'Choose an action',
+  'editorTable.selection.apply': 'Apply',
+  'editorTable.selection.clear': 'Clear selection',
   ...materialMessagesEn,
   ...materialLabelMessagesEn,
   ...warehouseMessagesEn,
@@ -53,6 +64,32 @@ export const en: Record<string, string> = {
   'reports.mock.description': 'Report content and data will be added later.',
   'materialGroups.columns.groupShort': 'Material group',
   'materialModels.specifications.colorLabel': 'Color name',
+  'materialModels.specifications.selection.selectAll':
+    'Select all technical specifications',
+  'materialModels.specifications.selection.selectRow':
+    'Select specification {name}',
+  'materialModels.specifications.selection.toolbar':
+    'Technical specification actions',
+  'materialModels.specifications.selection.selected':
+    '{count} specifications selected',
+  'materialModels.specifications.selection.copy':
+    'Copy technical specifications',
+  'materialModels.specifications.selection.delete': 'Delete selected rows',
+  'materialModels.specifications.selection.pasteCount':
+    'Paste {count} copied specifications',
+  'materialModels.specifications.selection.moreActions':
+    'Open specification menu',
+  'materialModels.specifications.selection.clear': 'Clear selection',
+  'materialModels.specifications.selection.copyError':
+    'Could not copy the selected specifications.',
+  'materialModels.specifications.selection.copied':
+    'Copied {count} technical specifications.',
+  'materialModels.specifications.selection.pasted':
+    'Added {count} technical specifications.',
+  'materialModels.specifications.selection.deleted':
+    'Deleted {count} technical specifications.',
+  'materialModels.specifications.selection.deletedMaterial':
+    'Deleted {count} specifications from this material.',
   'materialModels.filters.searchPlaceholder': 'Search by model code or name',
   'materialModels.empty.search': 'No matching material models found.',
   'materialModels.select.placeholder': 'Select a material model',

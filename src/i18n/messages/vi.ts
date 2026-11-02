@@ -50,6 +50,17 @@ export const vi: Record<string, string> = {
   'common.actions.save': 'Lưu',
   'common.actions.cancel': 'Hủy',
   'common.actions.delete': 'Xóa',
+  'editorTable.selection.toolbar': 'Thao tác hàng loạt',
+  'editorTable.selection.selected': 'Đã chọn {count} dòng',
+  'editorTable.selection.clipboardReady': 'Có {count} dòng đã sao chép',
+  'editorTable.selection.copy': 'Sao chép',
+  'editorTable.selection.paste': 'Dán',
+  'editorTable.selection.delete': 'Xóa các dòng đang chọn',
+  'editorTable.selection.edit': 'Chỉnh sửa hàng loạt',
+  'editorTable.selection.action': 'Thao tác',
+  'editorTable.selection.chooseAction': 'Chọn thao tác',
+  'editorTable.selection.apply': 'Áp dụng',
+  'editorTable.selection.clear': 'Bỏ chọn',
   'common.actions.search': 'Tìm kiếm',
   'common.actions.refresh': 'Làm mới',
   'common.actions.editCode': 'Sửa mã',
@@ -166,6 +177,30 @@ export const vi: Record<string, string> = {
   'materialModels.specifications.types.weight': 'Cân nặng',
   'materialModels.specifications.valuesEmpty': 'Nhập ít nhất một giá trị.',
   'materialModels.specifications.count': '{count} thông số',
+  'materialModels.specifications.selection.selectAll':
+    'Chọn tất cả thông số kỹ thuật',
+  'materialModels.specifications.selection.selectRow': 'Chọn thông số {name}',
+  'materialModels.specifications.selection.toolbar':
+    'Thao tác thông số kỹ thuật',
+  'materialModels.specifications.selection.selected':
+    'Đã chọn {count} thông số',
+  'materialModels.specifications.selection.copy': 'Sao chép thông số kỹ thuật',
+  'materialModels.specifications.selection.delete': 'Xóa các dòng đang chọn',
+  'materialModels.specifications.selection.pasteCount':
+    'Dán {count} thông số đã sao chép',
+  'materialModels.specifications.selection.moreActions':
+    'Mở menu thông số kỹ thuật',
+  'materialModels.specifications.selection.clear': 'Bỏ chọn',
+  'materialModels.specifications.selection.copyError':
+    'Không thể sao chép các thông số đã chọn.',
+  'materialModels.specifications.selection.copied':
+    'Đã sao chép {count} thông số kỹ thuật.',
+  'materialModels.specifications.selection.pasted':
+    'Đã chèn thêm {count} thông số kỹ thuật.',
+  'materialModels.specifications.selection.deleted':
+    'Đã xóa {count} thông số kỹ thuật.',
+  'materialModels.specifications.selection.deletedMaterial':
+    'Đã xóa {count} thông số khỏi vật tư này.',
   'materialModels.specifications.boolean.yes': 'Có',
   'materialModels.specifications.boolean.no': 'Không',
   'materialModels.fields.availability': 'Sử dụng',

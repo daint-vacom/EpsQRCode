@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode, Ref } from 'react';
 import { useIntl } from 'react-intl';
 import { CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   TableBody,
@@ -9,10 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { MaterialSpecificationsActionBar } from './material-specifications-action-bar';
 import { MaterialSpecificationsTableHeader } from './material-specifications-table-header';
 
 export type MaterialSpecificationsEditorTableMode = 'model' | 'material';
 export type MaterialSpecificationsEditorTableRowProps = {
+  selection?: ReactNode;
   edit?: ReactNode;
   visible?: ReactNode;
   rowRef?: Ref<HTMLTableRowElement>;
@@ -22,6 +25,16 @@ export type MaterialSpecificationsEditorTableRowProps = {
 
 type SharedTableViewProps = {
   count: number;
+  selectedCount: number;
+  allSelected: boolean;
+  someSelected: boolean;
+  clipboardCount?: number;
+  onPaste?: () => void;
+  onToggleAll: (checked: boolean) => void;
+  selectionAction: string;
+  onSelectionActionChange: (action: string) => void;
+  onApplySelectionAction: (action: string) => void;
+  onClearSelection: () => void;
   beforeTable?: ReactNode;
   emptyState?: ReactNode;
   children: ReactNode;
@@ -39,19 +52,33 @@ type MaterialSpecificationsEditorTableViewProps =
 export function MaterialSpecificationsEditorTableView({
   mode,
   count,
+  selectedCount,
+  allSelected,
+  someSelected,
+  clipboardCount = 0,
+  onPaste,
+  onToggleAll,
+  selectionAction,
+  onSelectionActionChange,
+  onApplySelectionAction,
+  onClearSelection,
   onAddRow,
   beforeTable,
   emptyState,
   children,
 }: MaterialSpecificationsEditorTableViewProps) {
   const intl = useIntl();
-  const columnCount = mode === 'model' ? 5 : 4;
+  const columnCount = mode === 'model' ? 6 : 5;
   const headerProps =
     mode === 'model' ? { mode, count, onAddRow } : { mode, count };
 
   return (
     <>
-      <MaterialSpecificationsTableHeader {...headerProps} />
+      <MaterialSpecificationsTableHeader
+        {...headerProps}
+        clipboardCount={mode === 'model' ? clipboardCount : 0}
+        onPaste={mode === 'model' ? onPaste : undefined}
+      />
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0">
         {beforeTable}
         <ScrollArea
@@ -64,8 +91,27 @@ export function MaterialSpecificationsEditorTableView({
               <TableHeader>
                 <TableRow hoverable={false}>
                   {mode === 'model' ? (
-                    <TableHead className="sticky top-0 z-20 w-12 bg-muted" />
+                    <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 text-center align-middle" />
                   ) : null}
+                  <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
+                    <div className="flex justify-center">
+                      <Checkbox
+                        checked={
+                          allSelected
+                            ? true
+                            : someSelected
+                              ? 'indeterminate'
+                              : false
+                        }
+                        aria-label={intl.formatMessage({
+                          id: 'materialModels.specifications.selection.selectAll',
+                        })}
+                        onCheckedChange={(checked) =>
+                          onToggleAll(checked === true)
+                        }
+                      />
+                    </div>
+                  </TableHead>
                   <TableHead className="sticky top-0 z-20 w-24 bg-muted text-center">
                     {intl.formatMessage({
                       id: 'project.materials.fields.specificationVisible',
@@ -115,12 +161,22 @@ export function MaterialSpecificationsEditorTableView({
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </CardContent>
+      <MaterialSpecificationsActionBar
+        selectedCount={selectedCount}
+        allowCopy={mode === 'model'}
+        action={selectionAction}
+        onActionChange={onSelectionActionChange}
+        onApply={onApplySelectionAction}
+        applyDisabled={false}
+        onClear={onClearSelection}
+      />
     </>
   );
 }
 
 export function MaterialSpecificationsEditorTableRow({
   mode,
+  selection,
   children,
   name,
   value,
@@ -151,6 +207,9 @@ export function MaterialSpecificationsEditorTableRow({
         children
       ) : (
         <>
+          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+            <div className="flex justify-center">{selection}</div>
+          </TableCell>
           <TableCell className="w-24 px-2 py-2 text-center align-top">
             {visible}
           </TableCell>
