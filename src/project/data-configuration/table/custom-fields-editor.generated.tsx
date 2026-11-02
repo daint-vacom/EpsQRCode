@@ -263,7 +263,7 @@ export function CustomFieldsEditorTable({
                           disabled={rowReadOnly}
                           renderCells={(sortable) => (
                             <>
-                              <TableCell className="w-12 px-2 py-2">
+                              <TableCell className="w-12 px-2 py-2 align-top">
                                 <Button
                                   type="button"
                                   variant="ghost"
@@ -449,7 +449,7 @@ export function CustomFieldsEditorTable({
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                              <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
                                 <div className="flex justify-end gap-1">
                                   <Button
                                     aria-label={intl.formatMessage(

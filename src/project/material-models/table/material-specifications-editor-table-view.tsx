@@ -24,6 +24,8 @@ export type MaterialSpecificationsEditorTableRowProps = {
 };
 
 type SharedTableViewProps = {
+  title?: string;
+  allowCopy?: boolean;
   count: number;
   selectedCount: number;
   allSelected: boolean;
@@ -51,6 +53,8 @@ type MaterialSpecificationsEditorTableViewProps =
 
 export function MaterialSpecificationsEditorTableView({
   mode,
+  title,
+  allowCopy = true,
   count,
   selectedCount,
   allSelected,
@@ -76,94 +80,93 @@ export function MaterialSpecificationsEditorTableView({
     <>
       <MaterialSpecificationsTableHeader
         {...headerProps}
-        clipboardCount={mode === 'model' ? clipboardCount : 0}
-        onPaste={mode === 'model' ? onPaste : undefined}
+        title={title}
+        clipboardCount={mode === 'model' && allowCopy ? clipboardCount : 0}
+        onPaste={mode === 'model' && allowCopy ? onPaste : undefined}
       />
       <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0">
-        {beforeTable}
-        <ScrollArea
-          type="always"
-          className="min-h-0 min-w-0 flex-1"
-          viewportClassName="h-full min-w-0 overflow-y-auto"
-        >
-          <div className="min-w-[768px]">
-            <table className="w-full caption-bottom text-foreground text-sm">
-              <TableHeader>
-                <TableRow hoverable={false}>
-                  {mode === 'model' ? (
-                    <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 text-center align-middle" />
-                  ) : null}
-                  <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
-                    <div className="flex justify-center">
-                      <Checkbox
-                        checked={
-                          allSelected
-                            ? true
-                            : someSelected
-                              ? 'indeterminate'
-                              : false
-                        }
-                        aria-label={intl.formatMessage({
-                          id: 'materialModels.specifications.selection.selectAll',
-                        })}
-                        onCheckedChange={(checked) =>
-                          onToggleAll(checked === true)
-                        }
-                      />
-                    </div>
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 w-24 bg-muted text-center">
-                    {intl.formatMessage({
-                      id: 'project.materials.fields.specificationVisible',
-                    })}
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 min-w-[260px] bg-muted">
-                    {intl.formatMessage({
-                      id: 'materialModels.specifications.column',
-                    })}
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 min-w-[360px] bg-muted">
-                    {intl.formatMessage({
-                      id: 'materialModels.specifications.values',
-                    })}
-                  </TableHead>
-                  {mode === 'material' ? (
-                    <TableHead className="sticky top-0 z-20 w-20 bg-muted text-center">
+        <div className="grid h-full min-h-0 min-w-0 w-full flex-1 grid-rows-[auto_minmax(0,1fr)]">
+          {beforeTable}
+          <ScrollArea type="always" className="h-full min-h-0">
+            <div className="min-w-[768px]">
+              <table className="w-full caption-bottom text-foreground text-sm">
+                <TableHeader>
+                  <TableRow hoverable={false}>
+                    {mode === 'model' ? (
+                      <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 text-center align-middle" />
+                    ) : null}
+                    <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          checked={
+                            allSelected
+                              ? true
+                              : someSelected
+                                ? 'indeterminate'
+                                : false
+                          }
+                          aria-label={intl.formatMessage({
+                            id: 'materialModels.specifications.selection.selectAll',
+                          })}
+                          onCheckedChange={(checked) =>
+                            onToggleAll(checked === true)
+                          }
+                        />
+                      </div>
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 w-24 bg-muted text-center">
                       {intl.formatMessage({
-                        id: 'project.materials.fields.specificationEdit',
+                        id: 'project.materials.fields.specificationVisible',
                       })}
                     </TableHead>
-                  ) : null}
-                  {mode === 'model' ? (
-                    <TableHead className="sticky top-0 right-0 z-30 w-24 bg-muted text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]" />
-                  ) : null}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {count === 0 ? (
-                  <TableSpecificationsStateRow
-                    colSpan={columnCount}
-                    className="h-28"
-                  >
-                    {emptyState ?? (
-                      <span className="text-muted-foreground">
+                    <TableHead className="sticky top-0 z-20 min-w-[260px] bg-muted">
+                      {intl.formatMessage({
+                        id: 'materialModels.specifications.column',
+                      })}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 min-w-[360px] bg-muted">
+                      {intl.formatMessage({
+                        id: 'materialModels.specifications.values',
+                      })}
+                    </TableHead>
+                    {mode === 'material' ? (
+                      <TableHead className="sticky top-0 z-20 w-20 bg-muted text-center">
                         {intl.formatMessage({
-                          id: 'materialModels.specifications.empty',
+                          id: 'project.materials.fields.specificationEdit',
                         })}
-                      </span>
-                    )}
-                  </TableSpecificationsStateRow>
-                ) : null}
-                {children}
-              </TableBody>
-            </table>
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+                      </TableHead>
+                    ) : null}
+                    {mode === 'model' ? (
+                      <TableHead className="sticky top-0 right-0 z-30 w-24 bg-muted text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]" />
+                    ) : null}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {count === 0 ? (
+                    <TableSpecificationsStateRow
+                      colSpan={columnCount}
+                      className="h-28"
+                    >
+                      {emptyState ?? (
+                        <span className="text-muted-foreground">
+                          {intl.formatMessage({
+                            id: 'materialModels.specifications.empty',
+                          })}
+                        </span>
+                      )}
+                    </TableSpecificationsStateRow>
+                  ) : null}
+                  {children}
+                </TableBody>
+              </table>
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
       </CardContent>
       <MaterialSpecificationsActionBar
         selectedCount={selectedCount}
-        allowCopy={mode === 'model'}
+        allowCopy={mode === 'model' && allowCopy}
         action={selectionAction}
         onActionChange={onSelectionActionChange}
         onApply={onApplySelectionAction}
@@ -207,7 +210,7 @@ export function MaterialSpecificationsEditorTableRow({
         children
       ) : (
         <>
-          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
             <div className="flex justify-center">{selection}</div>
           </TableCell>
           <TableCell className="w-24 px-2 py-2 text-center align-top">

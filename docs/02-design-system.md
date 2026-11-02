@@ -151,16 +151,27 @@ Concrete APIs: [`components/data-grid.md`](./components/data-grid.md).
 
 ### Dialog shell và khoảng cách form
 
-- Dialog có form phải dùng một shell nhất quán: `DialogContent` dùng `flex flex-col gap-0
-  overflow-hidden p-0`, `DialogHeader` dùng `shrink-0` cùng padding ngang/dọc, phần form đặt
-  trong `DialogBody` (hoặc wrapper tương đương) dùng `min-h-0 flex-1 overflow-y-auto px-6 py-5`,
-  và `DialogFooter` dùng `shrink-0 px-6 py-4`.
+- Dialog có form phải dùng một shell nhất quán: `DialogContent` có
+  `flex flex-col gap-0 overflow-hidden p-0`; `DialogHeader` dùng `shrink-0` cùng padding ngang/dọc;
+  phần form đặt trong `DialogBody` (hoặc wrapper tương đương) dùng
+  `min-h-0 flex-1 overflow-y-auto px-6 py-5`, và `DialogFooter` dùng `shrink-0 px-6 py-4`.
 - Không đặt trực tiếp `<Form>` hoặc `<form>` ngay sau `DialogHeader` trong `DialogContent` mặc định.
   `DialogContent` có padding ngoài nhưng không tạo khoảng cách giữa các sibling, vì vậy form sẽ bị
   dính sát header; body wrapper là nơi sở hữu spacing và vùng scroll.
 - Dialog ngắn vẫn giữ body wrapper để khoảng cách header–form–footer nhất quán. Chỉ bỏ `max-height`
   hoặc `overflow-y-auto` khi dialog thực sự không cần scroll; không bỏ padding body để sửa nhanh khoảng
   cách.
+
+### Bảng chỉnh sửa trong dialog
+
+- Dialog có editor table cần chiều cao xác định như `h-[min(90dvh,760px)]`; chỉ đặt `max-height` có thể
+  khiến chuỗi flex/grid bên trong co theo nội dung và chuyển sự kiện cuộn lên dialog hoặc tab.
+- Để header/footer cố định, giữ chúng ngoài vùng nội dung giới hạn chiều cao. `DialogBody`, `Tabs`, tab
+  đang mở, card/editor wrapper và `ScrollArea` đều cần `min-h-0`; tab chứa bảng dùng `overflow-hidden`.
+- Bảng sở hữu cuộn dọc trong `ScrollArea` cao đầy đủ, còn header bảng giữ `sticky`. Không để dialog body
+  cuộn cả bảng trên desktop vì header bảng và thanh tab sẽ trôi khỏi vị trí.
+- Tab thông tin dài vẫn cần vùng cuộn riêng. Với tabbed dialog, kiểm tra tab bảng có nhiều dòng ở viewport
+  thấp để xác nhận chỉ phần dòng cuộn, header bảng vẫn hiển thị.
 
 ### Password và input có ẩn/hiện
 

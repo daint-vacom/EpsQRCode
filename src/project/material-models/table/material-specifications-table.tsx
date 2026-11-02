@@ -33,6 +33,8 @@ type ModelModeProps = {
   mode: 'model';
   form: UseFormReturn<MaterialModelFormValues>;
   publicVisibilityDisabled?: boolean;
+  title?: string;
+  allowClipboard?: boolean;
 };
 
 export function MaterialSpecificationsTable(
@@ -43,6 +45,8 @@ export function MaterialSpecificationsTable(
       <MaterialModelSpecificationsEditorTable
         form={props.form}
         publicVisibilityDisabled={props.publicVisibilityDisabled}
+        tableTitle={props.title}
+        allowClipboard={props.allowClipboard}
       />
     );
   }

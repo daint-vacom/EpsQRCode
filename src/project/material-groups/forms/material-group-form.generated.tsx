@@ -9,14 +9,22 @@
  */
 import { useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
+import type { MaterialModelFormValues } from '@/project/material-models/model/material-model';
+import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import type { UseFormProps, UseFormReturn } from 'react-hook-form';
+import type {
+  SubmitErrorHandler,
+  UseFormProps,
+  UseFormReturn,
+} from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -32,6 +40,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
   materialGroupFormSchema,
@@ -44,6 +53,7 @@ export const materialGroupDefaultValues: MaterialGroupFormValues = {
   codeMode: 'auto',
   name: '',
   description: '',
+  specifications: [],
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
@@ -67,6 +77,11 @@ export function mapMaterialGroupToFormValues(
     codeMode: 'manual',
     name: entity.name,
     description: entity.description,
+    specifications: entity.specifications.map((specification) => ({
+      ...specification,
+      values: [...specification.values],
+      valueLabels: [...specification.valueLabels],
+    })),
   };
 }
 
@@ -89,93 +104,135 @@ export function MaterialGroupForm({
 }: MaterialGroupFormProps) {
   const intl = useIntl();
   const codeMode = form.watch('codeMode');
+  const [activeTab, setActiveTab] = useState('general');
+  const handleInvalidSubmit: SubmitErrorHandler<MaterialGroupFormValues> = (
+    errors,
+  ) => {
+    setActiveTab(errors.specifications ? 'technical' : 'general');
+  };
+
   return (
     <Form {...form}>
-      <form id={id} onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-                alignment="first-control"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'materialGroups.fields.code' })}
-                  {codeMode === 'manual' && (
-                    <span className="text-destructive"> *</span>
-                  )}
-                </FormLabel>
-                <FormControl>
-                  <CodeInputField
-                    variant="md"
-                    {...field}
-                    mode={mode}
-                    codeMode={codeMode}
-                    pattern={codePattern}
-                    resetKey={resetKey}
-                    showCodeModeSelector={mode === 'create'}
-                    onCodeModeChange={(nextCodeMode) => {
-                      form.setValue('codeMode', nextCodeMode, {
-                        shouldDirty: true,
-                      });
-                      form.setValue('code', '');
-                      form.clearErrors('code');
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form
+        id={id}
+        onSubmit={form.handleSubmit(onSubmit, handleInvalidSubmit)}
+        className="h-full min-h-0"
+      >
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex h-full min-h-0 min-w-0 flex-col"
+        >
+          <TabsList variant="line" size="md" className="w-full shrink-0 px-6">
+            <TabsTrigger value="general">
+              {intl.formatMessage({ id: 'materialGroups.tabs.general' })}
+            </TabsTrigger>
+            <TabsTrigger value="technical">
+              {intl.formatMessage({ id: 'materialGroups.tabs.technical' })}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value="general"
+            className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 py-5"
+          >
+            <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem
+                    className="md:col-span-12"
+                    layout="horizontal"
+                    labelWidth="md"
+                    alignment="first-control"
+                  >
+                    <FormLabel>
+                      {intl.formatMessage({ id: 'materialGroups.fields.code' })}
+                      {codeMode === 'manual' && (
+                        <span className="text-destructive"> *</span>
+                      )}
+                    </FormLabel>
+                    <FormControl>
+                      <CodeInputField
+                        variant="md"
+                        {...field}
+                        mode={mode}
+                        codeMode={codeMode}
+                        pattern={codePattern}
+                        resetKey={resetKey}
+                        showCodeModeSelector={mode === 'create'}
+                        onCodeModeChange={(nextCodeMode) => {
+                          form.setValue('codeMode', nextCodeMode, {
+                            shouldDirty: true,
+                          });
+                          form.setValue('code', '');
+                          form.clearErrors('code');
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-              >
-                <FormLabel>
-                  {intl.formatMessage({ id: 'materialGroups.fields.name' })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input variant="md" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem
+                    className="md:col-span-12"
+                    layout="horizontal"
+                    labelWidth="md"
+                  >
+                    <FormLabel>
+                      {intl.formatMessage({ id: 'materialGroups.fields.name' })}
+                      <span className="text-destructive"> *</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input variant="md" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem
-                className="md:col-span-12"
-                layout="horizontal"
-                labelWidth="md"
-                alignment="start"
-              >
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'materialGroups.fields.description',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <Textarea rows={3} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem
+                    className="md:col-span-12"
+                    layout="horizontal"
+                    labelWidth="md"
+                    alignment="start"
+                  >
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'materialGroups.fields.description',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </TabsContent>
+          <TabsContent
+            value="technical"
+            className="mt-0 min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-4"
+          >
+            <Card className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              <MaterialSpecificationsTable
+                mode="model"
+                form={form as unknown as UseFormReturn<MaterialModelFormValues>}
+                allowClipboard={false}
+              />
+            </Card>
+          </TabsContent>
+        </Tabs>
       </form>
     </Form>
   );
@@ -238,7 +295,7 @@ export function MaterialGroupFormDialog({
     <>
       <Dialog open={open} onOpenChange={requestClose}>
         <DialogContent
-          className="flex max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          className="flex h-[min(90dvh,760px)] max-w-5xl flex-col gap-0 overflow-hidden p-0"
           onOpenAutoFocus={(event) => {
             if (mode !== 'edit') return;
 
@@ -256,7 +313,7 @@ export function MaterialGroupFormDialog({
             </DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <DialogBody className="min-h-0 flex-1 overflow-hidden p-0">
             <MaterialGroupForm
               form={form}
               onSubmit={onSubmit}
@@ -265,7 +322,7 @@ export function MaterialGroupFormDialog({
               codePattern={codePattern}
               resetKey={resetKey}
             />
-          </div>
+          </DialogBody>
 
           <DialogFooter className="shrink-0 px-6 py-4">
             <ShortcutTooltip

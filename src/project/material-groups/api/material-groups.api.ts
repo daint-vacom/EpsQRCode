@@ -31,7 +31,8 @@ export async function loadAvailableMaterialGroups(
   const rows = await request<MaterialGroupRow[]>(
     supabaseApi.get('/material_groups', {
       ...queryParams({
-        select: 'id,code,name,description,is_active,created_at,updated_at',
+        select:
+          'id,code,name,description,specifications,is_active,created_at,updated_at',
         is_active: 'eq.true',
         order: 'name.asc,id.asc',
       }),
@@ -41,13 +42,38 @@ export async function loadAvailableMaterialGroups(
   return rows.map(mapMaterialGroupRow);
 }
 
+export async function loadMaterialGroupById(
+  id: string,
+  signal?: AbortSignal,
+): Promise<MaterialGroup> {
+  assertSupabaseConfigured();
+  const rows = await request<MaterialGroupRow[]>(
+    supabaseApi.get('/material_groups', {
+      ...queryParams({
+        select:
+          'id,code,name,description,specifications,is_active,created_at,updated_at',
+        id: `eq.${id}`,
+      }),
+      signal,
+    }),
+  );
+  if (!rows[0]) throw new Error('Không tìm thấy nhóm vật tư.');
+  return mapMaterialGroupRow(rows[0]);
+}
+
 export async function createMaterialGroup(
   values: MaterialGroupFormValues,
 ): Promise<void> {
   assertSupabaseConfigured();
-  const payload: { code?: string; name: string; description: string | null } = {
+  const payload: {
+    code?: string;
+    name: string;
+    description: string | null;
+    specifications: MaterialGroupFormValues['specifications'];
+  } = {
     name: values.name.trim(),
     description: values.description.trim() || null,
+    specifications: values.specifications,
   };
   if (values.codeMode === 'manual') payload.code = values.code.trim();
   await request(supabaseApi.post('/material_groups', payload));
@@ -65,6 +91,7 @@ export async function updateMaterialGroup(
         code: values.code.trim(),
         name: values.name.trim(),
         description: values.description.trim() || null,
+        specifications: values.specifications,
       },
       {
         ...queryParams({ id: `eq.${id}` }),

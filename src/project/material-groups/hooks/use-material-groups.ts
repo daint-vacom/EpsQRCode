@@ -1,8 +1,11 @@
+import { materialModelKeys } from '@/project/material-models/hooks/use-material-models';
+import { materialKeys } from '@/project/materials/hooks/use-materials';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMaterialGroup,
   deleteMaterialGroup,
   loadAvailableMaterialGroups,
+  loadMaterialGroupById,
   loadMaterialGroups,
   updateMaterialGroup,
   updateMaterialGroupAvailability,
@@ -16,6 +19,7 @@ export const materialGroupKeys = {
   all: ['project', 'material-groups'] as const,
   list: () => [...materialGroupKeys.all, 'list'] as const,
   available: () => [...materialGroupKeys.all, 'available'] as const,
+  detail: (id: string) => [...materialGroupKeys.all, 'detail', id] as const,
 };
 
 export function useMaterialGroupsQuery(enabled = true) {
@@ -35,6 +39,15 @@ export function useAvailableMaterialGroupsQuery(enabled = true) {
     retry: 0,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useMaterialGroupQuery(id: string, enabled = true) {
+  return useQuery({
+    queryKey: materialGroupKeys.detail(id),
+    queryFn: ({ signal }) => loadMaterialGroupById(id, signal),
+    enabled: enabled && Boolean(id),
+    retry: 0,
   });
 }
 
@@ -58,8 +71,13 @@ export function useUpdateMaterialGroupMutation() {
       id: string;
       values: MaterialGroupFormValues;
     }) => updateMaterialGroup(id, values),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: materialGroupKeys.all }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialGroupKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+      ]);
+    },
   });
 }
 

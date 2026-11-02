@@ -1,3 +1,7 @@
+import {
+  materialModelSpecificationSchema,
+  type MaterialModelSpecification,
+} from '@/project/material-models/model/material-model';
 import { z } from 'zod';
 
 export const materialGroupFormSchema = z.object({
@@ -5,6 +9,7 @@ export const materialGroupFormSchema = z.object({
   codeMode: z.enum(['auto', 'manual']),
   name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm.'),
   description: z.string().trim(),
+  specifications: z.array(materialModelSpecificationSchema),
 });
 
 export type MaterialGroupFormValues = z.infer<typeof materialGroupFormSchema>;
@@ -14,6 +19,7 @@ export interface MaterialGroup {
   code: string;
   name: string;
   description: string;
+  specifications: MaterialModelSpecification[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +30,7 @@ export interface MaterialGroupRow {
   code: string;
   name: string;
   description: string | null;
+  specifications: MaterialModelSpecification[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -35,6 +42,7 @@ export function mapMaterialGroupRow(row: MaterialGroupRow): MaterialGroup {
     code: row.code,
     name: row.name,
     description: row.description ?? '',
+    specifications: row.specifications,
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

@@ -113,11 +113,15 @@ function MaterialModelSpecificationsSortableRow({
 interface MaterialModelSpecificationsEditorTableProps {
   form: UseFormReturn<MaterialModelFormValues>;
   publicVisibilityDisabled?: boolean;
+  tableTitle?: string;
+  allowClipboard?: boolean;
 }
 
 export function MaterialModelSpecificationsEditorTable({
   form,
   publicVisibilityDisabled,
+  tableTitle,
+  allowClipboard = true,
 }: MaterialModelSpecificationsEditorTableProps) {
   const intl = useIntl();
   const catalogQuery = useMaterialSpecificationsQuery();
@@ -130,7 +134,9 @@ export function MaterialModelSpecificationsEditorTable({
     number | null
   >(null);
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [selectionAction, setSelectionAction] = useState('copy');
+  const [selectionAction, setSelectionAction] = useState(() =>
+    allowClipboard ? 'copy' : 'delete',
+  );
   const pendingFocusIndex = useRef<number | null>(null);
   const { clipboard, copy } = useMaterialSpecificationsClipboard();
   const watchedRows = form.watch('specifications') ?? [];
@@ -224,7 +230,7 @@ export function MaterialModelSpecificationsEditorTable({
   };
 
   const handleApplySelectionAction = (action: string) => {
-    if (action === 'copy') {
+    if (action === 'copy' && allowClipboard) {
       handleCopySelected();
       return;
     }
@@ -334,12 +340,14 @@ export function MaterialModelSpecificationsEditorTable({
       <>
         <MaterialSpecificationsEditorTableView
           mode="model"
+          title={tableTitle}
+          allowCopy={allowClipboard}
           count={fields.length}
           selectedCount={selectedCount}
           allSelected={allSelected}
           someSelected={someSelected}
-          clipboardCount={clipboard?.items.length ?? 0}
-          onPaste={handlePaste}
+          clipboardCount={allowClipboard ? (clipboard?.items.length ?? 0) : 0}
+          onPaste={allowClipboard ? handlePaste : undefined}
           onToggleAll={(checked) =>
             setSelectedRows(checked ? fields.map((field) => field.fieldId) : [])
           }
@@ -395,7 +403,7 @@ export function MaterialModelSpecificationsEditorTable({
                         {...rowProps}
                       >
                         <>
-                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -425,7 +433,7 @@ export function MaterialModelSpecificationsEditorTable({
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>
-                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
                             <div className="flex justify-center">
                               <Checkbox
                                 checked={selectedRowIds.has(field.fieldId)}
@@ -611,7 +619,7 @@ export function MaterialModelSpecificationsEditorTable({
                               )}
                             />
                           </TableCell>
-                          <TableCell className="sticky right-0 z-10 bg-card px-2 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                          <TableCell className="sticky right-0 z-10 bg-card px-2 py-2 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
                             <div className="flex justify-end gap-1">
                               <Tooltip>
                                 <TooltipTrigger asChild>

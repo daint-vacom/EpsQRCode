@@ -102,6 +102,9 @@ export const vi: Record<string, string> = {
   'materialGroups.dialogs.deleteDescription':
     'Nhóm “{name}” sẽ bị xóa khỏi danh mục.',
   'materialGroups.dialogs.deleteConfirm': 'Xóa nhóm',
+  'materialGroups.tabs.general': 'Thông tin nhóm',
+  'materialGroups.tabs.technical': 'Thông số kỹ thuật',
+  'materialGroups.specifications.tableTitle': 'Thông số kỹ thuật nhóm vật tư',
   'materialModels.filters.searchPlaceholder': 'Tìm mã hoặc tên mẫu',
   'materialModels.select.placeholder': 'Chọn mẫu vật tư',
   'materialModels.page.header': 'Quản lý mẫu vật tư',
@@ -138,6 +141,7 @@ export const vi: Record<string, string> = {
   'materialModels.gallery.tooLarge': 'Mỗi ảnh không được vượt quá 5MB.',
   'materialModels.gallery.coverRequired': 'Vui lòng chọn một ảnh đại diện.',
   'materialModels.fields.description': 'Mô tả',
+  'materialModels.fields.externalCodes': 'Mã vật tư liên kết',
   'materialModels.fields.requiresInspection': 'Kiểm tra định kỳ',
   'materialModels.tabs.general': 'Thông tin chung',
   'materialModels.tabs.technical': 'Thông số kỹ thuật',
@@ -177,6 +181,16 @@ export const vi: Record<string, string> = {
   'materialModels.specifications.types.weight': 'Cân nặng',
   'materialModels.specifications.valuesEmpty': 'Nhập ít nhất một giá trị.',
   'materialModels.specifications.count': '{count} thông số',
+  'materialModels.specifications.groupTableTitle':
+    'Bảng thông số kỹ thuật {groupName}',
+  'materialModels.specifications.groupTableTitleFallback':
+    'Bảng thông số kỹ thuật nhóm vật tư',
+  'materialModels.specifications.groupTableEmpty':
+    'Nhóm này chưa quy định thông số kỹ thuật.',
+  'materialModels.specifications.groupTableUnselected':
+    'Chọn nhóm vật tư để xem thông số được kế thừa.',
+  'materialModels.specifications.modelTableTitle':
+    'Bảng thông số kỹ thuật mẫu vật tư',
   'materialModels.specifications.selection.selectAll':
     'Chọn tất cả thông số kỹ thuật',
   'materialModels.specifications.selection.selectRow': 'Chọn thông số {name}',

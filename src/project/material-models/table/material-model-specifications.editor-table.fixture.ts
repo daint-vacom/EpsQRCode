@@ -8,7 +8,10 @@ const spec: EditorTableSpec = {
   valuesImport: '../model/material-model',
   arrayName: 'specifications',
   tableMinWidthClass: 'min-w-[768px]',
-  viewport: { mode: 'natural' },
+  viewport: {
+    mode: 'remaining',
+    className: 'h-full min-h-0',
+  },
   actions: {
     enabled: true,
     header: '',

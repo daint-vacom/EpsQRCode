@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
+import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { Boxes, Eye, Save } from 'lucide-react';
 import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -42,6 +43,7 @@ import type {
 } from '../model/material-model';
 import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '../model/material-model';
 import { MATERIAL_MODEL_PERMISSION_CODES } from '../model/material-model-permissions';
+import { MaterialGroupSpecificationsInheritedTable } from '../table/material-group-specifications-inherited-table';
 import { MaterialSpecificationsTable } from '../table/material-specifications-table';
 
 export function MaterialModelEditorPage() {
@@ -65,6 +67,11 @@ export function MaterialModelEditorPage() {
   const createMutation = useCreateMaterialModelMutation();
   const updateMutation = useUpdateMaterialModelMutation();
   const form = useMaterialModelForm();
+  const groupId = form.watch('groupId');
+  const groupQuery = useMaterialGroupQuery(
+    groupId,
+    !isPermissionsPending && canManage,
+  );
   const [galleryImages, setGalleryImages] = useState<MaterialModelImageDraft[]>(
     [],
   );
@@ -74,7 +81,9 @@ export function MaterialModelEditorPage() {
     );
   const [activeTab, setActiveTab] = useState('general');
   const requiresInspection = form.watch('requiresInspection');
-  const specificationCount = form.watch('specifications')?.length ?? 0;
+  const specificationCount =
+    (groupQuery.data?.specifications.length ?? 0) +
+    (form.watch('specifications')?.length ?? 0);
   const specificationErrorCount = countFormErrors(
     form.formState.errors.specifications,
   );
@@ -293,7 +302,7 @@ export function MaterialModelEditorPage() {
               className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
             >
               <Card className="min-w-0 shrink-0">
-                <CardContent className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-5">
+                <CardContent className="p-5">
                   <MaterialModelForm
                     form={form}
                     onSubmit={handleSubmit}
@@ -354,13 +363,25 @@ export function MaterialModelEditorPage() {
             </TabsContent>
             <TabsContent
               value="technical"
-              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
             >
-              <Card className="min-h-[32rem] min-w-0 flex-1 flex-col overflow-hidden">
+              <Card className="flex min-h-[20rem] min-w-0 shrink-0 flex-col overflow-hidden">
+                <MaterialGroupSpecificationsInheritedTable
+                  groupId={groupId}
+                  group={groupQuery.data}
+                  isLoading={groupQuery.isPending && groupQuery.isFetching}
+                  error={groupQuery.isError ? groupQuery.error : null}
+                  onRetry={() => void groupQuery.refetch()}
+                />
+              </Card>
+              <Card className="flex min-h-[32rem] min-w-0 shrink-0 flex-col overflow-hidden">
                 <MaterialSpecificationsTable
                   mode="model"
                   form={form}
                   publicVisibilityDisabled={!publicDisplaySettings.basicInfo}
+                  title={intl.formatMessage({
+                    id: 'materialModels.specifications.modelTableTitle',
+                  })}
                 />
               </Card>
             </TabsContent>

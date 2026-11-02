@@ -43,6 +43,52 @@ interaction.
 
 For the current order edit pilot, prefer `remaining`.
 
+### Tables inside dialogs
+
+Give a dialog that contains a scrollable editor table a definite height. A
+`max-height` alone can leave the nested flex/grid chain content-sized, so the
+dialog body takes the wheel event and scrolls the tabs away instead of
+scrolling the table.
+
+Keep the dialog header and footer outside the bounded content area. The dialog
+body, tabs, active tab content, editor wrapper, and `ScrollArea` must all be
+allowed to shrink with `min-h-0`; the active tab content should hide overflow
+and the table should own scrolling:
+
+```tsx
+<DialogContent className="flex h-[min(90dvh,760px)] flex-col gap-0 overflow-hidden p-0">
+  <DialogHeader className="shrink-0">...</DialogHeader>
+  <DialogBody className="min-h-0 flex-1 overflow-hidden p-0">
+    <Tabs className="flex h-full min-h-0 flex-col">
+      <TabsList className="shrink-0">...</TabsList>
+      <TabsContent className="min-h-0 flex-1 overflow-hidden">
+        <EditorTable />
+      </TabsContent>
+    </Tabs>
+  </DialogBody>
+  <DialogFooter className="shrink-0">...</DialogFooter>
+</DialogContent>
+```
+
+For the dialog's editor-table fixture, set the remaining viewport class to
+`h-full min-h-0`. In the owned output, keep the scroll area bounded by a
+full-height grid/flex wrapper and use the shared scroll area directly:
+
+```tsx
+<div className="grid h-full min-h-0 min-w-0 w-full">
+  <ScrollArea type="always" className="h-full min-h-0">
+    <div className="min-w-[1160px]">...</div>
+    <ScrollBar orientation="horizontal" />
+  </ScrollArea>
+</div>
+```
+
+The shared `ScrollArea` supplies the vertical scrollbar; retain the horizontal
+`ScrollBar` for wide tables. Avoid making the dialog body the desktop scroll
+container, or its wheel handling can move the tabbar while the editor grows
+past the dialog. If the generated output needs this dialog-specific structure,
+regenerate to a scratch path and reconcile the owned component.
+
 ## Supported Columns
 
 | Kind               | Output                                                        |

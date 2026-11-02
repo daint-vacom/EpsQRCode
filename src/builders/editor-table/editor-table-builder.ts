@@ -655,7 +655,7 @@ function emitCells(spec: NormalizedEditorTableSpec): string {
   });
 
   if (spec.multiEdit.enabled) {
-    cells.unshift(`<TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+    cells.unshift(`<TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
   <div className="flex justify-center">
     <Checkbox
       aria-label={\`Chọn dòng \${index + 1}\`}
@@ -709,7 +709,7 @@ function emitCells(spec: NormalizedEditorTableSpec): string {
       <Trash2 />
     </Button>`);
     }
-    cells.push(`<TableCell className="sticky right-0 z-10 bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+    cells.push(`<TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
   <div className="flex justify-end gap-1">
 ${actionButtons.join('\n')}
   </div>
@@ -720,7 +720,7 @@ ${actionButtons.join('\n')}
 }
 
 function emitReorderCell(spec: NormalizedEditorTableSpec): string {
-  return `<TableCell className="${spec.reorder.widthClass} px-2 py-2 text-center align-middle">
+  return `<TableCell className="${spec.reorder.widthClass} px-2 py-2 text-center align-top">
   <Button
     type="button"
     variant="ghost"

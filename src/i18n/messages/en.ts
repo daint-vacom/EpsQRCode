@@ -63,6 +63,22 @@ export const en: Record<string, string> = {
   'reports.mock.heading': 'Report mock page',
   'reports.mock.description': 'Report content and data will be added later.',
   'materialGroups.columns.groupShort': 'Material group',
+  'materialGroups.tabs.general': 'Group information',
+  'materialGroups.tabs.technical': 'Technical specifications',
+  'materialGroups.specifications.tableTitle':
+    'Material group technical specifications',
+  'materialGroups.errors.loadTitle': 'Could not load material group',
+  'materialModels.specifications.groupTableTitle':
+    'Technical specifications table: {groupName}',
+  'materialModels.specifications.groupTableTitleFallback':
+    'Material group technical specifications',
+  'materialModels.specifications.groupTableEmpty':
+    'This group has no technical specifications.',
+  'materialModels.specifications.groupTableUnselected':
+    'Select a material group to view inherited specifications.',
+  'materialModels.specifications.modelTableTitle':
+    'Material model technical specifications',
+  'materialModels.fields.externalCodes': 'Linked material codes',
   'materialModels.specifications.colorLabel': 'Color name',
   'materialModels.specifications.selection.selectAll':
     'Select all technical specifications',

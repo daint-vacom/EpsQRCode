@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 type MaterialSpecificationsTableHeaderProps = {
+  title?: string;
   clipboardCount?: number;
   onPaste?: () => void;
 } & (
@@ -31,12 +32,25 @@ export function MaterialSpecificationsTableHeader(
 
   return (
     <CardHeader className="border-b border-border">
-      <span className="text-sm font-medium text-foreground">
-        {intl.formatMessage(
-          { id: 'materialModels.specifications.count' },
-          { count: props.count },
-        )}
-      </span>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        {props.title ? (
+          <span className="text-sm font-medium text-foreground">
+            {props.title}
+          </span>
+        ) : null}
+        <span
+          className={
+            props.title
+              ? 'text-xs text-muted-foreground'
+              : 'text-sm font-medium text-foreground'
+          }
+        >
+          {intl.formatMessage(
+            { id: 'materialModels.specifications.count' },
+            { count: props.count },
+          )}
+        </span>
+      </div>
       <div className="flex items-center gap-2">
         {props.clipboardCount && props.clipboardCount > 0 && props.onPaste ? (
           <DropdownMenu>
