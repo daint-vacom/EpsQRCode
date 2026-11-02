@@ -68,7 +68,7 @@ function CustomFieldsEditorTableSortableRow({
 }) {
   const sortable = useSortable({ id, disabled });
   const style = {
-    transform: CSS.Transform.toString(sortable.transform),
+    transform: CSS.Translate.toString(sortable.transform),
     transition: sortable.transition,
   };
 

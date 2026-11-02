@@ -184,6 +184,12 @@ describe('buildEditorTableModule', () => {
     });
 
     expect(sortable).toContain("import { CSS } from '@dnd-kit/utilities';");
+    expect(sortable).toContain(
+      'transform: CSS.Translate.toString(sortable.transform)',
+    );
+    expect(sortable).not.toContain(
+      'transform: CSS.Transform.toString(sortable.transform)',
+    );
     expect(sortable).toContain('SortableContext');
     expect(sortable).toContain('verticalListSortingStrategy');
     expect(sortable).toContain('useSensor(KeyboardSensor');

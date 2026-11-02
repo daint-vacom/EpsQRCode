@@ -130,7 +130,7 @@ function MaterialLabelLayerRow({
     <div
       ref={sortable.setNodeRef}
       style={{
-        transform: CSS.Transform.toString(sortable.transform),
+        transform: CSS.Translate.toString(sortable.transform),
         transition: sortable.transition,
         opacity: sortable.isDragging ? 0.55 : isVisible ? 1 : 0.62,
       }}

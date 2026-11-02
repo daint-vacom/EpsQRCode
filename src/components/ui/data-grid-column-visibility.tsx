@@ -98,7 +98,7 @@ function SortableColumnItem<TData>({
   } = useSortable({ id: column.id });
   const label = getColumnLabel(column);
   const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
   };
 

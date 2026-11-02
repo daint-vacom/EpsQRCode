@@ -66,7 +66,7 @@ function DataGridTableDndRow<TData>({ row }: { row: Row<TData> }) {
   });
 
   const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform), //let dnd-kit do its thing
+    transform: CSS.Translate.toString(transform),
     transition: transition,
     opacity: isDragging ? 0.8 : 1,
     zIndex: isDragging ? 1 : 0,
