@@ -4,6 +4,7 @@ import type {
   MaterialModelSpecification,
   MaterialPublicDisplaySettings,
 } from '@/project/material-models/model/material-model';
+import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 
 export type MaterialCondition = 'good' | 'damaged';
 export type MaterialStatus = 'available' | 'loaned';
@@ -17,7 +18,9 @@ export interface MaterialModelSnapshot {
   groupId: string | null;
   description: string;
   requiresInspection: boolean;
+  useGroupSafetyInspectionChecklist: boolean;
   specifications: MaterialModelSpecification[];
+  safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
   hiddenSpecificationIds?: string[];
   publicDisplaySettings?: MaterialPublicDisplaySettings;
   images: Omit<MaterialModelImage, 'url'>[];
@@ -123,6 +126,7 @@ export interface Material {
   code: string;
   modelId: string;
   modelSnapshot: MaterialModelSnapshot;
+  safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
   nameOverride: string | null;
   descriptionOverride: string | null;
   images: MaterialImage[];
@@ -160,6 +164,7 @@ export interface MaterialFormValues {
   ownerSnapshot?: MaterialOwnerSnapshotDraft;
   condition: MaterialCondition;
   note: string;
+  safetyInspectionChecklist: SafetyInspectionChecklistGroup[];
 }
 
 export type SaveMaterialInput = {

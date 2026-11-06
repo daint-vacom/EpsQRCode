@@ -104,6 +104,7 @@ export const vi: Record<string, string> = {
   'materialGroups.dialogs.deleteConfirm': 'Xóa nhóm',
   'materialGroups.tabs.general': 'Thông tin nhóm',
   'materialGroups.tabs.technical': 'Thông số kỹ thuật',
+  'materialGroups.tabs.inspection': 'Kiểm định an toàn',
   'materialGroups.specifications.tableTitle': 'Thông số kỹ thuật nhóm vật tư',
   'materialModels.filters.searchPlaceholder': 'Tìm mã hoặc tên mẫu',
   'materialModels.select.placeholder': 'Chọn mẫu vật tư',
@@ -143,6 +144,8 @@ export const vi: Record<string, string> = {
   'materialModels.fields.description': 'Mô tả',
   'materialModels.fields.externalCodes': 'Mã vật tư liên kết',
   'materialModels.fields.requiresInspection': 'Kiểm tra định kỳ',
+  'materialModels.fields.useGroupSafetyInspectionChecklist':
+    'Dùng bảng kiểm tra của nhóm',
   'materialModels.tabs.general': 'Thông tin chung',
   'materialModels.tabs.technical': 'Thông số kỹ thuật',
   'materialModels.tabs.inspection': 'Bảng kiểm tra',

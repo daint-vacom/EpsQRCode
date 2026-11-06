@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode, Ref } from 'react';
+import { Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -147,13 +149,27 @@ export function MaterialSpecificationsEditorTableView({
                       colSpan={columnCount}
                       className="h-28"
                     >
-                      {emptyState ?? (
-                        <span className="text-muted-foreground">
-                          {intl.formatMessage({
-                            id: 'materialModels.specifications.empty',
-                          })}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        {emptyState ?? (
+                          <span className="text-muted-foreground">
+                            {intl.formatMessage({
+                              id: 'materialModels.specifications.empty',
+                            })}
+                          </span>
+                        )}
+                        {mode === 'model' ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onAddRow}
+                          >
+                            <Plus />
+                            {intl.formatMessage({
+                              id: 'materialModels.specifications.add',
+                            })}
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableSpecificationsStateRow>
                   ) : null}
                   {children}

@@ -1,3 +1,4 @@
+import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import {
   createSignedStorageUrl,
   removeStorageObjects,
@@ -32,6 +33,11 @@ interface MaterialModelImagePayload {
   storage_path: string | null;
   external_url: string | null;
   is_cover: boolean;
+}
+
+interface MaterialModelSafetyChecklistRow {
+  model_id: string;
+  checklist: SafetyInspectionChecklistGroup[];
 }
 
 function queryParams(params: Record<string, string>) {
@@ -86,6 +92,21 @@ export async function loadMaterialModels(
     supabaseApi.post('/rpc/list_material_models', {}, { signal }),
   );
   const imageRows = await loadImageRows(rows.map((row) => row.id));
+  const checklistRows = rows.length
+    ? await request<MaterialModelSafetyChecklistRow[]>(
+        supabaseApi.get(
+          '/material_model_safety_checklists',
+          queryParams({
+            select: 'model_id,checklist',
+            model_id: `in.(${rows.map((row) => row.id).join(',')})`,
+          }),
+          { signal },
+        ),
+      )
+    : [];
+  const checklistsByModelId = new Map(
+    checklistRows.map((row) => [row.model_id, row.checklist ?? []]),
+  );
   const imagesByModel = new Map<string, MaterialModelImageRow[]>();
   for (const image of imageRows) {
     const current = imagesByModel.get(image.model_id) ?? [];
@@ -98,7 +119,10 @@ export async function loadMaterialModels(
       const images = await Promise.all(
         (imagesByModel.get(row.id) ?? []).map(mapImageRow),
       );
-      return mapMaterialModelRow(row, images);
+      return {
+        ...mapMaterialModelRow(row, images),
+        safetyInspectionChecklist: checklistsByModelId.get(row.id) ?? [],
+      };
     }),
   );
 }
@@ -165,13 +189,15 @@ async function saveMaterialModel(
     }
 
     await request<string>(
-      supabaseApi.post('/rpc/save_material_model', {
+      supabaseApi.post('/rpc/save_material_model_with_safety_checklist', {
         p_id: id,
         p_code: values.code.trim() || null,
         p_name: values.name.trim(),
         p_group_id: values.groupId,
         p_description: values.description.trim() || null,
         p_requires_inspection: values.requiresInspection,
+        p_use_group_safety_inspection_checklist:
+          values.useGroupSafetyInspectionChecklist,
         p_specifications: values.specifications,
         p_images: imagePayload,
         p_external_codes: values.externalCodesText
@@ -179,6 +205,7 @@ async function saveMaterialModel(
           .map((value) => value.trim())
           .filter(Boolean),
         p_public_display_settings: publicDisplaySettings,
+        p_safety_inspection_checklist: values.safetyInspectionChecklist,
       }),
     );
 

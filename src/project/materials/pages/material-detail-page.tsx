@@ -30,6 +30,8 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { useMaterialLabelPrintSnapshotQuery } from '@/project/material-labels/hooks/use-material-label-templates';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
+import { MaterialSafetyInspectionsPanel } from '@/project/material-safety-inspections/components/material-safety-inspections-panel';
+import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -309,7 +311,20 @@ export function MaterialDetailPage({
                     key={tab.value}
                     value={tab.value}
                     className="mt-0"
-                  />
+                  >
+                    {tab.value === 'safety' && !publicMode && material ? (
+                      <MaterialSafetyInspectionsPanel
+                        materialId={material.id}
+                        canManage={canManage}
+                        hasChecklist={
+                          mergeSafetyInspectionChecklists(
+                            material.modelSnapshot.safetyInspectionChecklist,
+                            material.safetyInspectionChecklist,
+                          ).length > 0
+                        }
+                      />
+                    ) : null}
+                  </TabsContent>
                 ))}
               </>
             )}

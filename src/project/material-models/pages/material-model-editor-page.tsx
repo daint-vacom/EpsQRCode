@@ -3,7 +3,17 @@ import { ROUTES } from '@/constants/routes';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
-import { Boxes, Eye, Save } from 'lucide-react';
+import { SafetyInspectionChecklistDisplay } from '@/project/material-safety-inspections/components/safety-inspection-checklist-display';
+import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
+import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import {
+  Boxes,
+  ClipboardCheck,
+  Eye,
+  Info,
+  Save,
+  SlidersHorizontal,
+} from 'lucide-react';
 import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,9 +24,17 @@ import { useWorkspace } from '@/providers/workspace-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ErrorState } from '@/components/ui/error-state';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
-import { PageLoading } from '@/components/ui/loading';
+import { CardLoading, PageLoading } from '@/components/ui/loading';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -80,10 +98,19 @@ export function MaterialModelEditorPage() {
       DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
     );
   const [activeTab, setActiveTab] = useState('general');
-  const requiresInspection = form.watch('requiresInspection');
   const specificationCount =
     (groupQuery.data?.specifications.length ?? 0) +
     (form.watch('specifications')?.length ?? 0);
+  const inspectionChecklist = form.watch('safetyInspectionChecklist') ?? [];
+  const useGroupSafetyInspectionChecklist = form.watch(
+    'useGroupSafetyInspectionChecklist',
+  );
+  const inspectionChecklistCount = mergeSafetyInspectionChecklists(
+    useGroupSafetyInspectionChecklist
+      ? groupQuery.data?.safetyInspectionChecklist
+      : undefined,
+    inspectionChecklist,
+  ).reduce((count, group) => count + group.criteria.length, 0);
   const specificationErrorCount = countFormErrors(
     form.formState.errors.specifications,
   );
@@ -113,12 +140,6 @@ export function MaterialModelEditorPage() {
       setPublicDisplaySettings(DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS);
     }
   }, [editingModel, form, isEdit]);
-
-  useEffect(() => {
-    if (!requiresInspection && activeTab === 'inspection') {
-      setActiveTab('general');
-    }
-  }, [activeTab, requiresInspection]);
 
   const handleSubmit = (values: MaterialModelFormValues) => {
     if (!canManage) return;
@@ -182,7 +203,13 @@ export function MaterialModelEditorPage() {
   const handleInvalidSubmit: SubmitErrorHandler<MaterialModelFormValues> = (
     errors,
   ) => {
-    setActiveTab(errors.specifications ? 'technical' : 'general');
+    setActiveTab(
+      errors.safetyInspectionChecklist
+        ? 'inspection'
+        : errors.specifications
+          ? 'technical'
+          : 'general',
+    );
     toast.error(intl.formatMessage({ id: 'materialModels.errors.validation' }));
   };
 
@@ -280,6 +307,7 @@ export function MaterialModelEditorPage() {
                 value="general"
                 afterCount={<FormTabErrorBadge count={generalErrorCount} />}
               >
+                <Info className="size-4" aria-hidden="true" />
                 {intl.formatMessage({ id: 'materialModels.tabs.general' })}
               </TabsTrigger>
               <TabsTrigger
@@ -289,13 +317,13 @@ export function MaterialModelEditorPage() {
                   <FormTabErrorBadge count={specificationErrorCount} />
                 }
               >
+                <SlidersHorizontal className="size-4" aria-hidden="true" />
                 {intl.formatMessage({ id: 'materialModels.tabs.technical' })}
               </TabsTrigger>
-              {requiresInspection && (
-                <TabsTrigger value="inspection">
-                  {intl.formatMessage({ id: 'materialModels.tabs.inspection' })}
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="inspection" count={inspectionChecklistCount}>
+                <ClipboardCheck className="size-4" aria-hidden="true" />
+                {intl.formatMessage({ id: 'materialModels.tabs.inspection' })}
+              </TabsTrigger>
             </TabsList>
             <TabsContent
               value="general"
@@ -385,9 +413,125 @@ export function MaterialModelEditorPage() {
                 />
               </Card>
             </TabsContent>
-            {requiresInspection && (
-              <TabsContent value="inspection" className="min-h-0 flex-1" />
-            )}
+            <TabsContent
+              value="inspection"
+              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
+            >
+              <Card className="min-w-0 shrink-0">
+                <CardContent className="p-5">
+                  <Form {...form}>
+                    <div className="flex flex-col gap-4">
+                      <FormField
+                        control={form.control}
+                        name="requiresInspection"
+                        render={({ field }) => (
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            alignment="center"
+                          >
+                            <FormLabel>
+                              {intl.formatMessage({
+                                id: 'materialModels.fields.requiresInspection',
+                              })}
+                            </FormLabel>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                aria-label={intl.formatMessage({
+                                  id: 'materialModels.fields.requiresInspection',
+                                })}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="useGroupSafetyInspectionChecklist"
+                        render={({ field }) => (
+                          <FormItem
+                            layout="horizontal"
+                            labelWidth="md"
+                            alignment="center"
+                          >
+                            <FormLabel>
+                              {intl.formatMessage({
+                                id: 'materialModels.fields.useGroupSafetyInspectionChecklist',
+                              })}{' '}
+                              {groupQuery.data?.name ? (
+                                <span className="text-primary underline underline-offset-4">
+                                  {groupQuery.data.name}
+                                </span>
+                              ) : null}
+                            </FormLabel>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                                aria-label={`${intl.formatMessage({
+                                  id: 'materialModels.fields.useGroupSafetyInspectionChecklist',
+                                })}${groupQuery.data?.name ? ` ${groupQuery.data.name}` : ''}`}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </Form>
+                </CardContent>
+              </Card>
+              {useGroupSafetyInspectionChecklist ? (
+                <Card className="min-w-0 shrink-0">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {intl.formatMessage({
+                        id: 'project.materials.safetyInspection.checklist.inheritedTitle',
+                      })}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {groupQuery.isPending && groupQuery.isFetching ? (
+                      <CardLoading
+                        label={intl.formatMessage({
+                          id: 'common.state.loading',
+                        })}
+                      />
+                    ) : groupQuery.isError ? (
+                      <ErrorState
+                        title={intl.formatMessage({
+                          id: 'materialGroups.errors.loadTitle',
+                        })}
+                        description={getApiErrorMessage(groupQuery.error)}
+                        onRetry={() => void groupQuery.refetch()}
+                      />
+                    ) : (
+                      <SafetyInspectionChecklistDisplay
+                        groups={
+                          groupQuery.data?.safetyInspectionChecklist ?? []
+                        }
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              ) : null}
+              <SafetyInspectionChecklistEditor
+                groups={inspectionChecklist}
+                onChange={(groups) =>
+                  form.setValue('safetyInspectionChecklist', groups, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            </TabsContent>
           </Tabs>
         </form>
       )}

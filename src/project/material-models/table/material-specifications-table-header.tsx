@@ -81,7 +81,7 @@ export function MaterialSpecificationsTableHeader(
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
-        {props.mode === 'model' ? (
+        {props.mode === 'model' && props.count > 0 ? (
           <Button
             type="button"
             variant="outline"

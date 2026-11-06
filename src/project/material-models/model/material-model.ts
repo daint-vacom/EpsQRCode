@@ -1,3 +1,7 @@
+import {
+  safetyInspectionChecklistSchema,
+  type SafetyInspectionChecklistGroup,
+} from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { materialSpecificationDataTypeSchema } from '@/project/material-specifications/model/material-specification';
 import { z } from 'zod';
 
@@ -34,7 +38,9 @@ export const materialModelFormSchema = z.object({
   description: z.string().trim(),
   externalCodesText: z.string(),
   requiresInspection: z.boolean(),
+  useGroupSafetyInspectionChecklist: z.boolean(),
   specifications: z.array(materialModelSpecificationSchema),
+  safetyInspectionChecklist: safetyInspectionChecklistSchema,
 });
 
 export interface MaterialPublicDisplaySettings {
@@ -75,7 +81,9 @@ export interface MaterialModel {
   description: string;
   externalCodes: string[];
   requiresInspection: boolean;
+  useGroupSafetyInspectionChecklist: boolean;
   specifications: MaterialModelSpecification[];
+  safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
   publicDisplaySettings: MaterialPublicDisplaySettings;
   isActive: boolean;
   createdAt: string;
@@ -110,6 +118,7 @@ export interface MaterialModelRow {
   description: string | null;
   external_codes: string[];
   requires_inspection: boolean;
+  use_group_safety_inspection_checklist: boolean;
   specifications: MaterialModelSpecification[];
   public_display_settings: MaterialPublicDisplaySettings;
   is_active: boolean;
@@ -132,7 +141,10 @@ export function mapMaterialModelRow(
     description: row.description ?? '',
     externalCodes: row.external_codes ?? [],
     requiresInspection: row.requires_inspection,
+    useGroupSafetyInspectionChecklist:
+      row.use_group_safety_inspection_checklist,
     specifications: row.specifications,
+    safetyInspectionChecklist: [],
     publicDisplaySettings: row.public_display_settings,
     isActive: row.is_active,
     createdAt: row.created_at,

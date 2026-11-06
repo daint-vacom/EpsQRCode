@@ -673,21 +673,23 @@ export function MaterialModelSpecificationsEditorTable({
                   />
                 );
               })}
-              <TableRow hoverable={false}>
-                <TableCell colSpan={5} className="px-2 py-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleAddRow()}
-                  >
-                    <Plus />
-                    {intl.formatMessage({
-                      id: 'materialModels.specifications.add',
-                    })}
-                  </Button>
-                </TableCell>
-              </TableRow>
+              {fields.length > 0 ? (
+                <TableRow hoverable={false}>
+                  <TableCell colSpan={5} className="px-2 py-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAddRow()}
+                    >
+                      <Plus />
+                      {intl.formatMessage({
+                        id: 'materialModels.specifications.add',
+                      })}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ) : null}
             </SortableContext>
           </DndContext>
         </MaterialSpecificationsEditorTableView>

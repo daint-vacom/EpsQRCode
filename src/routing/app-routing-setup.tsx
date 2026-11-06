@@ -56,6 +56,8 @@ import { MaterialLabelTemplateEditorPage } from '@/project/material-labels/pages
 import { MaterialLabelTemplatesPage } from '@/project/material-labels/pages/material-label-templates-page';
 import { MaterialModelEditorPage } from '@/project/material-models/pages/material-model-editor-page';
 import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
+import { MaterialSafetyInspectionCreatePage } from '@/project/material-safety-inspections/pages/material-safety-inspection-create-page';
+import { MaterialSafetyInspectionDetailPage } from '@/project/material-safety-inspections/pages/material-safety-inspection-detail-page';
 import { MaterialSpecificationsPage } from '@/project/material-specifications/pages/material-specifications-page';
 import { MaterialEditorPage } from '@/project/materials/pages/material-editor-page';
 import { MaterialListPage } from '@/project/materials/pages/material-list-page';
@@ -336,6 +338,14 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIAL_EDIT}
             element={<MaterialEditorPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_CREATE}
+            element={<MaterialSafetyInspectionCreatePage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_DETAIL}
+            element={<MaterialSafetyInspectionDetailPage />}
           />
           <Route
             path={ROUTES.PROJECT.MATERIAL_MODEL_CREATE}

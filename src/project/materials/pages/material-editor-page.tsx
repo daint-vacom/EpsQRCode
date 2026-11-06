@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { MaterialModelGalleryCard } from '@/project/material-models/forms/material-model-gallery-card';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
@@ -10,7 +11,17 @@ import {
 } from '@/project/material-models/model/material-model';
 import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
-import { Boxes, Eye, Save } from 'lucide-react';
+import { SafetyInspectionChecklistDisplay } from '@/project/material-safety-inspections/components/safety-inspection-checklist-display';
+import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
+import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import {
+  Boxes,
+  ClipboardCheck,
+  Eye,
+  Info,
+  Save,
+  SlidersHorizontal,
+} from 'lucide-react';
 import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -89,7 +100,24 @@ export function MaterialEditorPage() {
     (model) =>
       model.id === (isEdit ? editingMaterial?.modelId : selectedModelId),
   );
+  const groupQuery = useMaterialGroupQuery(
+    currentModel?.groupId ?? '',
+    !isPermissionsPending && Boolean(currentModel),
+  );
   const snapshot = isEdit ? editingMaterial?.modelSnapshot : currentModel;
+  const inspectionChecklist = form.watch('safetyInspectionChecklist') ?? [];
+  const inheritedInspectionChecklist =
+    isEdit && editingMaterial?.modelSnapshot.safetyInspectionChecklist
+      ? mergeSafetyInspectionChecklists(
+          editingMaterial.modelSnapshot.safetyInspectionChecklist,
+        )
+      : mergeSafetyInspectionChecklists(
+          currentModel?.useGroupSafetyInspectionChecklist
+            ? groupQuery.data?.safetyInspectionChecklist
+            : undefined,
+          currentModel?.safetyInspectionChecklist,
+        );
+  const requiresSafetyInspection = snapshot?.requiresInspection ?? false;
   const snapshotSpecifications =
     snapshot?.specifications.filter(
       (specification) => !hiddenSpecificationIds.includes(specification.id),
@@ -315,7 +343,13 @@ export function MaterialEditorPage() {
   const handleInvalidSubmit: SubmitErrorHandler<MaterialFormSchemaValues> = (
     errors,
   ) => {
-    setActiveTab(errors.specificationOverrides ? 'technical' : 'general');
+    setActiveTab(
+      errors.safetyInspectionChecklist
+        ? 'inspection'
+        : errors.specificationOverrides
+          ? 'technical'
+          : 'general',
+    );
   };
 
   return (
@@ -386,16 +420,32 @@ export function MaterialEditorPage() {
           >
             <TabsList variant="line" size="md" className="w-full">
               <TabsTrigger value="general">
+                <Info className="size-4" aria-hidden="true" />
                 {intl.formatMessage({ id: 'project.materials.tabs.general' })}
               </TabsTrigger>
               <TabsTrigger
                 value="technical"
                 count={snapshotSpecifications?.length ?? 0}
               >
+                <SlidersHorizontal className="size-4" aria-hidden="true" />
                 {intl.formatMessage({
                   id: 'project.materials.tabs.specifications',
                 })}
               </TabsTrigger>
+              {requiresSafetyInspection ? (
+                <TabsTrigger
+                  value="inspection"
+                  count={mergeSafetyInspectionChecklists(
+                    inheritedInspectionChecklist,
+                    inspectionChecklist,
+                  ).reduce((count, group) => count + group.criteria.length, 0)}
+                >
+                  <ClipboardCheck className="size-4" aria-hidden="true" />
+                  {intl.formatMessage({
+                    id: 'project.materials.tabs.safetyChecklist',
+                  })}
+                </TabsTrigger>
+              ) : null}
             </TabsList>
             <TabsContent
               value="general"
@@ -542,6 +592,52 @@ export function MaterialEditorPage() {
                 )}
               </Card>
             </TabsContent>
+            {requiresSafetyInspection ? (
+              <TabsContent
+                value="inspection"
+                className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
+              >
+                <Card className="min-w-0 shrink-0">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {intl.formatMessage({
+                        id: 'project.materials.safetyInspection.checklist.inheritedTitle',
+                      })}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {groupQuery.isPending && groupQuery.isFetching ? (
+                      <PageLoading
+                        label={intl.formatMessage({
+                          id: 'common.state.loading',
+                        })}
+                      />
+                    ) : groupQuery.isError ? (
+                      <ErrorState
+                        title={intl.formatMessage({
+                          id: 'materialGroups.errors.loadTitle',
+                        })}
+                        description={getApiErrorMessage(groupQuery.error)}
+                        onRetry={() => void groupQuery.refetch()}
+                      />
+                    ) : (
+                      <SafetyInspectionChecklistDisplay
+                        groups={inheritedInspectionChecklist}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+                <SafetyInspectionChecklistEditor
+                  groups={inspectionChecklist}
+                  onChange={(groups) =>
+                    form.setValue('safetyInspectionChecklist', groups, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              </TabsContent>
+            ) : null}
           </Tabs>
         </form>
       )}
@@ -579,5 +675,6 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     specificationOverrideLabels: {
       ...material.specificationOverrideLabels,
     },
+    safetyInspectionChecklist: material.safetyInspectionChecklist ?? [],
   };
 }

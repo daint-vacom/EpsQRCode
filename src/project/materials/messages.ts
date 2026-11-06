@@ -140,6 +140,98 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.tabs.handoverHistory': 'Lịch sử bàn giao',
   'project.materials.tabs.inventoryHistory': 'Lịch sử kiểm kê',
   'project.materials.tabs.safety': 'Quản lý an toàn',
+  'project.materials.tabs.safetyChecklist': 'Kiểm định an toàn',
+  'project.materials.safetyInspection.checklist.empty':
+    'Chưa có nhóm nội dung kiểm định.',
+  'project.materials.safetyInspection.checklist.group':
+    'Nhóm nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.groupName':
+    'Tên nhóm nội dung kiểm định {group}',
+  'project.materials.safetyInspection.checklist.groupNamePlaceholder':
+    'Nhập tên nhóm nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.groupNameRequired':
+    'Vui lòng nhập tên nhóm nội dung kiểm định.',
+  'project.materials.safetyInspection.checklist.criterion':
+    'Nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.criterionNumber':
+    'Nội dung kiểm định {group}.{criterion}',
+  'project.materials.safetyInspection.checklist.criterionPlaceholder':
+    'Nhập nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.criterionRequired':
+    'Vui lòng nhập nội dung kiểm định.',
+  'project.materials.safetyInspection.checklist.removeGroup':
+    'Xóa nhóm nội dung kiểm định {group}',
+  'project.materials.safetyInspection.checklist.removeCriterion':
+    'Xóa nội dung {criterion} trong nhóm {group}',
+  'project.materials.safetyInspection.checklist.reorderGroup':
+    'Kéo để sắp xếp nhóm {group}',
+  'project.materials.safetyInspection.checklist.reorderCriterion':
+    'Kéo để sắp xếp nội dung {criterion} trong nhóm {group}',
+  'project.materials.safetyInspection.checklist.collapseGroup':
+    'Thu gọn nhóm {group}',
+  'project.materials.safetyInspection.checklist.expandGroup':
+    'Mở rộng nhóm {group}',
+  'project.materials.safetyInspection.checklist.criteriaCount':
+    '{count} nội dung',
+  'project.materials.safetyInspection.checklist.count':
+    '{groups} nhóm · {criteria} nội dung',
+  'project.materials.safetyInspection.checklist.rowNumber': 'STT',
+  'project.materials.safetyInspection.checklist.addCriterion': 'Thêm nội dung',
+  'project.materials.safetyInspection.checklist.addGroup':
+    'Thêm nhóm nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.inheritedTitle':
+    'Checklist được kế thừa',
+  'project.materials.safetyInspection.page.createTitle':
+    'Lập phiếu kiểm định an toàn',
+  'project.materials.safetyInspection.page.detailTitle':
+    'Chi tiết phiếu kiểm định',
+  'project.materials.safetyInspection.page.createDescription':
+    'Ghi nhận kết quả kiểm định thực tế của vật tư.',
+  'project.materials.safetyInspection.toasts.created':
+    'Đã lưu phiếu kiểm định.',
+  'project.materials.safetyInspection.sections.information':
+    'Thông tin kiểm định',
+  'project.materials.safetyInspection.sections.checklist':
+    'Checklist kiểm định',
+  'project.materials.safetyInspection.fields.inspectedAt':
+    'Thời gian kiểm định',
+  'project.materials.safetyInspection.fields.inspector': 'Người kiểm định',
+  'project.materials.safetyInspection.fields.note': 'Ghi chú tổng',
+  'project.materials.safetyInspection.fields.result': 'Kết quả kiểm định',
+  'project.materials.safetyInspection.fields.criteriaResult': 'Đạt',
+  'project.materials.safetyInspection.fields.criteriaNote':
+    'Ghi chú nội dung kiểm định',
+  'project.materials.safetyInspection.results.passed': 'Đạt',
+  'project.materials.safetyInspection.results.failed': 'Không đạt',
+  'project.materials.safetyInspection.actions.create': 'Lập phiếu kiểm định',
+  'project.materials.safetyInspection.actions.save': 'Lưu phiếu',
+  'project.materials.safetyInspection.actions.back': 'Quay lại chi tiết vật tư',
+  'project.materials.safetyInspection.attachments.download': 'Tải tệp',
+  'project.materials.safetyInspection.attachments.unavailable':
+    'Không thể tạo liên kết tải tệp.',
+  'project.materials.safetyInspection.history.title': 'Lịch sử kiểm định',
+  'project.materials.safetyInspection.history.description':
+    'Các phiếu kiểm định an toàn đã lập cho vật tư này.',
+  'project.materials.safetyInspection.history.empty':
+    'Vật tư chưa có phiếu kiểm định an toàn.',
+  'project.materials.safetyInspection.history.loadTitle':
+    'Không tải được lịch sử kiểm định',
+  'project.materials.safetyInspection.history.open':
+    'Xem phiếu kiểm định ngày {date}',
+  'project.materials.safetyInspection.history.criteriaCount':
+    '{count} nội dung',
+  'project.materials.safetyInspection.errors.noChecklist':
+    'Mẫu vật tư chưa có checklist kiểm định. Hãy bổ sung checklist trước khi lập phiếu.',
+  'project.materials.safetyInspection.errors.notRequired':
+    'Mẫu vật tư này chưa được bật kiểm định an toàn.',
+  'project.materials.safetyInspection.errors.notFound':
+    'Phiếu kiểm định không tồn tại hoặc đã bị xóa.',
+  'project.materials.safetyInspection.errors.fileTooLarge':
+    'Tệp "{fileName}" vượt quá giới hạn 20 MB.',
+  'project.materials.safetyInspection.validation.inspector':
+    'Vui lòng nhập người kiểm định.',
+  'project.materials.safetyInspection.validation.result':
+    'Vui lòng chọn kết quả kiểm định.',
   'project.materials.tabs.repairs': 'Lịch sử sửa chữa',
   'project.materials.tabs.feedback': 'Phản ánh',
   'project.materials.tabs.specifications': 'Thông số kỹ thuật',
@@ -381,6 +473,95 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.tabs.handoverHistory': 'Handover history',
   'project.materials.tabs.inventoryHistory': 'Inventory history',
   'project.materials.tabs.safety': 'Safety management',
+  'project.materials.tabs.safetyChecklist': 'Safety inspection',
+  'project.materials.safetyInspection.checklist.empty':
+    'No inspection content groups have been added.',
+  'project.materials.safetyInspection.checklist.group':
+    'Inspection content group',
+  'project.materials.safetyInspection.checklist.groupName':
+    'Inspection content group {group} name',
+  'project.materials.safetyInspection.checklist.groupNamePlaceholder':
+    'Enter inspection content group name',
+  'project.materials.safetyInspection.checklist.groupNameRequired':
+    'Enter an inspection content group name.',
+  'project.materials.safetyInspection.checklist.criterion':
+    'Inspection content',
+  'project.materials.safetyInspection.checklist.criterionNumber':
+    'Inspection content {group}.{criterion}',
+  'project.materials.safetyInspection.checklist.criterionPlaceholder':
+    'Enter inspection content',
+  'project.materials.safetyInspection.checklist.criterionRequired':
+    'Enter inspection content.',
+  'project.materials.safetyInspection.checklist.removeGroup':
+    'Remove inspection content group {group}',
+  'project.materials.safetyInspection.checklist.removeCriterion':
+    'Remove content {criterion} in group {group}',
+  'project.materials.safetyInspection.checklist.reorderGroup':
+    'Drag to reorder group {group}',
+  'project.materials.safetyInspection.checklist.reorderCriterion':
+    'Drag to reorder content {criterion} in group {group}',
+  'project.materials.safetyInspection.checklist.collapseGroup':
+    'Collapse group {group}',
+  'project.materials.safetyInspection.checklist.expandGroup':
+    'Expand group {group}',
+  'project.materials.safetyInspection.checklist.criteriaCount': '{count} items',
+  'project.materials.safetyInspection.checklist.count':
+    '{groups} groups · {criteria} items',
+  'project.materials.safetyInspection.checklist.rowNumber': 'No.',
+  'project.materials.safetyInspection.checklist.addCriterion': 'Add content',
+  'project.materials.safetyInspection.checklist.addGroup':
+    'Add inspection content group',
+  'project.materials.safetyInspection.checklist.inheritedTitle':
+    'Inherited checklist',
+  'project.materials.safetyInspection.page.createTitle':
+    'Create safety inspection',
+  'project.materials.safetyInspection.page.detailTitle':
+    'Safety inspection details',
+  'project.materials.safetyInspection.page.createDescription':
+    'Record the material inspection findings.',
+  'project.materials.safetyInspection.toasts.created':
+    'Safety inspection saved.',
+  'project.materials.safetyInspection.sections.information':
+    'Inspection information',
+  'project.materials.safetyInspection.sections.checklist':
+    'Inspection checklist',
+  'project.materials.safetyInspection.fields.inspectedAt': 'Inspection time',
+  'project.materials.safetyInspection.fields.inspector': 'Inspector',
+  'project.materials.safetyInspection.fields.note': 'Overall note',
+  'project.materials.safetyInspection.fields.result': 'Inspection result',
+  'project.materials.safetyInspection.fields.criteriaResult': 'Pass',
+  'project.materials.safetyInspection.fields.criteriaNote':
+    'Inspection content note',
+  'project.materials.safetyInspection.results.passed': 'Passed',
+  'project.materials.safetyInspection.results.failed': 'Failed',
+  'project.materials.safetyInspection.actions.create': 'Create inspection',
+  'project.materials.safetyInspection.actions.save': 'Save inspection',
+  'project.materials.safetyInspection.actions.back': 'Back to material details',
+  'project.materials.safetyInspection.attachments.download': 'Download file',
+  'project.materials.safetyInspection.attachments.unavailable':
+    'Could not create a file download link.',
+  'project.materials.safetyInspection.history.title': 'Inspection history',
+  'project.materials.safetyInspection.history.description':
+    'Safety inspection records created for this material.',
+  'project.materials.safetyInspection.history.empty':
+    'No safety inspections have been recorded for this material.',
+  'project.materials.safetyInspection.history.loadTitle':
+    'Could not load inspection history',
+  'project.materials.safetyInspection.history.open':
+    'Open inspection from {date}',
+  'project.materials.safetyInspection.history.criteriaCount': '{count} items',
+  'project.materials.safetyInspection.errors.noChecklist':
+    'This material model has no inspection checklist. Add a checklist before creating an inspection.',
+  'project.materials.safetyInspection.errors.notRequired':
+    'Safety inspection is not enabled for this material model.',
+  'project.materials.safetyInspection.errors.notFound':
+    'This inspection does not exist or has been deleted.',
+  'project.materials.safetyInspection.errors.fileTooLarge':
+    'File "{fileName}" exceeds the 20 MB limit.',
+  'project.materials.safetyInspection.validation.inspector':
+    'Enter the inspector name.',
+  'project.materials.safetyInspection.validation.result':
+    'Select an inspection result.',
   'project.materials.tabs.repairs': 'Repair history',
   'project.materials.tabs.feedback': 'Feedback',
   'project.materials.tabs.specifications': 'Specifications',

@@ -1,3 +1,4 @@
+import { safetyInspectionChecklistSchema } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { z } from 'zod';
 
 export const materialFormSchema = z
@@ -37,6 +38,7 @@ export const materialFormSchema = z
     specificationOverrideLabels: z
       .record(z.string(), z.array(z.string()))
       .optional(),
+    safetyInspectionChecklist: safetyInspectionChecklistSchema,
   })
   .superRefine((values, context) => {
     if (!values.modelId)

@@ -15,7 +15,6 @@ import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Dialog,
@@ -49,7 +48,9 @@ export const materialModelDefaultValues: MaterialModelFormValues = {
   description: '',
   externalCodesText: '',
   requiresInspection: false,
+  useGroupSafetyInspectionChecklist: true,
   specifications: [],
+  safetyInspectionChecklist: [],
 };
 
 type MaterialModelFormSource = MaterialModel;
@@ -75,11 +76,18 @@ export function mapMaterialModelToFormValues(
     description: entity.description,
     externalCodesText: entity.externalCodes.join('\n'),
     requiresInspection: entity.requiresInspection,
+    useGroupSafetyInspectionChecklist: entity.useGroupSafetyInspectionChecklist,
     specifications: entity.specifications.map((specification) => ({
       ...specification,
       valueLabels: [...specification.valueLabels],
       values: [...specification.values],
     })),
+    safetyInspectionChecklist: (entity.safetyInspectionChecklist ?? []).map(
+      (group) => ({
+        ...group,
+        criteria: group.criteria.map((criterion) => ({ ...criterion })),
+      }),
+    ),
   };
 }
 
@@ -230,37 +238,6 @@ export function MaterialModelForm({
             </FormLabel>
             <FormControl>
               <Textarea rows={3} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="requiresInspection"
-        render={({ field }) => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-          >
-            <FormLabel>
-              {intl.formatMessage({
-                id: 'materialModels.fields.requiresInspection',
-              })}
-            </FormLabel>
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                onBlur={field.onBlur}
-                name={field.name}
-                ref={field.ref}
-                aria-label={intl.formatMessage({
-                  id: 'materialModels.fields.requiresInspection',
-                })}
-              />
             </FormControl>
             <FormMessage />
           </FormItem>

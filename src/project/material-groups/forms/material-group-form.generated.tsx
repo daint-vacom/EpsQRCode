@@ -11,7 +11,9 @@ import { useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import type { MaterialModelFormValues } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
+import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ClipboardCheck, Info, SlidersHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import type {
   SubmitErrorHandler,
@@ -54,6 +56,7 @@ export const materialGroupDefaultValues: MaterialGroupFormValues = {
   name: '',
   description: '',
   specifications: [],
+  safetyInspectionChecklist: [],
 };
 
 // TODO(scaffold): replace with the real entity type used for edit-mode mapping.
@@ -82,6 +85,12 @@ export function mapMaterialGroupToFormValues(
       values: [...specification.values],
       valueLabels: [...specification.valueLabels],
     })),
+    safetyInspectionChecklist: (entity.safetyInspectionChecklist ?? []).map(
+      (group) => ({
+        ...group,
+        criteria: group.criteria.map((criterion) => ({ ...criterion })),
+      }),
+    ),
   };
 }
 
@@ -108,7 +117,13 @@ export function MaterialGroupForm({
   const handleInvalidSubmit: SubmitErrorHandler<MaterialGroupFormValues> = (
     errors,
   ) => {
-    setActiveTab(errors.specifications ? 'technical' : 'general');
+    setActiveTab(
+      errors.safetyInspectionChecklist
+        ? 'inspection'
+        : errors.specifications
+          ? 'technical'
+          : 'general',
+    );
   };
 
   return (
@@ -125,10 +140,16 @@ export function MaterialGroupForm({
         >
           <TabsList variant="line" size="md" className="w-full shrink-0 px-6">
             <TabsTrigger value="general">
+              <Info className="size-4" aria-hidden="true" />
               {intl.formatMessage({ id: 'materialGroups.tabs.general' })}
             </TabsTrigger>
             <TabsTrigger value="technical">
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
               {intl.formatMessage({ id: 'materialGroups.tabs.technical' })}
+            </TabsTrigger>
+            <TabsTrigger value="inspection">
+              <ClipboardCheck className="size-4" aria-hidden="true" />
+              {intl.formatMessage({ id: 'materialGroups.tabs.inspection' })}
             </TabsTrigger>
           </TabsList>
           <TabsContent
@@ -231,6 +252,21 @@ export function MaterialGroupForm({
                 allowClipboard={false}
               />
             </Card>
+          </TabsContent>
+          <TabsContent
+            value="inspection"
+            className="mt-0 min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-4"
+          >
+            <SafetyInspectionChecklistEditor
+              groups={form.watch('safetyInspectionChecklist') ?? []}
+              fillHeight
+              onChange={(groups) =>
+                form.setValue('safetyInspectionChecklist', groups, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
           </TabsContent>
         </Tabs>
       </form>

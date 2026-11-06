@@ -32,7 +32,7 @@ export async function loadAvailableMaterialGroups(
     supabaseApi.get('/material_groups', {
       ...queryParams({
         select:
-          'id,code,name,description,specifications,is_active,created_at,updated_at',
+          'id,code,name,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
         is_active: 'eq.true',
         order: 'name.asc,id.asc',
       }),
@@ -51,7 +51,7 @@ export async function loadMaterialGroupById(
     supabaseApi.get('/material_groups', {
       ...queryParams({
         select:
-          'id,code,name,description,specifications,is_active,created_at,updated_at',
+          'id,code,name,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
         id: `eq.${id}`,
       }),
       signal,
@@ -70,10 +70,12 @@ export async function createMaterialGroup(
     name: string;
     description: string | null;
     specifications: MaterialGroupFormValues['specifications'];
+    safety_inspection_checklist: MaterialGroupFormValues['safetyInspectionChecklist'];
   } = {
     name: values.name.trim(),
     description: values.description.trim() || null,
     specifications: values.specifications,
+    safety_inspection_checklist: values.safetyInspectionChecklist,
   };
   if (values.codeMode === 'manual') payload.code = values.code.trim();
   await request(supabaseApi.post('/material_groups', payload));
@@ -92,6 +94,7 @@ export async function updateMaterialGroup(
         name: values.name.trim(),
         description: values.description.trim() || null,
         specifications: values.specifications,
+        safety_inspection_checklist: values.safetyInspectionChecklist,
       },
       {
         ...queryParams({ id: `eq.${id}` }),

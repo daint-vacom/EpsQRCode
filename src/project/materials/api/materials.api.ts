@@ -1,5 +1,6 @@
 import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '@/project/material-models/model/material-model';
 import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
+import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import {
   createSignedStorageUrl,
   removeStorageObjects,
@@ -19,6 +20,11 @@ import type {
 } from '../model/material';
 
 export const MATERIAL_IMAGES_BUCKET = 'material-images';
+
+interface MaterialSafetyChecklistRow {
+  material_id: string;
+  checklist: SafetyInspectionChecklistGroup[];
+}
 
 interface MaterialImagePayload {
   storage_bucket: string | null;
@@ -56,7 +62,16 @@ export async function loadMaterial(
   const material = await request<Material>(
     supabaseApi.post('/rpc/get_material', { p_id: id }, { signal }),
   );
-  return resolveMaterialImages(material);
+  const checklistRows = await request<MaterialSafetyChecklistRow[]>(
+    supabaseApi.get('/material_safety_checklists', {
+      params: { select: 'material_id,checklist', material_id: `eq.${id}` },
+      signal,
+    }),
+  );
+  return resolveMaterialImages({
+    ...material,
+    safetyInspectionChecklist: checklistRows[0]?.checklist ?? [],
+  });
 }
 
 export async function loadPublicMaterialDetail(
@@ -174,7 +189,7 @@ export async function saveMaterial(
     }
 
     const savedId = await request<string>(
-      supabaseApi.post('/rpc/save_material_with_public_display_settings', {
+      supabaseApi.post('/rpc/save_material_with_safety_checklist', {
         p_id: id,
         p_expected_version: expectedVersion,
         p_values: {
@@ -185,6 +200,7 @@ export async function saveMaterial(
         },
         p_public_display_settings: publicDisplaySettings,
         p_public_specification_settings: publicSpecificationSettings,
+        p_safety_inspection_checklist: values.safetyInspectionChecklist,
       }),
     );
 

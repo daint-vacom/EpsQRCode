@@ -65,6 +65,7 @@ export const en: Record<string, string> = {
   'materialGroups.columns.groupShort': 'Material group',
   'materialGroups.tabs.general': 'Group information',
   'materialGroups.tabs.technical': 'Technical specifications',
+  'materialGroups.tabs.inspection': 'Safety inspection',
   'materialGroups.specifications.tableTitle':
     'Material group technical specifications',
   'materialGroups.errors.loadTitle': 'Could not load material group',
@@ -79,6 +80,9 @@ export const en: Record<string, string> = {
   'materialModels.specifications.modelTableTitle':
     'Material model technical specifications',
   'materialModels.fields.externalCodes': 'Linked material codes',
+  'materialModels.fields.requiresInspection': 'Periodic inspection',
+  'materialModels.fields.useGroupSafetyInspectionChecklist':
+    'Use the material group inspection checklist',
   'materialModels.specifications.colorLabel': 'Color name',
   'materialModels.specifications.selection.selectAll':
     'Select all technical specifications',
