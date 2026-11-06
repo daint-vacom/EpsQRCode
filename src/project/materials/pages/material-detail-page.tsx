@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   Boxes,
@@ -33,7 +33,7 @@ import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/mate
 import { MaterialSafetyInspectionsPanel } from '@/project/material-safety-inspections/components/material-safety-inspections-panel';
 import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { useIntl } from 'react-intl';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { createSignedStorageUrl } from '@/lib/storage';
 import { cn } from '@/lib/utils';
@@ -53,6 +53,7 @@ import { PageBackButton } from '@/components/ui/page-back-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MaterialQrCodeHoverCard } from '../components/material-qr-code-hover-card';
+import { useRecordMaterialQrScanMutation } from '../hooks/use-material-qr-tracking';
 import {
   useMaterialQuery,
   usePublicMaterialDetailQuery,
@@ -100,6 +101,7 @@ export function MaterialDetailPage({
 }) {
   const intl = useIntl();
   const navigate = useNavigate();
+  const { pathname, search, hash } = useLocation();
   const { id = '' } = useParams();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
@@ -110,6 +112,59 @@ export function MaterialDetailPage({
   const publicDetailQuery = usePublicMaterialDetailQuery(id, publicMode);
   const material = publicMode ? undefined : materialQuery.data;
   const publicDetail = publicMode ? publicDetailQuery.data : undefined;
+  const scanRequested = new URLSearchParams(search).get('open') === 'scan';
+  const hasLoadedMaterial = publicMode
+    ? Boolean(publicDetail?.basicInfo)
+    : Boolean(material);
+  const scanAttemptedForMaterial = useRef<string | null>(null);
+  const { mutate: mutateQrScan } = useRecordMaterialQrScanMutation();
+
+  useEffect(() => {
+    if (!scanRequested) {
+      scanAttemptedForMaterial.current = null;
+      return;
+    }
+    if (!id || !hasLoadedMaterial || scanAttemptedForMaterial.current === id) {
+      return;
+    }
+
+    scanAttemptedForMaterial.current = id;
+    mutateQrScan(id, {
+      onSuccess: (recorded) => {
+        if (scanAttemptedForMaterial.current !== id) return;
+        if (!recorded) {
+          scanAttemptedForMaterial.current = null;
+          return;
+        }
+
+        const nextSearchParams = new URLSearchParams(search);
+        nextSearchParams.delete('open');
+        const nextSearch = nextSearchParams.toString();
+        navigate(
+          {
+            pathname,
+            search: nextSearch ? `?${nextSearch}` : '',
+            hash,
+          },
+          { replace: true },
+        );
+      },
+      onError: () => {
+        if (scanAttemptedForMaterial.current === id) {
+          scanAttemptedForMaterial.current = null;
+        }
+      },
+    });
+  }, [
+    hasLoadedMaterial,
+    hash,
+    id,
+    mutateQrScan,
+    navigate,
+    pathname,
+    scanRequested,
+    search,
+  ]);
   const groupsQuery = useMaterialGroupsQuery(queryEnabled && Boolean(material));
   const [activeTab, setActiveTab] = useState<MaterialDetailTabValue>('general');
   const modelName = publicMode

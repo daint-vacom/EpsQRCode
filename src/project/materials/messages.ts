@@ -6,6 +6,50 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.page.detailTitle': 'Chi tiết vật tư',
   'project.materials.page.createTitle': 'Thêm vật tư',
   'project.materials.page.editTitle': 'Sửa thông tin vật tư',
+  'project.materialQrTracking.page.title': 'Theo dõi mã QR',
+  'project.materialQrTracking.columns.scanCount': 'Lượt quét',
+  'project.materialQrTracking.columns.lastPrintedAt': 'Ngày in',
+  'project.materialQrTracking.bulk.downloadPng': 'Tải PNG',
+  'project.materialQrTracking.bulk.copyQr': 'Sao chép mã QR',
+  'project.materialQrTracking.bulk.applying': 'Đang xử lý',
+  'project.materialQrTracking.filters.search': 'Tìm mã, tên, mẫu hoặc số sê-ri',
+  'project.materialQrTracking.list.recordCountLabel': 'vật tư',
+  'project.materialQrTracking.empty.list': 'Chưa có vật tư để theo dõi mã QR.',
+  'project.materialQrTracking.empty.search': 'Không tìm thấy vật tư phù hợp.',
+  'project.materialQrTracking.actions.viewQr': 'Xem QR',
+  'project.materialQrTracking.actions.open': 'Mở',
+  'project.materialQrTracking.actions.copyLink': 'Link',
+  'project.materialQrTracking.qrDialog.title': 'Thông tin mã QR vật tư',
+  'project.materialQrTracking.qrDialog.linkLabel': 'Đường dẫn QR',
+  'project.materialQrTracking.qrDialog.active': 'Đang sử dụng',
+  'project.materialQrTracking.qrDialog.inactive': 'Ngừng sử dụng',
+  'project.materialQrTracking.qrDialog.actions.copyLink': 'Sao chép',
+  'project.materialQrTracking.qrDialog.actions.open': 'Mở trang chi tiết',
+  'project.materialQrTracking.qrDialog.actions.downloadPng': 'Tải PNG',
+  'project.materialQrTracking.qrDialog.actions.printByTemplate':
+    'In tem theo mẫu nhãn',
+  'project.materialQrTracking.toasts.linkCopied': 'Đã sao chép đường dẫn QR.',
+  'project.materialQrTracking.toasts.pngDownloaded': 'Đã tải mã QR dạng PNG.',
+  'project.materialQrTracking.toasts.pngsDownloaded':
+    'Đã tải {count} mã QR dạng PNG.',
+  'project.materialQrTracking.toasts.qrLinksCopied':
+    'Đã sao chép {count} mã QR, mỗi mã trên một dòng.',
+  'project.materialQrTracking.errors.copyLink':
+    'Không thể sao chép đường dẫn QR.',
+  'project.materialQrTracking.errors.downloadPng':
+    'Không thể tải mã QR dạng PNG.',
+  'project.materialQrTracking.errors.copySelectedQr':
+    'Không thể sao chép các mã QR đã chọn.',
+  'project.materialQrTracking.errors.downloadSelectedPngs':
+    'Không thể tải các mã QR đã chọn.',
+  'project.materialQrTracking.errors.printSelectedQr':
+    'Không thể mở trang in nhãn cho các vật tư đã chọn.',
+  'project.materialQrTracking.errors.loadTitle':
+    'Không tải được dữ liệu theo dõi mã QR',
+  'project.materialQrTracking.errors.authorization':
+    'Bạn chưa được cấp quyền xem vật tư.',
+  'project.materialQrTracking.errors.load':
+    'Không thể tải danh sách theo dõi mã QR.',
   'project.materials.page.description':
     'Theo dõi thiết bị, chủ sở hữu và tình trạng sử dụng.',
   'project.materials.actions.create': 'Thêm vật tư',
@@ -69,7 +113,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.actions.return': 'Nhận trả',
   'project.materials.fields.code': 'Mã vật tư',
   'project.materials.fields.identity': 'Vật tư',
-  'project.materials.fields.qrCode': 'QR Code',
+  'project.materials.fields.qrCode': 'Mã QR',
   'project.materials.fields.holder': 'Đơn vị đang giữ',
   'project.materials.fields.enable': 'Bật sử dụng vật tư {name}',
   'project.materials.fields.disable': 'Tắt sử dụng vật tư {name}',
@@ -344,6 +388,50 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.page.detailTitle': 'Material details',
   'project.materials.page.createTitle': 'Add material',
   'project.materials.page.editTitle': 'Edit material information',
+  'project.materialQrTracking.page.title': 'QR code tracking',
+  'project.materialQrTracking.columns.scanCount': 'Scans',
+  'project.materialQrTracking.columns.lastPrintedAt': 'Print date',
+  'project.materialQrTracking.bulk.downloadPng': 'Download PNG',
+  'project.materialQrTracking.bulk.copyQr': 'Copy QR codes',
+  'project.materialQrTracking.bulk.applying': 'Processing',
+  'project.materialQrTracking.filters.search':
+    'Search by code, name, model, or serial number',
+  'project.materialQrTracking.list.recordCountLabel': 'materials',
+  'project.materialQrTracking.empty.list': 'No materials to track yet.',
+  'project.materialQrTracking.empty.search': 'No matching materials found.',
+  'project.materialQrTracking.actions.viewQr': 'View QR',
+  'project.materialQrTracking.actions.open': 'Open',
+  'project.materialQrTracking.actions.copyLink': 'Link',
+  'project.materialQrTracking.qrDialog.title': 'Material QR code information',
+  'project.materialQrTracking.qrDialog.linkLabel': 'QR link',
+  'project.materialQrTracking.qrDialog.active': 'In use',
+  'project.materialQrTracking.qrDialog.inactive': 'Not in use',
+  'project.materialQrTracking.qrDialog.actions.copyLink': 'Copy',
+  'project.materialQrTracking.qrDialog.actions.open': 'Open detail page',
+  'project.materialQrTracking.qrDialog.actions.downloadPng': 'Download PNG',
+  'project.materialQrTracking.qrDialog.actions.printByTemplate':
+    'Print label using template',
+  'project.materialQrTracking.toasts.linkCopied': 'QR link copied.',
+  'project.materialQrTracking.toasts.pngDownloaded':
+    'QR code downloaded as PNG.',
+  'project.materialQrTracking.toasts.pngsDownloaded':
+    'Downloaded {count} QR codes as PNG files.',
+  'project.materialQrTracking.toasts.qrLinksCopied':
+    'Copied {count} QR links, one per line.',
+  'project.materialQrTracking.errors.copyLink': 'Unable to copy the QR link.',
+  'project.materialQrTracking.errors.downloadPng':
+    'Unable to download the QR code as PNG.',
+  'project.materialQrTracking.errors.copySelectedQr':
+    'Unable to copy the selected QR codes.',
+  'project.materialQrTracking.errors.downloadSelectedPngs':
+    'Unable to download the selected QR codes.',
+  'project.materialQrTracking.errors.printSelectedQr':
+    'Unable to open label printing for the selected materials.',
+  'project.materialQrTracking.errors.loadTitle':
+    'Unable to load QR tracking data',
+  'project.materialQrTracking.errors.authorization':
+    'You do not have permission to view materials.',
+  'project.materialQrTracking.errors.load': 'Unable to load QR tracking data.',
   'project.materials.page.description':
     'Track equipment, ownership, and current use.',
   'project.materials.actions.create': 'Add material',
@@ -403,7 +491,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.actions.return': 'Receive return',
   'project.materials.fields.code': 'Material code',
   'project.materials.fields.identity': 'Material',
-  'project.materials.fields.qrCode': 'QR Code',
+  'project.materials.fields.qrCode': 'QR code',
   'project.materials.fields.holder': 'Current holder',
   'project.materials.fields.enable': 'Enable material {name}',
   'project.materials.fields.disable': 'Disable material {name}',

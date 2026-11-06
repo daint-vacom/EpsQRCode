@@ -29,9 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Switch } from '@/components/ui/switch';
 import { MaterialIdentity } from '@/components/material-identity';
-import { MaterialQrCodeHoverCard } from '../components/material-qr-code-hover-card';
+import { MaterialAvailabilityCell } from '../components/material-availability-cell';
+import { MaterialQrCodeButton } from '../components/material-qr-code-button';
 import type { Material } from '../model/material';
 
 export interface UseMaterialColumnsParams {
@@ -40,6 +40,7 @@ export interface UseMaterialColumnsParams {
   canManage: boolean;
   pendingAvailabilityIds: ReadonlySet<string>;
   onAvailabilityChange: (material: Material, isActive: boolean) => void;
+  onOpenQr: (material: Material) => void;
   onView: (material: Material) => void;
   onEdit: (material: Material) => void;
   onHandover: (material: Material) => void;
@@ -153,6 +154,7 @@ export function useMaterialColumns({
   canManage,
   pendingAvailabilityIds,
   onAvailabilityChange,
+  onOpenQr,
   onView,
   onEdit,
   onHandover,
@@ -174,18 +176,11 @@ export function useMaterialColumns({
         size: 80,
         enableSorting: false,
         cell: (row) => (
-          <Switch
-            checked={row.isActive}
-            disabled={!canManage || pendingAvailabilityIds.has(row.id)}
-            onCheckedChange={(checked) => onAvailabilityChange(row, checked)}
-            aria-label={intl.formatMessage(
-              {
-                id: row.isActive
-                  ? 'project.materials.fields.disable'
-                  : 'project.materials.fields.enable',
-              },
-              { name: row.nameOverride?.trim() || row.modelSnapshot.name },
-            )}
+          <MaterialAvailabilityCell
+            material={row}
+            canManage={canManage}
+            isPending={pendingAvailabilityIds.has(row.id)}
+            onChange={onAvailabilityChange}
           />
         ),
       }),
@@ -194,13 +189,9 @@ export function useMaterialColumns({
         header: intl.formatMessage({ id: 'project.materials.fields.qrCode' }),
         size: 80,
         enableSorting: false,
-        cell: (row) =>
-          row.isActive ? (
-            <MaterialQrCodeHoverCard
-              materialId={row.id}
-              materialCode={row.code}
-            />
-          ) : null,
+        cell: (row) => (
+          <MaterialQrCodeButton material={row} onOpen={onOpenQr} />
+        ),
       }),
       col.custom({
         id: 'identity',
@@ -307,6 +298,7 @@ export function useMaterialColumns({
     canManage,
     intl,
     onAvailabilityChange,
+    onOpenQr,
     onEdit,
     onHandover,
     onDelete,

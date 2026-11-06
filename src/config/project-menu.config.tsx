@@ -4,11 +4,13 @@ import {
   BarChart3,
   Boxes,
   Building2,
+  ClipboardCheck,
   ClipboardPlus,
   Folder,
   FolderOpen,
   Package,
   QrCode,
+  ScanLine,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -19,38 +21,45 @@ import type { MenuGroupConfig } from './menu.types';
 /** Shared administration surfaces for the materials-management application. */
 export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
   {
-    title: 'Không gian làm việc',
-    titleMessageId: 'project.navigation.groups.workspace',
+    title: 'Quản lý vật tư',
+    titleMessageId: 'project.navigation.groups.materialManagement',
     items: [
       {
-        label: 'Quản lý vật tư',
-        labelMessageId: 'project.navigation.materials',
+        label: 'Tất cả vật tư',
+        labelMessageId: 'project.navigation.allMaterials',
         icon: Package,
         path: ROUTES.PROJECT.MATERIALS,
       },
       {
-        label: 'Phiếu bàn giao',
-        labelMessageId: 'project.navigation.handovers',
-        icon: ArrowRightLeft,
-        path: ROUTES.PROJECT.HANDOVERS,
+        label: 'Theo dõi mã QR',
+        labelMessageId: 'project.navigation.qrTracking',
+        icon: ScanLine,
+        path: ROUTES.PROJECT.MATERIAL_QR_TRACKING,
+      },
+      {
+        label: 'Vật tư cần kiểm định',
+        labelMessageId: 'project.navigation.materialsRequiringInspection',
+        icon: ClipboardCheck,
+        disabled: true,
+        disabledLabelMessageId: 'project.navigation.comingSoon',
       },
     ],
   },
   {
-    title: 'Quản lý kho',
-    titleMessageId: 'project.navigation.groups.warehouseManagement',
+    title: 'Quản lý phiếu',
+    titleMessageId: 'project.navigation.groups.slips',
     items: [
       {
-        label: 'Phiếu nhập vật tư',
+        label: 'Bàn giao vật tư',
+        labelMessageId: 'project.navigation.handovers',
+        icon: ArrowRightLeft,
+        path: ROUTES.PROJECT.HANDOVERS,
+      },
+      {
+        label: 'Nhập vật tư',
         labelMessageId: 'project.navigation.receipts',
         icon: ClipboardPlus,
         path: ROUTES.PROJECT.RECEIPTS,
-      },
-      {
-        label: 'Kho',
-        labelMessageId: 'project.navigation.warehouses',
-        icon: Building2,
-        path: ROUTES.PROJECT.WAREHOUSES,
       },
     ],
   },
@@ -71,6 +80,12 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     titleMessageId: 'project.navigation.groups.organization',
     items: [
       {
+        label: 'Nhóm vật tư',
+        labelMessageId: 'project.navigation.materialGroups',
+        icon: Folder,
+        path: ROUTES.PROJECT.MATERIAL_GROUPS,
+      },
+      {
         label: 'Mẫu vật tư',
         labelMessageId: 'project.navigation.materialModels',
         icon: Boxes,
@@ -81,12 +96,6 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         labelMessageId: 'project.navigation.materialLabelTemplates',
         icon: QrCode,
         path: ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES,
-      },
-      {
-        label: 'Nhóm vật tư',
-        labelMessageId: 'project.navigation.materialGroups',
-        icon: Folder,
-        path: ROUTES.PROJECT.MATERIAL_GROUPS,
       },
       {
         label: 'Thông số kỹ thuật',
@@ -107,13 +116,19 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS,
       },
       {
+        label: 'Kho',
+        labelMessageId: 'project.navigation.warehouses',
+        icon: Building2,
+        path: ROUTES.PROJECT.WAREHOUSES,
+      },
+      {
         label: 'Tệp lưu trữ',
         labelMessageId: 'project.navigation.files',
         icon: FolderOpen,
         path: ROUTES.PROJECT.FILES,
       },
       {
-        label: 'Tài khoản đăng nhập',
+        label: 'Tài khoản',
         labelMessageId: 'project.navigation.accounts',
         icon: Users,
         path: ROUTES.PROJECT.ACCOUNTS,

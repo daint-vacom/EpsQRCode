@@ -44,6 +44,7 @@ import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { MaterialHandoverPreflightDialogShell } from '../components/material-handover-preflight-dialog-shell.generated';
+import { MaterialQrCodeDialog } from '../components/material-qr-code-dialog';
 import {
   useDeleteMaterialMutation,
   useMaterialsQuery,
@@ -131,6 +132,9 @@ export function MaterialListPage() {
   const [status, setStatus] = useState('');
   const [deletingMaterials, setDeletingMaterials] = useState<Material[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
+  const [qrDialogMaterial, setQrDialogMaterial] = useState<Material | null>(
+    null,
+  );
   const [bulkAction, setBulkAction] = useState<MaterialBulkAction>('');
   const [isHandoverPreflightOpen, setIsHandoverPreflightOpen] = useState(false);
   const handoverNavigationStarted = useRef(false);
@@ -182,6 +186,7 @@ export function MaterialListPage() {
     groupNameById,
     canManage,
     pendingAvailabilityIds,
+    onOpenQr: setQrDialogMaterial,
     onAvailabilityChange: async (material, isActive) => {
       if (!canManage || pendingAvailabilityIds.has(material.id)) return;
       setPendingAvailabilityIds((current) => new Set(current).add(material.id));
@@ -612,6 +617,11 @@ export function MaterialListPage() {
         isConfirming={deleteMutation.isPending}
         closeOnConfirm={false}
         onConfirm={handleDelete}
+      />
+      <MaterialQrCodeDialog
+        material={qrDialogMaterial}
+        onOpenChange={(open) => !open && setQrDialogMaterial(null)}
+        onPrint={(material) => navigateToLabelPrint([material.id])}
       />
       <MaterialHandoverPreflightDialogShell
         open={isHandoverPreflightOpen}

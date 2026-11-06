@@ -16,7 +16,7 @@ const spec: TableSpec = {
     {
       kind: 'custom',
       id: 'qrCode',
-      header: 'QR Code',
+      header: 'Mã QR',
       headerMessageId: 'project.materials.fields.qrCode',
       size: 80,
     },

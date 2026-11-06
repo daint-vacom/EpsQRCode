@@ -18,7 +18,11 @@ const OPERATION_MENU_ACCESS: Record<
 > = {
   [ROUTES.PROJECT.MATERIALS]: {
     permission: MATERIAL_PERMISSION_CODES.view,
-    messageId: 'project.navigation.materials',
+    messageId: 'project.navigation.allMaterials',
+  },
+  [ROUTES.PROJECT.MATERIAL_QR_TRACKING]: {
+    permission: MATERIAL_PERMISSION_CODES.view,
+    messageId: 'project.navigation.qrTracking',
   },
   [ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES]: {
     permission: MATERIAL_PERMISSION_CODES.view,

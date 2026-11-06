@@ -62,6 +62,7 @@ import { MaterialSpecificationsPage } from '@/project/material-specifications/pa
 import { MaterialEditorPage } from '@/project/materials/pages/material-editor-page';
 import { MaterialListPage } from '@/project/materials/pages/material-list-page';
 import { MaterialPublicAccessPage } from '@/project/materials/pages/material-public-detail-page';
+import { MaterialQrTrackingPage } from '@/project/materials/pages/material-qr-tracking-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
@@ -246,6 +247,10 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIALS}
             element={<MaterialListPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIAL_QR_TRACKING}
+            element={<MaterialQrTrackingPage />}
           />
           <Route
             path={ROUTES.PROJECT.MATERIAL_LABEL_TEMPLATES}

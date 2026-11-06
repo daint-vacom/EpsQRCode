@@ -1,5 +1,6 @@
 import { useUiStore } from '@/stores/ui.store';
 import { Pin } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { Link, useLocation } from 'react-router-dom';
 import { getMenuItemKey, resolveMenuTarget } from '@/config/menu.types';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { useLayout } from './context';
 import { SidebarHeader } from './sidebar-header';
 
 export function SidebarSecondary() {
+  const intl = useIntl();
   const { pathname } = useLocation();
   const { shell } = useLayout();
   const wireframeMode = useUiStore((s) => s.wireframeMode);
@@ -43,7 +45,7 @@ export function SidebarSecondary() {
                 item,
                 target: resolveMenuTarget(item, wireframeMode),
               }))
-              .filter((entry) => entry.target !== null);
+              .filter((entry) => entry.target !== null || entry.item.disabled);
 
             if (items.length === 0) return null;
 
@@ -59,53 +61,93 @@ export function SidebarSecondary() {
                 </h2>
                 <div className="space-y-1">
                   {items.map(({ item, target }) => {
-                    const active = pathname === target!.to;
+                    const active = target ? pathname === target.to : false;
                     const Icon = item.icon;
 
                     const menuKey = getMenuItemKey(item);
                     const pinned = pinnedMenuPaths.includes(menuKey);
+
+                    const itemContent = (
+                      <>
+                        <Icon
+                          className={cn(
+                            'size-4.5 shrink-0',
+                            isDark ? 'text-white/65' : 'text-foreground',
+                          )}
+                        />
+                        <span className="min-w-0 flex-1 truncate">
+                          {item.label}
+                        </span>
+                        {item.disabledLabelMessageId && (
+                          <Badge
+                            size="xs"
+                            variant="secondary"
+                            appearance="light"
+                            className="shrink-0"
+                          >
+                            {intl.formatMessage({
+                              id: item.disabledLabelMessageId,
+                            })}
+                          </Badge>
+                        )}
+                        {target?.isWireframe && (
+                          <span
+                            className={cn(
+                              'ml-auto rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase',
+                              isDark
+                                ? 'bg-white/10 text-white/55'
+                                : 'bg-border text-muted-foreground',
+                            )}
+                          >
+                            block
+                          </span>
+                        )}
+                      </>
+                    );
 
                     return (
                       <div
                         key={item.label}
                         className="group/menu-item relative"
                       >
-                        <Link
-                          to={target!.to}
-                          className={cn(
-                            'flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 pe-12 text-sm font-medium transition-colors',
-                            isDark
-                              ? 'text-white/75 hover:bg-white/10 hover:text-white'
-                              : 'text-foreground hover:bg-field hover:text-accent-foreground',
-                            active &&
-                              (isDark
-                                ? 'bg-primary text-white hover:bg-primary hover:text-white [&_svg]:text-white'
-                                : 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary [&_svg]:text-primary'),
-                          )}
-                        >
-                          <Icon
+                        {target ? (
+                          <Link
+                            to={target.to}
                             className={cn(
-                              'size-4.5 shrink-0',
-                              isDark ? 'text-white/65' : 'text-foreground',
+                              'flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 pe-12 text-sm font-medium transition-colors',
+                              isDark
+                                ? 'text-white/75 hover:bg-white/10 hover:text-white'
+                                : 'text-foreground hover:bg-field hover:text-accent-foreground',
+                              active &&
+                                (isDark
+                                  ? 'bg-primary text-white hover:bg-primary hover:text-white [&_svg]:text-white'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary [&_svg]:text-primary'),
                             )}
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {item.label}
-                          </span>
-                          {target!.isWireframe && (
-                            <span
-                              className={cn(
-                                'ml-auto rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase',
-                                isDark
-                                  ? 'bg-white/10 text-white/55'
-                                  : 'bg-border text-muted-foreground',
-                              )}
-                            >
-                              block
-                            </span>
-                          )}
-                        </Link>
-                        {item.badge !== undefined && (
+                          >
+                            {itemContent}
+                          </Link>
+                        ) : (
+                          <div
+                            aria-disabled="true"
+                            aria-label={`${item.label}, ${intl.formatMessage({
+                              id:
+                                item.disabledLabelMessageId ??
+                                'project.navigation.comingSoon',
+                            })}`}
+                            title={intl.formatMessage({
+                              id:
+                                item.disabledLabelMessageId ??
+                                'project.navigation.comingSoon',
+                            })}
+                            className={cn(
+                              'flex h-9 w-full min-w-0 cursor-not-allowed items-center gap-3 rounded-lg px-3 text-sm font-medium opacity-55',
+                              isDark ? 'text-white/75' : 'text-foreground',
+                            )}
+                          >
+                            {itemContent}
+                          </div>
+                        )}
+                        {target && item.badge !== undefined && (
                           <Badge
                             size="sm"
                             shape="circle"
@@ -116,38 +158,40 @@ export function SidebarSecondary() {
                             {item.badge}
                           </Badge>
                         )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              mode="icon"
-                              size="sm"
-                              aria-label={
-                                pinned
-                                  ? `Bỏ ghim ${item.label}`
-                                  : `Ghim ${item.label}`
-                              }
-                              aria-pressed={pinned}
-                              onClick={() => togglePinnedMenu(menuKey)}
-                              className={cn(
-                                'absolute end-3 top-1/2 size-6 -translate-y-1/2 opacity-0 hover:bg-transparent hover:text-primary data-[state=open]:bg-transparent group-hover/menu-item:opacity-100',
-                                isDark
-                                  ? 'text-white/45'
-                                  : 'text-muted-foreground',
-                                pinned && 'text-primary',
-                              )}
-                            >
-                              <Pin
-                                className="size-4"
-                                fill={pinned ? 'currentColor' : 'none'}
-                              />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            {pinned ? 'Bỏ ghim' : 'Ghim'}
-                          </TooltipContent>
-                        </Tooltip>
+                        {target && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                mode="icon"
+                                size="sm"
+                                aria-label={
+                                  pinned
+                                    ? `Bỏ ghim ${item.label}`
+                                    : `Ghim ${item.label}`
+                                }
+                                aria-pressed={pinned}
+                                onClick={() => togglePinnedMenu(menuKey)}
+                                className={cn(
+                                  'absolute end-3 top-1/2 size-6 -translate-y-1/2 opacity-0 hover:bg-transparent hover:text-primary data-[state=open]:bg-transparent group-hover/menu-item:opacity-100',
+                                  isDark
+                                    ? 'text-white/45'
+                                    : 'text-muted-foreground',
+                                  pinned && 'text-primary',
+                                )}
+                              >
+                                <Pin
+                                  className="size-4"
+                                  fill={pinned ? 'currentColor' : 'none'}
+                                />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                              {pinned ? 'Bỏ ghim' : 'Ghim'}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     );
                   })}

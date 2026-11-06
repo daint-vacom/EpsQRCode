@@ -7,6 +7,8 @@ export interface MenuItemConfig {
   path?: string;
   wireframePath?: string;
   badge?: number;
+  disabled?: boolean;
+  disabledLabelMessageId?: string;
 }
 
 export interface MenuGroupConfig {

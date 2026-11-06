@@ -18,6 +18,7 @@ import type {
   MaterialModelSyncPreview,
   MaterialPublicDetail,
 } from '../model/material';
+import type { MaterialQrTrackingMetric } from '../model/material-qr-tracking';
 
 export const MATERIAL_IMAGES_BUCKET = 'material-images';
 
@@ -52,6 +53,37 @@ export async function loadMaterials(
       result.items.map((material) => resolveMaterialImages(material, true)),
     ),
   };
+}
+
+export async function loadMaterialQrTrackingMetrics(
+  materialIds: string[],
+  signal?: AbortSignal,
+): Promise<MaterialQrTrackingMetric[]> {
+  assertSupabaseConfigured();
+  const uniqueMaterialIds = [...new Set(materialIds)];
+  const metrics = await request<MaterialQrTrackingMetric[]>(
+    supabaseApi.post(
+      '/rpc/list_material_qr_tracking',
+      { p_material_ids: uniqueMaterialIds },
+      { signal },
+    ),
+  );
+  const metricIds = new Set(metrics.map((metric) => metric.materialId));
+  if (metricIds.size !== uniqueMaterialIds.length) {
+    throw new Error(
+      'Không tải đủ thông tin theo dõi mã QR cho trang hiện tại.',
+    );
+  }
+  return metrics;
+}
+
+export async function recordMaterialQrScan(
+  materialId: string,
+): Promise<boolean> {
+  assertSupabaseConfigured();
+  return request<boolean>(
+    supabaseApi.post('/rpc/record_material_qr_scan', { p_id: materialId }),
+  );
 }
 
 export async function loadMaterial(
