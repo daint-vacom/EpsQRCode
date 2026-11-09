@@ -62,7 +62,7 @@ const formItemVariants = cva('', {
   ],
 });
 
-const formLabelVariants = cva('font-normal text-foreground', {
+const formLabelVariants = cva('font-normal leading-normal text-foreground', {
   variants: {
     variant: {
       default: '',

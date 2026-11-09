@@ -4,6 +4,7 @@ import {
 } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { materialSpecificationDataTypeSchema } from '@/project/material-specifications/model/material-specification';
 import { z } from 'zod';
+import { formatMessage } from '@/lib/validation';
 
 export const materialModelSpecificationSchema = z
   .object({
@@ -38,6 +39,14 @@ export const materialModelFormSchema = z.object({
   description: z.string().trim(),
   externalCodesText: z.string(),
   requiresInspection: z.boolean(),
+  inspectionIntervalValue: z.coerce
+    .number({ error: () => formatMessage('validation.required') })
+    .int({ error: () => formatMessage('validation.number.int') })
+    .min(1, {
+      error: () => formatMessage('validation.number.min', { min: 1 }),
+    }),
+  inspectionIntervalUnit: z.enum(['day', 'month']),
+  skipInitialInspection: z.boolean(),
   useGroupSafetyInspectionChecklist: z.boolean(),
   specifications: z.array(materialModelSpecificationSchema),
   safetyInspectionChecklist: safetyInspectionChecklistSchema,
@@ -67,6 +76,8 @@ export function mapPublicSpecificationSettings(
 }
 
 export type MaterialModelFormValues = z.infer<typeof materialModelFormSchema>;
+export type MaterialModelInspectionIntervalUnit =
+  MaterialModelFormValues['inspectionIntervalUnit'];
 export type MaterialModelSpecification = z.infer<
   typeof materialModelSpecificationSchema
 >;
@@ -81,6 +92,9 @@ export interface MaterialModel {
   description: string;
   externalCodes: string[];
   requiresInspection: boolean;
+  inspectionIntervalValue: number;
+  inspectionIntervalUnit: MaterialModelInspectionIntervalUnit;
+  skipInitialInspection: boolean;
   useGroupSafetyInspectionChecklist: boolean;
   specifications: MaterialModelSpecification[];
   safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
@@ -118,6 +132,9 @@ export interface MaterialModelRow {
   description: string | null;
   external_codes: string[];
   requires_inspection: boolean;
+  inspection_interval_value: number;
+  inspection_interval_unit: MaterialModelInspectionIntervalUnit;
+  skip_initial_inspection: boolean;
   use_group_safety_inspection_checklist: boolean;
   specifications: MaterialModelSpecification[];
   public_display_settings: MaterialPublicDisplaySettings;
@@ -141,6 +158,9 @@ export function mapMaterialModelRow(
     description: row.description ?? '',
     externalCodes: row.external_codes ?? [],
     requiresInspection: row.requires_inspection,
+    inspectionIntervalValue: row.inspection_interval_value,
+    inspectionIntervalUnit: row.inspection_interval_unit,
+    skipInitialInspection: row.skip_initial_inspection,
     useGroupSafetyInspectionChecklist:
       row.use_group_safety_inspection_checklist,
     specifications: row.specifications,

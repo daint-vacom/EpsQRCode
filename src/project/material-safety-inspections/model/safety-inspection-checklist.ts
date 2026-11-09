@@ -2,15 +2,15 @@ import { z } from 'zod';
 
 export const safetyInspectionCriterionSchema = z.object({
   id: z.string().uuid(),
-  content: z.string().trim().min(1, 'Vui lòng nhập nội dung kiểm định.'),
+  content: z.string().trim().min(1, 'Vui lòng nhập nội dung kiểm tra.'),
 });
 
 export const safetyInspectionChecklistGroupSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm nội dung kiểm định.'),
+  name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm nội dung kiểm tra.'),
   criteria: z
     .array(safetyInspectionCriterionSchema)
-    .min(1, 'Mỗi nhóm cần có ít nhất một nội dung kiểm định.'),
+    .min(1, 'Mỗi nhóm cần có ít nhất một nội dung kiểm tra.'),
 });
 
 export const safetyInspectionChecklistSchema = z.array(

@@ -31,10 +31,10 @@ import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ErrorState } from '@/components/ui/error-state';
 import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MATERIAL_IMAGES_BUCKET } from '../api/materials.api';
@@ -491,41 +491,47 @@ export function MaterialEditorPage() {
                     })}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4 p-5 pt-1">
-                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
-                    <Label htmlFor="material-public-basic-info">
-                      {intl.formatMessage({
-                        id: 'project.materials.form.publicDisplay.basicInfo',
-                      })}
-                    </Label>
-                    <Switch
+                <CardContent className="grid grid-cols-2 items-center gap-x-6 gap-y-4 p-5 pt-1">
+                  <div className="col-span-2 flex min-w-0 items-center gap-3">
+                    <Checkbox
                       id="material-public-basic-info"
                       checked={publicDisplaySettings.basicInfo}
                       onCheckedChange={(basicInfo) =>
                         setPublicDisplaySettings((current) => ({
                           ...current,
-                          basicInfo,
+                          basicInfo: basicInfo === true,
                         }))
                       }
                     />
-                  </div>
-                  <div className="[--form-item-label-width:8.75rem] grid grid-cols-[var(--form-item-label-width)_minmax(0,1fr)] items-center gap-x-3">
-                    <Label htmlFor="material-public-specifications">
+                    <Label
+                      className="cursor-pointer peer-disabled:cursor-not-allowed"
+                      htmlFor="material-public-basic-info"
+                    >
                       {intl.formatMessage({
-                        id: 'project.materials.form.publicDisplay.specifications',
+                        id: 'project.materials.form.publicDisplay.basicInfo',
                       })}
                     </Label>
-                    <Switch
+                  </div>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Checkbox
                       id="material-public-specifications"
                       checked={publicDisplaySettings.specifications}
                       disabled={!publicDisplaySettings.basicInfo}
                       onCheckedChange={(specifications) =>
                         setPublicDisplaySettings((current) => ({
                           ...current,
-                          specifications,
+                          specifications: specifications === true,
                         }))
                       }
                     />
+                    <Label
+                      className="cursor-pointer peer-disabled:cursor-not-allowed"
+                      htmlFor="material-public-specifications"
+                    >
+                      {intl.formatMessage({
+                        id: 'project.materials.form.publicDisplay.specifications',
+                      })}
+                    </Label>
                   </div>
                 </CardContent>
               </Card>

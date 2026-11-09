@@ -1,6 +1,7 @@
 import type {
   MaterialModelImage,
   MaterialModelImageDraft,
+  MaterialModelInspectionIntervalUnit,
   MaterialModelSpecification,
   MaterialPublicDisplaySettings,
 } from '@/project/material-models/model/material-model';
@@ -18,6 +19,9 @@ export interface MaterialModelSnapshot {
   groupId: string | null;
   description: string;
   requiresInspection: boolean;
+  inspectionIntervalValue: number;
+  inspectionIntervalUnit: MaterialModelInspectionIntervalUnit;
+  skipInitialInspection: boolean;
   useGroupSafetyInspectionChecklist: boolean;
   specifications: MaterialModelSpecification[];
   safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];

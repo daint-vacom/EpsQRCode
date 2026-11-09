@@ -1,5 +1,9 @@
 import { safetyInspectionChecklistSchema } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { z } from 'zod';
+import { formatMessage } from '@/lib/validation';
+
+const ownerSnapshotString = () =>
+  z.string({ error: () => formatMessage('validation.required') });
 
 export const materialFormSchema = z
   .object({
@@ -17,11 +21,11 @@ export const materialFormSchema = z
     ownerSnapshot: z
       .object({
         kind: z.enum(['eps', 'external', 'warehouse', 'other']),
-        code: z.string().trim(),
-        name: z.string().trim(),
-        representativeName: z.string().trim(),
-        phone: z.string().trim(),
-        email: z.string().trim(),
+        code: ownerSnapshotString().trim(),
+        name: ownerSnapshotString().trim(),
+        representativeName: ownerSnapshotString().trim(),
+        phone: ownerSnapshotString().trim(),
+        email: ownerSnapshotString().trim(),
         departmentId: z.string().uuid().nullable().optional(),
         departmentCode: z.string().nullable().optional(),
         departmentName: z.string().nullable().optional(),

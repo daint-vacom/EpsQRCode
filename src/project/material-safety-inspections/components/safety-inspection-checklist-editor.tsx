@@ -20,11 +20,23 @@ import { CSS } from '@dnd-kit/utilities';
 import { ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type {
   SafetyInspectionChecklistGroup,
   SafetyInspectionCriterion,
@@ -97,7 +109,7 @@ function SortableCriterionRow({
         sortable.isDragging && 'relative z-10 bg-background shadow-sm',
       )}
     >
-      <TableCell className="w-12 px-2 py-2 text-center">
+      <TableCell className="w-12 border-e border-border px-1 py-1 text-center">
         <Button
           {...sortable.attributes}
           {...sortable.listeners}
@@ -116,19 +128,17 @@ function SortableCriterionRow({
           <GripVertical />
         </Button>
       </TableCell>
-      <TableCell className="w-20 px-2 py-2">
-        <span className="inline-flex min-w-12 justify-center rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-foreground">
+      <TableCell className="w-20 border-e border-border px-2 py-2 text-center">
+        <span className="text-sm tabular-nums text-foreground">
           {criterionNumber}
         </span>
       </TableCell>
-      <TableCell className="px-2 py-2">
+      <TableCell className="border-e border-border px-2 py-1">
         <div className="space-y-1">
           <Input
             value={criterion.content}
-            variant="ghost-underline"
-            placeholder={intl.formatMessage({
-              id: 'project.materials.safetyInspection.checklist.criterionPlaceholder',
-            })}
+            variant="ghost"
+            className="h-9 min-w-0 w-full rounded-none"
             aria-label={intl.formatMessage(
               {
                 id: 'project.materials.safetyInspection.checklist.criterionNumber',
@@ -148,24 +158,26 @@ function SortableCriterionRow({
           )}
         </div>
       </TableCell>
-      <TableCell className="w-12 px-2 py-2 text-center">
-        <Button
-          type="button"
-          variant="destructive"
-          appearance="ghost"
-          mode="icon"
-          size="icon"
-          aria-label={intl.formatMessage(
-            {
-              id: 'project.materials.safetyInspection.checklist.removeCriterion',
-            },
-            { criterion: criterionNumber, group: groupIndex + 1 },
-          )}
-          onClick={onRemove}
-          disabled={group.criteria.length <= 1}
-        >
-          <Trash2 />
-        </Button>
+      <TableCell className="w-20 px-1 py-1">
+        <div className="flex items-center justify-end">
+          <Button
+            type="button"
+            variant="destructive"
+            appearance="ghost"
+            mode="icon"
+            size="icon"
+            aria-label={intl.formatMessage(
+              {
+                id: 'project.materials.safetyInspection.checklist.removeCriterion',
+              },
+              { criterion: criterionNumber, group: groupIndex + 1 },
+            )}
+            onClick={onRemove}
+            disabled={group.criteria.length <= 1}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       </TableCell>
     </SortableTableRow>
   );
@@ -193,7 +205,6 @@ function SortableChecklistGroup({
   onRemoveCriterion: (criterionId: string) => void;
 }) {
   const intl = useIntl();
-  const [editingName, setEditingName] = useState(() => !group.name.trim());
   const [nameTouched, setNameTouched] = useState(false);
   const sortable = useSortable({ id: groupDndId(group.id) });
   const style = {
@@ -201,122 +212,52 @@ function SortableChecklistGroup({
     transition: sortable.transition,
   };
   const groupNumber = groupIndex + 1;
-  const groupLabel =
-    group.name.trim() ||
-    `${intl.formatMessage({ id: 'project.materials.safetyInspection.checklist.group' })} ${groupNumber}`;
   const nameIsInvalid = nameTouched && !group.name.trim();
+  const SortableTableBody = TableBody as typeof TableBody & {
+    (
+      props: ComponentProps<typeof TableBody> & {
+        ref?: Ref<HTMLTableSectionElement>;
+      },
+    ): ReactElement;
+  };
 
   return (
-    <div
+    <SortableTableBody
       ref={sortable.setNodeRef}
       style={style}
       className={cn(sortable.isDragging && 'relative z-10 opacity-90')}
     >
-      <Card className="overflow-hidden border-primary/20">
-        <CardHeader className="min-h-14 border-b border-primary/10 bg-primary/5 py-2 pe-3 ps-2 sm:pe-4">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <Button
-              {...sortable.attributes}
-              {...sortable.listeners}
-              type="button"
-              variant="ghost"
-              mode="icon"
-              size="icon"
-              aria-label={intl.formatMessage(
-                {
-                  id: 'project.materials.safetyInspection.checklist.reorderGroup',
-                },
-                { group: groupNumber },
-              )}
-              className="cursor-grab text-muted-foreground active:cursor-grabbing"
-            >
-              <GripVertical />
-            </Button>
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-sm font-semibold text-primary">
+      <TableRow hoverable={false} className="bg-background">
+        <TableCell className="w-12 border-e border-border px-1 py-1 text-center">
+          <Button
+            {...sortable.attributes}
+            {...sortable.listeners}
+            type="button"
+            variant="ghost"
+            mode="icon"
+            size="icon"
+            aria-label={intl.formatMessage(
+              {
+                id: 'project.materials.safetyInspection.checklist.reorderGroup',
+              },
+              { group: groupNumber },
+            )}
+            className="cursor-grab text-muted-foreground active:cursor-grabbing"
+          >
+            <GripVertical />
+          </Button>
+        </TableCell>
+        <TableCell className="w-20 border-e border-border px-2 py-2 text-center">
+          <div className="flex items-center justify-center gap-0.5">
+            <span className="text-xs font-semibold tabular-nums text-foreground">
               {groupNumber}
             </span>
-            <div className="min-w-0 flex-1">
-              {editingName ? (
-                <div className="space-y-1">
-                  <Input
-                    autoFocus
-                    value={group.name}
-                    variant="ghost-underline"
-                    placeholder={intl.formatMessage({
-                      id: 'project.materials.safetyInspection.checklist.groupNamePlaceholder',
-                    })}
-                    aria-label={intl.formatMessage(
-                      {
-                        id: 'project.materials.safetyInspection.checklist.groupName',
-                      },
-                      { group: groupNumber },
-                    )}
-                    aria-invalid={nameIsInvalid}
-                    onChange={(event) =>
-                      onChange({ ...group, name: event.target.value })
-                    }
-                    onBlur={() => setNameTouched(true)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && group.name.trim()) {
-                        setEditingName(false);
-                      } else if (event.key === 'Escape') {
-                        setEditingName(false);
-                      }
-                    }}
-                    className="max-w-md"
-                  />
-                  {nameIsInvalid && (
-                    <p className="px-1 text-xs text-destructive">
-                      {intl.formatMessage({
-                        id: 'project.materials.safetyInspection.checklist.groupNameRequired',
-                      })}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <h3
-                  className="w-fit max-w-full cursor-text truncate text-sm font-bold text-primary"
-                  onDoubleClick={() => setEditingName(true)}
-                >
-                  {groupLabel}
-                </h3>
-              )}
-            </div>
-            <span className="shrink-0 text-sm text-foreground">
-              {intl.formatMessage(
-                {
-                  id: 'project.materials.safetyInspection.checklist.criteriaCount',
-                },
-                { count: group.criteria.length },
-              )}
-            </span>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1">
             <Button
               type="button"
-              variant="destructive"
+              variant="primary"
               appearance="ghost"
               mode="icon"
               size="icon"
-              aria-label={intl.formatMessage(
-                {
-                  id: 'project.materials.safetyInspection.checklist.removeGroup',
-                },
-                { group: groupNumber },
-              )}
-              onClick={onRemove}
-            >
-              <Trash2 />
-            </Button>
-            <div className="mx-1 hidden h-7 w-px bg-border sm:block" />
-            <Button
-              type="button"
-              variant="outline"
-              appearance="ghost"
-              mode="icon"
-              size="icon"
-              shape="circle"
               aria-label={intl.formatMessage(
                 {
                   id: collapsed
@@ -336,59 +277,127 @@ function SortableChecklistGroup({
               />
             </Button>
           </div>
-        </CardHeader>
-
-        <div
-          className={cn(
-            'grid transition-[grid-template-rows] duration-200 ease-in-out motion-reduce:transition-none',
-            collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
-          )}
-          aria-hidden={collapsed}
-        >
-          <div className="min-h-0 overflow-hidden" inert={collapsed}>
-            <CardContent className="p-0">
-              <SortableContext
-                items={group.criteria.map((criterion) =>
-                  criterionDndId(group.id, criterion.id),
+        </TableCell>
+        <TableCell className="border-e border-border px-2 py-1">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <Input
+                value={group.name}
+                variant="ghost"
+                aria-label={intl.formatMessage(
+                  {
+                    id: 'project.materials.safetyInspection.checklist.groupName',
+                  },
+                  { group: groupNumber },
                 )}
-                strategy={verticalListSortingStrategy}
-              >
-                <Table className="table-fixed">
-                  <TableBody>
-                    {group.criteria.map((criterion, criterionIndex) => (
-                      <SortableCriterionRow
-                        key={criterion.id}
-                        group={group}
-                        groupIndex={groupIndex}
-                        criterion={criterion}
-                        criterionIndex={criterionIndex}
-                        onChange={(content) =>
-                          onChangeCriterion(criterion.id, content)
-                        }
-                        onRemove={() => onRemoveCriterion(criterion.id)}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
-              </SortableContext>
-              <div className="px-4 pb-3 pt-1 sm:ps-16">
+                aria-invalid={nameIsInvalid}
+                onChange={(event) =>
+                  onChange({ ...group, name: event.target.value })
+                }
+                onBlur={() => setNameTouched(true)}
+                className="h-9 min-w-0 w-full rounded-none font-semibold text-foreground"
+              />
+              {nameIsInvalid && (
+                <p className="px-1 pt-1 text-xs text-destructive">
+                  {intl.formatMessage({
+                    id: 'project.materials.safetyInspection.checklist.groupNameRequired',
+                  })}
+                </p>
+              )}
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  appearance="light"
+                  size="sm"
+                  tabIndex={0}
+                  className="cursor-help"
+                  aria-label={intl.formatMessage(
+                    {
+                      id: 'project.materials.safetyInspection.checklist.criteriaCount',
+                    },
+                    { count: group.criteria.length },
+                  )}
+                >
+                  {group.criteria.length}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                {intl.formatMessage(
+                  {
+                    id: 'project.materials.safetyInspection.checklist.criteriaCount',
+                  },
+                  { count: group.criteria.length },
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TableCell>
+        <TableCell className="w-20 px-1 py-1 text-center">
+          <div className="flex items-center justify-end gap-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="success"
+                  appearance="ghost"
+                  mode="icon"
+                  size="icon"
+                  aria-label={intl.formatMessage({
+                    id: 'project.materials.safetyInspection.checklist.addCriterion',
+                  })}
                   onClick={onAddCriterion}
                 >
                   <Plus />
-                  {intl.formatMessage({
-                    id: 'project.materials.safetyInspection.checklist.addCriterion',
-                  })}
                 </Button>
-              </div>
-            </CardContent>
+              </TooltipTrigger>
+              <TooltipContent>
+                {intl.formatMessage({
+                  id: 'project.materials.safetyInspection.checklist.addCriterion',
+                })}
+              </TooltipContent>
+            </Tooltip>
+            <Button
+              type="button"
+              variant="destructive"
+              appearance="ghost"
+              mode="icon"
+              size="icon"
+              aria-label={intl.formatMessage(
+                {
+                  id: 'project.materials.safetyInspection.checklist.removeGroup',
+                },
+                { group: groupNumber },
+              )}
+              onClick={onRemove}
+            >
+              <Trash2 />
+            </Button>
           </div>
-        </div>
-      </Card>
-    </div>
+        </TableCell>
+      </TableRow>
+      {!collapsed && (
+        <SortableContext
+          items={group.criteria.map((criterion) =>
+            criterionDndId(group.id, criterion.id),
+          )}
+          strategy={verticalListSortingStrategy}
+        >
+          {group.criteria.map((criterion, criterionIndex) => (
+            <SortableCriterionRow
+              key={criterion.id}
+              group={group}
+              groupIndex={groupIndex}
+              criterion={criterion}
+              criterionIndex={criterionIndex}
+              onChange={(content) => onChangeCriterion(criterion.id, content)}
+              onRemove={() => onRemoveCriterion(criterion.id)}
+            />
+          ))}
+        </SortableContext>
+      )}
+    </SortableTableBody>
   );
 }
 
@@ -503,35 +512,45 @@ export function SafetyInspectionChecklistEditor({
         fillHeight && 'h-full min-h-0',
       )}
     >
-      <div className="flex shrink-0 items-center justify-between gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         <span className="text-sm text-foreground">
           {intl.formatMessage(
             { id: 'project.materials.safetyInspection.checklist.count' },
             { groups: groups.length, criteria: criteriaCount },
           )}
         </span>
-        <Button type="button" variant="outline" onClick={addGroup}>
-          <Plus />
-          {intl.formatMessage({
-            id: 'project.materials.safetyInspection.checklist.addGroup',
-          })}
-        </Button>
       </div>
 
       <ScrollArea
-        className={cn(fillHeight && 'h-full min-h-0 flex-1')}
+        className={cn(
+          fillHeight && 'h-full min-h-0 flex-1',
+          groups.length > 0 && 'rounded-md border border-border',
+          groups.length > 0 && 'bg-background',
+        )}
         viewportClassName={cn(fillHeight && 'h-full')}
       >
         {groups.length === 0 ? (
           <div
             className={cn(
-              'flex items-center justify-center rounded-lg border border-dashed border-border px-4 text-sm text-muted-foreground',
+              'flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 text-sm text-muted-foreground',
               fillHeight ? 'h-full min-h-32' : 'min-h-32',
             )}
           >
             {intl.formatMessage({
               id: 'project.materials.safetyInspection.checklist.empty',
             })}
+            <Button
+              type="button"
+              variant="primary"
+              appearance="ghost"
+              size="sm"
+              onClick={addGroup}
+            >
+              <Plus />
+              {intl.formatMessage({
+                id: 'project.materials.safetyInspection.checklist.addGroup',
+              })}
+            </Button>
           </div>
         ) : (
           <DndContext
@@ -543,54 +562,94 @@ export function SafetyInspectionChecklistEditor({
               items={groups.map((group) => groupDndId(group.id))}
               strategy={verticalListSortingStrategy}
             >
-              <div className="flex flex-col gap-3 pb-1 pe-2">
-                {groups.map((group, groupIndex) => (
-                  <SortableChecklistGroup
-                    key={group.id}
-                    group={group}
-                    groupIndex={groupIndex}
-                    collapsed={collapsedGroupIds.has(group.id)}
-                    onToggleCollapsed={() =>
-                      setCollapsedGroupIds((current) => {
-                        const next = new Set(current);
-                        if (next.has(group.id)) next.delete(group.id);
-                        else next.add(group.id);
-                        return next;
-                      })
-                    }
-                    onChange={(updatedGroup) =>
-                      onChange(
-                        groups.map((item) =>
-                          item.id === group.id ? updatedGroup : item,
-                        ),
-                      )
-                    }
-                    onRemove={() => removeGroup(group.id)}
-                    onAddCriterion={() => addCriterion(group.id)}
-                    onChangeCriterion={(criterionId, content) =>
-                      updateGroup(group.id, (item) => ({
-                        ...item,
-                        criteria: item.criteria.map((criterion) =>
-                          criterion.id === criterionId
-                            ? { ...criterion, content }
-                            : criterion,
-                        ),
-                      }))
-                    }
-                    onRemoveCriterion={(criterionId) =>
-                      updateGroup(group.id, (item) => ({
-                        ...item,
-                        criteria: item.criteria.filter(
-                          (criterion) => criterion.id !== criterionId,
-                        ),
-                      }))
-                    }
-                  />
-                ))}
+              <div className="min-w-[760px] pb-1 pe-2">
+                <table className="w-full table-fixed border-collapse bg-background text-foreground text-sm">
+                  <TableHeader>
+                    <TableRow hoverable={false}>
+                      <TableHead className="sticky top-0 z-20 w-12 border-e border-border bg-background px-1 text-center" />
+                      <TableHead className="sticky top-0 z-20 w-20 border-e border-border bg-background px-2 text-center">
+                        {intl.formatMessage({
+                          id: 'project.materials.safetyInspection.checklist.rowNumber',
+                        })}
+                      </TableHead>
+                      <TableHead className="sticky top-0 z-20 border-e border-border bg-background px-3">
+                        {intl.formatMessage({
+                          id: 'project.materials.safetyInspection.checklist.criterion',
+                        })}
+                      </TableHead>
+                      <TableHead className="sticky top-0 z-20 w-20 bg-background px-1 text-center" />
+                    </TableRow>
+                  </TableHeader>
+                  {groups.map((group, groupIndex) => (
+                    <SortableChecklistGroup
+                      key={group.id}
+                      group={group}
+                      groupIndex={groupIndex}
+                      collapsed={collapsedGroupIds.has(group.id)}
+                      onToggleCollapsed={() =>
+                        setCollapsedGroupIds((current) => {
+                          const next = new Set(current);
+                          if (next.has(group.id)) next.delete(group.id);
+                          else next.add(group.id);
+                          return next;
+                        })
+                      }
+                      onChange={(updatedGroup) =>
+                        onChange(
+                          groups.map((item) =>
+                            item.id === group.id ? updatedGroup : item,
+                          ),
+                        )
+                      }
+                      onRemove={() => removeGroup(group.id)}
+                      onAddCriterion={() => addCriterion(group.id)}
+                      onChangeCriterion={(criterionId, content) =>
+                        updateGroup(group.id, (item) => ({
+                          ...item,
+                          criteria: item.criteria.map((criterion) =>
+                            criterion.id === criterionId
+                              ? { ...criterion, content }
+                              : criterion,
+                          ),
+                        }))
+                      }
+                      onRemoveCriterion={(criterionId) =>
+                        updateGroup(group.id, (item) => ({
+                          ...item,
+                          criteria: item.criteria.filter(
+                            (criterion) => criterion.id !== criterionId,
+                          ),
+                        }))
+                      }
+                    />
+                  ))}
+                  <TableFooter className="bg-background">
+                    <TableRow hoverable={false}>
+                      <TableCell
+                        colSpan={4}
+                        className="border-t border-border px-2 py-2"
+                      >
+                        <Button
+                          type="button"
+                          variant="primary"
+                          appearance="ghost"
+                          size="sm"
+                          onClick={addGroup}
+                        >
+                          <Plus />
+                          {intl.formatMessage({
+                            id: 'project.materials.safetyInspection.checklist.addGroup',
+                          })}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </table>
               </div>
             </SortableContext>
           </DndContext>
         )}
+        <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>
   );

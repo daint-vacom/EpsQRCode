@@ -196,6 +196,9 @@ async function saveMaterialModel(
         p_group_id: values.groupId,
         p_description: values.description.trim() || null,
         p_requires_inspection: values.requiresInspection,
+        p_inspection_interval_value: values.inspectionIntervalValue,
+        p_inspection_interval_unit: values.inspectionIntervalUnit,
+        p_skip_initial_inspection: values.skipInitialInspection,
         p_use_group_safety_inspection_checklist:
           values.useGroupSafetyInspectionChecklist,
         p_specifications: values.specifications,

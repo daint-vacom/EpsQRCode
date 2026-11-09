@@ -374,27 +374,26 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.tabs.handoverHistory': 'Lịch sử bàn giao',
   'project.materials.tabs.inventoryHistory': 'Lịch sử kiểm kê',
   'project.materials.tabs.safety': 'Quản lý an toàn',
-  'project.materials.tabs.safetyChecklist': 'Kiểm định an toàn',
+  'project.materials.tabs.safetyChecklist': 'Kiểm tra an toàn',
   'project.materials.safetyInspection.checklist.empty':
-    'Chưa có nhóm nội dung kiểm định.',
+    'Chưa có nhóm nội dung kiểm tra.',
   'project.materials.safetyInspection.checklist.group':
-    'Nhóm nội dung kiểm định',
+    'Nhóm nội dung kiểm tra',
   'project.materials.safetyInspection.checklist.groupName':
-    'Tên nhóm nội dung kiểm định {group}',
+    'Tên nhóm nội dung kiểm tra {group}',
   'project.materials.safetyInspection.checklist.groupNamePlaceholder':
-    'Nhập tên nhóm nội dung kiểm định',
+    'Nhập tên nhóm nội dung kiểm tra',
   'project.materials.safetyInspection.checklist.groupNameRequired':
-    'Vui lòng nhập tên nhóm nội dung kiểm định.',
-  'project.materials.safetyInspection.checklist.criterion':
-    'Nội dung kiểm định',
+    'Vui lòng nhập tên nhóm nội dung kiểm tra.',
+  'project.materials.safetyInspection.checklist.criterion': 'Nội dung kiểm tra',
   'project.materials.safetyInspection.checklist.criterionNumber':
-    'Nội dung kiểm định {group}.{criterion}',
+    'Nội dung kiểm tra {group}.{criterion}',
   'project.materials.safetyInspection.checklist.criterionPlaceholder':
-    'Nhập nội dung kiểm định',
+    'Nhập nội dung kiểm tra',
   'project.materials.safetyInspection.checklist.criterionRequired':
-    'Vui lòng nhập nội dung kiểm định.',
+    'Vui lòng nhập nội dung kiểm tra.',
   'project.materials.safetyInspection.checklist.removeGroup':
-    'Xóa nhóm nội dung kiểm định {group}',
+    'Xóa nhóm nội dung kiểm tra {group}',
   'project.materials.safetyInspection.checklist.removeCriterion':
     'Xóa nội dung {criterion} trong nhóm {group}',
   'project.materials.safetyInspection.checklist.reorderGroup':
@@ -411,8 +410,7 @@ export const materialMessagesVi: Record<string, string> = {
     '{groups} nhóm · {criteria} nội dung',
   'project.materials.safetyInspection.checklist.rowNumber': 'STT',
   'project.materials.safetyInspection.checklist.addCriterion': 'Thêm nội dung',
-  'project.materials.safetyInspection.checklist.addGroup':
-    'Thêm nhóm nội dung kiểm định',
+  'project.materials.safetyInspection.checklist.addGroup': 'Thêm nhóm',
   'project.materials.safetyInspection.checklist.inheritedTitle':
     'Checklist được kế thừa',
   'project.materials.safetyInspection.page.createTitle':
@@ -496,9 +494,9 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.form.chooseModelHint':
     'Chọn mẫu vật tư để xem thông tin được lưu khi tạo.',
   'project.materials.form.publicDisplay.title': 'Thông tin hiển thị công khai',
-  'project.materials.form.publicDisplay.basicInfo': 'Cho phép xem vật tư',
-  'project.materials.form.publicDisplay.specifications':
-    'Cho phép xem thông số kỹ thuật',
+  'project.materials.form.publicDisplay.basicInfo':
+    'Công khai thông tin vật tư',
+  'project.materials.form.publicDisplay.specifications': 'Thông số kỹ thuật',
   'project.materials.publicDetail.title': 'Thông tin vật tư',
   'project.materials.publicDetail.basicInfo': 'Thông tin cơ bản',
   'project.materials.publicDetail.specifications': 'Thông số kỹ thuật',
@@ -945,27 +943,26 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.tabs.handoverHistory': 'Handover history',
   'project.materials.tabs.inventoryHistory': 'Inventory history',
   'project.materials.tabs.safety': 'Safety management',
-  'project.materials.tabs.safetyChecklist': 'Safety inspection',
+  'project.materials.tabs.safetyChecklist': 'Safety checks',
   'project.materials.safetyInspection.checklist.empty':
-    'No inspection content groups have been added.',
+    'No safety check groups have been added.',
   'project.materials.safetyInspection.checklist.group':
-    'Inspection content group',
+    'Safety check content group',
   'project.materials.safetyInspection.checklist.groupName':
-    'Inspection content group {group} name',
+    'Safety check content group {group} name',
   'project.materials.safetyInspection.checklist.groupNamePlaceholder':
-    'Enter inspection content group name',
+    'Enter safety check content group name',
   'project.materials.safetyInspection.checklist.groupNameRequired':
-    'Enter an inspection content group name.',
-  'project.materials.safetyInspection.checklist.criterion':
-    'Inspection content',
+    'Enter a safety check content group name.',
+  'project.materials.safetyInspection.checklist.criterion': 'Check item',
   'project.materials.safetyInspection.checklist.criterionNumber':
-    'Inspection content {group}.{criterion}',
+    'Check item {group}.{criterion}',
   'project.materials.safetyInspection.checklist.criterionPlaceholder':
-    'Enter inspection content',
+    'Enter a check item',
   'project.materials.safetyInspection.checklist.criterionRequired':
-    'Enter inspection content.',
+    'Enter a check item.',
   'project.materials.safetyInspection.checklist.removeGroup':
-    'Remove inspection content group {group}',
+    'Remove safety check content group {group}',
   'project.materials.safetyInspection.checklist.removeCriterion':
     'Remove content {criterion} in group {group}',
   'project.materials.safetyInspection.checklist.reorderGroup':
@@ -981,8 +978,7 @@ export const materialMessagesEn: Record<string, string> = {
     '{groups} groups · {criteria} items',
   'project.materials.safetyInspection.checklist.rowNumber': 'No.',
   'project.materials.safetyInspection.checklist.addCriterion': 'Add content',
-  'project.materials.safetyInspection.checklist.addGroup':
-    'Add inspection content group',
+  'project.materials.safetyInspection.checklist.addGroup': 'Add group',
   'project.materials.safetyInspection.checklist.inheritedTitle':
     'Inherited checklist',
   'project.materials.safetyInspection.page.createTitle':
@@ -1070,9 +1066,10 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.form.chooseModelHint':
     'Choose a material model to preview information captured when the material is created.',
   'project.materials.form.publicDisplay.title': 'Publicly visible information',
-  'project.materials.form.publicDisplay.basicInfo': 'Allow viewing material',
+  'project.materials.form.publicDisplay.basicInfo':
+    'Make material information public',
   'project.materials.form.publicDisplay.specifications':
-    'Allow viewing technical specifications',
+    'Technical specifications',
   'project.materials.publicDetail.title': 'Material information',
   'project.materials.publicDetail.basicInfo': 'Basic information',
   'project.materials.publicDetail.specifications': 'Technical specifications',
