@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import { useLayout } from './context';
-import { SidebarPrimary } from './sidebar-primary';
 import { SidebarSecondary } from './sidebar-secondary';
 
 export function Sidebar() {
@@ -16,7 +15,6 @@ export function Sidebar() {
           : 'border-e border-border bg-card',
       )}
     >
-      <SidebarPrimary />
       {isSidebarOpen && <SidebarSecondary />}
     </aside>
   );

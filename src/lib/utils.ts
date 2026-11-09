@@ -1,5 +1,22 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+// Keep custom --text-* tokens in sync so size utilities do not evict text colors.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: [
+        '2sm',
+        '2xs',
+        'page-title',
+        'section-title',
+        'grid-header',
+        'supporting',
+        'metric',
+      ],
+    },
+  },
+});
 
 /**
  * Merges Tailwind class names, resolving any conflicts.

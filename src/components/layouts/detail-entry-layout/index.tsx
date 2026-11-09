@@ -20,9 +20,15 @@ export function DetailEntryLayout() {
     <DetailEntryHeaderContext.Provider value={setHeader}>
       <div className="fixed inset-0 flex h-dvh min-h-0 w-full min-w-0 flex-col overflow-hidden bg-muted text-foreground">
         <header className="z-10 flex h-14 shrink-0 items-center border-b border-border bg-card px-3 lg:px-4">
-          <PageHeader {...header} className="w-full" />
+          <PageHeader
+            {...header}
+            className="admin-content-wide w-full px-4 lg:px-5"
+          />
         </header>
-        <main className="min-h-0 min-w-0 flex-1 overflow-hidden" role="main">
+        <main
+          className="admin-content-wide min-h-0 min-w-0 flex-1 overflow-y-auto"
+          role="main"
+        >
           <Outlet />
         </main>
       </div>

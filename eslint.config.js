@@ -7,6 +7,9 @@ import tseslint from 'typescript-eslint';
 const cleanGlobals = Object.fromEntries(
   Object.entries(globals.browser).map(([key, value]) => [key.trim(), value]),
 );
+const cleanNodeGlobals = Object.fromEntries(
+  Object.entries(globals.node).map(([key, value]) => [key.trim(), value]),
+);
 
 export default tseslint.config(
   { ignores: ['dist'] },
@@ -34,6 +37,12 @@ export default tseslint.config(
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    files: ['tools/**/*.{ts,tsx}', '**/*.config.{ts,tsx}'],
+    languageOptions: {
+      globals: cleanNodeGlobals,
     },
   },
 );

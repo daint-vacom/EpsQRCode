@@ -59,7 +59,6 @@ import {
 } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { useLayout } from './context';
-import { SidebarPrimary } from './sidebar-primary';
 import { SidebarSecondary } from './sidebar-secondary';
 
 const DISPLAY_THEMES = [
@@ -313,7 +312,6 @@ export function Header() {
             >
               <SheetHeader className="p-0" />
               <SheetBody className="flex p-0">
-                <SidebarPrimary />
                 <SidebarSecondary />
               </SheetBody>
             </SheetContent>

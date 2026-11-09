@@ -80,9 +80,7 @@ export function EntityDetailInformationItem({
   return (
     <div className={cn('min-w-0 space-y-2', className)}>
       <p className="text-sm text-muted-foreground">{label}</p>
-      <div className="min-w-0 text-sm font-semibold text-foreground">
-        {value}
-      </div>
+      <div className="min-w-0 text-sm font-medium text-foreground">{value}</div>
     </div>
   );
 }
@@ -97,7 +95,7 @@ export function EntityDetailInformationGrid({
   return (
     <dl
       className={cn(
-        'grid gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
+        'grid gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
         className,
       )}
     >
@@ -167,7 +165,7 @@ export function EntityDetailLayout({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5',
+        'admin-content-wide flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5',
         className,
       )}
     >

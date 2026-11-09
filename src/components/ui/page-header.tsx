@@ -81,7 +81,7 @@ export function PageHeader({
         {Icon ? (
           <Icon className="size-5 shrink-0 text-primary" aria-hidden="true" />
         ) : null}
-        <h1 className="shrink-0 text-lg font-semibold text-foreground">
+        <h1 className="shrink-0 text-page-title font-semibold text-foreground">
           {title}
         </h1>
         {titleAside ? <div className="min-w-0 flex-1">{titleAside}</div> : null}

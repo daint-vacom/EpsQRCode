@@ -73,6 +73,7 @@
   --admin-sidebar-width: 224px;
   --admin-topbar-height: 64px;
   --admin-page-section-gap: 0.75rem;
+  --admin-content-wide-max: 96rem;
 
   --background: var(--admin-surface);
   --foreground: var(--admin-neutral-800);
@@ -293,6 +294,7 @@
 @layer base {
   body {
     font-family: var(--admin-font-primary);
+    font-weight: 400;
     background: var(--admin-neutral-bg);
     color: var(--admin-neutral-800);
   }
@@ -345,6 +347,12 @@ html {
 
 @utility container-fluid {
   @apply mx-auto w-full px-4 lg:px-5;
+}
+
+@utility admin-content-wide {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--admin-content-wide-max);
 }
 
 @media (width >= --theme(--breakpoint-lg)) {

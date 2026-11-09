@@ -1,17 +1,10 @@
 import { useUiStore } from '@/stores/ui.store';
-import { Pin } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { Link, useLocation } from 'react-router-dom';
-import { getMenuItemKey, resolveMenuTarget } from '@/config/menu.types';
+import { resolveMenuTarget } from '@/config/menu.types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useLayout } from './context';
 import { SidebarHeader } from './sidebar-header';
 
@@ -20,17 +13,13 @@ export function SidebarSecondary() {
   const { pathname } = useLocation();
   const { shell } = useLayout();
   const wireframeMode = useUiStore((s) => s.wireframeMode);
-  const pinnedMenuPaths = useUiStore((s) => s.pinnedMenuPaths);
-  const togglePinnedMenu = useUiStore((s) => s.togglePinnedMenu);
   const isDark = shell.secondarySidebarVariant === 'dark';
 
   return (
     <div
       className={cn(
-        'flex w-(--sidebar-menu-width) min-w-0 flex-col border-s',
-        isDark
-          ? 'border-admin-shell-border/80 bg-admin-shell-deep text-white'
-          : 'border-border bg-card text-foreground',
+        'flex w-full min-w-0 flex-col',
+        isDark ? 'bg-admin-shell-deep text-white' : 'bg-card text-foreground',
       )}
     >
       <SidebarHeader />
@@ -64,9 +53,6 @@ export function SidebarSecondary() {
                     const active = target ? pathname === target.to : false;
                     const Icon = item.icon;
 
-                    const menuKey = getMenuItemKey(item);
-                    const pinned = pinnedMenuPaths.includes(menuKey);
-
                     const itemContent = (
                       <>
                         <Icon
@@ -93,7 +79,8 @@ export function SidebarSecondary() {
                         {target?.isWireframe && (
                           <span
                             className={cn(
-                              'ml-auto rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase',
+                              'rounded px-1.5 py-0.5 text-[0.625rem] font-semibold uppercase',
+                              item.badge === undefined && 'ml-auto',
                               isDark
                                 ? 'bg-white/10 text-white/55'
                                 : 'bg-border text-muted-foreground',
@@ -106,15 +93,12 @@ export function SidebarSecondary() {
                     );
 
                     return (
-                      <div
-                        key={item.label}
-                        className="group/menu-item relative"
-                      >
+                      <div key={item.label} className="relative">
                         {target ? (
                           <Link
                             to={target.to}
                             className={cn(
-                              'flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 pe-12 text-sm font-medium transition-colors',
+                              'flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
                               isDark
                                 ? 'text-white/75 hover:bg-white/10 hover:text-white'
                                 : 'text-foreground hover:bg-field hover:text-accent-foreground',
@@ -125,6 +109,17 @@ export function SidebarSecondary() {
                             )}
                           >
                             {itemContent}
+                            {item.badge !== undefined && (
+                              <Badge
+                                size="sm"
+                                shape="circle"
+                                variant={active ? 'primary' : 'secondary'}
+                                appearance={active ? 'default' : 'light'}
+                                className="ms-auto shrink-0"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
                           </Link>
                         ) : (
                           <div
@@ -146,51 +141,6 @@ export function SidebarSecondary() {
                           >
                             {itemContent}
                           </div>
-                        )}
-                        {target && item.badge !== undefined && (
-                          <Badge
-                            size="sm"
-                            shape="circle"
-                            variant={active ? 'primary' : 'secondary'}
-                            appearance={active ? 'default' : 'light'}
-                            className="absolute end-3 top-1/2 -translate-y-1/2 group-hover/menu-item:hidden"
-                          >
-                            {item.badge}
-                          </Badge>
-                        )}
-                        {target && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                mode="icon"
-                                size="sm"
-                                aria-label={
-                                  pinned
-                                    ? `Bỏ ghim ${item.label}`
-                                    : `Ghim ${item.label}`
-                                }
-                                aria-pressed={pinned}
-                                onClick={() => togglePinnedMenu(menuKey)}
-                                className={cn(
-                                  'absolute end-3 top-1/2 size-6 -translate-y-1/2 opacity-0 hover:bg-transparent hover:text-primary data-[state=open]:bg-transparent group-hover/menu-item:opacity-100',
-                                  isDark
-                                    ? 'text-white/45'
-                                    : 'text-muted-foreground',
-                                  pinned && 'text-primary',
-                                )}
-                              >
-                                <Pin
-                                  className="size-4"
-                                  fill={pinned ? 'currentColor' : 'none'}
-                                />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              {pinned ? 'Bỏ ghim' : 'Ghim'}
-                            </TooltipContent>
-                          </Tooltip>
                         )}
                       </div>
                     );

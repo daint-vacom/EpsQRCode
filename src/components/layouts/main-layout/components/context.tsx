@@ -110,6 +110,8 @@ export function LayoutProvider({
     }
 
     setIsSidebarOpen(!appearance.sidebarCollapsed);
+    // Keep this dependency omitted so detail navigation restores the captured state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appearance.sidebarCollapsed, shouldAutoCollapseSidebar]);
 
   const sidebarCurrentWidth = isSidebarOpen
@@ -117,9 +119,8 @@ export function LayoutProvider({
     : 'var(--sidebar-collapsed-width)';
 
   const style = {
-    '--sidebar-width': '280px',
-    '--sidebar-collapsed-width': '56px',
-    '--sidebar-menu-width': '224px',
+    '--sidebar-width': '224px',
+    '--sidebar-collapsed-width': '0px',
     '--sidebar-current-width': sidebarCurrentWidth,
     '--header-height': '56px',
     '--header-height-mobile': '56px',

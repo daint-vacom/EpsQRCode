@@ -16,6 +16,16 @@
 
 /** Custom Font Size **/
 @theme {
+  --text-page-title: 1.25rem;
+  --text-page-title--line-height: 1.75rem;
+  --text-section-title: 1rem;
+  --text-section-title--line-height: 1.5rem;
+  --text-grid-header: 0.8125rem;
+  --text-grid-header--line-height: 1.25rem;
+  --text-supporting: 0.75rem;
+  --text-supporting--line-height: 1rem;
+  --text-metric: 1.5rem;
+  --text-metric--line-height: 2rem;
   --text-2sm: 0.8125rem;
   --text-2sm--line-height: calc(1.075 / 0.8125);
   --text-2xs: 0.6875rem;

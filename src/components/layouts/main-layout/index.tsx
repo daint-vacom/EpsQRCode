@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { LayoutProvider } from './components/context';
 import type { LayoutShellConfig } from './components/context';
@@ -19,12 +20,11 @@ export function MainLayout({ shell }: MainLayoutProps = {}) {
         shell={shell}
         style={
           {
-            '--sidebar-width': '280px',
-            '--sidebar-collapsed-width': '56px',
-            '--sidebar-menu-width': '224px',
+            '--sidebar-width': '224px',
+            '--sidebar-collapsed-width': '0px',
             '--header-height': '56px',
             '--header-height-mobile': '56px',
-          } as React.CSSProperties
+          } as CSSProperties
         }
       >
         <Wrapper />

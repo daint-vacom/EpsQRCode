@@ -153,7 +153,7 @@ function DataGridTableHeadRowCell<TData>({
         isLastLeftPinned ? 'left' : isFirstRightPinned ? 'right' : undefined
       }
       className={cn(
-        'relative text-left rtl:text-right align-middle text-xs font-bold normal-case tracking-[0.01em] text-secondary-foreground [&:has([role=checkbox])]:pe-0',
+        'relative text-left rtl:text-right align-middle text-grid-header font-semibold normal-case tracking-[0.01em] text-foreground/80 [&:has([role=checkbox])]:pe-0',
         headerCellSpacing,
         headerFilter ? 'h-auto min-h-10 py-2' : 'h-10',
         props.tableLayout?.cellBorder && 'border-e',
