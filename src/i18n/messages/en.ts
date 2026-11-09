@@ -9,6 +9,26 @@ import { warehouseMessagesEn } from '@/project/warehouses/messages';
 /** English translations for the material operations modules. */
 export const en: Record<string, string> = {
   'common.actions.retry': 'Retry',
+  'common.spreadsheets.errors.fileType':
+    'Choose an Excel file in .xlsx format.',
+  'common.spreadsheets.errors.unavailable':
+    'Excel processing could not be initialized in this browser.',
+  'common.spreadsheets.errors.invalidFile':
+    'The Excel file could not be read. Check the .xlsx file and try again.',
+  'common.spreadsheets.errors.fileSize':
+    'The Excel file exceeds the 20 MB limit.',
+  'common.spreadsheets.errors.noWorksheets':
+    'The Excel file has no worksheets to process.',
+  'common.spreadsheets.errors.rowLimit':
+    'The worksheet exceeds the 50,000 row limit.',
+  'common.spreadsheets.errors.markersMustShareRow':
+    'Mapping markers in the same worksheet must be on the same row.',
+  'common.spreadsheets.errors.worksheetMissing':
+    'The selected worksheet was not found.',
+  'common.spreadsheets.errors.mappingEmpty':
+    'No data columns were recognized in the template. Add markers for the fields to export or use standard column headers.',
+  'common.spreadsheets.errors.exportLimit':
+    'The export exceeds the 50,000 row limit.',
   'common.state.loading': 'Loading',
   'common.actions.loadMore': 'Load more',
   'common.select.loadingMore': 'Loading more',
@@ -63,6 +83,20 @@ export const en: Record<string, string> = {
   'project.navigation.settings': 'Settings',
   'settings.tabs.account': 'Account',
   'settings.tabs.organization': 'Organization',
+  'settings.tabs.spreadsheetTemplates': 'Templates',
+  'settings.spreadsheetTemplates.title': 'Excel templates',
+  'settings.spreadsheetTemplates.materialsImport': 'Import materials',
+  'settings.spreadsheetTemplates.materialsExport': 'Export materials',
+  'settings.spreadsheetTemplates.chooseFile': 'Choose an .xlsx template',
+  'settings.spreadsheetTemplates.replaceFile': 'Replace file',
+  'settings.spreadsheetTemplates.downloadFile': 'Download',
+  'settings.spreadsheetTemplates.uploading': 'Uploading template',
+  'settings.spreadsheetTemplates.downloading': 'Downloading',
+  'settings.spreadsheetTemplates.fileHelp':
+    'Choose an .xlsx file to add or replace the template. Maximum size: 20 MB.',
+  'settings.spreadsheetTemplates.saved': 'Excel template updated.',
+  'settings.spreadsheetTemplates.loadErrorTitle':
+    'Could not load Excel templates',
   'reports.page.title': 'Reports',
   'reports.mock.heading': 'Report mock page',
   'reports.mock.description': 'Report content and data will be added later.',

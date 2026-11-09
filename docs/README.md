@@ -11,6 +11,7 @@ Start from the task, not from the document number. Read only the listed files an
 | Change shared styling or UX rules | [`02-design-system.md`](./02-design-system.md), [`06-component-usage-guide.md`](./06-component-usage-guide.md) | Matching `components/*` |
 | Implement permissions | [`permissions/overview.md`](./permissions/overview.md) | One of `frontend.md`, `backend.md`, `admin-ui.md` |
 | Configure Supabase prototype flows | [`../supabase/README.md`](../supabase/README.md) | Relevant migrations and API modules |
+| Implement Excel import or export | [`workflows/spreadsheet-import-export.md`](./workflows/spreadsheet-import-export.md) | Relevant entity fields, template markers, and API modules |
 | Create or extend a builder | [`builders/authoring.md`](./builders/authoring.md) | Existing builder source and tests |
 
 `reference/` and `engineering/` are opt-in. Do not read them for ordinary implementation tasks.

@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import {
   applyMaterialModelSync,
+  createMaterialsBulk,
   deleteMaterials,
   loadMaterial,
   loadMaterialHistory,
@@ -109,6 +110,15 @@ export function useSaveMaterialMutation() {
         publicDisplaySettings,
         publicSpecificationSettings,
       ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+  });
+}
+
+export function useCreateMaterialsBulkMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createMaterialsBulk,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialKeys.all }),
   });

@@ -17,10 +17,12 @@ import {
   Boxes,
   CheckCircle2,
   CircleAlert,
+  Download,
   Handshake,
   Plus,
   QrCode,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
@@ -43,8 +45,17 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { MaterialHandoverPreflightDialogShell } from '../components/material-handover-preflight-dialog-shell.generated';
 import { MaterialQrCodeDialog } from '../components/material-qr-code-dialog';
+import {
+  MaterialSpreadsheetExportDialog,
+  MaterialSpreadsheetImportDialog,
+} from '../components/material-spreadsheet-dialog';
 import {
   useDeleteMaterialMutation,
   useMaterialsQuery,
@@ -117,6 +128,12 @@ function HandoverCheckRow({
 
 export function MaterialListPage() {
   const intl = useIntl();
+  const exportExcelLabel = intl.formatMessage({
+    id: 'project.materials.actions.exportExcel',
+  });
+  const importExcelLabel = intl.formatMessage({
+    id: 'project.materials.actions.importExcel',
+  });
   const navigate = useNavigate();
   const navigateToLabelPrint = (materialIds: readonly string[]) => {
     const selectionKey = storeMaterialLabelSelection(materialIds);
@@ -138,6 +155,8 @@ export function MaterialListPage() {
   const [bulkAction, setBulkAction] = useState<MaterialBulkAction>('');
   const [isHandoverPreflightOpen, setIsHandoverPreflightOpen] = useState(false);
   const handoverNavigationStarted = useRef(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
     ReadonlySet<string>
@@ -154,6 +173,10 @@ export function MaterialListPage() {
       pageSize: pagination.pageSize,
     }),
     [pagination.pageIndex, pagination.pageSize, search, status],
+  );
+  const spreadsheetFilters = useMemo(
+    () => ({ search: search.trim() || undefined, status: status || undefined }),
+    [search, status],
   );
   const queryEnabled = isPermissionsPending || canView;
   const query = useMaterialsQuery(
@@ -382,17 +405,53 @@ export function MaterialListPage() {
         title={intl.formatMessage({ id: 'project.materials.page.title' })}
         icon={Boxes}
         actions={
-          canManage ? (
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
-            >
-              <Plus />
-              {intl.formatMessage({ id: 'project.materials.actions.create' })}
-            </Button>
-          ) : null
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {canView ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label={exportExcelLabel}
+                    onClick={() => setIsExportDialogOpen(true)}
+                  >
+                    <Download aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{exportExcelLabel}</TooltipContent>
+              </Tooltip>
+            ) : null}
+            {canManage ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    mode="icon"
+                    size="md"
+                    aria-label={importExcelLabel}
+                    onClick={() => setIsImportDialogOpen(true)}
+                  >
+                    <Upload aria-hidden="true" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{importExcelLabel}</TooltipContent>
+              </Tooltip>
+            ) : null}
+            {canManage ? (
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
+              >
+                <Plus />
+                {intl.formatMessage({ id: 'project.materials.actions.create' })}
+              </Button>
+            ) : null}
+          </div>
         }
       />
       <DataGrid
@@ -709,6 +768,15 @@ export function MaterialListPage() {
           </ul>
         </div>
       </MaterialHandoverPreflightDialogShell>
+      <MaterialSpreadsheetImportDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+      <MaterialSpreadsheetExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        filters={spreadsheetFilters}
+      />
     </div>
   );
 }

@@ -82,8 +82,6 @@ export const accountMessagesVi: Record<string, string> = {
   'accounts.settings.profile.team': 'Tổ / nhóm EPS',
   'accounts.settings.profile.mappingNotice':
     'Tài khoản chưa được ánh xạ với danh tính EPS hoặc đơn vị ngoài.',
-  'accounts.settings.profile.epsReadOnly':
-    'Thông tin nhân sự EPS được cung cấp chỉ đọc từ danh bạ EPS.',
   'accounts.settings.security.title': 'Bảo mật tài khoản',
   'accounts.settings.security.email': 'Email đăng nhập',
   'accounts.settings.security.password': 'Đổi mật khẩu',
@@ -183,8 +181,6 @@ export const accountMessagesEn: Record<string, string> = {
   'accounts.settings.profile.team': 'EPS team',
   'accounts.settings.profile.mappingNotice':
     'This account is not mapped to an EPS identity or external organization.',
-  'accounts.settings.profile.epsReadOnly':
-    'EPS employee information is read-only and comes from the EPS directory.',
   'accounts.settings.security.title': 'Account security',
   'accounts.settings.security.email': 'Sign-in email',
   'accounts.settings.security.password': 'Change password',

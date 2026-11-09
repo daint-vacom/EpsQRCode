@@ -53,6 +53,196 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.page.description':
     'Theo dõi thiết bị, chủ sở hữu và tình trạng sử dụng.',
   'project.materials.actions.create': 'Thêm vật tư',
+  'project.materials.actions.importExcel': 'Nhập Excel',
+  'project.materials.actions.exportExcel': 'Xuất Excel',
+  'project.materials.spreadsheet.title': 'Vật tư',
+  'project.materials.spreadsheet.importTitle': 'Nhập vật tư từ Excel',
+  'project.materials.spreadsheet.importStep.upload': 'Nhập tệp',
+  'project.materials.spreadsheet.importStep.review': 'Kiểm tra dữ liệu',
+  'project.materials.spreadsheet.importStep.report': 'Kết quả nhập',
+  'project.materials.spreadsheet.downloadImportTemplate':
+    'Tải biểu mẫu hệ thống',
+  'project.materials.spreadsheet.downloadingFile': 'Đang tải tệp',
+  'project.materials.spreadsheet.nextStep': 'Tiếp theo',
+  'project.materials.spreadsheet.backStep': 'Quay lại',
+  'project.materials.spreadsheet.readFiles': 'Đọc tệp Excel',
+  'project.materials.spreadsheet.readingFiles': 'Đang đọc tệp',
+  'project.materials.spreadsheet.readProgress':
+    'Đã đọc {processed}/{total} tệp',
+  'project.materials.spreadsheet.fileRowsCount': '{count} dòng',
+  'project.materials.spreadsheet.removeFile': 'Bỏ tệp',
+  'project.materials.spreadsheet.duplicateUploadFiles':
+    'Các tệp đã chọn đã có trong danh sách.',
+  'project.materials.spreadsheet.templateMappingMissing':
+    'Không tìm thấy marker hoặc tiêu đề cột vật tư trong tệp.',
+  'project.materials.spreadsheet.templateMissingFields':
+    'Thiếu các cột bắt buộc: {fields}.',
+  'project.materials.spreadsheet.templateNoRows':
+    'Không tìm thấy dòng dữ liệu vật tư trong tệp.',
+  'project.materials.spreadsheet.creatingModelProgress':
+    'Đang tạo mẫu vật tư {processed}/{total}',
+  'project.materials.spreadsheet.modelCreateFailed':
+    'Không tạo được mẫu vật tư liên kết với dòng này.',
+  'project.materials.spreadsheet.noUploadedFiles':
+    'Hãy chọn ít nhất một tệp Excel.',
+  'project.materials.spreadsheet.downloadAllResults': 'Tải file kết quả',
+  'project.materials.spreadsheet.downloadErrorResults': 'Tải file kết quả lỗi',
+  'project.materials.spreadsheet.importProgress':
+    'Đã xử lý {processed}/{total} vật tư',
+  'project.materials.spreadsheet.importCompleted': 'Đã hoàn tất nhập vật tư.',
+  'project.materials.spreadsheet.reviewErrors': 'Lỗi dữ liệu',
+  'project.materials.spreadsheet.previewFile': 'Tệp Excel',
+  'project.materials.spreadsheet.previewModelName': 'Tên mẫu',
+  'project.materials.spreadsheet.previewMaterialName': 'Tên vật tư',
+  'project.materials.spreadsheet.previewSpecifications': 'Thông số kỹ thuật',
+  'project.materials.spreadsheet.previewOwner': 'Chủ sở hữu',
+  'project.materials.spreadsheet.validation': 'Kiểm tra',
+  'project.materials.spreadsheet.invalidLabel': 'Không hợp lệ',
+  'project.materials.spreadsheet.unknownModelsTitle':
+    'Mẫu vật tư chưa có trong phần mềm',
+  'project.materials.spreadsheet.unknownModelsDescription':
+    'Chọn cách xử lý các mẫu vật tư mới trước khi nhập.',
+  'project.materials.spreadsheet.importOnlyExistingModels':
+    'Chỉ nhập vật tư có mẫu vật tư trong phần mềm',
+  'project.materials.spreadsheet.importAndCreateModels':
+    'Tạo {count} mẫu vật tư và nhập toàn bộ vật tư',
+  'project.materials.spreadsheet.createModelsPermission':
+    'Bạn cần quyền quản lý mẫu vật tư để tạo mẫu mới.',
+  'project.materials.spreadsheet.resultColumn': 'Kết quả nhập vật tư',
+  'project.materials.spreadsheet.globalErrorsSheet': 'Lỗi chung',
+  'project.materials.spreadsheet.exportTitle': 'Xuất danh sách vật tư',
+  'project.materials.spreadsheet.close': 'Đóng',
+  'project.materials.spreadsheet.import': 'Nhập dữ liệu',
+  'project.materials.spreadsheet.export': 'Xuất dữ liệu',
+  'project.materials.spreadsheet.file': 'Tệp Excel .xlsx',
+  'project.materials.spreadsheet.chooseFile': 'Chọn tệp Excel',
+  'project.materials.spreadsheet.templateOptional':
+    'Chọn tệp Excel khác (không bắt buộc)',
+  'project.materials.spreadsheet.templateActive': 'Đang dùng biểu mẫu: {name}',
+  'project.materials.spreadsheet.customTemplateActive':
+    'Đang dùng tệp đã chọn: {name}',
+  'project.materials.spreadsheet.sharedTemplateActive':
+    'Đang dùng biểu mẫu chung: {name}',
+  'project.materials.spreadsheet.useSharedTemplate': 'Dùng lại biểu mẫu chung',
+  'project.materials.spreadsheet.sharedTemplateMissing':
+    'Chưa có biểu mẫu chung. Hãy thêm tệp trong Cài đặt > Biểu mẫu hoặc chọn tệp Excel bên dưới.',
+  'project.materials.spreadsheet.sharedTemplateLoadError':
+    'Không tải được biểu mẫu chung. Bạn vẫn có thể chọn một tệp Excel khác.',
+  'project.materials.spreadsheet.sheet': 'Trang tính',
+  'project.materials.spreadsheet.headerRow': 'Dòng tiêu đề',
+  'project.materials.spreadsheet.dataStartRow': 'Dòng dữ liệu đầu tiên',
+  'project.materials.spreadsheet.field': 'Trường dữ liệu',
+  'project.materials.spreadsheet.column': 'Cột trong Excel',
+  'project.materials.spreadsheet.unmapped': 'Không nhập trường này',
+  'project.materials.spreadsheet.mappingHint':
+    'Ghép mỗi trường với cột tương ứng. Cấu hình được lưu trên trình duyệt cho lần sau.',
+  'project.materials.spreadsheet.mappingMissing':
+    'Hãy ánh xạ đủ Mã vật tư, Mã mẫu vật tư và Tên chủ sở hữu.',
+  'project.materials.spreadsheet.preview': 'Xem trước dữ liệu',
+  'project.materials.spreadsheet.previewCount': '{count} dòng dữ liệu',
+  'project.materials.spreadsheet.validCount': '{count} dòng hợp lệ',
+  'project.materials.spreadsheet.errorCount': '{count} dòng cần sửa',
+  'project.materials.spreadsheet.row': 'Dòng',
+  'project.materials.spreadsheet.result': 'Kết quả',
+  'project.materials.spreadsheet.importNow': 'Nhập',
+  'project.materials.spreadsheet.importing': 'Đang nhập',
+  'project.materials.spreadsheet.exportNow': 'Xuất danh sách vật tư',
+  'project.materials.spreadsheet.exporting': 'Đang xuất',
+  'project.materials.spreadsheet.scope': 'Phạm vi dữ liệu',
+  'project.materials.spreadsheet.filteredScope': 'Theo bộ lọc hiện tại',
+  'project.materials.spreadsheet.allScope': 'Tất cả',
+  'project.materials.spreadsheet.exportTemplate': 'Biểu mẫu xuất',
+  'project.materials.spreadsheet.exportTemplateSystem': 'Theo mẫu hệ thống',
+  'project.materials.spreadsheet.exportTemplateCustom': 'Tự upload mẫu',
+  'project.materials.spreadsheet.exportProgress': 'Tiến độ xuất dữ liệu',
+  'project.materials.spreadsheet.exportFetchingData': 'Đang lấy dữ liệu',
+  'project.materials.spreadsheet.exportProgressCount':
+    'Đã xuất {processed}/{total} vật tư',
+  'project.materials.spreadsheet.customTemplateRequired':
+    'Hãy chọn biểu mẫu Excel trước khi xuất.',
+  'project.materials.spreadsheet.selectedScope':
+    'Vật tư đã chọn trên trang này',
+  'project.materials.spreadsheet.noSelection': 'Chưa chọn vật tư nào.',
+  'project.materials.spreadsheet.noRows': 'Tệp không có dòng dữ liệu.',
+  'project.materials.spreadsheet.successSummary':
+    'Đã tạo {success} vật tư; {failed} dòng lỗi.',
+  'project.materials.spreadsheet.exportedCount': 'Đã xuất {count} vật tư.',
+  'project.materials.spreadsheet.validLabel': 'Hợp lệ',
+  'project.materials.spreadsheet.loadingCatalog': 'Đang tải danh mục vật tư',
+  'project.materials.spreadsheet.catalogError':
+    'Không tải được danh mục mẫu, nhóm, thông số kỹ thuật hoặc chủ sở hữu.',
+  'project.materials.spreadsheet.fileHelp':
+    'Mỗi tệp tối đa 20 MB, tối đa 50.000 dòng.',
+  'project.materials.spreadsheet.dropFiles':
+    'Kéo thả tệp Excel vào đây hoặc bấm để chọn nhiều tệp',
+  'project.materials.spreadsheet.fields.code': 'Mã vật tư',
+  'project.materials.spreadsheet.fields.modelCode': 'Mã mẫu vật tư',
+  'project.materials.spreadsheet.fields.modelName': 'Tên mẫu',
+  'project.materials.spreadsheet.fields.modelGroupCode': 'Mã nhóm',
+  'project.materials.spreadsheet.fields.modelDescription': 'Mô tả mẫu',
+  'project.materials.spreadsheet.fields.modelSpecifications': 'Thông số mẫu',
+  'project.materials.spreadsheet.fields.ownerCode': 'Mã chủ sở hữu',
+  'project.materials.spreadsheet.fields.ownerName': 'Tên chủ sở hữu',
+  'project.materials.spreadsheet.fields.ownerKind': 'Loại chủ sở hữu',
+  'project.materials.spreadsheet.fields.ownerKindLegacy':
+    'Loại chủ sở hữu (eps/external/warehouse/other)',
+  'project.materials.spreadsheet.fields.ownerScopeCode':
+    'Mã đơn vị quản lý chủ sở hữu khác',
+  'project.materials.spreadsheet.fields.ownerRepresentative':
+    'Người đại diện chủ sở hữu',
+  'project.materials.spreadsheet.fields.ownerPhone': 'Điện thoại chủ sở hữu',
+  'project.materials.spreadsheet.fields.ownerEmail': 'Email chủ sở hữu',
+  'project.materials.spreadsheet.fields.nameOverride': 'Tên vật tư',
+  'project.materials.spreadsheet.fields.descriptionOverride': 'Mô tả',
+  'project.materials.spreadsheet.fields.nameLegacy': 'Tên vật tư riêng',
+  'project.materials.spreadsheet.fields.descriptionLegacy': 'Mô tả riêng',
+  'project.materials.spreadsheet.fields.serialNumber': 'Số sê-ri',
+  'project.materials.spreadsheet.fields.condition': 'Tình trạng',
+  'project.materials.spreadsheet.fields.conditionLegacy':
+    'Tình trạng (good/damaged)',
+  'project.materials.spreadsheet.fields.note': 'Ghi chú',
+  'project.materials.spreadsheet.fields.specification': '{name}',
+  'project.materials.spreadsheet.fields.specificationSlot':
+    'Thông số kỹ thuật {index}',
+  'project.materials.spreadsheet.fields.specificationShortSlot':
+    'Thông số {index}',
+  'project.materials.spreadsheet.errors.filterLimit':
+    'Có hơn 50.000 vật tư trong kết quả. Hãy lọc dữ liệu trước khi xuất.',
+  'project.materials.spreadsheet.errors.missingCode': 'Thiếu mã vật tư.',
+  'project.materials.spreadsheet.errors.duplicateCode':
+    'Mã vật tư bị trùng trong tệp.',
+  'project.materials.spreadsheet.errors.modelNotFound':
+    'Không tìm thấy mẫu vật tư đang hoạt động theo mã đã nhập.',
+  'project.materials.spreadsheet.errors.modelNameRequired':
+    'Thiếu tên mẫu vật tư mới.',
+  'project.materials.spreadsheet.errors.modelGroupRequired':
+    'Thiếu mã nhóm của mẫu vật tư mới.',
+  'project.materials.spreadsheet.errors.modelGroupNotFound':
+    'Không tìm thấy nhóm vật tư đang hoạt động có mã “{code}”.',
+  'project.materials.spreadsheet.errors.modelMetadataConflict':
+    'Thông tin mẫu “{code}” không thống nhất giữa các dòng.',
+  'project.materials.spreadsheet.errors.modelSpecificationsFormat':
+    'Thông số mẫu cần theo định dạng “Tên thông số: giá trị 1; giá trị 2”, mỗi thông số một dòng.',
+  'project.materials.spreadsheet.errors.modelSpecificationUnknown':
+    'Không tìm thấy thông số kỹ thuật “{name}” trong danh mục.',
+  'project.materials.spreadsheet.errors.modelSpecificationDuplicate':
+    'Thông số “{name}” bị khai báo nhiều lần trong mẫu.',
+  'project.materials.spreadsheet.errors.modelSpecificationValues':
+    'Thông số “{name}” chưa có giá trị.',
+  'project.materials.spreadsheet.errors.modelSpecificationValueUnknown':
+    'Giá trị “{value}” không hợp lệ cho thông số “{name}”.',
+  'project.materials.spreadsheet.errors.ownerNotFound':
+    'Không tìm thấy chủ sở hữu đang hoạt động theo mã đã nhập.',
+  'project.materials.spreadsheet.errors.ownerKind':
+    'Loại chủ sở hữu không hợp lệ. Hãy chọn Đơn vị EPS, Đơn vị ngoài, Kho hoặc Khác.',
+  'project.materials.spreadsheet.errors.condition':
+    'Tình trạng chỉ nhận “Còn tốt” hoặc “Hỏng hóc”.',
+  'project.materials.spreadsheet.errors.specificationModel':
+    'Thông số “{name}” không thuộc mẫu vật tư đã chọn.',
+  'project.materials.spreadsheet.errors.specificationValue':
+    'Không nhận diện được giá trị màu của thông số “{name}”.',
+  'project.materials.spreadsheet.errors.formInvalid':
+    'Thông tin vật tư không hợp lệ. Kiểm tra lại dữ liệu đã ánh xạ.',
   'project.materials.actions.view': 'Xem chi tiết',
   'project.materials.actions.viewShort': 'Xem',
   'project.materials.actions.more': 'Thao tác khác',
@@ -435,6 +625,200 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.page.description':
     'Track equipment, ownership, and current use.',
   'project.materials.actions.create': 'Add material',
+  'project.materials.actions.importExcel': 'Import Excel',
+  'project.materials.actions.exportExcel': 'Export Excel',
+  'project.materials.spreadsheet.title': 'Materials',
+  'project.materials.spreadsheet.importTitle': 'Import materials from Excel',
+  'project.materials.spreadsheet.importStep.upload': 'Upload files',
+  'project.materials.spreadsheet.importStep.review': 'Review data',
+  'project.materials.spreadsheet.importStep.report': 'Import results',
+  'project.materials.spreadsheet.downloadImportTemplate':
+    'Download system template',
+  'project.materials.spreadsheet.downloadingFile': 'Downloading file',
+  'project.materials.spreadsheet.nextStep': 'Next',
+  'project.materials.spreadsheet.backStep': 'Back',
+  'project.materials.spreadsheet.readFiles': 'Read Excel files',
+  'project.materials.spreadsheet.readingFiles': 'Reading files',
+  'project.materials.spreadsheet.readProgress':
+    'Read {processed}/{total} files',
+  'project.materials.spreadsheet.fileRowsCount': '{count} rows',
+  'project.materials.spreadsheet.removeFile': 'Remove file',
+  'project.materials.spreadsheet.duplicateUploadFiles':
+    'These files are already in the list.',
+  'project.materials.spreadsheet.templateMappingMissing':
+    'No material field markers or headers were found in the file.',
+  'project.materials.spreadsheet.templateMissingFields':
+    'Required columns are missing: {fields}.',
+  'project.materials.spreadsheet.templateNoRows':
+    'No material data rows were found in the file.',
+  'project.materials.spreadsheet.creatingModelProgress':
+    'Creating material model {processed}/{total}',
+  'project.materials.spreadsheet.modelCreateFailed':
+    'Could not create the material model linked to this row.',
+  'project.materials.spreadsheet.noUploadedFiles':
+    'Choose at least one Excel file.',
+  'project.materials.spreadsheet.downloadAllResults': 'Download result file',
+  'project.materials.spreadsheet.downloadErrorResults': 'Download error file',
+  'project.materials.spreadsheet.importProgress':
+    'Processed {processed}/{total} materials',
+  'project.materials.spreadsheet.importCompleted':
+    'Material import is complete.',
+  'project.materials.spreadsheet.reviewErrors': 'Data errors',
+  'project.materials.spreadsheet.previewFile': 'Excel file',
+  'project.materials.spreadsheet.previewModelName': 'Model name',
+  'project.materials.spreadsheet.previewMaterialName': 'Material name',
+  'project.materials.spreadsheet.previewSpecifications': 'Specifications',
+  'project.materials.spreadsheet.previewOwner': 'Owner',
+  'project.materials.spreadsheet.validation': 'Validation',
+  'project.materials.spreadsheet.invalidLabel': 'Invalid',
+  'project.materials.spreadsheet.unknownModelsTitle':
+    'Material models not found in the software',
+  'project.materials.spreadsheet.unknownModelsDescription':
+    'Choose how to handle new material models before importing.',
+  'project.materials.spreadsheet.importOnlyExistingModels':
+    'Import materials only when their model already exists',
+  'project.materials.spreadsheet.importAndCreateModels':
+    'Create {count} material models and import all materials',
+  'project.materials.spreadsheet.createModelsPermission':
+    'You need material model management permission to create new models.',
+  'project.materials.spreadsheet.resultColumn': 'Material import result',
+  'project.materials.spreadsheet.globalErrorsSheet': 'Global errors',
+  'project.materials.spreadsheet.exportTitle': 'Export material list',
+  'project.materials.spreadsheet.close': 'Close',
+  'project.materials.spreadsheet.import': 'Import data',
+  'project.materials.spreadsheet.export': 'Export data',
+  'project.materials.spreadsheet.file': 'Excel file .xlsx',
+  'project.materials.spreadsheet.chooseFile': 'Choose Excel file',
+  'project.materials.spreadsheet.templateOptional':
+    'Choose a different Excel file (optional)',
+  'project.materials.spreadsheet.templateActive': 'Using template: {name}',
+  'project.materials.spreadsheet.customTemplateActive':
+    'Using selected file: {name}',
+  'project.materials.spreadsheet.sharedTemplateActive':
+    'Using shared template: {name}',
+  'project.materials.spreadsheet.useSharedTemplate': 'Use shared template',
+  'project.materials.spreadsheet.sharedTemplateMissing':
+    'No shared template is set up. Add one in Settings > Templates or choose an Excel file below.',
+  'project.materials.spreadsheet.sharedTemplateLoadError':
+    'Could not load the shared template. You can still choose another Excel file.',
+  'project.materials.spreadsheet.sheet': 'Worksheet',
+  'project.materials.spreadsheet.headerRow': 'Header row',
+  'project.materials.spreadsheet.dataStartRow': 'First data row',
+  'project.materials.spreadsheet.field': 'Data field',
+  'project.materials.spreadsheet.column': 'Excel column',
+  'project.materials.spreadsheet.unmapped': 'Do not import this field',
+  'project.materials.spreadsheet.mappingHint':
+    'Map each field to its column. The mapping is saved in this browser for next time.',
+  'project.materials.spreadsheet.mappingMissing':
+    'Map Material code, Material model code, and Owner name before continuing.',
+  'project.materials.spreadsheet.preview': 'Data preview',
+  'project.materials.spreadsheet.previewCount': '{count} data rows',
+  'project.materials.spreadsheet.validCount': '{count} valid rows',
+  'project.materials.spreadsheet.errorCount': '{count} rows need attention',
+  'project.materials.spreadsheet.row': 'Row',
+  'project.materials.spreadsheet.result': 'Result',
+  'project.materials.spreadsheet.importNow': 'Import',
+  'project.materials.spreadsheet.importing': 'Importing',
+  'project.materials.spreadsheet.exportNow': 'Export material list',
+  'project.materials.spreadsheet.exporting': 'Exporting',
+  'project.materials.spreadsheet.scope': 'Data scope',
+  'project.materials.spreadsheet.filteredScope': 'Current filters',
+  'project.materials.spreadsheet.allScope': 'All',
+  'project.materials.spreadsheet.exportTemplate': 'Export template',
+  'project.materials.spreadsheet.exportTemplateSystem': 'System template',
+  'project.materials.spreadsheet.exportTemplateCustom': 'Upload a template',
+  'project.materials.spreadsheet.exportProgress': 'Export progress',
+  'project.materials.spreadsheet.exportFetchingData': 'Loading data',
+  'project.materials.spreadsheet.exportProgressCount':
+    'Exported {processed}/{total} materials',
+  'project.materials.spreadsheet.customTemplateRequired':
+    'Choose an Excel template before exporting.',
+  'project.materials.spreadsheet.selectedScope':
+    'Selected materials on this page',
+  'project.materials.spreadsheet.noSelection': 'No materials selected.',
+  'project.materials.spreadsheet.noRows': 'The file has no data rows.',
+  'project.materials.spreadsheet.successSummary':
+    'Created {success} materials; {failed} rows failed.',
+  'project.materials.spreadsheet.exportedCount': 'Exported {count} materials.',
+  'project.materials.spreadsheet.validLabel': 'Valid',
+  'project.materials.spreadsheet.loadingCatalog': 'Loading material catalogs',
+  'project.materials.spreadsheet.catalogError':
+    'Could not load material models, groups, specifications, or owners.',
+  'project.materials.spreadsheet.fileHelp':
+    'Each file can be up to 20 MB and contain up to 50,000 rows.',
+  'project.materials.spreadsheet.dropFiles':
+    'Drop Excel files here or click to select multiple files',
+  'project.materials.spreadsheet.fields.code': 'Material code',
+  'project.materials.spreadsheet.fields.modelCode': 'Material model code',
+  'project.materials.spreadsheet.fields.modelName': 'Model name',
+  'project.materials.spreadsheet.fields.modelGroupCode': 'Group code',
+  'project.materials.spreadsheet.fields.modelDescription': 'Model description',
+  'project.materials.spreadsheet.fields.modelSpecifications':
+    'Model specifications',
+  'project.materials.spreadsheet.fields.ownerCode': 'Owner code',
+  'project.materials.spreadsheet.fields.ownerName': 'Owner name',
+  'project.materials.spreadsheet.fields.ownerKind': 'Owner type',
+  'project.materials.spreadsheet.fields.ownerKindLegacy':
+    'Owner kind (eps/external/warehouse/other)',
+  'project.materials.spreadsheet.fields.ownerScopeCode':
+    'Managing unit code for other owner',
+  'project.materials.spreadsheet.fields.ownerRepresentative':
+    'Owner representative',
+  'project.materials.spreadsheet.fields.ownerPhone': 'Owner phone',
+  'project.materials.spreadsheet.fields.ownerEmail': 'Owner email',
+  'project.materials.spreadsheet.fields.nameOverride': 'Material name',
+  'project.materials.spreadsheet.fields.descriptionOverride': 'Description',
+  'project.materials.spreadsheet.fields.nameLegacy': 'Custom material name',
+  'project.materials.spreadsheet.fields.descriptionLegacy':
+    'Custom description',
+  'project.materials.spreadsheet.fields.serialNumber': 'Serial number',
+  'project.materials.spreadsheet.fields.condition': 'Condition',
+  'project.materials.spreadsheet.fields.conditionLegacy':
+    'Condition (good/damaged)',
+  'project.materials.spreadsheet.fields.note': 'Note',
+  'project.materials.spreadsheet.fields.specification': '{name}',
+  'project.materials.spreadsheet.fields.specificationSlot':
+    'Specification {index}',
+  'project.materials.spreadsheet.fields.specificationShortSlot':
+    'Specification {index}',
+  'project.materials.spreadsheet.errors.filterLimit':
+    'More than 50,000 materials match. Add filters before exporting.',
+  'project.materials.spreadsheet.errors.missingCode':
+    'Material code is required.',
+  'project.materials.spreadsheet.errors.duplicateCode':
+    'The material code is duplicated in the file.',
+  'project.materials.spreadsheet.errors.modelNotFound':
+    'No active material model matches this code.',
+  'project.materials.spreadsheet.errors.modelNameRequired':
+    'New material model name is required.',
+  'project.materials.spreadsheet.errors.modelGroupRequired':
+    'New material model group code is required.',
+  'project.materials.spreadsheet.errors.modelGroupNotFound':
+    'No active material group has code “{code}”.',
+  'project.materials.spreadsheet.errors.modelMetadataConflict':
+    'Metadata for model “{code}” differs between rows.',
+  'project.materials.spreadsheet.errors.modelSpecificationsFormat':
+    'Model specifications must use “Specification name: value 1; value 2”, one specification per line.',
+  'project.materials.spreadsheet.errors.modelSpecificationUnknown':
+    'Specification “{name}” was not found in the catalog.',
+  'project.materials.spreadsheet.errors.modelSpecificationDuplicate':
+    'Specification “{name}” is listed more than once for this model.',
+  'project.materials.spreadsheet.errors.modelSpecificationValues':
+    'Specification “{name}” has no values.',
+  'project.materials.spreadsheet.errors.modelSpecificationValueUnknown':
+    'Value “{value}” is invalid for specification “{name}”.',
+  'project.materials.spreadsheet.errors.ownerNotFound':
+    'No active owner matches this code.',
+  'project.materials.spreadsheet.errors.ownerKind':
+    'Owner type is invalid. Choose EPS unit, External unit, Warehouse, or Other.',
+  'project.materials.spreadsheet.errors.condition':
+    'Condition must be “Good” or “Damaged”.',
+  'project.materials.spreadsheet.errors.specificationModel':
+    'Specification “{name}” does not belong to the selected model.',
+  'project.materials.spreadsheet.errors.specificationValue':
+    'Could not match the color value for specification “{name}”.',
+  'project.materials.spreadsheet.errors.formInvalid':
+    'Material details are invalid. Review the mapped values.',
   'project.materials.actions.view': 'View details',
   'project.materials.actions.viewShort': 'View',
   'project.materials.actions.more': 'More actions',
