@@ -1,8 +1,16 @@
 import { buildPath, ROUTES } from '@/constants/routes';
-import { ClipboardCheck, Plus } from 'lucide-react';
+import {
+  CircleCheck,
+  CircleX,
+  ClipboardCheck,
+  Clock3,
+  Eye,
+  Plus,
+} from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -93,84 +101,110 @@ export function MaterialSafetyInspectionsPanel({
           />
         ) : (
           <div className="divide-y divide-border rounded-lg border border-border">
-            {query.data.map((inspection) => (
-              <button
-                key={inspection.id}
-                type="button"
-                className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                aria-label={intl.formatMessage(
-                  {
-                    id: 'project.materials.safetyInspection.history.open',
-                  },
-                  {
-                    date: new Intl.DateTimeFormat(intl.locale, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    }).format(new Date(inspection.inspectedAt)),
-                  },
-                )}
-                onClick={() =>
-                  navigate(
-                    buildPath(
-                      ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_DETAIL,
-                      { id: materialId, inspectionId: inspection.id },
-                    ),
-                  )
-                }
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-foreground">
-                      {new Intl.DateTimeFormat(intl.locale, {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      }).format(new Date(inspection.inspectedAt))}
-                    </span>
-                    <Badge
-                      variant={
-                        inspection.status === 'in_progress'
-                          ? 'warning'
-                          : inspection.overallResult === 'passed'
-                            ? 'success'
-                            : 'destructive'
-                      }
-                      size="sm"
+            {query.data.map((inspection) => {
+              const StatusIcon =
+                inspection.status === 'in_progress'
+                  ? Clock3
+                  : inspection.overallResult === 'passed'
+                    ? CircleCheck
+                    : CircleX;
+              const statusIconClassName =
+                inspection.status === 'in_progress'
+                  ? 'bg-[var(--color-warning-soft,var(--color-yellow-100))] text-[var(--color-warning-accent,var(--color-yellow-700))]'
+                  : inspection.overallResult === 'passed'
+                    ? 'bg-admin-success-bg text-admin-success-text'
+                    : 'bg-destructive/10 text-destructive';
+              const inspectedAt = new Intl.DateTimeFormat(intl.locale, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(inspection.inspectedAt));
+
+              return (
+                <div
+                  key={inspection.id}
+                  className="flex w-full flex-wrap items-center justify-between gap-3 px-4 py-3"
+                >
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <span
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-full',
+                        statusIconClassName,
+                      )}
+                      aria-hidden="true"
                     >
-                      {intl.formatMessage({
-                        id:
-                          inspection.status === 'in_progress'
-                            ? 'project.materials.safetyInspection.status.inProgress'
-                            : `project.materials.safetyInspection.results.${inspection.overallResult}`,
-                      })}
-                    </Badge>
-                  </span>
-                  <span className="mt-1 block text-sm text-muted-foreground">
-                    {inspection.inspectorName} ·{' '}
-                    {intl.formatMessage(
-                      {
-                        id: 'project.materials.safetyInspection.history.criteriaCount',
-                      },
-                      {
-                        count: inspection.checklistResult.reduce(
-                          (count, group) => count + group.criteria.length,
-                          0,
-                        ),
-                      },
-                    )}
-                  </span>
-                  {inspection.overallNote ? (
-                    <span className="mt-1 block truncate text-sm text-muted-foreground">
-                      {inspection.overallNote}
+                      <StatusIcon className="size-4" />
                     </span>
-                  ) : null}
-                </span>
-                <span className="shrink-0 text-sm font-medium text-primary">
-                  {intl.formatMessage({
-                    id: 'project.materials.actions.viewShort',
-                  })}
-                </span>
-              </button>
-            ))}
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-foreground">
+                          {inspectedAt}
+                        </span>
+                        <Badge
+                          variant={
+                            inspection.status === 'in_progress'
+                              ? 'warning'
+                              : inspection.overallResult === 'passed'
+                                ? 'success'
+                                : 'destructive'
+                          }
+                          size="sm"
+                        >
+                          {intl.formatMessage({
+                            id:
+                              inspection.status === 'in_progress'
+                                ? 'project.materials.safetyInspection.status.inProgress'
+                                : `project.materials.safetyInspection.results.${inspection.overallResult}`,
+                          })}
+                        </Badge>
+                      </span>
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        {inspection.inspectorName} ·{' '}
+                        {intl.formatMessage(
+                          {
+                            id: 'project.materials.safetyInspection.history.criteriaCount',
+                          },
+                          {
+                            count: inspection.checklistResult.reduce(
+                              (count, group) => count + group.criteria.length,
+                              0,
+                            ),
+                          },
+                        )}
+                      </span>
+                      {inspection.overallNote ? (
+                        <span className="mt-1 block truncate text-sm text-muted-foreground">
+                          {inspection.overallNote}
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    aria-label={intl.formatMessage(
+                      {
+                        id: 'project.materials.safetyInspection.history.open',
+                      },
+                      { date: inspectedAt },
+                    )}
+                    onClick={() =>
+                      navigate(
+                        buildPath(
+                          ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_DETAIL,
+                          { id: materialId, inspectionId: inspection.id },
+                        ),
+                      )
+                    }
+                  >
+                    <Eye />
+                    {intl.formatMessage({
+                      id: 'project.materials.safetyInspection.history.view',
+                    })}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
         {canManage && !requiresInspection ? (

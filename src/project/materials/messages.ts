@@ -395,7 +395,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.tabs.general': 'Thông tin chung',
   'project.materials.tabs.handoverHistory': 'Lịch sử bàn giao',
   'project.materials.tabs.inventoryHistory': 'Lịch sử kiểm kê',
-  'project.materials.tabs.safety': 'Quản lý an toàn',
+  'project.materials.tabs.safety': 'Kiểm tra an toàn',
   'project.materials.tabs.safetyChecklist': 'Kiểm tra an toàn',
   'project.materials.safetyInspection.checklist.empty':
     'Chưa có nhóm nội dung kiểm tra.',
@@ -481,6 +481,7 @@ export const materialMessagesVi: Record<string, string> = {
     'Không tải được lịch sử kiểm định',
   'project.materials.safetyInspection.history.open':
     'Xem phiếu kiểm định ngày {date}',
+  'project.materials.safetyInspection.history.view': 'Xem phiếu',
   'project.materials.safetyInspection.history.criteriaCount':
     '{count} nội dung',
   'project.materials.safetyInspection.queue.title': 'Vật tư cần kiểm tra',
@@ -1039,7 +1040,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.tabs.general': 'General information',
   'project.materials.tabs.handoverHistory': 'Handover history',
   'project.materials.tabs.inventoryHistory': 'Inventory history',
-  'project.materials.tabs.safety': 'Safety management',
+  'project.materials.tabs.safety': 'Safety checks',
   'project.materials.tabs.safetyChecklist': 'Safety checks',
   'project.materials.safetyInspection.checklist.empty':
     'No safety check groups have been added.',
@@ -1125,6 +1126,7 @@ export const materialMessagesEn: Record<string, string> = {
     'Could not load inspection history',
   'project.materials.safetyInspection.history.open':
     'Open inspection from {date}',
+  'project.materials.safetyInspection.history.view': 'View inspection',
   'project.materials.safetyInspection.history.criteriaCount': '{count} items',
   'project.materials.safetyInspection.queue.title':
     'Materials requiring inspection',

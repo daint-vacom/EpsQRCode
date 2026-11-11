@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import {
   Boxes,
+  CalendarDays,
   ClipboardCheck,
   ClipboardPenLine,
   Factory,
@@ -31,6 +32,7 @@ import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-mate
 import { useMaterialLabelPrintSnapshotQuery } from '@/project/material-labels/hooks/use-material-label-templates';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { MaterialSafetyInspectionsPanel } from '@/project/material-safety-inspections/components/material-safety-inspections-panel';
+import { useMaterialSafetyInspectionsQuery } from '@/project/material-safety-inspections/hooks/use-safety-inspections';
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -48,6 +50,7 @@ import {
 } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
+import { CardLoading } from '@/components/ui/loading';
 import { PageBackButton } from '@/components/ui/page-back-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -978,7 +981,93 @@ function MaterialSummarySidebar({
           </div>
         </div>
       </PublicInfoCard>
+
+      <MaterialSafetyInspectionSummaryCard materialId={material.id} />
     </aside>
+  );
+}
+
+function MaterialSafetyInspectionSummaryCard({
+  materialId,
+}: {
+  materialId: string;
+}) {
+  const intl = useIntl();
+  const query = useMaterialSafetyInspectionsQuery(materialId);
+  const inspection =
+    query.data?.find((item) => item.status === 'completed') ?? query.data?.[0];
+  const criteria =
+    inspection?.checklistResult.flatMap((group) => group.criteria) ?? [];
+  const resultMessageId = inspection
+    ? inspection.status === 'in_progress'
+      ? 'project.materials.safetyInspection.status.inProgress'
+      : inspection.overallResult
+        ? `project.materials.safetyInspection.results.${inspection.overallResult}`
+        : 'project.materials.safetyInspection.results.unassessed'
+    : undefined;
+  const resultValue = resultMessageId
+    ? `${intl.formatMessage({ id: resultMessageId })}, ${criteria.filter((criterion) => criterion.passed === true).length}/${criteria.length}`
+    : undefined;
+
+  return (
+    <PublicInfoCard
+      title={intl.formatMessage({
+        id: 'project.materials.tabs.safetyChecklist',
+      })}
+      icon={ClipboardPenLine}
+    >
+      {query.isPending ? (
+        <CardLoading
+          label={intl.formatMessage({ id: 'common.state.loading' })}
+        />
+      ) : query.isError ? (
+        <ErrorState
+          title={intl.formatMessage({
+            id: 'project.materials.safetyInspection.history.loadTitle',
+          })}
+          description={getApiErrorMessage(query.error)}
+          onRetry={() => void query.refetch()}
+        />
+      ) : !inspection ? (
+        <EmptyState
+          icon={ClipboardCheck}
+          title={intl.formatMessage({
+            id: 'project.materials.safetyInspection.history.empty',
+          })}
+          className="min-h-28"
+        />
+      ) : (
+        <div className="flex flex-col gap-4">
+          <DetailFact
+            icon={CalendarDays}
+            label={intl.formatMessage({
+              id: 'project.materials.safetyInspection.fields.inspectedAt',
+            })}
+            value={new Intl.DateTimeFormat(intl.locale, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            }).format(new Date(inspection.inspectedAt))}
+            tone="muted"
+          />
+          <DetailFact
+            icon={UserRound}
+            label={intl.formatMessage({
+              id: 'project.materials.safetyInspection.fields.inspector',
+            })}
+            value={inspection.inspectorName}
+            tone="muted"
+          />
+          <DetailFact
+            icon={ClipboardCheck}
+            label={intl.formatMessage({
+              id: 'project.materials.safetyInspection.fields.result',
+            })}
+            value={resultValue}
+            tone="muted"
+          />
+        </div>
+      )}
+    </PublicInfoCard>
   );
 }
 
@@ -1123,7 +1212,9 @@ function PublicInfoCard({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className={cn('justify-start gap-2', toneClasses.header)}>
+      <CardHeader
+        className={cn('justify-start gap-2 pb-0', toneClasses.header)}
+      >
         <span
           className={cn(
             'flex size-7 items-center justify-center rounded-lg',
