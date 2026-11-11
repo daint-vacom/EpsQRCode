@@ -2,41 +2,60 @@ import { useMemo } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useMaterialQuery } from '@/project/materials/hooks/use-materials';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
-import { ArrowDownToLine, ClipboardPenLine } from 'lucide-react';
+import { ArrowDownToLine, Check, ClipboardPenLine, Save } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
-import { useSafetyInspectionQuery } from '../hooks/use-safety-inspections';
+import { SafetyInspectionChecklistResultTable } from '../components/safety-inspection-checklist-display';
+import {
+  SAFETY_INSPECTION_DRAFT_FORM_ID,
+  SafetyInspectionDraftForm,
+} from '../components/safety-inspection-draft-form';
+import {
+  useSafetyInspectionQuery,
+  useSaveMaterialSafetyInspectionMutation,
+} from '../hooks/use-safety-inspections';
 
 export function MaterialSafetyInspectionDetailPage() {
   const intl = useIntl();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id = '', inspectionId = '' } = useParams();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
+  const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const materialQuery = useMaterialQuery(id, !isPermissionsPending && canView);
   const inspectionQuery = useSafetyInspectionQuery(
     inspectionId,
     !isPermissionsPending && canView,
   );
+  const saveMutation = useSaveMaterialSafetyInspectionMutation();
   const material = materialQuery.data;
   const inspection = inspectionQuery.data;
   const materialPath = buildPath(ROUTES.PROJECT.MATERIAL_DETAIL, { id });
+  const returnTo =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'returnTo' in location.state &&
+    typeof location.state.returnTo === 'string'
+      ? location.state.returnTo
+      : materialPath;
+  const canEditInspection = Boolean(
+    canManage &&
+    material &&
+    inspection?.status === 'in_progress' &&
+    inspection.materialId === material.id,
+  );
   const title = intl.formatMessage({
     id: 'project.materials.safetyInspection.page.detailTitle',
   });
@@ -48,9 +67,56 @@ export function MaterialSafetyInspectionDetailPage() {
       backLabel: intl.formatMessage({
         id: 'project.materials.safetyInspection.actions.back',
       }),
-      onBack: () => navigate(materialPath),
+      onBack: () => navigate(returnTo),
+      actions: canEditInspection ? (
+        <>
+          <Button
+            type="submit"
+            form={SAFETY_INSPECTION_DRAFT_FORM_ID}
+            name="inspectionAction"
+            value="draft"
+            variant="outline"
+            size="md"
+            loading={saveMutation.isPending}
+            loadingText={intl.formatMessage({
+              id: 'common.state.saving',
+            })}
+            disabled={saveMutation.isPending}
+          >
+            <Save aria-hidden="true" />
+            {intl.formatMessage({
+              id: 'project.materials.safetyInspection.actions.saveDraft',
+            })}
+          </Button>
+          <Button
+            type="submit"
+            form={SAFETY_INSPECTION_DRAFT_FORM_ID}
+            name="inspectionAction"
+            value="complete"
+            variant="success"
+            size="md"
+            loading={saveMutation.isPending}
+            loadingText={intl.formatMessage({
+              id: 'common.state.saving',
+            })}
+            disabled={saveMutation.isPending}
+          >
+            <Check aria-hidden="true" />
+            {intl.formatMessage({
+              id: 'project.materials.safetyInspection.actions.complete',
+            })}
+          </Button>
+        </>
+      ) : undefined,
     }),
-    [intl, materialPath, navigate, title],
+    [
+      canEditInspection,
+      intl,
+      navigate,
+      returnTo,
+      saveMutation.isPending,
+      title,
+    ],
   );
   useDetailEntryLayoutHeader(header);
 
@@ -59,7 +125,7 @@ export function MaterialSafetyInspectionDetailPage() {
     (canView && (materialQuery.isPending || inspectionQuery.isPending));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 lg:p-5">
+    <div className="flex min-w-0 flex-col gap-4 p-4 lg:p-5">
       {!isPermissionsPending && !canView ? (
         <ErrorState
           title={intl.formatMessage({
@@ -88,37 +154,30 @@ export function MaterialSafetyInspectionDetailPage() {
         />
       ) : !material || !inspection || inspection.materialId !== material.id ? (
         <ErrorState
-          title={intl.formatMessage({
-            id: 'project.materials.safetyInspection.page.detailTitle',
-          })}
+          title={title}
           description={intl.formatMessage({
             id: 'project.materials.safetyInspection.errors.notFound',
           })}
         />
       ) : (
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-            <p className="text-sm text-muted-foreground">
-              {material.code} ·{' '}
-              {material.nameOverride || material.modelSnapshot.name}
-            </p>
-          </div>
           <Card>
-            <CardHeader>
-              <CardTitle>
-                {intl.formatMessage({
-                  id: 'project.materials.safetyInspection.sections.information',
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <DetailValue
+                label={intl.formatMessage({
+                  id: 'project.materials.safetyInspection.fields.material',
                 })}
-              </CardTitle>
-              <CardDescription>
-                {new Intl.DateTimeFormat(intl.locale, {
+                value={`${material.code} · ${material.nameOverride || material.modelSnapshot.name}`}
+              />
+              <DetailValue
+                label={intl.formatMessage({
+                  id: 'project.materials.safetyInspection.fields.inspectedAt',
+                })}
+                value={new Intl.DateTimeFormat(intl.locale, {
                   dateStyle: 'long',
                   timeStyle: 'short',
                 }).format(new Date(inspection.inspectedAt))}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+              />
               <DetailValue
                 label={intl.formatMessage({
                   id: 'project.materials.safetyInspection.fields.inspector',
@@ -133,13 +192,18 @@ export function MaterialSafetyInspectionDetailPage() {
                 </p>
                 <Badge
                   variant={
-                    inspection.overallResult === 'passed'
-                      ? 'success'
-                      : 'destructive'
+                    inspection.status === 'in_progress'
+                      ? 'warning'
+                      : inspection.overallResult === 'passed'
+                        ? 'success'
+                        : 'destructive'
                   }
                 >
                   {intl.formatMessage({
-                    id: `project.materials.safetyInspection.results.${inspection.overallResult}`,
+                    id:
+                      inspection.status === 'in_progress'
+                        ? 'project.materials.safetyInspection.status.inProgress'
+                        : `project.materials.safetyInspection.results.${inspection.overallResult}`,
                   })}
                 </Badge>
               </div>
@@ -155,95 +219,83 @@ export function MaterialSafetyInspectionDetailPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {intl.formatMessage({
-                  id: 'project.materials.safetyInspection.sections.checklist',
-                })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {inspection.checklistResult.map((group) => (
-                <section key={group.id} className="space-y-3">
-                  <h2 className="text-sm font-semibold text-foreground">
-                    {group.name}
-                  </h2>
-                  <div className="divide-y divide-border rounded-lg border border-border">
-                    {group.criteria.map((criterion) => (
+          {inspection.status === 'in_progress' && canManage ? (
+            <SafetyInspectionDraftForm
+              inspection={inspection}
+              isSaving={saveMutation.isPending}
+              onSave={async (values, attachments, files, complete) => {
+                try {
+                  await saveMutation.mutateAsync({
+                    inspectionId: inspection.id,
+                    materialId: material.id,
+                    values,
+                    attachments,
+                    files,
+                    complete,
+                  });
+                  toast.success(
+                    intl.formatMessage({
+                      id: complete
+                        ? 'project.materials.safetyInspection.toasts.completed'
+                        : 'project.materials.safetyInspection.toasts.draftSaved',
+                    }),
+                  );
+                  if (complete) await inspectionQuery.refetch();
+                  return true;
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error));
+                  return false;
+                }
+              }}
+            />
+          ) : (
+            <>
+              <Card>
+                <CardContent>
+                  <SafetyInspectionChecklistResultTable
+                    groups={inspection.checklistResult}
+                  />
+                </CardContent>
+              </Card>
+
+              {inspection.attachments.length > 0 ? (
+                <Card>
+                  <CardContent className="divide-y divide-border rounded-lg border border-border p-0">
+                    {inspection.attachments.map((attachment) => (
                       <div
-                        key={criterion.id}
-                        className="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto]"
+                        key={attachment.id}
+                        className="flex items-center gap-3 px-4 py-3"
                       >
-                        <p className="text-sm text-foreground">
-                          {criterion.content}
-                        </p>
-                        <Badge
-                          variant={criterion.passed ? 'success' : 'destructive'}
-                          size="sm"
-                        >
-                          {intl.formatMessage({
-                            id: criterion.passed
-                              ? 'project.materials.safetyInspection.results.passed'
-                              : 'project.materials.safetyInspection.results.failed',
-                          })}
-                        </Badge>
-                        {criterion.note ? (
-                          <p className="text-sm text-muted-foreground md:col-span-2">
-                            {criterion.note}
-                          </p>
-                        ) : null}
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                          {attachment.fileName}
+                        </span>
+                        {attachment.url ? (
+                          <Button asChild variant="outline" size="sm">
+                            <a
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <ArrowDownToLine />
+                              {intl.formatMessage({
+                                id: 'project.materials.safetyInspection.attachments.download',
+                              })}
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {intl.formatMessage({
+                              id: 'project.materials.safetyInspection.attachments.unavailable',
+                            })}
+                          </span>
+                        )}
                       </div>
                     ))}
-                  </div>
-                </section>
-              ))}
-            </CardContent>
-          </Card>
-
-          {inspection.attachments.length ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.attachments',
-                  })}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="divide-y divide-border rounded-lg border border-border p-0">
-                {inspection.attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                      {attachment.fileName}
-                    </span>
-                    {attachment.url ? (
-                      <Button asChild variant="outline" size="sm">
-                        <a
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <ArrowDownToLine />
-                          {intl.formatMessage({
-                            id: 'project.materials.safetyInspection.attachments.download',
-                          })}
-                        </a>
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {intl.formatMessage({
-                          id: 'project.materials.safetyInspection.attachments.unavailable',
-                        })}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ) : null}
+                  </CardContent>
+                </Card>
+              ) : null}
+            </>
+          )}
         </div>
       )}
     </div>

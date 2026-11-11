@@ -21,6 +21,24 @@ const ISO_DATE_FORMAT = 'yyyy-MM-dd';
 const TIME_INPUT_FORMAT = 'HH:mm';
 const TIME_HOURS = Array.from({ length: 24 }, (_, index) => index);
 const TIME_MINUTES = Array.from({ length: 60 }, (_, index) => index);
+const DATE_INPUT_WIDTH_CLASSES = {
+  auto: 'w-full',
+  sm: 'w-40',
+  md: 'w-48',
+  lg: 'w-56',
+} as const;
+const DATE_TIME_INPUT_WIDTH_CLASSES = {
+  auto: 'grid-cols-[minmax(0,1fr)_5.5rem]',
+  sm: 'grid-cols-[minmax(0,10rem)_5.5rem]',
+  md: 'grid-cols-[minmax(0,12rem)_5.5rem]',
+  lg: 'grid-cols-[minmax(0,14rem)_5.5rem]',
+} as const;
+const DATE_TIME_WRAPPER_WIDTH_CLASSES = {
+  auto: 'w-full',
+  sm: 'w-fit max-w-full',
+  md: 'w-fit max-w-full',
+  lg: 'w-fit max-w-full',
+} as const;
 
 function formatDateInput(date: Date | null | undefined): string {
   if (!date || !isValid(date)) return '';
@@ -105,6 +123,8 @@ export interface DatePickerInputProps
   valueMode?: 'date' | 'iso-date';
   onChange?: (value: Date | string | undefined) => void;
   onBlur?: (event?: FocusEvent<HTMLInputElement>) => void;
+  /** Width preset for the date input, or its column when time is displayed. */
+  dateInputWidth?: keyof typeof DATE_INPUT_WIDTH_CLASSES;
   calendarLabel?: string;
   showTime?: boolean;
   timeValue?: string;
@@ -120,6 +140,7 @@ export function DatePickerInput({
   onChange,
   onBlur,
   variant,
+  dateInputWidth = 'auto',
   placeholder = DATE_INPUT_FORMAT,
   calendarLabel = 'Chọn ngày',
   showTime = false,
@@ -271,8 +292,11 @@ export function DatePickerInput({
       <PopoverAnchor asChild>
         <div
           className={cn(
-            'w-full',
-            showTime && 'grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2',
+            showTime
+              ? DATE_TIME_WRAPPER_WIDTH_CLASSES[dateInputWidth]
+              : DATE_INPUT_WIDTH_CLASSES[dateInputWidth],
+            showTime && 'grid gap-2',
+            showTime && DATE_TIME_INPUT_WIDTH_CLASSES[dateInputWidth],
           )}
         >
           <div className="relative min-w-0">

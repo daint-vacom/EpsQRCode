@@ -25,11 +25,10 @@ export function DetailEntryLayout() {
             className="admin-content-wide w-full px-4 lg:px-5"
           />
         </header>
-        <main
-          className="admin-content-wide min-h-0 min-w-0 flex-1 overflow-y-auto"
-          role="main"
-        >
-          <Outlet />
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto" role="main">
+          <div className="admin-content-wide h-full w-full">
+            <Outlet />
+          </div>
         </main>
       </div>
     </DetailEntryHeaderContext.Provider>

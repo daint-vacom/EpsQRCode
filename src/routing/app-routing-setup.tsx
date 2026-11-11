@@ -58,6 +58,8 @@ import { MaterialModelEditorPage } from '@/project/material-models/pages/materia
 import { MaterialModelsPage } from '@/project/material-models/pages/material-models-page';
 import { MaterialSafetyInspectionCreatePage } from '@/project/material-safety-inspections/pages/material-safety-inspection-create-page';
 import { MaterialSafetyInspectionDetailPage } from '@/project/material-safety-inspections/pages/material-safety-inspection-detail-page';
+import { MaterialsRequiringSafetyInspectionPage } from '@/project/material-safety-inspections/pages/materials-requiring-safety-inspection-page';
+import { SafetyInspectionsPage } from '@/project/material-safety-inspections/pages/safety-inspections-page';
 import { MaterialSpecificationsPage } from '@/project/material-specifications/pages/material-specifications-page';
 import { MaterialEditorPage } from '@/project/materials/pages/material-editor-page';
 import { MaterialListPage } from '@/project/materials/pages/material-list-page';
@@ -247,6 +249,14 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIALS}
             element={<MaterialListPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION}
+            element={<MaterialsRequiringSafetyInspectionPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.SAFETY_INSPECTIONS}
+            element={<SafetyInspectionsPage />}
           />
           <Route
             path={ROUTES.PROJECT.MATERIAL_QR_TRACKING}

@@ -5,6 +5,7 @@ import {
   Boxes,
   Building2,
   ClipboardCheck,
+  ClipboardList,
   ClipboardPlus,
   Folder,
   FolderOpen,
@@ -37,11 +38,10 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         path: ROUTES.PROJECT.MATERIAL_QR_TRACKING,
       },
       {
-        label: 'Vật tư cần kiểm định',
+        label: 'Vật tư cần kiểm tra',
         labelMessageId: 'project.navigation.materialsRequiringInspection',
         icon: ClipboardCheck,
-        disabled: true,
-        disabledLabelMessageId: 'project.navigation.comingSoon',
+        path: ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION,
       },
     ],
   },
@@ -49,6 +49,12 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
     title: 'Quản lý phiếu',
     titleMessageId: 'project.navigation.groups.slips',
     items: [
+      {
+        label: 'Phiếu kiểm tra an toàn',
+        labelMessageId: 'project.navigation.safetyInspections',
+        icon: ClipboardList,
+        path: ROUTES.PROJECT.SAFETY_INSPECTIONS,
+      },
       {
         label: 'Bàn giao vật tư',
         labelMessageId: 'project.navigation.handovers',

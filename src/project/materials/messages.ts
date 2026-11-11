@@ -431,34 +431,45 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.checklist.count':
     '{groups} nhóm · {criteria} nội dung',
   'project.materials.safetyInspection.checklist.rowNumber': 'STT',
+  'project.materials.safetyInspection.checklist.note': 'Ghi chú',
   'project.materials.safetyInspection.checklist.addCriterion': 'Thêm nội dung',
   'project.materials.safetyInspection.checklist.addGroup': 'Thêm nhóm',
   'project.materials.safetyInspection.page.createTitle':
-    'Lập phiếu kiểm định an toàn',
+    'Lập phiếu kiểm tra an toàn',
   'project.materials.safetyInspection.page.detailTitle':
-    'Chi tiết phiếu kiểm định',
+    'Chi tiết phiếu kiểm tra an toàn',
   'project.materials.safetyInspection.page.createDescription':
-    'Ghi nhận kết quả kiểm định thực tế của vật tư.',
+    'Ghi nhận kết quả kiểm tra thực tế của vật tư.',
   'project.materials.safetyInspection.toasts.created':
-    'Đã lưu phiếu kiểm định.',
+    'Đã lưu phiếu kiểm tra an toàn.',
   'project.materials.safetyInspection.sections.information':
-    'Thông tin kiểm định',
+    'Thông tin kiểm tra',
   'project.materials.safetyInspection.sections.checklist':
-    'Checklist kiểm định',
-  'project.materials.safetyInspection.fields.inspectedAt':
-    'Thời gian kiểm định',
-  'project.materials.safetyInspection.fields.inspector': 'Người kiểm định',
-  'project.materials.safetyInspection.fields.note': 'Ghi chú tổng',
-  'project.materials.safetyInspection.fields.result': 'Kết quả kiểm định',
-  'project.materials.safetyInspection.fields.criteriaResult': 'Đạt',
+    'Bảng nội dung kiểm tra',
+  'project.materials.safetyInspection.sections.resultAndAttachments':
+    'Nhận xét và tệp đính kèm',
+  'project.materials.safetyInspection.fields.material': 'Vật tư kiểm tra',
+  'project.materials.safetyInspection.fields.inspectedAt': 'Thời gian kiểm tra',
+  'project.materials.safetyInspection.fields.inspector': 'Người thực hiện',
+  'project.materials.safetyInspection.fields.note': 'Nhận xét, ghi chú phiếu',
+  'project.materials.safetyInspection.fields.result': 'Kết quả phiếu',
+  'project.materials.safetyInspection.fields.criteriaResult': 'Đánh giá',
   'project.materials.safetyInspection.fields.criteriaNote':
-    'Ghi chú nội dung kiểm định',
+    'Ghi chú nội dung kiểm tra',
   'project.materials.safetyInspection.results.passed': 'Đạt',
   'project.materials.safetyInspection.results.failed': 'Không đạt',
-  'project.materials.safetyInspection.actions.create': 'Lập phiếu kiểm định',
+  'project.materials.safetyInspection.results.unassessed': 'Chưa đánh giá',
+  'project.materials.safetyInspection.status.inProgress': 'Đang kiểm tra',
+  'project.materials.safetyInspection.status.completed': 'Đã hoàn tất',
+  'project.materials.safetyInspection.actions.create': 'Lập phiếu kiểm tra',
   'project.materials.safetyInspection.actions.save': 'Lưu phiếu',
-  'project.materials.safetyInspection.actions.back': 'Quay lại chi tiết vật tư',
+  'project.materials.safetyInspection.actions.createNow': 'Kiểm tra ngay',
+  'project.materials.safetyInspection.actions.continue': 'Tiếp tục kiểm tra',
+  'project.materials.safetyInspection.actions.saveDraft': 'Lưu nháp',
+  'project.materials.safetyInspection.actions.complete': 'Hoàn tất phiếu',
+  'project.materials.safetyInspection.actions.back': 'Quay lại',
   'project.materials.safetyInspection.attachments.download': 'Tải tệp',
+  'project.materials.safetyInspection.attachments.saved': 'Tệp đã đính kèm',
   'project.materials.safetyInspection.attachments.unavailable':
     'Không thể tạo liên kết tải tệp.',
   'project.materials.safetyInspection.history.title': 'Lịch sử kiểm định',
@@ -472,6 +483,50 @@ export const materialMessagesVi: Record<string, string> = {
     'Xem phiếu kiểm định ngày {date}',
   'project.materials.safetyInspection.history.criteriaCount':
     '{count} nội dung',
+  'project.materials.safetyInspection.queue.title': 'Vật tư cần kiểm tra',
+  'project.materials.safetyInspection.queue.recordCountLabel': 'vật tư',
+  'project.materials.safetyInspection.queue.search': 'Tìm mã hoặc tên vật tư',
+  'project.materials.safetyInspection.queue.filterStatus': 'Lọc trạng thái',
+  'project.materials.safetyInspection.queue.allStatuses': 'Tất cả trạng thái',
+  'project.materials.safetyInspection.queue.lastInspection':
+    'Kiểm tra lần cuối',
+  'project.materials.safetyInspection.queue.nextDue': 'Hạn kiểm tra kế tiếp',
+  'project.materials.safetyInspection.queue.status': 'Trạng thái',
+  'project.materials.safetyInspection.queue.status.due': 'Cần kiểm tra',
+  'project.materials.safetyInspection.queue.status.upcoming':
+    'Chưa cần kiểm tra',
+  'project.materials.safetyInspection.queue.status.inProgress': 'Đang kiểm tra',
+  'project.materials.safetyInspection.queue.action': 'Thao tác',
+  'project.materials.safetyInspection.queue.daysRemaining': 'Còn {days} ngày',
+  'project.materials.safetyInspection.queue.daysOverdue': 'Quá hạn {days} ngày',
+  'project.materials.safetyInspection.queue.dueToday': 'Đến hạn hôm nay',
+  'project.materials.safetyInspection.queue.empty':
+    'Không có vật tư cần kiểm tra theo bộ lọc này.',
+  'project.materials.safetyInspection.queue.loadTitle':
+    'Không tải được danh sách vật tư cần kiểm tra',
+  'project.materials.safetyInspection.queue.noChecklist':
+    'Vật tư chưa có bảng kiểm tra an toàn.',
+  'project.materials.safetyInspection.queue.noManage':
+    'Bạn không có quyền lập phiếu kiểm tra an toàn.',
+  'project.materials.safetyInspection.list.title': 'Phiếu kiểm tra an toàn',
+  'project.materials.safetyInspection.list.recordCountLabel': 'phiếu',
+  'project.materials.safetyInspection.list.search':
+    'Tìm mã vật tư, tên vật tư hoặc người thực hiện',
+  'project.materials.safetyInspection.list.filterStatus': 'Lọc trạng thái',
+  'project.materials.safetyInspection.list.allStatuses': 'Tất cả trạng thái',
+  'project.materials.safetyInspection.list.inspectedAt': 'Ngày kiểm tra',
+  'project.materials.safetyInspection.list.material': 'Vật tư',
+  'project.materials.safetyInspection.list.inspector': 'Người thực hiện',
+  'project.materials.safetyInspection.list.result': 'Kết quả',
+  'project.materials.safetyInspection.list.empty':
+    'Chưa có phiếu kiểm tra an toàn.',
+  'project.materials.safetyInspection.list.loadTitle':
+    'Không tải được danh sách phiếu kiểm tra an toàn',
+  'project.materials.safetyInspection.toasts.draftSaved': 'Đã lưu phiếu nháp.',
+  'project.materials.safetyInspection.toasts.completed':
+    'Đã hoàn tất phiếu kiểm tra an toàn.',
+  'project.materials.safetyInspection.errors.startTitle':
+    'Không thể bắt đầu phiếu kiểm tra',
   'project.materials.safetyInspection.errors.noChecklist':
     'Vật tư chưa có checklist kiểm định. Hãy bổ sung checklist vào mẫu vật tư hoặc cấu hình riêng cho vật tư trước khi lập phiếu.',
   'project.materials.safetyInspection.errors.notRequired':
@@ -1019,6 +1074,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.checklist.count':
     '{groups} groups · {criteria} items',
   'project.materials.safetyInspection.checklist.rowNumber': 'No.',
+  'project.materials.safetyInspection.checklist.note': 'Note',
   'project.materials.safetyInspection.checklist.addCriterion': 'Add content',
   'project.materials.safetyInspection.checklist.addGroup': 'Add group',
   'project.materials.safetyInspection.page.createTitle':
@@ -1033,19 +1089,31 @@ export const materialMessagesEn: Record<string, string> = {
     'Inspection information',
   'project.materials.safetyInspection.sections.checklist':
     'Inspection checklist',
-  'project.materials.safetyInspection.fields.inspectedAt': 'Inspection time',
+  'project.materials.safetyInspection.sections.resultAndAttachments':
+    'Notes and attachments',
+  'project.materials.safetyInspection.fields.material': 'Material inspected',
+  'project.materials.safetyInspection.fields.inspectedAt':
+    'Inspection date and time',
   'project.materials.safetyInspection.fields.inspector': 'Inspector',
-  'project.materials.safetyInspection.fields.note': 'Overall note',
+  'project.materials.safetyInspection.fields.note': 'Inspection notes',
   'project.materials.safetyInspection.fields.result': 'Inspection result',
-  'project.materials.safetyInspection.fields.criteriaResult': 'Pass',
+  'project.materials.safetyInspection.fields.criteriaResult': 'Assessment',
   'project.materials.safetyInspection.fields.criteriaNote':
-    'Inspection content note',
+    'Inspection item note',
   'project.materials.safetyInspection.results.passed': 'Passed',
   'project.materials.safetyInspection.results.failed': 'Failed',
+  'project.materials.safetyInspection.results.unassessed': 'Not assessed',
+  'project.materials.safetyInspection.status.inProgress': 'In progress',
+  'project.materials.safetyInspection.status.completed': 'Completed',
   'project.materials.safetyInspection.actions.create': 'Create inspection',
   'project.materials.safetyInspection.actions.save': 'Save inspection',
-  'project.materials.safetyInspection.actions.back': 'Back to material details',
+  'project.materials.safetyInspection.actions.createNow': 'Inspect now',
+  'project.materials.safetyInspection.actions.continue': 'Continue inspection',
+  'project.materials.safetyInspection.actions.saveDraft': 'Save draft',
+  'project.materials.safetyInspection.actions.complete': 'Complete inspection',
+  'project.materials.safetyInspection.actions.back': 'Back',
   'project.materials.safetyInspection.attachments.download': 'Download file',
+  'project.materials.safetyInspection.attachments.saved': 'Attached files',
   'project.materials.safetyInspection.attachments.unavailable':
     'Could not create a file download link.',
   'project.materials.safetyInspection.history.title': 'Inspection history',
@@ -1058,6 +1126,50 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.history.open':
     'Open inspection from {date}',
   'project.materials.safetyInspection.history.criteriaCount': '{count} items',
+  'project.materials.safetyInspection.queue.title':
+    'Materials requiring inspection',
+  'project.materials.safetyInspection.queue.recordCountLabel': 'materials',
+  'project.materials.safetyInspection.queue.search':
+    'Search material code or name',
+  'project.materials.safetyInspection.queue.filterStatus': 'Filter by status',
+  'project.materials.safetyInspection.queue.allStatuses': 'All statuses',
+  'project.materials.safetyInspection.queue.lastInspection': 'Last inspection',
+  'project.materials.safetyInspection.queue.nextDue': 'Next due date',
+  'project.materials.safetyInspection.queue.status': 'Status',
+  'project.materials.safetyInspection.queue.status.due': 'Inspection due',
+  'project.materials.safetyInspection.queue.status.upcoming': 'Not due',
+  'project.materials.safetyInspection.queue.status.inProgress': 'In progress',
+  'project.materials.safetyInspection.queue.action': 'Action',
+  'project.materials.safetyInspection.queue.daysRemaining': '{days} days left',
+  'project.materials.safetyInspection.queue.daysOverdue': '{days} days overdue',
+  'project.materials.safetyInspection.queue.dueToday': 'Due today',
+  'project.materials.safetyInspection.queue.empty':
+    'No materials require inspection with these filters.',
+  'project.materials.safetyInspection.queue.loadTitle':
+    'Could not load materials requiring inspection',
+  'project.materials.safetyInspection.queue.noChecklist':
+    'This material has no safety inspection checklist.',
+  'project.materials.safetyInspection.queue.noManage':
+    'You do not have permission to create a safety inspection.',
+  'project.materials.safetyInspection.list.title': 'Safety inspections',
+  'project.materials.safetyInspection.list.recordCountLabel': 'inspections',
+  'project.materials.safetyInspection.list.search':
+    'Search material code, material name, or inspector',
+  'project.materials.safetyInspection.list.filterStatus': 'Filter by status',
+  'project.materials.safetyInspection.list.allStatuses': 'All statuses',
+  'project.materials.safetyInspection.list.inspectedAt': 'Inspection date',
+  'project.materials.safetyInspection.list.material': 'Material',
+  'project.materials.safetyInspection.list.inspector': 'Inspector',
+  'project.materials.safetyInspection.list.result': 'Result',
+  'project.materials.safetyInspection.list.empty':
+    'No safety inspections have been created.',
+  'project.materials.safetyInspection.list.loadTitle':
+    'Could not load safety inspections',
+  'project.materials.safetyInspection.toasts.draftSaved': 'Draft saved.',
+  'project.materials.safetyInspection.toasts.completed':
+    'Safety inspection completed.',
+  'project.materials.safetyInspection.errors.startTitle':
+    'Could not start the inspection',
   'project.materials.safetyInspection.errors.noChecklist':
     'This material has no inspection checklist. Add one to its model or configure a material-specific checklist before creating an inspection.',
   'project.materials.safetyInspection.errors.notRequired':

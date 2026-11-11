@@ -34,6 +34,8 @@ export const ROUTES = {
     MATERIAL_QR_TRACKING: '/theo-doi-ma-qr',
     MATERIAL_SAFETY_INSPECTION_CREATE: '/vat-tu/:id/kiem-dinh/tao-moi',
     MATERIAL_SAFETY_INSPECTION_DETAIL: '/vat-tu/:id/kiem-dinh/:inspectionId',
+    MATERIALS_REQUIRING_INSPECTION: '/vat-tu/can-kiem-tra',
+    SAFETY_INSPECTIONS: '/phieu-kiem-tra-an-toan',
     MATERIAL_LABEL_TEMPLATES: '/mau-tem-nhan',
     MATERIAL_LABEL_TEMPLATE_CREATE: '/mau-tem-nhan/tao-moi',
     MATERIAL_LABEL_TEMPLATE_EDIT: '/mau-tem-nhan/:id/chinh-sua',

@@ -66,7 +66,8 @@ export const en: Record<string, string> = {
   'project.navigation.allMaterials': 'All materials',
   'project.navigation.qrTracking': 'QR tracking',
   'project.navigation.materialsRequiringInspection':
-    'Materials requiring inspection',
+    'Materials requiring safety inspection',
+  'project.navigation.safetyInspections': 'Safety inspections',
   'project.navigation.comingSoon': 'Coming soon',
   'project.navigation.reports': 'Reports',
   'project.navigation.handovers': 'Material handovers',

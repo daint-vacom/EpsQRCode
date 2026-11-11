@@ -35,6 +35,9 @@ export function MaterialSafetyInspectionsPanel({
     ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_CREATE,
     { id: materialId },
   );
+  const materialPath = buildPath(ROUTES.PROJECT.MATERIAL_DETAIL, {
+    id: materialId,
+  });
 
   return (
     <Card>
@@ -56,7 +59,9 @@ export function MaterialSafetyInspectionsPanel({
             type="button"
             size="md"
             disabled={!requiresInspection || !hasChecklist}
-            onClick={() => navigate(newInspectionPath)}
+            onClick={() =>
+              navigate(newInspectionPath, { state: { returnTo: materialPath } })
+            }
           >
             <Plus />
             {intl.formatMessage({
@@ -123,14 +128,19 @@ export function MaterialSafetyInspectionsPanel({
                     </span>
                     <Badge
                       variant={
-                        inspection.overallResult === 'passed'
-                          ? 'success'
-                          : 'destructive'
+                        inspection.status === 'in_progress'
+                          ? 'warning'
+                          : inspection.overallResult === 'passed'
+                            ? 'success'
+                            : 'destructive'
                       }
                       size="sm"
                     >
                       {intl.formatMessage({
-                        id: `project.materials.safetyInspection.results.${inspection.overallResult}`,
+                        id:
+                          inspection.status === 'in_progress'
+                            ? 'project.materials.safetyInspection.status.inProgress'
+                            : `project.materials.safetyInspection.results.${inspection.overallResult}`,
                       })}
                     </Badge>
                   </span>

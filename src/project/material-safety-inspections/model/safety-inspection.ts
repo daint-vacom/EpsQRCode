@@ -6,7 +6,7 @@ export const safetyInspectionResultSchema = z.enum(['passed', 'failed']);
 export const safetyInspectionCriterionResultSchema = z.object({
   id: z.string().uuid(),
   content: z.string(),
-  passed: z.boolean(),
+  passed: z.boolean().nullable(),
   note: z.string(),
 });
 
@@ -16,22 +16,40 @@ export const safetyInspectionGroupResultSchema = z.object({
   criteria: z.array(safetyInspectionCriterionResultSchema),
 });
 
-export const safetyInspectionFormSchema = z
-  .object({
-    inspectedAt: z.string().min(1, 'Vui lòng chọn thời gian kiểm định.'),
-    inspectorName: z.string().trim().min(1, 'Vui lòng nhập người kiểm định.'),
-    checklistResult: z.array(safetyInspectionGroupResultSchema).min(1),
-    overallNote: z.string(),
-    overallResult: safetyInspectionResultSchema.optional(),
-  })
-  .superRefine((values, context) => {
+export const safetyInspectionDraftFormSchema = z.object({
+  inspectedAt: z.string().min(1, 'Vui lòng chọn thời gian kiểm tra.'),
+  inspectorName: z.string().trim().min(1, 'Vui lòng nhập người thực hiện.'),
+  checklistResult: z.array(safetyInspectionGroupResultSchema).min(1),
+  overallNote: z.string(),
+  overallResult: safetyInspectionResultSchema.optional(),
+});
+
+export const safetyInspectionFormSchema =
+  safetyInspectionDraftFormSchema.superRefine((values, context) => {
     if (!values.overallResult) {
       context.addIssue({
         code: 'custom',
         path: ['overallResult'],
-        message: 'Vui lòng chọn kết quả kiểm định.',
+        message: 'Vui lòng chọn kết quả kiểm tra.',
       });
     }
+    values.checklistResult.forEach((group, groupIndex) => {
+      group.criteria.forEach((criterion, criterionIndex) => {
+        if (criterion.passed === null) {
+          context.addIssue({
+            code: 'custom',
+            path: [
+              'checklistResult',
+              groupIndex,
+              'criteria',
+              criterionIndex,
+              'passed',
+            ],
+            message: 'Vui lòng đánh giá nội dung kiểm tra này.',
+          });
+        }
+      });
+    });
   });
 
 export type SafetyInspectionResult = z.infer<
@@ -59,14 +77,61 @@ export interface SafetyInspectionAttachment {
 export interface SafetyInspection {
   id: string;
   materialId: string;
+  status: SafetyInspectionStatus;
   inspectedAt: string;
   inspectorUserId: string;
   inspectorName: string;
   checklistResult: SafetyInspectionGroupResult[];
   overallNote: string;
-  overallResult: SafetyInspectionResult;
+  overallResult: SafetyInspectionResult | null;
   attachments: SafetyInspectionAttachment[];
   createdAt: string;
+}
+
+export type SafetyInspectionStatus = 'in_progress' | 'completed';
+
+export interface MaterialSafetyInspectionQueueRow {
+  id: string;
+  code: string;
+  name: string;
+  lastInspectedAt: string | null;
+  nextDueDate: string;
+  daysRemaining: number;
+  status: 'due' | 'upcoming' | 'in_progress';
+  activeInspectionId: string | null;
+  hasChecklist: boolean;
+}
+
+export interface SafetyInspectionListRow {
+  id: string;
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  inspectedAt: string;
+  inspectorName: string;
+  status: SafetyInspectionStatus;
+  overallResult: SafetyInspectionResult | null;
+}
+
+export interface SafetyInspectionListFilters {
+  search?: string;
+  status?: SafetyInspectionStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface MaterialSafetyInspectionQueueFilters {
+  search?: string;
+  status?: MaterialSafetyInspectionQueueRow['status'];
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SafetyInspectionListResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export function makeSafetyInspectionFormValues(
@@ -83,7 +148,7 @@ export function makeSafetyInspectionFormValues(
       criteria: group.criteria.map((criterion) => ({
         id: criterion.id,
         content: criterion.content,
-        passed: false,
+        passed: null,
         note: '',
       })),
     })),

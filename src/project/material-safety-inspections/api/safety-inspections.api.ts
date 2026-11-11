@@ -5,23 +5,34 @@ import {
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
+  MaterialSafetyInspectionQueueFilters,
+  MaterialSafetyInspectionQueueRow,
   SafetyInspection,
   SafetyInspectionAttachment,
   SafetyInspectionFormValues,
   SafetyInspectionGroupResult,
+  SafetyInspectionListFilters,
+  SafetyInspectionListResult,
+  SafetyInspectionListRow,
 } from '../model/safety-inspection';
+import {
+  makeSafetyInspectionFormValues,
+  safetyInspectionFormSchema,
+} from '../model/safety-inspection';
+import type { SafetyInspectionChecklistGroup } from '../model/safety-inspection-checklist';
 
 export const MATERIAL_SAFETY_INSPECTIONS_BUCKET = 'material-safety-inspections';
 
 interface SafetyInspectionRow {
   id: string;
   material_id: string;
+  status: 'in_progress' | 'completed';
   inspected_at: string;
   inspected_by: string;
   inspector_name: string;
   checklist_result: SafetyInspectionGroupResult[];
   overall_note: string;
-  overall_result: 'passed' | 'failed';
+  overall_result: 'passed' | 'failed' | null;
   attachments: SafetyInspectionAttachment[];
   created_at: string;
 }
@@ -30,10 +41,15 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
   return (await promise) as T;
 }
 
+function toInspectionTimestamp(dateValue: string): string {
+  return new Date(`${dateValue}T12:00:00`).toISOString();
+}
+
 function mapSafetyInspection(row: SafetyInspectionRow): SafetyInspection {
   return {
     id: row.id,
     materialId: row.material_id,
+    status: row.status,
     inspectedAt: row.inspected_at,
     inspectorUserId: row.inspected_by,
     inspectorName: row.inspector_name,
@@ -46,7 +62,7 @@ function mapSafetyInspection(row: SafetyInspectionRow): SafetyInspection {
 }
 
 const inspectionSelect =
-  'id,material_id,inspected_at,inspected_by,inspector_name,checklist_result,overall_note,overall_result,attachments,created_at';
+  'id,material_id,status,inspected_at,inspected_by,inspector_name,checklist_result,overall_note,overall_result,attachments,created_at';
 
 export async function loadMaterialSafetyInspections(
   materialId: string,
@@ -64,6 +80,95 @@ export async function loadMaterialSafetyInspections(
     }),
   );
   return rows.map(mapSafetyInspection);
+}
+
+export async function loadMaterialSafetyInspectionQueue(
+  filters: MaterialSafetyInspectionQueueFilters,
+  signal?: AbortSignal,
+): Promise<SafetyInspectionListResult<MaterialSafetyInspectionQueueRow>> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_materials_requiring_safety_inspection',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadSafetyInspectionList(
+  filters: SafetyInspectionListFilters,
+  signal?: AbortSignal,
+): Promise<SafetyInspectionListResult<SafetyInspectionListRow>> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_material_safety_inspections',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function startMaterialSafetyInspectionDraft(
+  materialId: string,
+  checklist: SafetyInspectionChecklistGroup[],
+  inspectorName: string,
+  inspectedAt: string,
+): Promise<string> {
+  assertSupabaseConfigured();
+  if (checklist.length === 0) {
+    throw new Error('Vật tư chưa có bảng kiểm tra an toàn.');
+  }
+
+  const findOpenDraft = async () => {
+    const rows = await request<Array<{ id: string }>>(
+      supabaseApi.get('/material_safety_inspections', {
+        params: {
+          select: 'id',
+          material_id: `eq.${materialId}`,
+          status: 'eq.in_progress',
+          order: 'created_at.asc,id.asc',
+          limit: '1',
+        },
+      }),
+    );
+    return rows[0]?.id;
+  };
+
+  const existingId = await findOpenDraft();
+  if (existingId) return existingId;
+
+  const values = makeSafetyInspectionFormValues(
+    checklist,
+    inspectorName,
+    inspectedAt,
+  );
+  const inspectionId = crypto.randomUUID();
+  try {
+    await request(
+      supabaseApi.post(
+        '/material_safety_inspections',
+        {
+          id: inspectionId,
+          material_id: materialId,
+          status: 'in_progress',
+          inspected_at: toInspectionTimestamp(values.inspectedAt),
+          inspector_name: values.inspectorName,
+          checklist_result: values.checklistResult,
+          overall_note: values.overallNote,
+          overall_result: null,
+          attachments: [],
+        },
+        { headers: { Prefer: 'return=minimal' } },
+      ),
+    );
+    return inspectionId;
+  } catch (error) {
+    const concurrentDraftId = await findOpenDraft().catch(() => undefined);
+    if (concurrentDraftId) return concurrentDraftId;
+    throw error;
+  }
 }
 
 export async function loadSafetyInspection(
@@ -117,20 +222,34 @@ function resolveMimeType(file: File): string {
   return mimeTypes[extension ?? ''] ?? 'application/octet-stream';
 }
 
-export async function createMaterialSafetyInspection(
-  materialId: string,
-  values: SafetyInspectionFormValues,
-  files: File[],
-): Promise<string> {
+export async function saveMaterialSafetyInspection(input: {
+  inspectionId: string;
+  materialId: string;
+  values: SafetyInspectionFormValues;
+  attachments: SafetyInspectionAttachment[];
+  files: File[];
+  complete: boolean;
+}): Promise<void> {
   assertSupabaseConfigured();
-  if (!values.overallResult) {
-    throw new Error('Vui lòng chọn kết quả kiểm định.');
+  const { inspectionId, materialId, values, files, complete } = input;
+  const validated = safetyInspectionFormSchema.safeParse(values);
+  if (complete && !validated.success) {
+    throw new Error('Vui lòng chọn kết quả kiểm tra trước khi hoàn tất phiếu.');
   }
-  const inspectionId = crypto.randomUUID();
+
+  const retainedAttachments = input.attachments.map(
+    ({ url: _url, ...attachment }) => attachment,
+  );
+  const previousAttachments = await loadSafetyInspection(inspectionId);
+  const removedAttachments =
+    previousAttachments?.attachments.filter(
+      (attachment) =>
+        !retainedAttachments.some((retained) => retained.id === attachment.id),
+    ) ?? [];
   const uploadedPaths: string[] = [];
 
   try {
-    const attachments: SafetyInspectionAttachment[] = [];
+    const newAttachments: SafetyInspectionAttachment[] = [];
     for (const file of files) {
       const storagePath = `${materialId}/${inspectionId}/${crypto.randomUUID()}-${safeFileName(file.name)}`;
       const mimeType = resolveMimeType(file);
@@ -143,7 +262,7 @@ export async function createMaterialSafetyInspection(
         file: new File([file], file.name, { type: mimeType }),
       });
       uploadedPaths.push(storagePath);
-      attachments.push({
+      newAttachments.push({
         id: crypto.randomUUID(),
         fileName: file.name,
         mimeType,
@@ -152,24 +271,32 @@ export async function createMaterialSafetyInspection(
       });
     }
 
-    await request(
-      supabaseApi.post(
+    const updatedRows = await request<Array<{ id: string }>>(
+      supabaseApi.patch(
         '/material_safety_inspections',
         {
-          id: inspectionId,
-          material_id: materialId,
-          inspected_at: new Date(values.inspectedAt).toISOString(),
+          inspected_at: toInspectionTimestamp(values.inspectedAt),
           inspector_name: values.inspectorName.trim(),
           checklist_result: values.checklistResult,
           overall_note: values.overallNote.trim(),
-          overall_result: values.overallResult,
-          attachments,
+          overall_result: complete
+            ? values.overallResult
+            : (values.overallResult ?? null),
+          status: complete ? 'completed' : 'in_progress',
+          attachments: [...retainedAttachments, ...newAttachments],
         },
-        { headers: { Prefer: 'return=minimal' } },
+        {
+          params: {
+            id: `eq.${inspectionId}`,
+            status: 'eq.in_progress',
+          },
+          headers: { Prefer: 'return=representation' },
+        },
       ),
     );
-
-    return inspectionId;
+    if (!updatedRows.some((row) => row.id === inspectionId)) {
+      throw new Error('Phiếu đã được hoàn tất hoặc không còn tồn tại.');
+    }
   } catch (error) {
     if (uploadedPaths.length > 0) {
       await removeStorageObjects(
@@ -178,5 +305,15 @@ export async function createMaterialSafetyInspection(
       ).catch(() => undefined);
     }
     throw error;
+  }
+
+  const removedPaths = removedAttachments.map(
+    (attachment) => attachment.storagePath,
+  );
+  if (removedPaths.length > 0) {
+    await removeStorageObjects(
+      MATERIAL_SAFETY_INSPECTIONS_BUCKET,
+      removedPaths,
+    ).catch(() => undefined);
   }
 }
