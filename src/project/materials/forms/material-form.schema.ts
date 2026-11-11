@@ -42,7 +42,16 @@ export const materialFormSchema = z
     specificationOverrideLabels: z
       .record(z.string(), z.array(z.string()))
       .optional(),
-    safetyInspectionChecklist: safetyInspectionChecklistSchema,
+    inspectionSettingsOverrideEnabled: z.boolean().optional(),
+    requiresInspectionOverride: z.boolean().optional(),
+    inspectionIntervalValueOverride: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().int().optional(),
+    ),
+    inspectionIntervalUnitOverride: z.enum(['day', 'month']).optional(),
+    safetyInspectionChecklistOverrideEnabled: z.boolean().optional(),
+    safetyInspectionChecklistOverride:
+      safetyInspectionChecklistSchema.optional(),
   })
   .superRefine((values, context) => {
     if (!values.modelId)
@@ -78,6 +87,45 @@ export const materialFormSchema = z
         path: ['ownerSnapshot', 'name'],
         message: 'Vui lòng nhập tên chủ sở hữu.',
       });
+    if (values.inspectionSettingsOverrideEnabled) {
+      if (values.requiresInspectionOverride === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['requiresInspectionOverride'],
+          message: 'Vui lòng chọn có cần kiểm tra định kỳ hay không.',
+        });
+      } else if (values.requiresInspectionOverride) {
+        if (
+          values.inspectionIntervalValueOverride === undefined ||
+          values.inspectionIntervalValueOverride < 1
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['inspectionIntervalValueOverride'],
+            message: 'Nhập thời hạn kiểm tra là số nguyên lớn hơn 0.',
+          });
+        }
+        if (!values.inspectionIntervalUnitOverride) {
+          context.addIssue({
+            code: 'custom',
+            path: ['inspectionIntervalUnitOverride'],
+            message: 'Vui lòng chọn đơn vị thời hạn kiểm tra.',
+          });
+        }
+      }
+    }
+    if (
+      values.safetyInspectionChecklistOverrideEnabled &&
+      values.safetyInspectionChecklistOverride === undefined
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['safetyInspectionChecklistOverride'],
+        message: formatMessage(
+          'project.materials.safetyInspection.checklist.overrideRequired',
+        ),
+      });
+    }
     if (
       values.ownerSnapshot?.email &&
       !/^\S+@\S+\.\S+$/.test(values.ownerSnapshot.email)

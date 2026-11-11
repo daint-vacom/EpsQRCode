@@ -64,6 +64,7 @@ interface SafetyInspectionChecklistEditorProps {
   groups: SafetyInspectionChecklistGroup[];
   onChange: (groups: SafetyInspectionChecklistGroup[]) => void;
   fillHeight?: boolean;
+  showCount?: boolean;
 }
 
 function SortableCriterionRow({
@@ -128,7 +129,7 @@ function SortableCriterionRow({
           <GripVertical />
         </Button>
       </TableCell>
-      <TableCell className="w-20 border-e border-border px-2 py-2 text-center">
+      <TableCell className="w-20 border-e border-border px-2 py-2 text-left">
         <span className="text-sm tabular-nums text-foreground">
           {criterionNumber}
         </span>
@@ -225,7 +226,10 @@ function SortableChecklistGroup({
     <SortableTableBody
       ref={sortable.setNodeRef}
       style={style}
-      className={cn(sortable.isDragging && 'relative z-10 opacity-90')}
+      className={cn(
+        sortable.isDragging && 'relative z-10 opacity-90',
+        '[&_tr:last-child]:!border-b',
+      )}
     >
       <TableRow hoverable={false} className="bg-background">
         <TableCell className="w-12 border-e border-border px-1 py-1 text-center">
@@ -247,8 +251,8 @@ function SortableChecklistGroup({
             <GripVertical />
           </Button>
         </TableCell>
-        <TableCell className="w-20 border-e border-border px-2 py-2 text-center">
-          <div className="flex items-center justify-center gap-0.5">
+        <TableCell className="w-20 border-e border-border px-2 py-2 text-left">
+          <div className="flex items-center justify-start gap-0.5">
             <span className="text-xs font-semibold tabular-nums text-foreground">
               {groupNumber}
             </span>
@@ -405,6 +409,7 @@ export function SafetyInspectionChecklistEditor({
   groups,
   onChange,
   fillHeight = false,
+  showCount = true,
 }: SafetyInspectionChecklistEditorProps) {
   const intl = useIntl();
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
@@ -512,14 +517,16 @@ export function SafetyInspectionChecklistEditor({
         fillHeight && 'h-full min-h-0',
       )}
     >
-      <div className="flex shrink-0 items-center gap-3">
-        <span className="text-sm text-foreground">
-          {intl.formatMessage(
-            { id: 'project.materials.safetyInspection.checklist.count' },
-            { groups: groups.length, criteria: criteriaCount },
-          )}
-        </span>
-      </div>
+      {showCount ? (
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-sm text-foreground">
+            {intl.formatMessage(
+              { id: 'project.materials.safetyInspection.checklist.count' },
+              { groups: groups.length, criteria: criteriaCount },
+            )}
+          </span>
+        </div>
+      ) : null}
 
       <ScrollArea
         className={cn(
@@ -567,7 +574,7 @@ export function SafetyInspectionChecklistEditor({
                   <TableHeader>
                     <TableRow hoverable={false}>
                       <TableHead className="sticky top-0 z-20 w-12 border-e border-border bg-background px-1 text-center" />
-                      <TableHead className="sticky top-0 z-20 w-20 border-e border-border bg-background px-2 text-center">
+                      <TableHead className="sticky top-0 z-20 w-20 border-e border-border bg-background px-2 text-left">
                         {intl.formatMessage({
                           id: 'project.materials.safetyInspection.checklist.rowNumber',
                         })}

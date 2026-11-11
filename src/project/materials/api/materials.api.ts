@@ -1,6 +1,5 @@
 import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '@/project/material-models/model/material-model';
 import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
-import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import {
   createSignedStorageUrl,
   removeStorageObjects,
@@ -21,11 +20,6 @@ import type {
 import type { MaterialQrTrackingMetric } from '../model/material-qr-tracking';
 
 export const MATERIAL_IMAGES_BUCKET = 'material-images';
-
-interface MaterialSafetyChecklistRow {
-  material_id: string;
-  checklist: SafetyInspectionChecklistGroup[];
-}
 
 export interface BulkMaterialCreateResult {
   rowNumber: number;
@@ -121,19 +115,11 @@ export async function loadMaterial(
   signal?: AbortSignal,
 ): Promise<Material> {
   assertSupabaseConfigured();
-  const material = await request<Material>(
-    supabaseApi.post('/rpc/get_material', { p_id: id }, { signal }),
+  return resolveMaterialImages(
+    await request<Material>(
+      supabaseApi.post('/rpc/get_material', { p_id: id }, { signal }),
+    ),
   );
-  const checklistRows = await request<MaterialSafetyChecklistRow[]>(
-    supabaseApi.get('/material_safety_checklists', {
-      params: { select: 'material_id,checklist', material_id: `eq.${id}` },
-      signal,
-    }),
-  );
-  return resolveMaterialImages({
-    ...material,
-    safetyInspectionChecklist: checklistRows[0]?.checklist ?? [],
-  });
 }
 
 export async function loadPublicMaterialDetail(
@@ -251,7 +237,7 @@ export async function saveMaterial(
     }
 
     const savedId = await request<string>(
-      supabaseApi.post('/rpc/save_material_with_safety_checklist', {
+      supabaseApi.post('/rpc/save_material_with_inspection_settings', {
         p_id: id,
         p_expected_version: expectedVersion,
         p_values: {
@@ -262,7 +248,6 @@ export async function saveMaterial(
         },
         p_public_display_settings: publicDisplaySettings,
         p_public_specification_settings: publicSpecificationSettings,
-        p_safety_inspection_checklist: values.safetyInspectionChecklist,
       }),
     );
 

@@ -1,3 +1,4 @@
+import { materialKeys } from '@/project/materials/hooks/use-materials';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createMaterialModel,
@@ -68,8 +69,12 @@ export function useUpdateMaterialModelMutation() {
         previousImages,
         publicDisplaySettings,
       ),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+      ]);
+    },
   });
 }
 

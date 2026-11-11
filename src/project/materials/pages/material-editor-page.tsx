@@ -19,22 +19,49 @@ import {
   ClipboardCheck,
   Eye,
   Info,
+  Pencil,
+  RotateCcw,
   Save,
   SlidersHorizontal,
 } from 'lucide-react';
-import type { SubmitErrorHandler } from 'react-hook-form';
+import type { SubmitErrorHandler, UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import {
+  Alert,
+  AlertContent,
+  AlertDescription,
+  AlertToolbar,
+} from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { ErrorState } from '@/components/ui/error-state';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MATERIAL_IMAGES_BUCKET } from '../api/materials.api';
@@ -49,11 +76,14 @@ import {
   useMaterialQuery,
   useSaveMaterialMutation,
 } from '../hooks/use-materials';
-import type {
-  Material,
-  MaterialCondition,
-  MaterialFormValues,
-  MaterialImageDraft,
+import {
+  getMaterialInspectionSettings,
+  type Material,
+  type MaterialCondition,
+  type MaterialFormValues,
+  type MaterialImageDraft,
+  type MaterialModelSafetyInspectionConfig,
+  type MaterialModelSnapshot,
 } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 
@@ -96,28 +126,32 @@ export function MaterialEditorPage() {
   const selectedModelId = form.watch('modelId');
   const previousModelId = useRef('');
   const hydratedModelId = useRef('');
+  const hydratedMaterialRef = useRef<{ id: string; version: number } | null>(
+    null,
+  );
   const currentModel = modelsQuery.data?.find(
     (model) =>
       model.id === (isEdit ? editingMaterial?.modelId : selectedModelId),
   );
   const groupQuery = useMaterialGroupQuery(
     currentModel?.groupId ?? '',
-    !isPermissionsPending && Boolean(currentModel),
+    !isPermissionsPending && !isEdit && Boolean(currentModel),
   );
   const snapshot = isEdit ? editingMaterial?.modelSnapshot : currentModel;
-  const inspectionChecklist = form.watch('safetyInspectionChecklist') ?? [];
-  const inheritedInspectionChecklist =
-    isEdit && editingMaterial?.modelSnapshot.safetyInspectionChecklist
-      ? mergeSafetyInspectionChecklists(
-          editingMaterial.modelSnapshot.safetyInspectionChecklist,
-        )
-      : mergeSafetyInspectionChecklists(
-          currentModel?.useGroupSafetyInspectionChecklist
-            ? groupQuery.data?.safetyInspectionChecklist
-            : undefined,
-          currentModel?.safetyInspectionChecklist,
-        );
-  const requiresSafetyInspection = snapshot?.requiresInspection ?? false;
+  const inheritedInspectionChecklist = isEdit
+    ? mergeSafetyInspectionChecklists(
+        editingMaterial?.modelSafetyInspectionConfig.safetyInspectionChecklist,
+      )
+    : mergeSafetyInspectionChecklists(
+        currentModel?.useGroupSafetyInspectionChecklist
+          ? groupQuery.data?.safetyInspectionChecklist
+          : undefined,
+        currentModel?.safetyInspectionChecklist,
+      );
+  const showInspectionTab =
+    isEdit ||
+    Boolean(snapshot?.requiresInspection) ||
+    inheritedInspectionChecklist.length > 0;
   const snapshotSpecifications =
     snapshot?.specifications.filter(
       (specification) => !hiddenSpecificationIds.includes(specification.id),
@@ -125,6 +159,16 @@ export function MaterialEditorPage() {
 
   useEffect(() => {
     if (isEdit && editingMaterial) {
+      if (
+        hydratedMaterialRef.current?.id === editingMaterial.id &&
+        hydratedMaterialRef.current.version === editingMaterial.version
+      ) {
+        return;
+      }
+      hydratedMaterialRef.current = {
+        id: editingMaterial.id,
+        version: editingMaterial.version,
+      };
       form.reset(mapMaterialToForm(editingMaterial));
       setGalleryImages(editingMaterial.images);
       setPublicDisplaySettings(
@@ -142,6 +186,7 @@ export function MaterialEditorPage() {
       );
       previousModelId.current = editingMaterial.modelId;
     } else if (!isEdit) {
+      hydratedMaterialRef.current = null;
       form.reset(materialDefaultValues);
       setGalleryImages([]);
       setPublicDisplaySettings(DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS);
@@ -344,7 +389,11 @@ export function MaterialEditorPage() {
     errors,
   ) => {
     setActiveTab(
-      errors.safetyInspectionChecklist
+      errors.inspectionSettingsOverrideEnabled ||
+        errors.requiresInspectionOverride ||
+        errors.inspectionIntervalValueOverride ||
+        errors.inspectionIntervalUnitOverride ||
+        errors.safetyInspectionChecklistOverride
         ? 'inspection'
         : errors.specificationOverrides
           ? 'technical'
@@ -432,13 +481,13 @@ export function MaterialEditorPage() {
                   id: 'project.materials.tabs.specifications',
                 })}
               </TabsTrigger>
-              {requiresSafetyInspection ? (
+              {showInspectionTab ? (
                 <TabsTrigger
                   value="inspection"
-                  count={mergeSafetyInspectionChecklists(
-                    inheritedInspectionChecklist,
-                    inspectionChecklist,
-                  ).reduce((count, group) => count + group.criteria.length, 0)}
+                  count={inheritedInspectionChecklist.reduce(
+                    (count, group) => count + group.criteria.length,
+                    0,
+                  )}
                 >
                   <ClipboardCheck className="size-4" aria-hidden="true" />
                   {intl.formatMessage({
@@ -598,50 +647,44 @@ export function MaterialEditorPage() {
                 )}
               </Card>
             </TabsContent>
-            {requiresSafetyInspection ? (
+            {showInspectionTab ? (
               <TabsContent
                 value="inspection"
                 className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
               >
-                <Card className="min-w-0 shrink-0">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      {intl.formatMessage({
-                        id: 'project.materials.safetyInspection.checklist.inheritedTitle',
-                      })}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {groupQuery.isPending && groupQuery.isFetching ? (
-                      <PageLoading
-                        label={intl.formatMessage({
-                          id: 'common.state.loading',
-                        })}
-                      />
-                    ) : groupQuery.isError ? (
-                      <ErrorState
-                        title={intl.formatMessage({
-                          id: 'materialGroups.errors.loadTitle',
-                        })}
-                        description={getApiErrorMessage(groupQuery.error)}
-                        onRetry={() => void groupQuery.refetch()}
-                      />
-                    ) : (
-                      <SafetyInspectionChecklistDisplay
-                        groups={inheritedInspectionChecklist}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-                <SafetyInspectionChecklistEditor
-                  groups={inspectionChecklist}
-                  onChange={(groups) =>
-                    form.setValue('safetyInspectionChecklist', groups, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                />
+                {isEdit && editingMaterial ? (
+                  <MaterialInspectionScheduleCard
+                    form={form}
+                    modelName={
+                      currentModel?.name ?? editingMaterial.modelSnapshot.name
+                    }
+                    modelSafetyInspectionConfig={
+                      editingMaterial.modelSafetyInspectionConfig
+                    }
+                  />
+                ) : null}
+                {!isEdit && groupQuery.isPending && groupQuery.isFetching ? (
+                  <PageLoading
+                    label={intl.formatMessage({ id: 'common.state.loading' })}
+                  />
+                ) : !isEdit && groupQuery.isError ? (
+                  <ErrorState
+                    title={intl.formatMessage({
+                      id: 'materialGroups.errors.loadTitle',
+                    })}
+                    description={getApiErrorMessage(groupQuery.error)}
+                    onRetry={() => void groupQuery.refetch()}
+                  />
+                ) : isEdit && editingMaterial ? (
+                  <MaterialSafetyChecklistSection
+                    form={form}
+                    modelChecklist={inheritedInspectionChecklist}
+                  />
+                ) : (
+                  <SafetyInspectionChecklistDisplay
+                    groups={inheritedInspectionChecklist}
+                  />
+                )}
               </TabsContent>
             ) : null}
           </Tabs>
@@ -652,6 +695,7 @@ export function MaterialEditorPage() {
 }
 
 function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
+  const inspectionSettings = getMaterialInspectionSettings(material);
   return {
     code: material.code,
     modelId: material.modelId,
@@ -681,6 +725,428 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     specificationOverrideLabels: {
       ...material.specificationOverrideLabels,
     },
-    safetyInspectionChecklist: material.safetyInspectionChecklist ?? [],
+    inspectionSettingsOverrideEnabled:
+      material.inspectionSettingsOverrideEnabled,
+    requiresInspectionOverride: inspectionSettings.requiresInspection,
+    inspectionIntervalValueOverride: inspectionSettings.inspectionIntervalValue,
+    inspectionIntervalUnitOverride: inspectionSettings.inspectionIntervalUnit,
+    safetyInspectionChecklistOverrideEnabled:
+      material.safetyInspectionChecklistOverrideEnabled,
+    safetyInspectionChecklistOverride:
+      material.safetyInspectionChecklistOverride ?? [],
   };
+}
+
+function MaterialInspectionScheduleCard({
+  form,
+  modelName,
+  modelSafetyInspectionConfig,
+}: {
+  form: UseFormReturn<MaterialFormSchemaValues>;
+  modelName: string;
+  modelSafetyInspectionConfig: MaterialModelSafetyInspectionConfig;
+}) {
+  const intl = useIntl();
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const overrideEnabled =
+    form.watch('inspectionSettingsOverrideEnabled') === true;
+  const requiresInspection = overrideEnabled
+    ? (form.watch('requiresInspectionOverride') ??
+      modelSafetyInspectionConfig.requiresInspection)
+    : modelSafetyInspectionConfig.requiresInspection;
+
+  const enableScheduleOverride = () => {
+    form.setValue(
+      'requiresInspectionOverride',
+      modelSafetyInspectionConfig.requiresInspection,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue(
+      'inspectionIntervalValueOverride',
+      modelSafetyInspectionConfig.inspectionIntervalValue,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue(
+      'inspectionIntervalUnitOverride',
+      modelSafetyInspectionConfig.inspectionIntervalUnit,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue('inspectionSettingsOverrideEnabled', true, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  const restoreModelSettings = () => {
+    form.setValue('inspectionSettingsOverrideEnabled', false, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    form.setValue(
+      'requiresInspectionOverride',
+      modelSafetyInspectionConfig.requiresInspection,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue(
+      'inspectionIntervalValueOverride',
+      modelSafetyInspectionConfig.inspectionIntervalValue,
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue(
+      'inspectionIntervalUnitOverride',
+      modelSafetyInspectionConfig.inspectionIntervalUnit,
+      { shouldDirty: true, shouldValidate: true },
+    );
+  };
+
+  return (
+    <Card className="min-w-0 shrink-0">
+      <CardContent className="p-5">
+        <Form {...form}>
+          <div className="flex flex-col gap-4">
+            <Alert
+              variant={overrideEnabled ? 'warning' : 'success'}
+              appearance="light"
+            >
+              <AlertContent>
+                <AlertDescription>
+                  {intl.formatMessage({
+                    id: overrideEnabled
+                      ? 'project.materials.inspectionSchedule.customStatus'
+                      : 'project.materials.inspectionSchedule.modelStatus',
+                  })}{' '}
+                  <strong className="font-semibold">{modelName}</strong>
+                </AlertDescription>
+              </AlertContent>
+              <AlertToolbar className="ms-auto flex shrink-0 items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (overrideEnabled) {
+                      setIsRestoreDialogOpen(true);
+                    } else {
+                      enableScheduleOverride();
+                    }
+                  }}
+                >
+                  {overrideEnabled ? (
+                    <RotateCcw aria-hidden="true" />
+                  ) : (
+                    <Pencil aria-hidden="true" />
+                  )}
+                  {intl.formatMessage({
+                    id: overrideEnabled
+                      ? 'project.materials.inspectionSchedule.restoreDefault'
+                      : 'project.materials.inspectionSchedule.edit',
+                  })}
+                </Button>
+              </AlertToolbar>
+            </Alert>
+            <FormField
+              control={form.control}
+              name="requiresInspectionOverride"
+              render={({ field }) => (
+                <FormItem
+                  layout="horizontal"
+                  labelWidth="md"
+                  alignment="center"
+                >
+                  <FormLabel>
+                    {intl.formatMessage({
+                      id: 'materialModels.fields.requiresInspection',
+                    })}
+                  </FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={
+                        overrideEnabled
+                          ? (field.value ??
+                            modelSafetyInspectionConfig.requiresInspection)
+                          : modelSafetyInspectionConfig.requiresInspection
+                      }
+                      onCheckedChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
+                      disabled={!overrideEnabled}
+                      aria-label={intl.formatMessage({
+                        id: 'materialModels.fields.requiresInspection',
+                      })}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {requiresInspection ? (
+              <>
+                <FormField
+                  control={form.control}
+                  name="inspectionIntervalValueOverride"
+                  render={({ field }) => (
+                    <FormItem
+                      layout="horizontal"
+                      labelWidth="md"
+                      alignment="center"
+                    >
+                      <FormLabel htmlFor="material-inspection-interval">
+                        {intl.formatMessage({
+                          id: 'materialModels.fields.inspectionInterval',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          id="material-inspection-interval"
+                          type="number"
+                          min={1}
+                          step={1}
+                          readOnly={!overrideEnabled}
+                          aria-readonly={!overrideEnabled}
+                          aria-label={intl.formatMessage({
+                            id: 'materialModels.fields.inspectionInterval',
+                          })}
+                          value={
+                            overrideEnabled
+                              ? (field.value ?? '')
+                              : modelSafetyInspectionConfig.inspectionIntervalValue
+                          }
+                          onChange={(event) => {
+                            field.onChange(
+                              event.target.value === ''
+                                ? ''
+                                : Number(event.target.value),
+                            );
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="inspectionIntervalUnitOverride"
+                  render={({ field }) => (
+                    <FormItem
+                      layout="horizontal"
+                      labelWidth="md"
+                      alignment="center"
+                    >
+                      <FormLabel>
+                        {intl.formatMessage({
+                          id: 'materialModels.fields.inspectionIntervalUnit',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <Select
+                          value={
+                            overrideEnabled
+                              ? (field.value ??
+                                modelSafetyInspectionConfig.inspectionIntervalUnit)
+                              : modelSafetyInspectionConfig.inspectionIntervalUnit
+                          }
+                          onValueChange={field.onChange}
+                          disabled={!overrideEnabled}
+                        >
+                          <SelectTrigger
+                            aria-label={intl.formatMessage({
+                              id: 'materialModels.fields.inspectionIntervalUnit',
+                            })}
+                            onBlur={field.onBlur}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">
+                              {intl.formatMessage({
+                                id: 'materialModels.inspectionIntervalUnits.day',
+                              })}
+                            </SelectItem>
+                            <SelectItem value="month">
+                              {intl.formatMessage({
+                                id: 'materialModels.inspectionIntervalUnits.month',
+                              })}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormItem
+                  layout="horizontal"
+                  labelWidth="md"
+                  alignment="center"
+                >
+                  <FormLabel>
+                    {intl.formatMessage({
+                      id: 'materialModels.fields.skipInitialInspection',
+                    })}
+                  </FormLabel>
+                  <FormControl>
+                    <Checkbox
+                      checked={
+                        modelSafetyInspectionConfig.skipInitialInspection
+                      }
+                      disabled
+                      aria-label={intl.formatMessage({
+                        id: 'materialModels.fields.skipInitialInspection',
+                      })}
+                    />
+                  </FormControl>
+                </FormItem>
+              </>
+            ) : null}
+          </div>
+        </Form>
+        <ConfirmDialog
+          open={isRestoreDialogOpen}
+          onOpenChange={setIsRestoreDialogOpen}
+          title={intl.formatMessage({
+            id: 'project.materials.inspectionSchedule.restoreDialogTitle',
+          })}
+          description={intl.formatMessage({
+            id: 'project.materials.inspectionSchedule.restoreDialogDescription',
+          })}
+          confirmLabel={intl.formatMessage({
+            id: 'project.materials.inspectionSchedule.restoreDefault',
+          })}
+          confirmVariant="destructive"
+          onConfirm={restoreModelSettings}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function MaterialSafetyChecklistSection({
+  form,
+  modelChecklist,
+}: {
+  form: UseFormReturn<MaterialFormSchemaValues>;
+  modelChecklist: NonNullable<
+    MaterialModelSnapshot['safetyInspectionChecklist']
+  >;
+}) {
+  const intl = useIntl();
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
+  const overrideEnabled =
+    form.watch('safetyInspectionChecklistOverrideEnabled') === true;
+  const overrideChecklist =
+    form.watch('safetyInspectionChecklistOverride') ?? [];
+  const displayedChecklist = overrideEnabled
+    ? overrideChecklist
+    : modelChecklist;
+  const criteriaCount = displayedChecklist.reduce(
+    (count, group) => count + group.criteria.length,
+    0,
+  );
+
+  const enableChecklistOverride = () => {
+    form.setValue(
+      'safetyInspectionChecklistOverride',
+      modelChecklist.map((group) => ({
+        ...group,
+        criteria: group.criteria.map((criterion) => ({ ...criterion })),
+      })),
+      { shouldDirty: true, shouldValidate: true },
+    );
+    form.setValue('safetyInspectionChecklistOverrideEnabled', true, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  const restoreModelChecklist = () => {
+    form.setValue('safetyInspectionChecklistOverrideEnabled', false, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    form.setValue('safetyInspectionChecklistOverride', [], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="text-sm text-foreground">
+          {intl.formatMessage(
+            { id: 'project.materials.safetyInspection.checklist.count' },
+            { groups: displayedChecklist.length, criteria: criteriaCount },
+          )}
+        </span>
+        <Badge
+          variant={overrideEnabled ? 'warning' : 'success'}
+          appearance="light"
+          size="sm"
+        >
+          {intl.formatMessage({
+            id: overrideEnabled
+              ? 'project.materials.safetyInspection.checklist.customStatus'
+              : 'project.materials.safetyInspection.checklist.modelStatus',
+          })}
+        </Badge>
+        <div className="ms-auto flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (overrideEnabled) setIsRestoreDialogOpen(true);
+              else enableChecklistOverride();
+            }}
+          >
+            {overrideEnabled ? (
+              <RotateCcw aria-hidden="true" />
+            ) : (
+              <Pencil aria-hidden="true" />
+            )}
+            {intl.formatMessage({
+              id: overrideEnabled
+                ? 'project.materials.safetyInspection.checklist.restoreDefault'
+                : 'project.materials.safetyInspection.checklist.edit',
+            })}
+          </Button>
+        </div>
+      </div>
+      {overrideEnabled ? (
+        <SafetyInspectionChecklistEditor
+          groups={overrideChecklist}
+          showCount={false}
+          onChange={(groups) =>
+            form.setValue('safetyInspectionChecklistOverride', groups, {
+              shouldDirty: true,
+              shouldValidate: true,
+            })
+          }
+        />
+      ) : (
+        <SafetyInspectionChecklistDisplay
+          groups={modelChecklist}
+          showCount={false}
+        />
+      )}
+      <ConfirmDialog
+        open={isRestoreDialogOpen}
+        onOpenChange={setIsRestoreDialogOpen}
+        title={intl.formatMessage({
+          id: 'project.materials.safetyInspection.checklist.restoreDialogTitle',
+        })}
+        description={intl.formatMessage({
+          id: 'project.materials.safetyInspection.checklist.restoreDialogDescription',
+        })}
+        confirmLabel={intl.formatMessage({
+          id: 'project.materials.safetyInspection.checklist.restoreDefault',
+        })}
+        confirmVariant="destructive"
+        onConfirm={restoreModelChecklist}
+      />
+    </div>
+  );
 }

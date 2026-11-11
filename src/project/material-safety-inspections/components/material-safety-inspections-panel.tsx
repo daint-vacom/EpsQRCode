@@ -21,10 +21,12 @@ export function MaterialSafetyInspectionsPanel({
   materialId,
   canManage,
   hasChecklist,
+  requiresInspection,
 }: {
   materialId: string;
   canManage: boolean;
   hasChecklist: boolean;
+  requiresInspection: boolean;
 }) {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -53,7 +55,7 @@ export function MaterialSafetyInspectionsPanel({
           <Button
             type="button"
             size="md"
-            disabled={!hasChecklist}
+            disabled={!requiresInspection || !hasChecklist}
             onClick={() => navigate(newInspectionPath)}
           >
             <Plus />
@@ -161,7 +163,14 @@ export function MaterialSafetyInspectionsPanel({
             ))}
           </div>
         )}
-        {canManage && !hasChecklist ? (
+        {canManage && !requiresInspection ? (
+          <p className="text-sm text-muted-foreground">
+            {intl.formatMessage({
+              id: 'project.materials.safetyInspection.errors.notRequired',
+            })}
+          </p>
+        ) : null}
+        {canManage && requiresInspection && !hasChecklist ? (
           <p className="text-sm text-muted-foreground">
             {intl.formatMessage({
               id: 'project.materials.safetyInspection.errors.noChecklist',

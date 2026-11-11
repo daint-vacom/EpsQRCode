@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react';
 import { vi as messagesVi } from '@/i18n/messages/vi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -74,6 +80,12 @@ vi.mock('@/project/material-groups/hooks/use-material-groups', () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+  useMaterialGroupQuery: () => ({
+    data: null,
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 vi.mock('../hooks/use-materials', () => ({
   useMaterialsQuery: () => ({
@@ -90,6 +102,12 @@ vi.mock('../hooks/use-materials', () => ({
   }),
   useMaterialQuery: () => ({
     data: mocks.material,
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  usePublicMaterialDetailQuery: () => ({
+    data: null,
     isPending: false,
     isError: false,
     refetch: vi.fn(),
@@ -138,6 +156,11 @@ const sample: Material = {
     groupId: null,
     description: 'Thiết bị đo',
     requiresInspection: false,
+    inspectionIntervalValue: 1,
+    inspectionIntervalUnit: 'month',
+    skipInitialInspection: false,
+    useGroupSafetyInspectionChecklist: false,
+    safetyInspectionChecklist: [],
     specifications: [
       {
         id: 'spec-1',
@@ -152,6 +175,30 @@ const sample: Material = {
     images: [],
     capturedAt: '2026-10-01T00:00:00Z',
   },
+  modelSafetyInspectionConfig: {
+    requiresInspection: false,
+    inspectionIntervalValue: 1,
+    inspectionIntervalUnit: 'month',
+    skipInitialInspection: false,
+    safetyInspectionChecklist: [
+      {
+        id: '10000000-0000-4000-8000-000000000001',
+        name: 'Kiểm tra tổng thể',
+        criteria: [
+          {
+            id: '10000000-0000-4000-8000-000000000002',
+            content: 'Kiểm tra vỏ ngoài',
+          },
+        ],
+      },
+    ],
+  },
+  inspectionSettingsOverrideEnabled: false,
+  requiresInspectionOverride: null,
+  inspectionIntervalValueOverride: null,
+  inspectionIntervalUnitOverride: null,
+  safetyInspectionChecklistOverrideEnabled: false,
+  safetyInspectionChecklistOverride: null,
   nameOverride: null,
   descriptionOverride: null,
   images: [],
@@ -296,7 +343,7 @@ describe('production material pages', () => {
       container.querySelector('svg[aria-label="QR MAT-001"]'),
     ).toHaveAttribute(
       'data-qr-value',
-      `${window.location.origin}/vat-tu/material-1`,
+      `${window.location.origin}/vat-tu/material-1?open=scan`,
     );
   });
 
@@ -406,6 +453,85 @@ describe('production material pages', () => {
       screen.queryByRole('button', { name: 'Thêm thông số' }),
     ).not.toBeInTheDocument();
   }, 15000);
+
+  it('shows the model checklist and toggles inspection schedule overrides immediately', async () => {
+    const user = userEvent.setup();
+    const { MaterialEditorPage } = await import('./material-editor-page');
+    renderPage('/materials/material-1', <MaterialEditorPage />);
+
+    await user.click(screen.getByRole('tab', { name: /Kiểm tra an toàn/ }));
+
+    expect(screen.getByText('Kiểm tra vỏ ngoài')).toBeInTheDocument();
+    expect(screen.getByText('1.1').closest('td')).toHaveClass('text-left');
+    expect(screen.getByText('1.1').closest('tbody')).toHaveClass(
+      '[&_tr:last-child]:!border-b',
+    );
+    expect(
+      screen.getByRole('columnheader', { name: 'STT' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Thêm nhóm' }),
+    ).not.toBeInTheDocument();
+    const requiresInspectionToggle = screen.getByRole('switch', {
+      name: 'Kiểm tra định kỳ',
+    });
+    expect(requiresInspectionToggle).not.toBeChecked();
+    expect(requiresInspectionToggle).toBeDisabled();
+    const modelStatusAlert = screen.getByRole('alert');
+    expect(modelStatusAlert).toHaveTextContent(
+      'Đang sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
+    );
+    expect(within(modelStatusAlert).getByText('Máy đo')).toHaveClass(
+      'font-semibold',
+    );
+
+    const editConfigurationButton = screen.getByRole('button', {
+      name: 'Sửa cấu hình',
+    });
+    expect(editConfigurationButton.querySelector('svg')).toBeInTheDocument();
+    await user.click(editConfigurationButton);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Đang không sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
+    );
+    const restoreDefaultsButton = screen.getByRole('button', {
+      name: 'Khôi phục mặc định',
+    });
+    expect(restoreDefaultsButton.querySelector('svg')).toBeInTheDocument();
+    expect(requiresInspectionToggle).toBeEnabled();
+    await user.click(requiresInspectionToggle);
+
+    expect(screen.getByRole('spinbutton', { name: 'Thời hạn' })).toHaveValue(1);
+    expect(
+      screen.getByRole('combobox', { name: 'Đơn vị thời hạn kiểm tra' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: 'Bỏ qua kiểm tra lần đầu' }),
+    ).toBeDisabled();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Khôi phục mặc định' }),
+    );
+    const restoreDialog = screen.getByRole('alertdialog');
+    expect(
+      within(restoreDialog).getByText(
+        'Dữ liệu kiểm tra an toàn được thiết lập riêng cho vật tư này sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục không?',
+      ),
+    ).toBeInTheDocument();
+    expect(requiresInspectionToggle).toBeChecked();
+    await user.click(
+      within(restoreDialog).getByRole('button', {
+        name: 'Khôi phục mặc định',
+      }),
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Đang sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
+    );
+    expect(requiresInspectionToggle).not.toBeChecked();
+    expect(requiresInspectionToggle).toBeDisabled();
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Thời hạn' }),
+    ).not.toBeInTheDocument();
+  });
 
   it('keeps the selected gallery image when switching detail tabs', async () => {
     const user = userEvent.setup();

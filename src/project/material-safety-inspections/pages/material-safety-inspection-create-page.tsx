@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
 import { useMaterialQuery } from '@/project/materials/hooks/use-materials';
+import {
+  getMaterialInspectionSettings,
+  getMaterialSafetyInspectionChecklist,
+} from '@/project/materials/model/material';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ClipboardPenLine } from 'lucide-react';
@@ -63,8 +67,7 @@ export function MaterialSafetyInspectionCreatePage() {
   const checklist = useMemo(
     () =>
       mergeSafetyInspectionChecklists(
-        material?.modelSnapshot.safetyInspectionChecklist,
-        material?.safetyInspectionChecklist,
+        material ? getMaterialSafetyInspectionChecklist(material) : undefined,
       ),
     [material],
   );
@@ -190,7 +193,7 @@ export function MaterialSafetyInspectionCreatePage() {
             id: 'project.materials.errors.notFound',
           })}
         />
-      ) : !material.modelSnapshot.requiresInspection ? (
+      ) : !getMaterialInspectionSettings(material).requiresInspection ? (
         <ErrorState
           title={intl.formatMessage({
             id: 'project.materials.safetyInspection.page.createTitle',

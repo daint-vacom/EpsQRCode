@@ -41,6 +41,10 @@ describe('materials API RPC contract', () => {
       ownerPartyId: 'party-1',
       condition: 'good' as const,
       note: '',
+      inspectionSettingsOverrideEnabled: true,
+      requiresInspectionOverride: true,
+      inspectionIntervalValueOverride: 6,
+      inspectionIntervalUnitOverride: 'day' as const,
     };
     post.mockResolvedValue('material-1');
 
@@ -49,23 +53,33 @@ describe('materials API RPC contract', () => {
 
     expect(post).toHaveBeenNthCalledWith(
       1,
-      '/rpc/save_material_with_public_display_settings',
+      '/rpc/save_material_with_inspection_settings',
       {
         p_id: null,
         p_expected_version: null,
-        p_values: { ...values, images: [] },
-        p_public_display_settings: { basicInfo: false, specifications: false },
+        p_values: {
+          ...values,
+          specificationOverrideLabels: { 'spec-color': ['Xanh'] },
+          hiddenSpecificationIds: [],
+          images: [],
+        },
+        p_public_display_settings: { basicInfo: true, specifications: true },
         p_public_specification_settings: {},
       },
     );
     expect(post).toHaveBeenNthCalledWith(
       2,
-      '/rpc/save_material_with_public_display_settings',
+      '/rpc/save_material_with_inspection_settings',
       {
         p_id: 'material-1',
         p_expected_version: 4,
-        p_values: { ...values, images: [] },
-        p_public_display_settings: { basicInfo: false, specifications: false },
+        p_values: {
+          ...values,
+          specificationOverrideLabels: { 'spec-color': ['Xanh'] },
+          hiddenSpecificationIds: [],
+          images: [],
+        },
+        p_public_display_settings: { basicInfo: true, specifications: true },
         p_public_specification_settings: {},
       },
     );

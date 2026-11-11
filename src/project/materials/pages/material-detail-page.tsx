@@ -31,7 +31,6 @@ import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-mate
 import { useMaterialLabelPrintSnapshotQuery } from '@/project/material-labels/hooks/use-material-label-templates';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { MaterialSafetyInspectionsPanel } from '@/project/material-safety-inspections/components/material-safety-inspections-panel';
-import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -58,7 +57,12 @@ import {
   useMaterialQuery,
   usePublicMaterialDetailQuery,
 } from '../hooks/use-materials';
-import type { Material, MaterialPublicDetail } from '../model/material';
+import {
+  getMaterialInspectionSettings,
+  getMaterialSafetyInspectionChecklist,
+  type Material,
+  type MaterialPublicDetail,
+} from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import '@/project/material-labels/pages/material-label-print.css';
 
@@ -372,10 +376,12 @@ export function MaterialDetailPage({
                         materialId={material.id}
                         canManage={canManage}
                         hasChecklist={
-                          mergeSafetyInspectionChecklists(
-                            material.modelSnapshot.safetyInspectionChecklist,
-                            material.safetyInspectionChecklist,
-                          ).length > 0
+                          getMaterialSafetyInspectionChecklist(material)
+                            .length > 0
+                        }
+                        requiresInspection={
+                          getMaterialInspectionSettings(material)
+                            .requiresInspection
                         }
                       />
                     ) : null}

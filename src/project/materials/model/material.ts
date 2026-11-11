@@ -31,6 +31,16 @@ export interface MaterialModelSnapshot {
   capturedAt: string;
 }
 
+export type MaterialModelSafetyInspectionConfig = Pick<
+  MaterialModelSnapshot,
+  | 'requiresInspection'
+  | 'inspectionIntervalValue'
+  | 'inspectionIntervalUnit'
+  | 'skipInitialInspection'
+> & {
+  safetyInspectionChecklist: SafetyInspectionChecklistGroup[];
+};
+
 export type MaterialOwnerKind = 'eps' | 'external' | 'warehouse' | 'other';
 
 export interface MaterialOwnerSnapshot {
@@ -130,7 +140,13 @@ export interface Material {
   code: string;
   modelId: string;
   modelSnapshot: MaterialModelSnapshot;
-  safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
+  modelSafetyInspectionConfig: MaterialModelSafetyInspectionConfig;
+  inspectionSettingsOverrideEnabled: boolean;
+  requiresInspectionOverride: boolean | null;
+  inspectionIntervalValueOverride: number | null;
+  inspectionIntervalUnitOverride: MaterialModelInspectionIntervalUnit | null;
+  safetyInspectionChecklistOverrideEnabled: boolean;
+  safetyInspectionChecklistOverride: SafetyInspectionChecklistGroup[] | null;
   nameOverride: string | null;
   descriptionOverride: string | null;
   images: MaterialImage[];
@@ -168,7 +184,39 @@ export interface MaterialFormValues {
   ownerSnapshot?: MaterialOwnerSnapshotDraft;
   condition: MaterialCondition;
   note: string;
-  safetyInspectionChecklist: SafetyInspectionChecklistGroup[];
+  inspectionSettingsOverrideEnabled?: boolean;
+  requiresInspectionOverride?: boolean;
+  inspectionIntervalValueOverride?: number;
+  inspectionIntervalUnitOverride?: MaterialModelInspectionIntervalUnit;
+  safetyInspectionChecklistOverrideEnabled?: boolean;
+  safetyInspectionChecklistOverride?: SafetyInspectionChecklistGroup[];
+}
+
+export function getMaterialInspectionSettings(material: Material) {
+  const usesOverride = material.inspectionSettingsOverrideEnabled;
+  const requiresInspection = usesOverride
+    ? (material.requiresInspectionOverride ?? false)
+    : material.modelSafetyInspectionConfig.requiresInspection;
+
+  return {
+    requiresInspection,
+    inspectionIntervalValue:
+      usesOverride && requiresInspection
+        ? (material.inspectionIntervalValueOverride ??
+          material.modelSafetyInspectionConfig.inspectionIntervalValue)
+        : material.modelSafetyInspectionConfig.inspectionIntervalValue,
+    inspectionIntervalUnit:
+      usesOverride && requiresInspection
+        ? (material.inspectionIntervalUnitOverride ??
+          material.modelSafetyInspectionConfig.inspectionIntervalUnit)
+        : material.modelSafetyInspectionConfig.inspectionIntervalUnit,
+  };
+}
+
+export function getMaterialSafetyInspectionChecklist(material: Material) {
+  return material.safetyInspectionChecklistOverrideEnabled
+    ? (material.safetyInspectionChecklistOverride ?? [])
+    : material.modelSafetyInspectionConfig.safetyInspectionChecklist;
 }
 
 export type SaveMaterialInput = {

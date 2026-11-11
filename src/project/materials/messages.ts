@@ -334,6 +334,28 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.fields.issuedDate': 'Ngày cấp',
   'project.materials.fields.status': 'Trạng thái sử dụng',
   'project.materials.fields.requiresInspection': 'Cần kiểm tra',
+  'project.materials.inspectionSchedule.modelStatus':
+    'Đang sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư',
+  'project.materials.inspectionSchedule.customStatus':
+    'Đang không sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư',
+  'project.materials.inspectionSchedule.edit': 'Sửa cấu hình',
+  'project.materials.inspectionSchedule.restoreDefault': 'Khôi phục mặc định',
+  'project.materials.inspectionSchedule.restoreDialogTitle':
+    'Khôi phục cấu hình mặc định?',
+  'project.materials.inspectionSchedule.restoreDialogDescription':
+    'Dữ liệu kiểm tra an toàn được thiết lập riêng cho vật tư này sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục không?',
+  'project.materials.safetyInspection.checklist.modelStatus': 'Theo mẫu VT',
+  'project.materials.safetyInspection.checklist.customStatus':
+    'Tùy chỉnh không theo mẫu VT',
+  'project.materials.safetyInspection.checklist.edit': 'Sửa checklist',
+  'project.materials.safetyInspection.checklist.overrideRequired':
+    'Vui lòng cấu hình bảng kiểm tra an toàn riêng cho vật tư.',
+  'project.materials.safetyInspection.checklist.restoreDefault':
+    'Khôi phục mặc định',
+  'project.materials.safetyInspection.checklist.restoreDialogTitle':
+    'Khôi phục checklist mặc định?',
+  'project.materials.safetyInspection.checklist.restoreDialogDescription':
+    'Dữ liệu checklist kiểm tra an toàn thiết lập riêng cho vật tư này sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục không?',
   'project.materials.fields.group': 'Nhóm vật tư',
   'project.materials.fields.createdAt': 'Ngày tạo',
   'project.materials.fields.updatedAt': 'Cập nhật gần nhất',
@@ -411,8 +433,6 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.checklist.rowNumber': 'STT',
   'project.materials.safetyInspection.checklist.addCriterion': 'Thêm nội dung',
   'project.materials.safetyInspection.checklist.addGroup': 'Thêm nhóm',
-  'project.materials.safetyInspection.checklist.inheritedTitle':
-    'Checklist được kế thừa',
   'project.materials.safetyInspection.page.createTitle':
     'Lập phiếu kiểm định an toàn',
   'project.materials.safetyInspection.page.detailTitle':
@@ -453,7 +473,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.history.criteriaCount':
     '{count} nội dung',
   'project.materials.safetyInspection.errors.noChecklist':
-    'Mẫu vật tư chưa có checklist kiểm định. Hãy bổ sung checklist trước khi lập phiếu.',
+    'Vật tư chưa có checklist kiểm định. Hãy bổ sung checklist vào mẫu vật tư hoặc cấu hình riêng cho vật tư trước khi lập phiếu.',
   'project.materials.safetyInspection.errors.notRequired':
     'Mẫu vật tư này chưa được bật kiểm định an toàn.',
   'project.materials.safetyInspection.errors.notFound':
@@ -903,6 +923,28 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.fields.issuedDate': 'Issued',
   'project.materials.fields.status': 'Use status',
   'project.materials.fields.requiresInspection': 'Inspection required',
+  'project.materials.inspectionSchedule.modelStatus':
+    'Using the safety inspection configuration from material model',
+  'project.materials.inspectionSchedule.customStatus':
+    'Not using the safety inspection configuration from material model',
+  'project.materials.inspectionSchedule.edit': 'Edit configuration',
+  'project.materials.inspectionSchedule.restoreDefault': 'Restore defaults',
+  'project.materials.inspectionSchedule.restoreDialogTitle':
+    'Restore default configuration?',
+  'project.materials.inspectionSchedule.restoreDialogDescription':
+    'Safety inspection data configured specifically for this material will be deleted and cannot be recovered. Do you want to continue?',
+  'project.materials.safetyInspection.checklist.modelStatus': 'Material model',
+  'project.materials.safetyInspection.checklist.customStatus':
+    'Custom, not from model',
+  'project.materials.safetyInspection.checklist.edit': 'Edit checklist',
+  'project.materials.safetyInspection.checklist.overrideRequired':
+    'Configure a safety checklist for this material.',
+  'project.materials.safetyInspection.checklist.restoreDefault':
+    'Restore defaults',
+  'project.materials.safetyInspection.checklist.restoreDialogTitle':
+    'Restore the default checklist?',
+  'project.materials.safetyInspection.checklist.restoreDialogDescription':
+    'The safety checklist configured for this material will be deleted and cannot be recovered. Do you want to continue?',
   'project.materials.fields.group': 'Material group',
   'project.materials.fields.createdAt': 'Created',
   'project.materials.fields.updatedAt': 'Last updated',
@@ -979,8 +1021,6 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.checklist.rowNumber': 'No.',
   'project.materials.safetyInspection.checklist.addCriterion': 'Add content',
   'project.materials.safetyInspection.checklist.addGroup': 'Add group',
-  'project.materials.safetyInspection.checklist.inheritedTitle':
-    'Inherited checklist',
   'project.materials.safetyInspection.page.createTitle':
     'Create safety inspection',
   'project.materials.safetyInspection.page.detailTitle':
@@ -1019,7 +1059,7 @@ export const materialMessagesEn: Record<string, string> = {
     'Open inspection from {date}',
   'project.materials.safetyInspection.history.criteriaCount': '{count} items',
   'project.materials.safetyInspection.errors.noChecklist':
-    'This material model has no inspection checklist. Add a checklist before creating an inspection.',
+    'This material has no inspection checklist. Add one to its model or configure a material-specific checklist before creating an inspection.',
   'project.materials.safetyInspection.errors.notRequired':
     'Safety inspection is not enabled for this material model.',
   'project.materials.safetyInspection.errors.notFound':
