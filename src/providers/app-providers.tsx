@@ -3,7 +3,6 @@ import { refreshSupabaseSession } from '@/features/auth/api/auth.api';
 import { I18nProvider } from '@/i18n/i18n-provider';
 import { useAuthStore } from '@/stores/auth.store';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
 import { HelmetProvider } from 'react-helmet-async';
 import { BrowserRouter } from 'react-router-dom';
@@ -76,7 +75,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
                     </NumberFormatProvider>
                   </WorkspaceProvider>
                 </UserProvider>
-                <ReactQueryDevtools initialIsOpen={false} />
               </QueryClientProvider>
             </HelmetProvider>
           </I18nProvider>

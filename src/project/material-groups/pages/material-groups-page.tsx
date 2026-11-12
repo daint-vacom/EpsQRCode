@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -31,6 +32,7 @@ import {
 import {
   useCreateMaterialGroupMutation,
   useDeleteMaterialGroupMutation,
+  useMaterialGroupFilterSummaryQuery,
   useMaterialGroupsQuery,
   useUpdateMaterialGroupAvailabilityMutation,
   useUpdateMaterialGroupMutation,
@@ -73,6 +75,7 @@ export function MaterialGroupsPage() {
   const availabilityMutation = useUpdateMaterialGroupAvailabilityMutation();
   const deleteMutation = useDeleteMaterialGroupMutation();
   const [keyword, setKeyword] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
@@ -86,15 +89,22 @@ export function MaterialGroupsPage() {
   const editForm = useMaterialGroupForm();
 
   const groups = query.data ?? EMPTY_MATERIAL_GROUPS;
+  const summaryQuery = useMaterialGroupFilterSummaryQuery(
+    keyword.trim(),
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const filteredGroups = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
-    if (!normalizedKeyword) return groups;
-    return groups.filter((group) =>
-      [group.code, group.name, group.description].some((value) =>
-        value.toLocaleLowerCase('vi').includes(normalizedKeyword),
-      ),
+    return groups.filter(
+      (group) =>
+        (!activeFilter || group.isActive === (activeFilter === 'active')) &&
+        (!normalizedKeyword ||
+          [group.code, group.name, group.description].some((value) =>
+            value.toLocaleLowerCase('vi').includes(normalizedKeyword),
+          )),
     );
-  }, [groups, keyword]);
+  }, [groups, keyword, activeFilter]);
 
   const openEdit = (group: MaterialGroup) => {
     if (!canManage) return;
@@ -228,7 +238,7 @@ export function MaterialGroupsPage() {
         isLoading={isPermissionsPending || (canView && query.isPending)}
         isFetching={query.isFetching}
         emptyMessage={
-          keyword
+          keyword || activeFilter
             ? intl.formatMessage({ id: 'materialGroups.empty.search' })
             : intl.formatMessage({ id: 'materialGroups.empty.list' })
         }
@@ -238,14 +248,50 @@ export function MaterialGroupsPage() {
             variant="stats"
             recordCountLabel="nhóm vật tư"
             stats={
-              <MaterialGroupFilterBar
-                className="w-64 shrink-0"
-                keyword={keyword}
-                onKeywordChange={(value) => {
-                  setKeyword(value);
-                  table.setPageIndex(0);
-                }}
-              />
+              <div className="flex min-w-0 flex-col gap-2">
+                <MaterialGroupFilterBar
+                  className="w-64 shrink-0"
+                  keyword={keyword}
+                  onKeywordChange={(value) => {
+                    setKeyword(value);
+                    table.setPageIndex(0);
+                  }}
+                />
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.management.filters.status',
+                  })}
+                  value={activeFilter}
+                  onValueChange={(value) => {
+                    setActiveFilter(value);
+                    table.setPageIndex(0);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={[
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    {
+                      value: 'active',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.active',
+                      }),
+                      count: summary?.active,
+                    },
+                    {
+                      value: 'inactive',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.inactive',
+                      }),
+                      count: summary?.inactive,
+                    },
+                  ]}
+                />
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />

@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
+import { MaterialGroupSelect } from '@/project/material-groups/components/material-group-select';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { useMaterialTableMainColumnWidth } from '@/project/materials/table/use-material-table-main-column-width';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
+import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -28,6 +31,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   useDeleteMaterialModelMutation,
+  useMaterialModelFilterSummaryQuery,
   useMaterialModelsQuery,
   useUpdateMaterialModelAvailabilityMutation,
 } from '../hooks/use-material-models';
@@ -62,6 +66,12 @@ export function MaterialModelsPage() {
   const availabilityMutation = useUpdateMaterialModelAvailabilityMutation();
   const deleteMutation = useDeleteMaterialModelMutation();
   const [keyword, setKeyword] = useState('');
+  const [groupId, setGroupId] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
+  const [inspectionFilter, setInspectionFilter] = useState('');
+  const [filterMode, setFilterMode] = useState<'status' | 'inspection'>(
+    'status',
+  );
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -69,6 +79,11 @@ export function MaterialModelsPage() {
     null,
   );
   const models = query.data ?? EMPTY_MATERIAL_MODELS;
+  const summaryQuery = useMaterialModelFilterSummaryQuery(
+    { search: keyword.trim(), groupId: groupId || undefined },
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const groupNameById = useMemo(
     () =>
       new Map((groupsQuery.data ?? []).map((group) => [group.id, group.name])),
@@ -76,13 +91,18 @@ export function MaterialModelsPage() {
   );
   const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
-    if (!normalizedKeyword) return models;
-    return models.filter((model) =>
-      [model.code, model.name].some((value) =>
-        value.toLocaleLowerCase('vi').includes(normalizedKeyword),
-      ),
+    return models.filter(
+      (model) =>
+        (!groupId || model.groupId === groupId) &&
+        (!activeFilter || model.isActive === (activeFilter === 'active')) &&
+        (!inspectionFilter ||
+          model.requiresInspection === (inspectionFilter === 'required')) &&
+        (!normalizedKeyword ||
+          [model.code, model.name].some((value) =>
+            value.toLocaleLowerCase('vi').includes(normalizedKeyword),
+          )),
     );
-  }, [models, keyword]);
+  }, [models, keyword, groupId, activeFilter, inspectionFilter]);
 
   const columns = useMaterialModelColumns({
     onEdit: (model) =>
@@ -170,9 +190,10 @@ export function MaterialModelsPage() {
         }
         isFetching={query.isFetching || groupsQuery.isFetching}
         emptyMessage={intl.formatMessage({
-          id: keyword
-            ? 'materialModels.empty.search'
-            : 'materialModels.empty.list',
+          id:
+            keyword || groupId || activeFilter || inspectionFilter
+              ? 'materialModels.empty.search'
+              : 'materialModels.empty.list',
         })}
         tableLayout={{ dense: true }}
       >
@@ -181,20 +202,127 @@ export function MaterialModelsPage() {
             variant="stats"
             recordCountLabel="mẫu vật tư"
             stats={
-              <SearchInput
-                aria-label={intl.formatMessage({
-                  id: 'materialModels.filters.searchPlaceholder',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'materialModels.filters.searchPlaceholder',
-                })}
-                value={keyword}
-                onSearch={(value) => {
-                  setKeyword(value);
-                  table.setPageIndex(0);
-                }}
-                className="w-full sm:w-64"
-              />
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({
+                      id: 'materialModels.filters.searchPlaceholder',
+                    })}
+                    placeholder={intl.formatMessage({
+                      id: 'materialModels.filters.searchPlaceholder',
+                    })}
+                    value={keyword}
+                    onSearch={(value) => {
+                      setKeyword(value);
+                      table.setPageIndex(0);
+                    }}
+                    className="w-full sm:w-64"
+                  />
+                  <MaterialGroupSelect
+                    aria-label={intl.formatMessage({
+                      id: 'materialModels.fields.group',
+                    })}
+                    sourceMode="options"
+                    groups={groupsQuery.data ?? []}
+                    value={groupId}
+                    onChange={(value) => {
+                      setGroupId(value);
+                      table.setPageIndex(0);
+                    }}
+                    canDeselect
+                    disabled={!canView || isPermissionsPending}
+                    searchable
+                    className="w-56 shrink-0"
+                  />
+                  <ProjectFilterModeSwitcher
+                    value={filterMode}
+                    onValueChange={(value) => {
+                      setFilterMode(value as 'status' | 'inspection');
+                      setActiveFilter('');
+                      setInspectionFilter('');
+                      table.setPageIndex(0);
+                    }}
+                    options={[
+                      {
+                        value: 'status',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.status',
+                        }),
+                      },
+                      {
+                        value: 'inspection',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.inspection',
+                        }),
+                      },
+                    ]}
+                    disabled={!canView || isPermissionsPending}
+                  />
+                </div>
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: `project.management.filters.${filterMode}`,
+                  })}
+                  value={
+                    filterMode === 'status' ? activeFilter : inspectionFilter
+                  }
+                  onValueChange={(value) => {
+                    if (filterMode === 'status') setActiveFilter(value);
+                    else setInspectionFilter(value);
+                    table.setPageIndex(0);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={
+                    filterMode === 'status'
+                      ? [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          {
+                            value: 'active',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.active',
+                            }),
+                            count: summary?.active,
+                          },
+                          {
+                            value: 'inactive',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.inactive',
+                            }),
+                            count: summary?.inactive,
+                          },
+                        ]
+                      : [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          {
+                            value: 'required',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.inspectionRequired',
+                            }),
+                            count: summary?.requiresInspection,
+                          },
+                          {
+                            value: 'not_required',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.inspectionNotRequired',
+                            }),
+                            count: summary?.notRequiresInspection,
+                          },
+                        ]
+                  }
+                />
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />

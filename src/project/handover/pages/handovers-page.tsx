@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
+import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -21,10 +23,12 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useHandoversQuery } from '../hooks/use-handovers';
+import {
+  useHandoverFilterSummaryQuery,
+  useHandoversQuery,
+} from '../hooks/use-handovers';
 import type { HandoverListFilters } from '../model/handover';
 import { HANDOVER_PERMISSION_CODES } from '../model/handover-permissions';
 import {
@@ -50,6 +54,8 @@ export function HandoversPage() {
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [type, setType] = useState('');
+  const [filterMode, setFilterMode] = useState<'status' | 'type'>('status');
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -59,12 +65,18 @@ export function HandoversPage() {
     () => ({
       search: search.trim() || undefined,
       status: (status || undefined) as HandoverListFilters['status'],
+      type: (type || undefined) as HandoverListFilters['type'],
       page: pageIndex + 1,
       pageSize,
     }),
-    [search, status, pageIndex, pageSize],
+    [search, status, type, pageIndex, pageSize],
   );
   const query = useHandoversQuery(filters, isPermissionsPending || canView);
+  const summaryQuery = useHandoverFilterSummaryQuery(
+    search.trim(),
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const records = query.data?.items ?? [];
   const columns = useHandoverDocumentColumns({
     onView: (row) =>
@@ -84,9 +96,10 @@ export function HandoversPage() {
     },
     onPaginationChange: setPagination,
   });
-  const emptyMessage = search.trim()
-    ? intl.formatMessage({ id: 'project.handover.empty.search' })
-    : intl.formatMessage({ id: 'project.handover.empty.list' });
+  const emptyMessage =
+    search.trim() || status || type
+      ? intl.formatMessage({ id: 'project.handover.empty.search' })
+      : intl.formatMessage({ id: 'project.handover.empty.list' });
 
   const setFilter = (setter: (value: string) => void) => (value: string) => {
     setter(value);
@@ -159,67 +172,106 @@ export function HandoversPage() {
               id: 'project.handover.labels.listCount',
             })}
             stats={
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <SearchInput
-                  aria-label={intl.formatMessage({
-                    id: 'project.handover.labels.search',
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({
+                      id: 'project.handover.labels.search',
+                    })}
+                    placeholder={intl.formatMessage({
+                      id: 'project.handover.labels.search',
+                    })}
+                    value={search}
+                    onSearch={setFilter(setSearch)}
+                    className="w-64 shrink-0"
+                  />
+                  <ProjectFilterModeSwitcher
+                    value={filterMode}
+                    onValueChange={(value) => {
+                      setFilterMode(value as 'status' | 'type');
+                      setStatus('');
+                      setType('');
+                      setPagination((current) => ({
+                        ...current,
+                        pageIndex: 0,
+                      }));
+                    }}
+                    options={[
+                      {
+                        value: 'status',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.status',
+                        }),
+                      },
+                      {
+                        value: 'type',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.type',
+                        }),
+                      },
+                    ]}
+                    disabled={!canView || isPermissionsPending}
+                  />
+                </div>
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: `project.management.filters.${filterMode}`,
                   })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.handover.labels.search',
-                  })}
-                  value={search}
-                  onSearch={setFilter(setSearch)}
-                  className="w-64 shrink-0"
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.handover.labels.filterStatus',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.handover.labels.filterStatusPlaceholder',
-                  })}
-                  value={status}
-                  onChange={setFilter(setStatus)}
-                  options={[
-                    {
-                      value: 'awaiting_warehouse_approval',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.awaiting_warehouse_approval',
-                      }),
-                    },
-                    {
-                      value: 'draft',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.draft',
-                      }),
-                    },
-                    {
-                      value: 'pending',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.pending',
-                      }),
-                    },
-                    {
-                      value: 'completed',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.completed',
-                      }),
-                    },
-                    {
-                      value: 'rejected',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.rejected',
-                      }),
-                    },
-                    {
-                      value: 'cancelled',
-                      label: intl.formatMessage({
-                        id: 'project.handover.status.cancelled',
-                      }),
-                    },
-                  ]}
-                  searchable={false}
-                  className="w-52 shrink-0"
+                  value={filterMode === 'status' ? status : type}
+                  onValueChange={(value) => {
+                    if (filterMode === 'status') setFilter(setStatus)(value);
+                    else setFilter(setType)(value);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={
+                    filterMode === 'status'
+                      ? [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          ...(
+                            [
+                              'awaiting_warehouse_approval',
+                              'draft',
+                              'pending',
+                              'completed',
+                              'rejected',
+                              'cancelled',
+                            ] as const
+                          ).map((value) => ({
+                            value,
+                            label: intl.formatMessage({
+                              id: `project.handover.status.${value}`,
+                            }),
+                            count:
+                              value === 'awaiting_warehouse_approval'
+                                ? summary?.awaitingWarehouseApproval
+                                : summary?.[value],
+                          })),
+                        ]
+                      : [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          ...(['transfer', 'loan', 'return'] as const).map(
+                            (value) => ({
+                              value,
+                              label: intl.formatMessage({
+                                id: `project.handover.type.${value}`,
+                              }),
+                              count: summary?.[value],
+                            }),
+                          ),
+                        ]
+                  }
                 />
               </div>
             }

@@ -2,6 +2,7 @@ import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialLabelPrintSnapshot,
   MaterialLabelTemplate,
+  MaterialLabelTemplateFilterSummary,
   MaterialLabelTemplateInput,
   MaterialLabelTemplatePreference,
 } from '../model/material-label-template';
@@ -20,6 +21,20 @@ export async function loadMaterialLabelTemplates(
     supabaseApi.post('/rpc/list_material_label_templates', {}, { signal }),
   );
   return result.items;
+}
+
+export async function loadMaterialLabelTemplateFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<MaterialLabelTemplateFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_label_template_filter_summary',
+      { p_search: search.trim() || null },
+      { signal },
+    ),
+  );
 }
 
 export async function saveMaterialLabelTemplate(

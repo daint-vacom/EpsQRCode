@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { replaceCustodianRepresentatives } from '@/project/custodians/api/custodians.api';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -24,6 +25,7 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
+  loadExternalOrganizationFilterSummary,
   loadExternalOrganizations,
   saveExternalOrganization,
 } from '../api/accounts.api';
@@ -48,7 +50,7 @@ const emptyFormValues: ExternalOrganizationFormValues = {
 export function ExternalOrganizationsPage() {
   const intl = useIntl();
   const queryClient = useQueryClient();
-  const { hasPermission } = useUser();
+  const { hasPermission, userId } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView =
     hasPermission(ACCOUNT_PERMISSION_CODES.externalView) ||
@@ -57,6 +59,7 @@ export function ExternalOrganizationsPage() {
     hasPermission(ACCOUNT_PERMISSION_CODES.manage);
   const canManage = hasPermission(ACCOUNT_PERMISSION_CODES.externalManage);
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<ExternalOrganization | null>(null);
   const createForm = useExternalOrganizationForm({
@@ -70,6 +73,22 @@ export function ExternalOrganizationsPage() {
     queryFn: () => loadExternalOrganizations(true),
     enabled: !isPermissionsPending && canView,
   });
+  const summaryQuery = useQuery({
+    queryKey: [
+      'project',
+      'external-organizations',
+      'filter-summary',
+      userId,
+      search.trim(),
+    ],
+    queryFn: ({ signal }) =>
+      loadExternalOrganizationFilterSummary(search.trim(), signal),
+    enabled: !isPermissionsPending && canView,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
+  });
+  const summary = summaryQuery.data;
   const saveMutation = useMutation({
     mutationFn: (input: {
       id: string | null;
@@ -122,13 +141,15 @@ export function ExternalOrganizationsPage() {
   const normalizedSearch = search.trim().toLocaleLowerCase('vi');
   const organizations = useMemo(() => {
     const records = query.data ?? EMPTY_ORGANIZATIONS;
-    if (!normalizedSearch) return records;
-    return records.filter((record) =>
-      [record.code, record.name].some((value) =>
-        value.toLocaleLowerCase('vi').includes(normalizedSearch),
-      ),
+    return records.filter(
+      (record) =>
+        (!activeFilter || record.is_active === (activeFilter === 'active')) &&
+        (!normalizedSearch ||
+          [record.code, record.name].some((value) =>
+            value.toLocaleLowerCase('vi').includes(normalizedSearch),
+          )),
     );
-  }, [normalizedSearch, query.data]);
+  }, [normalizedSearch, query.data, activeFilter]);
   const openEdit = (organization: ExternalOrganization) => {
     if (!canManage) return;
     setEditing(organization);
@@ -184,9 +205,10 @@ export function ExternalOrganizationsPage() {
         isLoading={isPermissionsPending || (canView && query.isPending)}
         isFetching={query.isFetching}
         emptyMessage={intl.formatMessage({
-          id: normalizedSearch
-            ? 'accounts.external.page.emptySearch'
-            : 'accounts.external.page.empty',
+          id:
+            normalizedSearch || activeFilter
+              ? 'accounts.external.page.emptySearch'
+              : 'accounts.external.page.empty',
         })}
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
@@ -196,20 +218,56 @@ export function ExternalOrganizationsPage() {
               id: 'accounts.external.page.title',
             })}
             stats={
-              <SearchInput
-                aria-label={intl.formatMessage({
-                  id: 'accounts.external.search',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'accounts.external.search',
-                })}
-                value={search}
-                onSearch={(value) => {
-                  setSearch(value);
-                  table.setPageIndex(0);
-                }}
-                className="w-72 shrink-0"
-              />
+              <div className="flex min-w-0 flex-col gap-2">
+                <SearchInput
+                  aria-label={intl.formatMessage({
+                    id: 'accounts.external.search',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'accounts.external.search',
+                  })}
+                  value={search}
+                  onSearch={(value) => {
+                    setSearch(value);
+                    table.setPageIndex(0);
+                  }}
+                  className="w-72 shrink-0"
+                />
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.management.filters.status',
+                  })}
+                  value={activeFilter}
+                  onValueChange={(value) => {
+                    setActiveFilter(value);
+                    table.setPageIndex(0);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={[
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    {
+                      value: 'active',
+                      label: intl.formatMessage({
+                        id: 'accounts.external.status.active',
+                      }),
+                      count: summary?.active,
+                    },
+                    {
+                      value: 'inactive',
+                      label: intl.formatMessage({
+                        id: 'accounts.external.status.inactive',
+                      }),
+                      count: summary?.inactive,
+                    },
+                  ]}
+                />
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />

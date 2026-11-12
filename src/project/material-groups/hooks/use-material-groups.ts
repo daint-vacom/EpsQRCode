@@ -1,11 +1,13 @@
 import { materialModelKeys } from '@/project/material-models/hooks/use-material-models';
 import { materialKeys } from '@/project/materials/hooks/use-materials';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   createMaterialGroup,
   deleteMaterialGroup,
   loadAvailableMaterialGroups,
   loadMaterialGroupById,
+  loadMaterialGroupFilterSummary,
   loadMaterialGroups,
   updateMaterialGroup,
   updateMaterialGroupAvailability,
@@ -19,6 +21,8 @@ export const materialGroupKeys = {
   all: ['project', 'material-groups'] as const,
   list: () => [...materialGroupKeys.all, 'list'] as const,
   available: () => [...materialGroupKeys.all, 'available'] as const,
+  filterSummary: (userId: string | null, search: string) =>
+    [...materialGroupKeys.all, 'filter-summary', userId, search] as const,
   detail: (id: string) => [...materialGroupKeys.all, 'detail', id] as const,
 };
 
@@ -27,6 +31,21 @@ export function useMaterialGroupsQuery(enabled = true) {
     queryKey: materialGroupKeys.list(),
     queryFn: ({ signal }) => loadMaterialGroups(signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useMaterialGroupFilterSummaryQuery(
+  search: string,
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: materialGroupKeys.filterSummary(userId, search),
+    queryFn: ({ signal }) => loadMaterialGroupFilterSummary(search, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }
@@ -99,7 +118,7 @@ export function useUpdateMaterialGroupAvailabilityMutation() {
       );
       return { id, previousIsActive };
     },
-    onSuccess: (updatedRow) => {
+    onSuccess: async (updatedRow) => {
       queryClient.setQueryData<MaterialGroup[]>(
         materialGroupKeys.list(),
         (current) =>
@@ -113,6 +132,9 @@ export function useUpdateMaterialGroupAvailabilityMutation() {
               : group,
           ),
       );
+      await queryClient.invalidateQueries({
+        queryKey: [...materialGroupKeys.all, 'filter-summary'],
+      });
     },
     onError: (_error, _variables, context) => {
       const previousIsActive = context?.previousIsActive;

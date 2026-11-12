@@ -11,6 +11,12 @@ export interface Warehouse {
   updatedAt: string;
 }
 
+export interface WarehouseFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+}
+
 export interface WarehouseAccountOption {
   id: string;
   username: string | null;

@@ -1,8 +1,14 @@
 export type CustodianType =
-  'department' | 'team' | 'person' | 'external' | 'other';
+  | 'department'
+  | 'team'
+  | 'person'
+  | 'external'
+  | 'other';
 export type CustodianPartyType = CustodianType | 'warehouse';
 export type EpsCustodianSourceType =
-  'eps_department' | 'eps_team' | 'eps_person';
+  | 'eps_department'
+  | 'eps_team'
+  | 'eps_person';
 
 export interface Custodian {
   id: string;
@@ -45,6 +51,7 @@ export interface EpsEmployeeListFilters {
   search?: string;
   departmentId?: string;
   teamId?: string;
+  accessMode?: 'view' | 'manage';
   page?: number;
   pageSize?: number;
 }

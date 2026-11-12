@@ -127,7 +127,10 @@ export type MaterialSpecificationOption = z.infer<
   typeof materialSpecificationOptionSchema
 >;
 export type MaterialSpecificationValue =
-  string | boolean | string[] | { amount: number; unit?: string };
+  | string
+  | boolean
+  | string[]
+  | { amount: number; unit?: string };
 
 export const MATERIAL_SPECIFICATION_DATA_TYPE_CONFIG: Record<
   MaterialSpecificationDataType,
@@ -166,6 +169,17 @@ export interface MaterialSpecification {
   defaultValue: MaterialSpecificationValue | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MaterialSpecificationFilterSummary {
+  total: number;
+  text: number;
+  number: number;
+  boolean: number;
+  date: number;
+  color: number;
+  length: number;
+  weight: number;
 }
 
 export interface MaterialSpecificationRow {

@@ -5,12 +5,14 @@ import {
 } from '@/lib/supabase';
 import type {
   Account,
+  AccountFilterSummary,
   AccountFormValues,
   AccountRole,
   AccountRoleOption,
   AccountType,
   AccountWarehouseOption,
   ExternalOrganization,
+  ExternalOrganizationFilterSummary,
   ExternalOrganizationFormValues,
   FakeEpsEmployee,
   MyQrCodeAccount,
@@ -70,6 +72,25 @@ export async function loadAccounts(search = ''): Promise<Account[]> {
   }));
 }
 
+export async function loadAccountFilterSummary(
+  filters: { search?: string; organizationId?: string } = {},
+  signal?: AbortSignal,
+): Promise<AccountFilterSummary> {
+  assertSupabaseConfigured();
+  return request<AccountFilterSummary>(
+    supabaseApi.post(
+      '/rpc/get_qrcode_account_filter_summary',
+      {
+        p_filters: {
+          search: filters.search?.trim() || null,
+          organizationId: filters.organizationId || null,
+        },
+      },
+      { signal },
+    ),
+  );
+}
+
 export async function loadMyQrCodeAccount(): Promise<MyQrCodeAccount | null> {
   assertSupabaseConfigured();
   return rpc<MyQrCodeAccount | null>('get_my_qrcode_account', {});
@@ -91,6 +112,20 @@ export async function loadExternalOrganizations(
   return rpc<ExternalOrganization[]>('list_external_organizations', {
     p_include_inactive: includeInactive,
   });
+}
+
+export async function loadExternalOrganizationFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<ExternalOrganizationFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_external_organization_filter_summary',
+      { p_search: search.trim() || null },
+      { signal },
+    ),
+  );
 }
 
 export async function loadAccountRoleOptions(): Promise<AccountRoleOption[]> {

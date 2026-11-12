@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useCustodianAccountOptionsQuery } from '@/project/custodians/hooks/use-custodians';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -30,6 +31,7 @@ import {
 } from '../forms/warehouse-form.generated';
 import {
   useSaveWarehouseMutation,
+  useWarehouseFilterSummaryQuery,
   useWarehousesQuery,
 } from '../hooks/use-warehouses';
 import type { Warehouse } from '../model/warehouse';
@@ -53,6 +55,7 @@ export function WarehousesPage() {
   );
   const saveMutation = useSaveWarehouseMutation();
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState('');
   const [editing, setEditing] = useState<Warehouse | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const createForm = useWarehouseForm();
@@ -68,15 +71,22 @@ export function WarehousesPage() {
     accounts.map((account) => [account.id, account.displayName]),
   );
   const normalizedSearch = search.trim().toLocaleLowerCase('vi');
+  const summaryQuery = useWarehouseFilterSummaryQuery(
+    search.trim(),
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const filteredWarehouses = useMemo(() => {
     const warehouses = query.data ?? EMPTY_WAREHOUSES;
-    if (!normalizedSearch) return warehouses;
-    return warehouses.filter((warehouse) =>
-      [warehouse.code, warehouse.name, warehouse.address].some((value) =>
-        value.toLocaleLowerCase('vi').includes(normalizedSearch),
-      ),
+    return warehouses.filter(
+      (warehouse) =>
+        (!activeFilter || warehouse.isActive === (activeFilter === 'active')) &&
+        (!normalizedSearch ||
+          [warehouse.code, warehouse.name, warehouse.address].some((value) =>
+            value.toLocaleLowerCase('vi').includes(normalizedSearch),
+          )),
     );
-  }, [normalizedSearch, query.data]);
+  }, [normalizedSearch, query.data, activeFilter]);
   const openEdit = (warehouse: Warehouse) => {
     if (!canManage) return;
     setEditing(warehouse);
@@ -147,9 +157,10 @@ export function WarehousesPage() {
         isLoading={isPermissionsPending || (canView && query.isPending)}
         isFetching={query.isFetching}
         emptyMessage={intl.formatMessage({
-          id: normalizedSearch
-            ? 'warehouses.empty.search'
-            : 'warehouses.empty.list',
+          id:
+            normalizedSearch || activeFilter
+              ? 'warehouses.empty.search'
+              : 'warehouses.empty.list',
         })}
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
@@ -159,20 +170,56 @@ export function WarehousesPage() {
               id: 'warehouses.page.title',
             })}
             stats={
-              <SearchInput
-                aria-label={intl.formatMessage({
-                  id: 'warehouses.search.placeholder',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'warehouses.search.placeholder',
-                })}
-                value={search}
-                onSearch={(value) => {
-                  setSearch(value);
-                  table.setPageIndex(0);
-                }}
-                className="w-72 shrink-0"
-              />
+              <div className="flex min-w-0 flex-col gap-2">
+                <SearchInput
+                  aria-label={intl.formatMessage({
+                    id: 'warehouses.search.placeholder',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'warehouses.search.placeholder',
+                  })}
+                  value={search}
+                  onSearch={(value) => {
+                    setSearch(value);
+                    table.setPageIndex(0);
+                  }}
+                  className="w-72 shrink-0"
+                />
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.management.filters.status',
+                  })}
+                  value={activeFilter}
+                  onValueChange={(value) => {
+                    setActiveFilter(value);
+                    table.setPageIndex(0);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={[
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    {
+                      value: 'active',
+                      label: intl.formatMessage({
+                        id: 'warehouses.status.active',
+                      }),
+                      count: summary?.active,
+                    },
+                    {
+                      value: 'inactive',
+                      label: intl.formatMessage({
+                        id: 'warehouses.status.inactive',
+                      }),
+                      count: summary?.inactive,
+                    },
+                  ]}
+                />
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />

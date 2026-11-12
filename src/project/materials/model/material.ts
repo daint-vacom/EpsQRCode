@@ -255,6 +255,7 @@ export interface MaterialListFilters {
   isActive?: boolean;
   status?: MaterialStatus;
   condition?: MaterialCondition;
+  scanState?: 'scanned' | 'not_scanned';
   page?: number;
   pageSize?: number;
   updatedFrom?: string;
@@ -266,6 +267,31 @@ export interface MaterialListResult {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export type MaterialOwnerFilterType =
+  | 'department'
+  | 'team'
+  | 'person'
+  | 'warehouse'
+  | 'external';
+
+export interface MaterialOwnerFilter {
+  types: MaterialOwnerFilterType[];
+  departmentId: string | null;
+  teamId: string | null;
+}
+
+export interface MaterialFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  good: number;
+  damaged: number;
+  ownerFilter: MaterialOwnerFilter;
+  qrTotal?: number;
+  qrScanned?: number;
+  qrNotScanned?: number;
 }
 
 export interface MaterialModelSyncPreview {

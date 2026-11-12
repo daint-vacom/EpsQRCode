@@ -2,6 +2,7 @@ import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialReceipt,
   MaterialReceiptAdjustmentPreview,
+  MaterialReceiptFilterSummary,
   MaterialReceiptHistoryEntry,
   MaterialReceiptItemsResult,
   MaterialReceiptLineInput,
@@ -22,6 +23,25 @@ export async function loadMaterialReceipts(
     supabaseApi.post(
       '/rpc/list_material_receipts',
       { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialReceiptFilterSummary(
+  filters: { search?: string; warehouseId?: string } = {},
+  signal?: AbortSignal,
+): Promise<MaterialReceiptFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_receipt_filter_summary',
+      {
+        p_filters: {
+          search: filters.search?.trim() || null,
+          warehouseId: filters.warehouseId || null,
+        },
+      },
       { signal },
     ),
   );

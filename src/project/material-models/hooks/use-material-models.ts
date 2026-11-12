@@ -1,8 +1,10 @@
 import { materialKeys } from '@/project/materials/hooks/use-materials';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   createMaterialModel,
   deleteMaterialModel,
+  loadMaterialModelFilterSummary,
   loadMaterialModels,
   updateMaterialModel,
   updateMaterialModelAvailability,
@@ -18,6 +20,10 @@ import type {
 export const materialModelKeys = {
   all: ['project', 'material-models'] as const,
   list: () => [...materialModelKeys.all, 'list'] as const,
+  filterSummary: (
+    userId: string | null,
+    filters: { search?: string; groupId?: string },
+  ) => [...materialModelKeys.all, 'filter-summary', userId, filters] as const,
 };
 
 export function useMaterialModelsQuery(enabled = true) {
@@ -25,6 +31,21 @@ export function useMaterialModelsQuery(enabled = true) {
     queryKey: materialModelKeys.list(),
     queryFn: ({ signal }) => loadMaterialModels(signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useMaterialModelFilterSummaryQuery(
+  filters: { search?: string; groupId?: string } = {},
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: materialModelKeys.filterSummary(userId, filters),
+    queryFn: ({ signal }) => loadMaterialModelFilterSummary(filters, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }
@@ -96,7 +117,7 @@ export function useUpdateMaterialModelAvailabilityMutation() {
       );
       return { id, previousIsActive };
     },
-    onSuccess: (updatedRow) => {
+    onSuccess: async (updatedRow) => {
       queryClient.setQueryData<MaterialModel[]>(
         materialModelKeys.list(),
         (current) =>
@@ -110,6 +131,9 @@ export function useUpdateMaterialModelAvailabilityMutation() {
               : model,
           ),
       );
+      await queryClient.invalidateQueries({
+        queryKey: [...materialModelKeys.all, 'filter-summary'],
+      });
     },
     onError: (_error, _variables, context) => {
       if (!context || context.previousIsActive === undefined) return;

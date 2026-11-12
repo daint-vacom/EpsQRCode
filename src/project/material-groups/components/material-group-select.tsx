@@ -37,6 +37,7 @@ export function MaterialGroupSelect({
   onOpenChange,
   sourceMode = 'fetch',
   groups,
+  canDeselect = false,
   ...props
 }: MaterialGroupSelectProps) {
   const intl = useIntl();
@@ -105,7 +106,7 @@ export function MaterialGroupSelect({
           ? getApiErrorMessage(query.error)
           : intl.formatMessage({ id: 'materialGroups.select.empty' })
       }
-      canDeselect={false}
+      canDeselect={canDeselect}
       optionContentClassName="overflow-visible whitespace-normal"
       renderOption={(option) =>
         option.data ? (

@@ -6,7 +6,7 @@ import {
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialSafetyInspectionQueueFilters,
-  MaterialSafetyInspectionQueueRow,
+  MaterialSafetyInspectionQueueResult,
   SafetyInspection,
   SafetyInspectionAttachment,
   SafetyInspectionFormValues,
@@ -14,6 +14,7 @@ import type {
   SafetyInspectionListFilters,
   SafetyInspectionListResult,
   SafetyInspectionListRow,
+  SafetyInspectionListSummary,
 } from '../model/safety-inspection';
 import {
   makeSafetyInspectionFormValues,
@@ -85,7 +86,7 @@ export async function loadMaterialSafetyInspections(
 export async function loadMaterialSafetyInspectionQueue(
   filters: MaterialSafetyInspectionQueueFilters,
   signal?: AbortSignal,
-): Promise<SafetyInspectionListResult<MaterialSafetyInspectionQueueRow>> {
+): Promise<MaterialSafetyInspectionQueueResult> {
   assertSupabaseConfigured();
   return request(
     supabaseApi.post(
@@ -105,6 +106,20 @@ export async function loadSafetyInspectionList(
     supabaseApi.post(
       '/rpc/list_material_safety_inspections',
       { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadSafetyInspectionFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<SafetyInspectionListSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_safety_inspection_filter_summary',
+      { p_search: search.trim() || null },
       { signal },
     ),
   );

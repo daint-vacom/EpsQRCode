@@ -1,6 +1,7 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialSpecification,
+  MaterialSpecificationFilterSummary,
   MaterialSpecificationFormValues,
   MaterialSpecificationRow,
 } from '../model/material-specification';
@@ -62,6 +63,20 @@ export async function loadMaterialSpecifications(
     supabaseApi.post('/rpc/list_material_specifications', {}, { signal }),
   );
   return rows.map(mapMaterialSpecificationRow);
+}
+
+export async function loadMaterialSpecificationFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<MaterialSpecificationFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_specification_filter_summary',
+      { p_search: search.trim() || null },
+      { signal },
+    ),
+  );
 }
 
 export async function createMaterialSpecification(

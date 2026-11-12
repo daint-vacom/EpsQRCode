@@ -71,6 +71,22 @@ export interface ExternalOrganization {
   representative_options: RepresentativeAccount[];
 }
 
+export interface AccountFilterSummary {
+  total: number;
+  active: number;
+  suspended: number;
+  deactivated: number;
+  eps: number;
+  external: number;
+  unmapped: number;
+}
+
+export interface ExternalOrganizationFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+}
+
 export interface AccountRoleOption {
   id: string;
   code: string;

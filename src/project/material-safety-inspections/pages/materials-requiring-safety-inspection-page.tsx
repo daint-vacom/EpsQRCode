@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import {
   getCoreRowModel,
@@ -18,9 +19,13 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  MaterialSafetyInspectionQueueFilterRow,
+  type MaterialSafetyInspectionQueueFilterMode,
+  type MaterialSafetyInspectionQueueOwnerType,
+} from '../components/material-safety-inspection-queue-filter-row';
 import { useMaterialSafetyInspectionQueueQuery } from '../hooks/use-safety-inspections';
 import type { MaterialSafetyInspectionQueueFilters } from '../model/safety-inspection';
 import { useMaterialSafetyInspectionQueueColumns } from '../table/safety-inspection-queue.columns.generated';
@@ -34,7 +39,18 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [filterMode, setFilterMode] =
+    useState<MaterialSafetyInspectionQueueFilterMode>('status');
+  const [status, setStatus] =
+    useState<MaterialSafetyInspectionQueueFilters['status']>();
+  const [ownerType, setOwnerType] = useState<
+    MaterialSafetyInspectionQueueOwnerType | ''
+  >('');
+  const [ownerDepartmentId, setOwnerDepartmentId] = useState('');
+  const [ownerTeamId, setOwnerTeamId] = useState('');
+  const [ownerPartyId, setOwnerPartyId] = useState('');
+  const [selectedOwnerEmployee, setSelectedOwnerEmployee] =
+    useState<EpsEmployeeCatalogEntry | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -42,13 +58,12 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const filters = useMemo<MaterialSafetyInspectionQueueFilters>(
     () => ({
       search: search.trim() || undefined,
-      status: status
-        ? (status as MaterialSafetyInspectionQueueFilters['status'])
-        : undefined,
+      status,
+      ownerPartyId: ownerPartyId || undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [pagination.pageIndex, pagination.pageSize, search, status],
+    [ownerPartyId, pagination.pageIndex, pagination.pageSize, search, status],
   );
   const query = useMaterialSafetyInspectionQueueQuery(
     filters,
@@ -68,9 +83,46 @@ export function MaterialsRequiringSafetyInspectionPage() {
     state: { pagination },
     onPaginationChange: setPagination,
   });
-  const setFilter = (setter: (value: string) => void) => (value: string) => {
-    setter(value);
+  const resetPage = () => {
     setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
+  const handleFilterModeChange = (
+    nextMode: MaterialSafetyInspectionQueueFilterMode,
+  ) => {
+    if (nextMode === filterMode) return;
+
+    if (nextMode === 'status') {
+      setOwnerType('');
+      setOwnerDepartmentId('');
+      setOwnerTeamId('');
+      setOwnerPartyId('');
+      setSelectedOwnerEmployee(null);
+    } else {
+      setStatus(undefined);
+    }
+    setFilterMode(nextMode);
+    resetPage();
+  };
+  const handleOwnerTypeChange = (
+    nextType: MaterialSafetyInspectionQueueOwnerType | '',
+  ) => {
+    setOwnerType(nextType);
+    setOwnerDepartmentId('');
+    setOwnerTeamId('');
+    setOwnerPartyId('');
+    setSelectedOwnerEmployee(null);
+    resetPage();
+  };
+  const handleOwnerDepartmentChange = (departmentId: string) => {
+    setOwnerDepartmentId(departmentId);
+    setOwnerTeamId('');
+    setOwnerPartyId(departmentId);
+    resetPage();
+  };
+  const handleOwnerTeamChange = (teamId: string) => {
+    setOwnerTeamId(teamId);
+    setOwnerPartyId(teamId || ownerDepartmentId);
+    resetPage();
   };
   const emptyMessage = intl.formatMessage({
     id: 'project.materials.safetyInspection.queue.empty',
@@ -83,6 +135,32 @@ export function MaterialsRequiringSafetyInspectionPage() {
           id: 'project.materials.safetyInspection.queue.title',
         })}
         icon={ClipboardCheck}
+      />
+      <MaterialSafetyInspectionQueueFilterRow
+        mode={filterMode}
+        onModeChange={handleFilterModeChange}
+        status={status}
+        onStatusChange={(value) => {
+          setStatus(value);
+          resetPage();
+        }}
+        summary={query.data?.summary}
+        isCountsLoading={query.isPending}
+        ownerFilter={query.data?.ownerFilter}
+        ownerType={ownerType}
+        onOwnerTypeChange={handleOwnerTypeChange}
+        ownerDepartmentId={ownerDepartmentId}
+        onOwnerDepartmentChange={handleOwnerDepartmentChange}
+        ownerTeamId={ownerTeamId}
+        onOwnerTeamChange={handleOwnerTeamChange}
+        ownerPartyId={ownerPartyId}
+        onOwnerPartyIdChange={(value) => {
+          setOwnerPartyId(value);
+          resetPage();
+        }}
+        selectedEmployee={selectedOwnerEmployee}
+        onSelectedEmployeeChange={setSelectedOwnerEmployee}
+        disabled={isPermissionsPending || !canView}
       />
       <DataGrid
         table={table}
@@ -109,39 +187,10 @@ export function MaterialsRequiringSafetyInspectionPage() {
                   })}
                   value={search}
                   className="w-64 shrink-0"
-                  onSearch={setFilter(setSearch)}
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.queue.filterStatus',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.queue.allStatuses',
-                  })}
-                  options={[
-                    {
-                      value: 'due',
-                      label: intl.formatMessage({
-                        id: 'project.materials.safetyInspection.queue.status.due',
-                      }),
-                    },
-                    {
-                      value: 'upcoming',
-                      label: intl.formatMessage({
-                        id: 'project.materials.safetyInspection.queue.status.upcoming',
-                      }),
-                    },
-                    {
-                      value: 'in_progress',
-                      label: intl.formatMessage({
-                        id: 'project.materials.safetyInspection.queue.status.inProgress',
-                      }),
-                    },
-                  ]}
-                  value={status}
-                  onChange={setFilter(setStatus)}
-                  searchable={false}
-                  className="w-52 shrink-0"
+                  onSearch={(value) => {
+                    setSearch(value);
+                    resetPage();
+                  }}
                 />
               </div>
             }

@@ -46,3 +46,11 @@ export interface MaterialLabelTemplateRow extends MaterialLabelTemplate {
   statusLabel: string;
   defaultLabel: string;
 }
+
+export interface MaterialLabelTemplateFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  default: number;
+  notDefault: number;
+}

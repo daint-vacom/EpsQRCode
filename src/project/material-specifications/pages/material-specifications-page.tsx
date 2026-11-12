@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -32,11 +33,13 @@ import {
 import {
   useCreateMaterialSpecificationMutation,
   useDeleteMaterialSpecificationMutation,
+  useMaterialSpecificationFilterSummaryQuery,
   useMaterialSpecificationsQuery,
   useUpdateMaterialSpecificationMutation,
 } from '../hooks/use-material-specifications';
 import type {
   MaterialSpecification,
+  MaterialSpecificationDataType,
   MaterialSpecificationFormValues,
 } from '../model/material-specification';
 import { MATERIAL_SPECIFICATION_PERMISSION_CODES } from '../model/material-specification-permissions';
@@ -75,6 +78,9 @@ export function MaterialSpecificationsPage() {
   const createForm = useMaterialSpecificationForm();
   const editForm = useMaterialSpecificationForm();
   const [keyword, setKeyword] = useState('');
+  const [dataType, setDataType] = useState<MaterialSpecificationDataType | ''>(
+    '',
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<MaterialSpecification | null>(null);
   const [deleting, setDeleting] = useState<MaterialSpecification | null>(null);
@@ -84,15 +90,22 @@ export function MaterialSpecificationsPage() {
     )?.pattern ?? DEFAULT_CODE_GENERATION_PATTERNS.material_specification;
 
   const specifications = query.data ?? EMPTY_SPECIFICATIONS;
+  const summaryQuery = useMaterialSpecificationFilterSummaryQuery(
+    keyword.trim(),
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const filtered = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('vi');
-    if (!normalized) return specifications;
-    return specifications.filter((item) =>
-      [item.code, item.name].some((value) =>
-        value.toLocaleLowerCase('vi').includes(normalized),
-      ),
+    return specifications.filter(
+      (item) =>
+        (!dataType || item.dataType === dataType) &&
+        (!normalized ||
+          [item.code, item.name].some((value) =>
+            value.toLocaleLowerCase('vi').includes(normalized),
+          )),
     );
-  }, [keyword, specifications]);
+  }, [keyword, specifications, dataType]);
 
   const closeCreate = (open: boolean) => {
     setCreateOpen(open);
@@ -189,9 +202,10 @@ export function MaterialSpecificationsPage() {
         isLoading={isPermissionsPending || (canView && query.isPending)}
         isFetching={query.isFetching}
         emptyMessage={intl.formatMessage({
-          id: keyword
-            ? 'materialSpecifications.empty.search'
-            : 'materialSpecifications.empty.list',
+          id:
+            keyword || dataType
+              ? 'materialSpecifications.empty.search'
+              : 'materialSpecifications.empty.list',
         })}
         tableLayout={{ dense: true }}
       >
@@ -200,20 +214,59 @@ export function MaterialSpecificationsPage() {
             variant="stats"
             recordCountLabel="thông số"
             stats={
-              <SearchInput
-                aria-label={intl.formatMessage({
-                  id: 'materialSpecifications.filters.searchPlaceholder',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'materialSpecifications.filters.searchPlaceholder',
-                })}
-                value={keyword}
-                onSearch={(value) => {
-                  setKeyword(value);
-                  table.setPageIndex(0);
-                }}
-                className="w-full sm:w-72"
-              />
+              <div className="flex min-w-0 flex-col gap-2">
+                <SearchInput
+                  aria-label={intl.formatMessage({
+                    id: 'materialSpecifications.filters.searchPlaceholder',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'materialSpecifications.filters.searchPlaceholder',
+                  })}
+                  value={keyword}
+                  onSearch={(value) => {
+                    setKeyword(value);
+                    table.setPageIndex(0);
+                  }}
+                  className="w-full sm:w-72"
+                />
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.management.filters.dataType',
+                  })}
+                  value={dataType}
+                  onValueChange={(value) => {
+                    setDataType(value as MaterialSpecificationDataType | '');
+                    table.setPageIndex(0);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={[
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    ...(
+                      [
+                        'text',
+                        'number',
+                        'boolean',
+                        'date',
+                        'color',
+                        'length',
+                        'weight',
+                      ] as const
+                    ).map((value) => ({
+                      value,
+                      label: intl.formatMessage({
+                        id: `materialModels.specifications.types.${value}`,
+                      }),
+                      count: summary?.[value],
+                    })),
+                  ]}
+                />
+              </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}
           />

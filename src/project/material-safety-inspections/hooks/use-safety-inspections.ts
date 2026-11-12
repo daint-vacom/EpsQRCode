@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   loadMaterialSafetyInspectionQueue,
   loadMaterialSafetyInspections,
   loadSafetyInspection,
+  loadSafetyInspectionFilterSummary,
   loadSafetyInspectionList,
   saveMaterialSafetyInspection,
   startMaterialSafetyInspectionDraft,
@@ -17,10 +19,19 @@ import type { SafetyInspectionChecklistGroup } from '../model/safety-inspection-
 
 export const safetyInspectionKeys = {
   all: ['project', 'material-safety-inspections'] as const,
-  queue: (filters: MaterialSafetyInspectionQueueFilters) =>
-    [...safetyInspectionKeys.all, 'queue', filters] as const,
+  queue: (
+    userId: string | null,
+    filters: MaterialSafetyInspectionQueueFilters,
+  ) => [...safetyInspectionKeys.all, 'queue', userId, filters] as const,
   management: (filters: SafetyInspectionListFilters) =>
     [...safetyInspectionKeys.all, 'management', filters] as const,
+  managementSummary: (userId: string | null, search: string) =>
+    [
+      ...safetyInspectionKeys.all,
+      'management-summary',
+      userId,
+      search,
+    ] as const,
   list: (materialId: string) =>
     [...safetyInspectionKeys.all, 'material', materialId] as const,
   detail: (inspectionId: string) =>
@@ -31,10 +42,14 @@ export function useMaterialSafetyInspectionQueueQuery(
   filters: MaterialSafetyInspectionQueueFilters,
   enabled = true,
 ) {
+  const { userId } = useUser();
+
   return useQuery({
-    queryKey: safetyInspectionKeys.queue(filters),
+    queryKey: safetyInspectionKeys.queue(userId, filters),
     queryFn: ({ signal }) => loadMaterialSafetyInspectionQueue(filters, signal),
     enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }
@@ -47,6 +62,22 @@ export function useSafetyInspectionListQuery(
     queryKey: safetyInspectionKeys.management(filters),
     queryFn: ({ signal }) => loadSafetyInspectionList(filters, signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useSafetyInspectionFilterSummaryQuery(
+  search: string,
+  enabled = true,
+) {
+  const { userId } = useUser();
+
+  return useQuery({
+    queryKey: safetyInspectionKeys.managementSummary(userId, search),
+    queryFn: ({ signal }) => loadSafetyInspectionFilterSummary(search, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }

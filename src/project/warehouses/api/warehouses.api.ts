@@ -2,6 +2,7 @@ import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   Warehouse,
   WarehouseAccountOption,
+  WarehouseFilterSummary,
   WarehouseFormValues,
 } from '../model/warehouse';
 
@@ -18,6 +19,20 @@ export async function loadWarehouses(
     supabaseApi.post(
       '/rpc/list_material_warehouses',
       { p_include_inactive: includeInactive },
+      { signal },
+    ),
+  );
+}
+
+export async function loadWarehouseFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<WarehouseFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_warehouse_filter_summary',
+      { p_search: search.trim() || null },
       { signal },
     ),
   );

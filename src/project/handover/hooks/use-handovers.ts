@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   actOnHandover,
   actOnWarehouseHandover,
   completeHandoverOffline,
   loadHandover,
+  loadHandoverFilterSummary,
   loadHandoverHistory,
   loadHandovers,
   saveHandover,
@@ -19,6 +21,8 @@ export const handoverKeys = {
   lists: () => [...handoverKeys.all, 'list'] as const,
   list: (filters: HandoverListFilters) =>
     [...handoverKeys.lists(), filters] as const,
+  summary: (userId: string | null, search: string) =>
+    [...handoverKeys.all, 'filter-summary', userId, search] as const,
   detail: (id: string) => [...handoverKeys.all, 'detail', id] as const,
   history: (id: string) => [...handoverKeys.all, 'history', id] as const,
 };
@@ -31,6 +35,18 @@ export function useHandoversQuery(
     queryKey: handoverKeys.list(filters),
     queryFn: ({ signal }) => loadHandovers(filters, signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useHandoverFilterSummaryQuery(search: string, enabled = true) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: handoverKeys.summary(userId, search),
+    queryFn: ({ signal }) => loadHandoverFilterSummary(search, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }

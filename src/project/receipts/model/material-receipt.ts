@@ -2,7 +2,10 @@ import type { MaterialCondition } from '@/project/materials/model/material';
 import { z } from 'zod';
 
 export type MaterialReceiptStatus =
-  'draft' | 'handover' | 'completed' | 'cancelled';
+  | 'draft'
+  | 'handover'
+  | 'completed'
+  | 'cancelled';
 
 export interface MaterialReceiptWarehouseSnapshot {
   id: string;
@@ -194,6 +197,14 @@ export interface MaterialReceiptListResult {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface MaterialReceiptFilterSummary {
+  total: number;
+  draft: number;
+  handover: number;
+  completed: number;
+  cancelled: number;
 }
 
 export interface MaterialReceiptHistoryEntry {

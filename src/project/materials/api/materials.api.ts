@@ -8,6 +8,7 @@ import {
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   Material,
+  MaterialFilterSummary,
   MaterialFormValues,
   MaterialHistoryEntry,
   MaterialImage,
@@ -61,6 +62,34 @@ export async function loadMaterials(
             ),
           ),
   };
+}
+
+export async function loadMaterialFilterSummary(
+  filters: Pick<MaterialListFilters, 'search' | 'status'> = {},
+  signal?: AbortSignal,
+): Promise<MaterialFilterSummary> {
+  assertSupabaseConfigured();
+  return request<MaterialFilterSummary>(
+    supabaseApi.post(
+      '/rpc/get_material_filter_summary',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialQrTrackingFilterSummary(
+  filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'> = {},
+  signal?: AbortSignal,
+): Promise<MaterialFilterSummary> {
+  assertSupabaseConfigured();
+  return request<MaterialFilterSummary>(
+    supabaseApi.post(
+      '/rpc/get_material_qr_tracking_filter_summary',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
 }
 
 export async function loadMaterialQrTrackingMetrics(

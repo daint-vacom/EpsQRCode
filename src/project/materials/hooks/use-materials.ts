@@ -4,12 +4,15 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   applyMaterialModelSync,
   createMaterialsBulk,
   deleteMaterials,
   loadMaterial,
+  loadMaterialFilterSummary,
   loadMaterialHistory,
+  loadMaterialQrTrackingFilterSummary,
   loadMaterials,
   loadPublicMaterialDetail,
   previewMaterialModelSync,
@@ -19,6 +22,7 @@ import {
 import type {
   ApplyMaterialModelSyncInput,
   Material,
+  MaterialFilterSummary,
   MaterialListFilters,
   MaterialPublicDetail,
   SaveMaterialInput,
@@ -29,6 +33,14 @@ export const materialKeys = {
   lists: () => [...materialKeys.all, 'list'] as const,
   list: (filters: MaterialListFilters) =>
     [...materialKeys.lists(), filters] as const,
+  filterSummary: (
+    userId: string | null,
+    filters: Pick<MaterialListFilters, 'search' | 'status'>,
+  ) => [...materialKeys.all, 'filter-summary', userId, filters] as const,
+  qrFilterSummary: (
+    userId: string | null,
+    filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'>,
+  ) => [...materialKeys.all, 'qr-filter-summary', userId, filters] as const,
   select: (
     filters: Omit<MaterialListFilters, 'search' | 'page' | 'pageSize'>,
   ) => [...materialKeys.all, 'select', filters] as const,
@@ -39,6 +51,39 @@ export const materialKeys = {
   syncPreview: (id: string) =>
     [...materialKeys.all, 'sync-preview', id] as const,
 };
+
+export function useMaterialFilterSummaryQuery(
+  filters: Pick<MaterialListFilters, 'search' | 'status'> = {},
+  enabled = true,
+) {
+  const { userId } = useUser();
+
+  return useQuery<MaterialFilterSummary>({
+    queryKey: materialKeys.filterSummary(userId, filters),
+    queryFn: ({ signal }) => loadMaterialFilterSummary(filters, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
+  });
+}
+
+export function useMaterialQrTrackingFilterSummaryQuery(
+  filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'> = {},
+  enabled = true,
+) {
+  const { userId } = useUser();
+
+  return useQuery<MaterialFilterSummary>({
+    queryKey: materialKeys.qrFilterSummary(userId, filters),
+    queryFn: ({ signal }) =>
+      loadMaterialQrTrackingFilterSummary(filters, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
+  });
+}
 
 export function useMaterialsQuery(
   filters: MaterialListFilters = {},

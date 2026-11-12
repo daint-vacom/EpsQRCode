@@ -72,6 +72,14 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - Frontend is not a legacy compatibility layer: when a domain or data shape changes, add/update the required migration and backend/read-model contract, then make the frontend consume the canonical new shape only. Do not add legacy-field fallbacks, dual-shape reads, or client-side compatibility conversions unless the user explicitly approves them; compatibility belongs at the server/API boundary when it is required.
 - Reuse `tag_groups`, `tags`, and `tag_assignments` for ordinary object grouping and labels (for example, classifying work items). Add a domain-specific table and specialized catalog UI only when the concept needs structured fields, relationships, or workflows that generic tags cannot represent; the target object being different is not by itself a reason to create a separate tag table. Add the required subject-type validation and RLS policies consistent with this repo's non-tenant data model when introducing a new taggable object.
 
+## API Design Rules
+
+- Design endpoints and RPCs around clear domain operations or read models. Keep unrelated workflows separate, but do not create one endpoint per displayed field or metric.
+- When one screen needs related aggregate metrics (for example, status or condition chip counts), expose a purpose-specific summary response with named numeric fields and calculate the aggregates on the server/database. Do not fetch record lists only so the frontend can count or derive those totals.
+- Keep collection endpoints focused on records, filters, and pagination. Reuse a summary endpoint for closely related metrics, while keeping independent catalogs, detail reads, and mutations separate when their authorization, caching, or lifecycle differs. Avoid a single endpoint that bundles unrelated data just to reduce request count.
+- When a UI needs details for multiple selected IDs, prefer a bounded batch read over firing one detail request per ID. Preserve per-record authorization and a stable result order; keep individually cacheable detail reads for screens that open one record at a time.
+- Include every output-affecting filter in the request contract and query-cache key so summaries and lists describe the same scope.
+
 ## Import and Runtime Symbol Rules
 
 - When adding or renaming a JSX component, hook, icon, helper, or type, update its import in the same patch. Do not rely on Vite HMR or a previous import being present in a nearby file.

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import {
   MATERIAL_LABEL_SELECTION_STATE_KEY,
@@ -50,6 +51,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  MaterialFilterRow,
+  type MaterialFilterMode,
+} from '../components/material-filter-row';
 import { MaterialHandoverPreflightDialogShell } from '../components/material-handover-preflight-dialog-shell.generated';
 import { MaterialQrCodeDialog } from '../components/material-qr-code-dialog';
 import {
@@ -58,12 +63,15 @@ import {
 } from '../components/material-spreadsheet-dialog';
 import {
   useDeleteMaterialMutation,
+  useMaterialFilterSummaryQuery,
   useMaterialsQuery,
   useUpdateMaterialAvailabilityMutation,
 } from '../hooks/use-materials';
 import type {
   Material,
+  MaterialCondition,
   MaterialListFilters,
+  MaterialOwnerFilterType,
   MaterialStatus,
 } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
@@ -147,6 +155,15 @@ export function MaterialListPage() {
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [filterMode, setFilterMode] = useState<MaterialFilterMode>('status');
+  const [isActive, setIsActive] = useState<boolean | undefined>();
+  const [condition, setCondition] = useState<MaterialCondition | undefined>();
+  const [ownerType, setOwnerType] = useState<MaterialOwnerFilterType | ''>('');
+  const [ownerDepartmentId, setOwnerDepartmentId] = useState('');
+  const [ownerTeamId, setOwnerTeamId] = useState('');
+  const [ownerPartyId, setOwnerPartyId] = useState('');
+  const [selectedOwnerEmployee, setSelectedOwnerEmployee] =
+    useState<EpsEmployeeCatalogEntry | null>(null);
   const [deletingMaterials, setDeletingMaterials] = useState<Material[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<Material[]>([]);
   const [qrDialogMaterial, setQrDialogMaterial] = useState<Material | null>(
@@ -169,16 +186,51 @@ export function MaterialListPage() {
     () => ({
       search: search.trim() || undefined,
       status: (status || undefined) as MaterialStatus | undefined,
+      isActive,
+      condition,
+      ownerPartyId: ownerPartyId || undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [pagination.pageIndex, pagination.pageSize, search, status],
+    [
+      condition,
+      isActive,
+      ownerPartyId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      search,
+      status,
+    ],
   );
   const spreadsheetFilters = useMemo(
-    () => ({ search: search.trim() || undefined, status: status || undefined }),
+    () => ({
+      search: search.trim() || undefined,
+      status: status || undefined,
+      isActive,
+      condition,
+      ownerPartyId: ownerPartyId || undefined,
+    }),
+    [condition, isActive, ownerPartyId, search, status],
+  );
+  const filterSummaryFilters = useMemo(
+    () => ({
+      search: search.trim() || undefined,
+      status: (status || undefined) as MaterialStatus | undefined,
+    }),
     [search, status],
   );
+  const hasActiveFilters = Boolean(
+    search.trim() ||
+    status ||
+    isActive !== undefined ||
+    condition ||
+    ownerPartyId,
+  );
   const queryEnabled = isPermissionsPending || canView;
+  const filterSummary = useMaterialFilterSummaryQuery(
+    filterSummaryFilters,
+    queryEnabled && !isPermissionsPending,
+  );
   const query = useMaterialsQuery(
     filters,
     queryEnabled && !isPermissionsPending,
@@ -373,6 +425,52 @@ export function MaterialListPage() {
       setValue(value);
       setPagination((current) => ({ ...current, pageIndex: 0 }));
     };
+  const handleFilterModeChange = (nextMode: MaterialFilterMode) => {
+    if (nextMode === filterMode) return;
+
+    if (nextMode === 'status') {
+      setCondition(undefined);
+      setOwnerType('');
+      setOwnerDepartmentId('');
+      setOwnerTeamId('');
+      setOwnerPartyId('');
+      setSelectedOwnerEmployee(null);
+    } else if (nextMode === 'condition') {
+      setIsActive(undefined);
+      setOwnerType('');
+      setOwnerDepartmentId('');
+      setOwnerTeamId('');
+      setOwnerPartyId('');
+      setSelectedOwnerEmployee(null);
+    } else {
+      setIsActive(undefined);
+      setCondition(undefined);
+    }
+
+    setFilterMode(nextMode);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
+  const handleOwnerTypeChange = (nextType: MaterialOwnerFilterType | '') => {
+    setOwnerType(nextType);
+    setOwnerDepartmentId('');
+    setOwnerTeamId('');
+    setOwnerPartyId('');
+    setSelectedOwnerEmployee(null);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
+  const handleOwnerDepartmentChange = (departmentId: string) => {
+    setOwnerDepartmentId(departmentId);
+    setOwnerTeamId('');
+    setOwnerPartyId(departmentId);
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
+  const handleOwnerTeamChange = (teamId: string) => {
+    setOwnerTeamId(teamId);
+    setOwnerPartyId(
+      teamId || (ownerType === 'department' ? ownerDepartmentId : ''),
+    );
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  };
   const handleDelete = () => {
     if (!canManage || deletingMaterials.length === 0) return;
     deleteMutation.mutate(deletingMaterials, {
@@ -454,6 +552,38 @@ export function MaterialListPage() {
           </div>
         }
       />
+      <MaterialFilterRow
+        mode={filterMode}
+        onModeChange={handleFilterModeChange}
+        counts={filterSummary.data}
+        isCountsLoading={filterSummary.isPending}
+        ownerFilter={filterSummary.data?.ownerFilter}
+        isActive={isActive}
+        onIsActiveChange={(value) => {
+          setIsActive(value);
+          setPagination((current) => ({ ...current, pageIndex: 0 }));
+        }}
+        condition={condition}
+        onConditionChange={(value) => {
+          setCondition(value);
+          setPagination((current) => ({ ...current, pageIndex: 0 }));
+        }}
+        ownerType={ownerType}
+        onOwnerTypeChange={handleOwnerTypeChange}
+        ownerDepartmentId={ownerDepartmentId}
+        onOwnerDepartmentChange={handleOwnerDepartmentChange}
+        ownerTeamId={ownerTeamId}
+        onOwnerTeamChange={handleOwnerTeamChange}
+        ownerPartyId={ownerPartyId}
+        onOwnerPartyIdChange={(value) => {
+          setOwnerPartyId(value);
+          setPagination((current) => ({ ...current, pageIndex: 0 }));
+        }}
+        selectedEmployee={selectedOwnerEmployee}
+        onSelectedEmployeeChange={setSelectedOwnerEmployee}
+        parties={partiesQuery.data ?? []}
+        disabled={isPermissionsPending || !canView || partiesQuery.isPending}
+      />
       <DataGrid
         table={table}
         recordCount={total}
@@ -468,7 +598,7 @@ export function MaterialListPage() {
           query.isFetching || partiesQuery.isFetching || groupsQuery.isFetching
         }
         emptyMessage={intl.formatMessage({
-          id: search
+          id: hasActiveFilters
             ? 'project.materials.empty.search'
             : 'project.materials.empty.list',
         })}
@@ -498,10 +628,10 @@ export function MaterialListPage() {
                 />
                 <OptionSelect
                   aria-label={intl.formatMessage({
-                    id: 'project.materials.filters.status',
+                    id: 'project.materials.filters.loanStatus',
                   })}
                   placeholder={intl.formatMessage({
-                    id: 'project.materials.filters.statusPlaceholder',
+                    id: 'project.materials.filters.loanStatusPlaceholder',
                   })}
                   options={statusOptions}
                   value={status}

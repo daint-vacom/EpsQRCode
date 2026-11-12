@@ -31,6 +31,7 @@ type EpsEmployeeSelectProps = Omit<
   employees?: readonly EpsEmployeeCatalogEntry[];
   departmentId?: string;
   teamId?: string;
+  accessMode?: 'view' | 'manage';
   enabled?: boolean;
 };
 
@@ -50,6 +51,7 @@ export function EpsEmployeeSelect({
   employees,
   departmentId,
   teamId,
+  accessMode = 'manage',
   enabled = true,
   value = '',
   selectedOption,
@@ -112,7 +114,7 @@ export function EpsEmployeeSelect({
       searchPlaceholder={intl.formatMessage({ id: 'custodians.select.search' })}
       loadOptions={async ({ search, filters, page, pageSize, signal }) => {
         const result = await loadEpsOwnerEmployees(
-          { search, ...filters, page, pageSize },
+          { search, ...filters, accessMode, page, pageSize },
           signal,
         );
         return {
@@ -120,7 +122,7 @@ export function EpsEmployeeSelect({
           hasMore: page * pageSize < result.total,
         };
       }}
-      cacheKey={['project', 'custodians', 'eps-employees', userId]}
+      cacheKey={['project', 'custodians', 'eps-employees', userId, accessMode]}
       filters={{ departmentId, teamId }}
       enabled={enabled}
       pageSize={30}

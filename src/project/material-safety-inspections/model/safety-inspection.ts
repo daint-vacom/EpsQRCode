@@ -116,15 +116,51 @@ export interface SafetyInspectionListRow {
 export interface SafetyInspectionListFilters {
   search?: string;
   status?: SafetyInspectionStatus;
+  overallResult?: SafetyInspectionResult | 'none';
   page?: number;
   pageSize?: number;
+}
+
+export interface SafetyInspectionListSummary {
+  total: number;
+  inProgress: number;
+  completed: number;
+  passed: number;
+  failed: number;
+  noResult: number;
 }
 
 export interface MaterialSafetyInspectionQueueFilters {
   search?: string;
   status?: MaterialSafetyInspectionQueueRow['status'];
+  ownerPartyId?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface MaterialSafetyInspectionQueueSummary {
+  total: number;
+  due: number;
+  upcoming: number;
+  inProgress: number;
+}
+
+export type MaterialSafetyInspectionQueueOwnerFilterType =
+  | 'department'
+  | 'team'
+  | 'person'
+  | 'warehouse'
+  | 'external';
+
+export interface MaterialSafetyInspectionQueueOwnerFilter {
+  types: MaterialSafetyInspectionQueueOwnerFilterType[];
+  departmentId: string | null;
+  teamId: string | null;
+}
+
+export interface MaterialSafetyInspectionQueueResult extends SafetyInspectionListResult<MaterialSafetyInspectionQueueRow> {
+  summary: MaterialSafetyInspectionQueueSummary;
+  ownerFilter: MaterialSafetyInspectionQueueOwnerFilter;
 }
 
 export interface SafetyInspectionListResult<T> {

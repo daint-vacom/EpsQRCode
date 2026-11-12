@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
+import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getCoreRowModel,
@@ -27,6 +29,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   createAccount,
+  loadAccountFilterSummary,
   loadAccountRoleOptions,
   loadAccounts,
   loadAccountWarehouseOptions,
@@ -73,6 +76,7 @@ export function AccountsPage() {
     status: NO_FILTER,
     organization: NO_FILTER,
   });
+  const [filterMode, setFilterMode] = useState<'status' | 'type'>('status');
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const createForm = useAccountForm({ defaultValues: accountDefaultValues });
@@ -83,6 +87,20 @@ export function AccountsPage() {
     queryFn: () => loadAccounts(search),
     enabled: Boolean(userId) && !isPermissionsPending && canView,
   });
+  const summaryFilters = {
+    search: search.trim(),
+    organizationId:
+      filters.organization === NO_FILTER ? undefined : filters.organization,
+  };
+  const summaryQuery = useQuery({
+    queryKey: ['project', 'accounts', 'filter-summary', userId, summaryFilters],
+    queryFn: ({ signal }) => loadAccountFilterSummary(summaryFilters, signal),
+    enabled: Boolean(userId) && !isPermissionsPending && canView,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
+  });
+  const summary = summaryQuery.data;
   const optionsQuery = useQuery({
     queryKey: ['project', 'accounts', 'form-options'],
     queryFn: async (): Promise<AccountFormOptions> => {
@@ -309,57 +327,127 @@ export function AccountsPage() {
               id: 'accounts.entities.plural',
             })}
             stats={
-              <div className="flex flex-wrap items-center gap-2">
-                <SearchInput
-                  aria-label={intl.formatMessage({ id: 'accounts.search' })}
-                  placeholder={intl.formatMessage({ id: 'accounts.search' })}
-                  value={search}
-                  onSearch={(value) => {
-                    setSearch(value);
-                    table.setPageIndex(0);
-                  }}
-                  className="w-64 shrink-0"
-                />
-                <OptionSelect
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({ id: 'accounts.search' })}
+                    placeholder={intl.formatMessage({ id: 'accounts.search' })}
+                    value={search}
+                    onSearch={(value) => {
+                      setSearch(value);
+                      table.setPageIndex(0);
+                    }}
+                    className="w-64 shrink-0"
+                  />
+                  <ProjectFilterModeSwitcher
+                    value={filterMode}
+                    onValueChange={(value) => {
+                      setFilterMode(value as 'status' | 'type');
+                      setFilters((current) => ({
+                        ...current,
+                        status: NO_FILTER,
+                        type: NO_FILTER,
+                      }));
+                      table.setPageIndex(0);
+                    }}
+                    options={[
+                      {
+                        value: 'status',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.status',
+                        }),
+                      },
+                      {
+                        value: 'type',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.accountType',
+                        }),
+                      },
+                    ]}
+                    disabled={!canView || isPermissionsPending}
+                  />
+                  <OptionSelect
+                    ariaLabel={intl.formatMessage({
+                      id: 'accounts.filters.organization',
+                    })}
+                    value={filters.organization}
+                    options={filterOptions.organizations}
+                    onChange={(value) => {
+                      setFilters((current) => ({
+                        ...current,
+                        organization: value,
+                      }));
+                      table.setPageIndex(0);
+                    }}
+                    className="w-44 shrink-0"
+                  />
+                </div>
+                <FilterCountChips
                   ariaLabel={intl.formatMessage({
-                    id: 'accounts.filters.type',
+                    id:
+                      filterMode === 'type'
+                        ? 'project.management.filters.accountType'
+                        : 'project.management.filters.status',
                   })}
-                  value={filters.type}
-                  options={filterOptions.types}
-                  onChange={(value) => {
-                    setFilters((current) => ({ ...current, type: value }));
-                    table.setPageIndex(0);
-                  }}
-                  className="w-36 shrink-0"
-                  searchable={false}
-                />
-                <OptionSelect
-                  ariaLabel={intl.formatMessage({
-                    id: 'accounts.filters.status',
-                  })}
-                  value={filters.status}
-                  options={filterOptions.statuses}
-                  onChange={(value) => {
-                    setFilters((current) => ({ ...current, status: value }));
-                    table.setPageIndex(0);
-                  }}
-                  className="w-40 shrink-0"
-                  searchable={false}
-                />
-                <OptionSelect
-                  ariaLabel={intl.formatMessage({
-                    id: 'accounts.filters.organization',
-                  })}
-                  value={filters.organization}
-                  options={filterOptions.organizations}
-                  onChange={(value) => {
+                  value={
+                    (filterMode === 'status'
+                      ? filters.status
+                      : filters.type) === NO_FILTER
+                      ? ''
+                      : filterMode === 'status'
+                        ? filters.status
+                        : filters.type
+                  }
+                  onValueChange={(value) => {
                     setFilters((current) => ({
                       ...current,
-                      organization: value,
+                      [filterMode]: value || NO_FILTER,
                     }));
                     table.setPageIndex(0);
                   }}
-                  className="w-44 shrink-0"
+                  disabled={!canView || isPermissionsPending}
+                  options={
+                    filterMode === 'status'
+                      ? [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          ...(
+                            ['active', 'suspended', 'deactivated'] as const
+                          ).map((value) => ({
+                            value,
+                            label: intl.formatMessage({
+                              id: `accounts.status.${value}`,
+                            }),
+                            count: summary?.[value],
+                          })),
+                        ]
+                      : [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          ...(['eps', 'external', 'unmapped'] as const).map(
+                            (value) => ({
+                              value,
+                              label: intl.formatMessage({
+                                id: `accounts.types.${value}`,
+                              }),
+                              count:
+                                value === 'unmapped'
+                                  ? summary?.unmapped
+                                  : summary?.[value],
+                            }),
+                          ),
+                        ]
+                  }
                 />
               </div>
             }

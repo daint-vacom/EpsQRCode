@@ -104,6 +104,14 @@ export interface MaterialModel {
   updatedAt: string;
 }
 
+export interface MaterialModelFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+  requiresInspection: number;
+  notRequiresInspection: number;
+}
+
 export interface MaterialModelImage {
   id: string;
   storagePath: string | null;

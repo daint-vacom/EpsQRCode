@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
 import {
   MATERIAL_LABEL_SELECTION_STATE_KEY,
   storeMaterialLabelSelection,
@@ -31,13 +33,20 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { MaterialFilterRow } from '../components/material-filter-row';
+import type { MaterialFilterMode } from '../components/material-filter-row';
 import { MaterialQrCodeDialog } from '../components/material-qr-code-dialog';
 import { useMaterialQrTrackingMetricsQuery } from '../hooks/use-material-qr-tracking';
 import {
+  useMaterialQrTrackingFilterSummaryQuery,
   useMaterialsQuery,
   useUpdateMaterialAvailabilityMutation,
 } from '../hooks/use-materials';
-import type { Material, MaterialListFilters } from '../model/material';
+import type {
+  Material,
+  MaterialListFilters,
+  MaterialOwnerFilterType,
+} from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import type {
   MaterialQrTrackingMetric,
@@ -67,6 +76,16 @@ export function MaterialQrTrackingPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
+  const [filterMode, setFilterMode] = useState<MaterialFilterMode>('scan');
+  const [scanState, setScanState] = useState<
+    'scanned' | 'not_scanned' | undefined
+  >();
+  const [ownerType, setOwnerType] = useState<MaterialOwnerFilterType | ''>('');
+  const [ownerDepartmentId, setOwnerDepartmentId] = useState('');
+  const [ownerTeamId, setOwnerTeamId] = useState('');
+  const [ownerPartyId, setOwnerPartyId] = useState('');
+  const [selectedOwnerEmployee, setSelectedOwnerEmployee] =
+    useState<EpsEmployeeCatalogEntry | null>(null);
   const [selectedMaterials, setSelectedMaterials] = useState<
     MaterialQrTrackingRow[]
   >([]);
@@ -84,13 +103,32 @@ export function MaterialQrTrackingPage() {
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+  const partiesQuery = useCustodiansQuery(
+    true,
+    canView && !isPermissionsPending,
+  );
   const filters = useMemo<MaterialListFilters>(
     () => ({
       search: search.trim() || undefined,
+      ownerPartyId: ownerPartyId || undefined,
+      scanState,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [pagination.pageIndex, pagination.pageSize, search],
+    [
+      ownerPartyId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      scanState,
+      search,
+    ],
+  );
+  const filterSummary = useMaterialQrTrackingFilterSummaryQuery(
+    {
+      search: search.trim() || undefined,
+      ownerPartyId: ownerPartyId || undefined,
+    },
+    canView && !isPermissionsPending,
   );
   const materialsQuery = useMaterialsQuery(
     filters,
@@ -118,6 +156,48 @@ export function MaterialQrTrackingPage() {
     });
   }, [materials, metricsById, metricsQuery.data]);
   const total = materialsQuery.data?.total ?? 0;
+  const resetPage = () =>
+    setPagination((current) => ({ ...current, pageIndex: 0 }));
+  const handleFilterModeChange = (nextMode: MaterialFilterMode) => {
+    if (nextMode === filterMode) return;
+    if (nextMode === 'scan') {
+      setOwnerType('');
+      setOwnerDepartmentId('');
+      setOwnerTeamId('');
+      setOwnerPartyId('');
+      setSelectedOwnerEmployee(null);
+    } else {
+      setScanState(undefined);
+    }
+    setFilterMode(nextMode);
+    resetPage();
+  };
+  const handleOwnerTypeChange = (nextType: MaterialOwnerFilterType | '') => {
+    setOwnerType(nextType);
+    setOwnerDepartmentId('');
+    setOwnerTeamId('');
+    setOwnerPartyId('');
+    setSelectedOwnerEmployee(null);
+    resetPage();
+  };
+  const handleOwnerDepartmentChange = (departmentId: string) => {
+    setOwnerDepartmentId(departmentId);
+    setOwnerTeamId('');
+    setOwnerPartyId(departmentId);
+    resetPage();
+  };
+  const handleOwnerTeamChange = (teamId: string) => {
+    setOwnerTeamId(teamId);
+    setOwnerPartyId(
+      teamId || (ownerType === 'department' ? ownerDepartmentId : ''),
+    );
+    resetPage();
+  };
+  const handleOwnerPartyIdChange = (partyId: string) => {
+    setOwnerPartyId(partyId);
+    if (ownerType !== 'person') setSelectedOwnerEmployee(null);
+    resetPage();
+  };
   const availabilityMutation = useUpdateMaterialAvailabilityMutation();
   const navigateToLabelPrint = (materialIds: readonly string[]) => {
     const selectionKey = storeMaterialLabelSelection(materialIds);
@@ -257,11 +337,50 @@ export function MaterialQrTrackingPage() {
         })}
         icon={QrCode}
       />
+      <MaterialFilterRow
+        mode={filterMode}
+        onModeChange={handleFilterModeChange}
+        availableModes={['scan', 'owner']}
+        counts={filterSummary.data}
+        isCountsLoading={filterSummary.isPending && !filterSummary.data}
+        ownerFilter={filterSummary.data?.ownerFilter}
+        isActive={undefined}
+        onIsActiveChange={() => undefined}
+        condition={undefined}
+        onConditionChange={() => undefined}
+        scanState={scanState}
+        onScanStateChange={(value) => {
+          setScanState(value);
+          resetPage();
+        }}
+        ownerType={ownerType}
+        onOwnerTypeChange={handleOwnerTypeChange}
+        ownerDepartmentId={ownerDepartmentId}
+        onOwnerDepartmentChange={handleOwnerDepartmentChange}
+        ownerTeamId={ownerTeamId}
+        onOwnerTeamChange={handleOwnerTeamChange}
+        ownerPartyId={ownerPartyId}
+        onOwnerPartyIdChange={handleOwnerPartyIdChange}
+        selectedEmployee={selectedOwnerEmployee}
+        onSelectedEmployeeChange={setSelectedOwnerEmployee}
+        parties={partiesQuery.data ?? []}
+        disabled={
+          isPermissionsPending ||
+          !canView ||
+          partiesQuery.isPending ||
+          (filterSummary.isPending && !filterSummary.data)
+        }
+      />
       <DataGrid
         table={table}
         recordCount={total}
         isLoading={isLoading}
-        isFetching={materialsQuery.isFetching || metricsQuery.isFetching}
+        isFetching={
+          materialsQuery.isFetching ||
+          metricsQuery.isFetching ||
+          filterSummary.isFetching ||
+          partiesQuery.isFetching
+        }
         emptyMessage={intl.formatMessage({
           id: search
             ? 'project.materialQrTracking.empty.search'

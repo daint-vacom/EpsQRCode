@@ -40,6 +40,7 @@ function CustodianCatalogSelect({
   value = '',
   placeholder,
   onOpenChange,
+  canDeselect = false,
   sourceMode = 'fetch',
   parties,
   selectedOption,
@@ -108,7 +109,7 @@ function CustodianCatalogSelect({
           ? getApiErrorMessage(query.error)
           : intl.formatMessage({ id: 'custodians.select.empty' })
       }
-      canDeselect={false}
+      canDeselect={canDeselect}
       optionContentClassName="overflow-visible whitespace-normal"
       renderOption={(option) =>
         option.data ? (

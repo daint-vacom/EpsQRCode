@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   loadMaterialLabelPrintSnapshot,
+  loadMaterialLabelTemplateFilterSummary,
   loadMaterialLabelTemplatePreferences,
   loadMaterialLabelTemplates,
   saveMaterialLabelTemplate,
@@ -19,6 +21,13 @@ export const materialLabelTemplateKeys = {
       'preferences',
       [...materialIds].sort(),
     ] as const,
+  filterSummary: (userId: string | null, search: string) =>
+    [
+      ...materialLabelTemplateKeys.all,
+      'filter-summary',
+      userId,
+      search,
+    ] as const,
   lastPrint: (materialId: string) =>
     [...materialLabelTemplateKeys.all, 'last-print', materialId] as const,
 };
@@ -30,6 +39,22 @@ export function useMaterialLabelTemplatesQuery(enabled = true) {
     enabled,
     retry: 0,
     staleTime: 60_000,
+  });
+}
+
+export function useMaterialLabelTemplateFilterSummaryQuery(
+  search: string,
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: materialLabelTemplateKeys.filterSummary(userId, search),
+    queryFn: ({ signal }) =>
+      loadMaterialLabelTemplateFilterSummary(search, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
   });
 }
 

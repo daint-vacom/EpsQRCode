@@ -9,7 +9,9 @@ export type HandoverStatus =
   | 'rejected'
   | 'cancelled';
 export type HandoverMode =
-  'standard' | 'warehouse_allocation' | 'warehouse_request';
+  | 'standard'
+  | 'warehouse_allocation'
+  | 'warehouse_request';
 export type HandoverPartyKind = 'eps' | 'external' | 'warehouse' | 'other';
 
 export interface HandoverPartySnapshot {
@@ -193,4 +195,17 @@ export interface HandoverListResult {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface HandoverFilterSummary {
+  total: number;
+  draft: number;
+  awaitingWarehouseApproval: number;
+  pending: number;
+  completed: number;
+  rejected: number;
+  cancelled: number;
+  transfer: number;
+  loan: number;
+  return: number;
 }

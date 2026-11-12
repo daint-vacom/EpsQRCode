@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
+import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -20,10 +22,12 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useSafetyInspectionListQuery } from '../hooks/use-safety-inspections';
+import {
+  useSafetyInspectionFilterSummaryQuery,
+  useSafetyInspectionListQuery,
+} from '../hooks/use-safety-inspections';
 import type { SafetyInspectionListFilters } from '../model/safety-inspection';
 import { useSafetyInspectionListColumns } from '../table/safety-inspection-list.columns.generated';
 
@@ -37,6 +41,8 @@ export function SafetyInspectionsPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [overallResult, setOverallResult] = useState('');
+  const [filterMode, setFilterMode] = useState<'status' | 'result'>('status');
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -47,15 +53,23 @@ export function SafetyInspectionsPage() {
       status: status
         ? (status as SafetyInspectionListFilters['status'])
         : undefined,
+      overallResult: overallResult
+        ? (overallResult as SafetyInspectionListFilters['overallResult'])
+        : undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [pagination.pageIndex, pagination.pageSize, search, status],
+    [pagination.pageIndex, pagination.pageSize, search, status, overallResult],
   );
   const query = useSafetyInspectionListQuery(
     filters,
     !isPermissionsPending && canView,
   );
+  const summaryQuery = useSafetyInspectionFilterSummaryQuery(
+    search.trim(),
+    !isPermissionsPending && canView,
+  );
+  const summary = summaryQuery.data;
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const columns = useSafetyInspectionListColumns({
@@ -109,43 +123,109 @@ export function SafetyInspectionsPage() {
               id: 'project.materials.safetyInspection.list.recordCountLabel',
             })}
             stats={
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <SearchInput
-                  aria-label={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.list.search',
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({
+                      id: 'project.materials.safetyInspection.list.search',
+                    })}
+                    placeholder={intl.formatMessage({
+                      id: 'project.materials.safetyInspection.list.search',
+                    })}
+                    value={search}
+                    className="w-72 shrink-0"
+                    onSearch={setFilter(setSearch)}
+                  />
+                  <ProjectFilterModeSwitcher
+                    value={filterMode}
+                    onValueChange={(value) => {
+                      setFilterMode(value as 'status' | 'result');
+                      setStatus('');
+                      setOverallResult('');
+                      setPagination((current) => ({
+                        ...current,
+                        pageIndex: 0,
+                      }));
+                    }}
+                    options={[
+                      {
+                        value: 'status',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.status',
+                        }),
+                      },
+                      {
+                        value: 'result',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.result',
+                        }),
+                      },
+                    ]}
+                    disabled={!canView || isPermissionsPending}
+                  />
+                </div>
+                <FilterCountChips
+                  ariaLabel={intl.formatMessage({
+                    id: `project.management.filters.${filterMode}`,
                   })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.list.search',
-                  })}
-                  value={search}
-                  className="w-72 shrink-0"
-                  onSearch={setFilter(setSearch)}
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.list.filterStatus',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.list.allStatuses',
-                  })}
-                  value={status}
-                  onChange={setFilter(setStatus)}
-                  options={[
-                    {
-                      value: 'in_progress',
-                      label: intl.formatMessage({
-                        id: 'project.materials.safetyInspection.status.inProgress',
-                      }),
-                    },
-                    {
-                      value: 'completed',
-                      label: intl.formatMessage({
-                        id: 'project.materials.safetyInspection.status.completed',
-                      }),
-                    },
-                  ]}
-                  searchable={false}
-                  className="w-52 shrink-0"
+                  value={filterMode === 'status' ? status : overallResult}
+                  onValueChange={(value) => {
+                    if (filterMode === 'status') setFilter(setStatus)(value);
+                    else setFilter(setOverallResult)(value);
+                  }}
+                  disabled={!canView || isPermissionsPending}
+                  options={
+                    filterMode === 'status'
+                      ? [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          {
+                            value: 'in_progress',
+                            label: intl.formatMessage({
+                              id: 'project.materials.safetyInspection.status.inProgress',
+                            }),
+                            count: summary?.inProgress,
+                          },
+                          {
+                            value: 'completed',
+                            label: intl.formatMessage({
+                              id: 'project.materials.safetyInspection.status.completed',
+                            }),
+                            count: summary?.completed,
+                          },
+                        ]
+                      : [
+                          {
+                            value: '',
+                            label: intl.formatMessage({
+                              id: 'project.management.filters.all',
+                            }),
+                            count: summary?.total,
+                          },
+                          ...(['passed', 'failed', 'none'] as const).map(
+                            (value) => ({
+                              value,
+                              label: intl.formatMessage({
+                                id:
+                                  value === 'none'
+                                    ? 'project.materials.safetyInspection.results.unassessed'
+                                    : `project.materials.safetyInspection.results.${value}`,
+                              }),
+                              count:
+                                value === 'passed'
+                                  ? summary?.passed
+                                  : value === 'failed'
+                                    ? summary?.failed
+                                    : summary?.noResult,
+                            }),
+                          ),
+                        ]
+                  }
                 />
               </div>
             }

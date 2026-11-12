@@ -28,6 +28,7 @@ export function WarehouseSelect({
   placeholder,
   sourceMode = 'fetch',
   warehouses,
+  canDeselect = false,
   ...props
 }: WarehouseSelectProps) {
   const intl = useIntl();
@@ -74,7 +75,7 @@ export function WarehouseSelect({
           void query.refetch({ cancelRefetch: false });
       }}
       emptyMessage={intl.formatMessage({ id: 'warehouses.select.empty' })}
-      canDeselect={false}
+      canDeselect={canDeselect}
       optionContentClassName="overflow-visible whitespace-normal"
       renderOption={(option) =>
         option.data ? (

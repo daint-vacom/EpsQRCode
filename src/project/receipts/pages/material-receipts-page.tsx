@@ -1,5 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { FilterCountChips } from '@/project/shared/filter-count-chips';
+import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
+import { WarehouseSelect } from '@/project/warehouses/components/warehouse-select';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ClipboardPlus, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
@@ -16,10 +19,12 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { useMaterialReceiptsQuery } from '../hooks/use-material-receipts';
+import {
+  useMaterialReceiptFilterSummaryQuery,
+  useMaterialReceiptsQuery,
+} from '../hooks/use-material-receipts';
 import type { MaterialReceiptStatus } from '../model/material-receipt';
 import { MATERIAL_RECEIPT_PERMISSION_CODES } from '../model/material-receipt';
 import {
@@ -36,17 +41,27 @@ export function MaterialReceiptsPage() {
   const canManage = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MaterialReceiptStatus | ''>('');
+  const [warehouseId, setWarehouseId] = useState('');
+  const [filterMode, setFilterMode] = useState<'status' | 'warehouse'>(
+    'status',
+  );
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const query = useMaterialReceiptsQuery(
     {
       search,
       ...(status ? { status } : {}),
+      ...(warehouseId ? { warehouseId } : {}),
       page: pageIndex + 1,
       pageSize,
     },
     isPermissionsPending || canView || canManage,
   );
+  const summaryQuery = useMaterialReceiptFilterSummaryQuery(
+    { search: search.trim(), warehouseId: warehouseId || undefined },
+    !isPermissionsPending && (canView || canManage),
+  );
+  const summary = summaryQuery.data;
   const result = query.data;
   const items = result?.items ?? [];
   const onView = useCallback(
@@ -81,9 +96,12 @@ export function MaterialReceiptsPage() {
   const emptyMessage = useMemo(
     () =>
       intl.formatMessage({
-        id: search || status ? 'receipts.empty.search' : 'receipts.empty.list',
+        id:
+          search || status || warehouseId
+            ? 'receipts.empty.search'
+            : 'receipts.empty.list',
       }),
-    [intl, search, status],
+    [intl, search, status, warehouseId],
   );
 
   return (
@@ -119,46 +137,96 @@ export function MaterialReceiptsPage() {
             variant="stats"
             recordCountLabel={intl.formatMessage({ id: 'receipts.page.title' })}
             stats={
-              <div className="flex flex-wrap gap-2">
-                <SearchInput
-                  aria-label={intl.formatMessage({
-                    id: 'receipts.search.label',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'receipts.search.label',
-                  })}
-                  value={search}
-                  onSearch={(value) => {
-                    setSearch(value);
-                    setPageIndex(0);
-                  }}
-                  className="w-72 shrink-0"
-                />
-                <OptionSelect
-                  aria-label={intl.formatMessage({
-                    id: 'receipts.fields.status',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'receipts.filters.allStatus',
-                  })}
-                  value={status}
-                  onChange={(value) => {
-                    setStatus(value as MaterialReceiptStatus | '');
-                    setPageIndex(0);
-                  }}
-                  options={[
-                    ...(
-                      ['draft', 'handover', 'completed', 'cancelled'] as const
-                    ).map((value) => ({
-                      value,
-                      label: intl.formatMessage({
-                        id: `receipts.status.${value}`,
-                      }),
-                    })),
-                  ]}
-                  searchable={false}
-                  className="w-48 shrink-0"
-                />
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({
+                      id: 'receipts.search.label',
+                    })}
+                    placeholder={intl.formatMessage({
+                      id: 'receipts.search.label',
+                    })}
+                    value={search}
+                    onSearch={(value) => {
+                      setSearch(value);
+                      setPageIndex(0);
+                    }}
+                    className="w-72 shrink-0"
+                  />
+                  <ProjectFilterModeSwitcher
+                    value={filterMode}
+                    onValueChange={(value) => {
+                      setFilterMode(value as 'status' | 'warehouse');
+                      setStatus('');
+                      setWarehouseId('');
+                      setPageIndex(0);
+                    }}
+                    options={[
+                      {
+                        value: 'status',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.status',
+                        }),
+                      },
+                      {
+                        value: 'warehouse',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.warehouse',
+                        }),
+                      },
+                    ]}
+                    disabled={isPermissionsPending || (!canView && !canManage)}
+                  />
+                  {filterMode === 'warehouse' ? (
+                    <WarehouseSelect
+                      aria-label={intl.formatMessage({
+                        id: 'project.management.filters.warehouse',
+                      })}
+                      value={warehouseId}
+                      onChange={(value) => {
+                        setWarehouseId(value);
+                        setPageIndex(0);
+                      }}
+                      canDeselect
+                      disabled={
+                        isPermissionsPending || (!canView && !canManage)
+                      }
+                      searchable
+                      className="w-64 shrink-0"
+                    />
+                  ) : null}
+                </div>
+                {filterMode === 'status' ? (
+                  <FilterCountChips
+                    ariaLabel={intl.formatMessage({
+                      id: 'project.management.filters.status',
+                    })}
+                    value={status}
+                    onValueChange={(value) => {
+                      setStatus(value as MaterialReceiptStatus | '');
+                      setPageIndex(0);
+                    }}
+                    disabled={isPermissionsPending || (!canView && !canManage)}
+                    options={[
+                      {
+                        value: '',
+                        label: intl.formatMessage({
+                          id: 'project.management.filters.all',
+                        }),
+                        count: summary?.total,
+                      },
+                      ...(
+                        ['draft', 'handover', 'completed', 'cancelled'] as const
+                      ).map((value) => ({
+                        value,
+                        label: intl.formatMessage({
+                          id: `receipts.status.${value}`,
+                        }),
+                        count: summary?.[value],
+                      })),
+                    ]}
+                  />
+                ) : null}
               </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}

@@ -2,6 +2,7 @@ import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   HandoverActionInput,
   HandoverDocument,
+  HandoverFilterSummary,
   HandoverFormValues,
   HandoverHistoryEntry,
   HandoverListFilters,
@@ -20,6 +21,20 @@ export async function loadHandovers(
   assertSupabaseConfigured();
   return request(
     supabaseApi.post('/rpc/list_handovers', { p_filters: filters }, { signal }),
+  );
+}
+
+export async function loadHandoverFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<HandoverFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_handover_filter_summary',
+      { p_search: search.trim() || null },
+      { signal },
+    ),
   );
 }
 

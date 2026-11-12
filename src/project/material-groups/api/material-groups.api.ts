@@ -1,6 +1,7 @@
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialGroup,
+  MaterialGroupFilterSummary,
   MaterialGroupFormValues,
   MaterialGroupRow,
 } from '../model/material-group';
@@ -22,6 +23,20 @@ export async function loadMaterialGroups(
     supabaseApi.post('/rpc/list_material_groups', {}, { signal }),
   );
   return rows.map(mapMaterialGroupRow);
+}
+
+export async function loadMaterialGroupFilterSummary(
+  search = '',
+  signal?: AbortSignal,
+): Promise<MaterialGroupFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_group_filter_summary',
+      { p_search: search.trim() || null },
+      { signal },
+    ),
+  );
 }
 
 export async function loadAvailableMaterialGroups(

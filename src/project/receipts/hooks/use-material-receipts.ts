@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/providers/user-provider';
 import {
   actOnMaterialReceipt,
   applyMaterialReceiptAdjustment,
   loadMaterialReceipt,
+  loadMaterialReceiptFilterSummary,
   loadMaterialReceiptHistory,
   loadMaterialReceiptItems,
   loadMaterialReceipts,
@@ -16,6 +18,10 @@ export const materialReceiptKeys = {
   lists: () => [...materialReceiptKeys.all, 'list'] as const,
   list: (filters: MaterialReceiptListFilters) =>
     [...materialReceiptKeys.lists(), filters] as const,
+  summary: (
+    userId: string | null,
+    filters: { search?: string; warehouseId?: string },
+  ) => [...materialReceiptKeys.all, 'filter-summary', userId, filters] as const,
   detail: (id: string) => [...materialReceiptKeys.all, 'detail', id] as const,
   history: (id: string) => [...materialReceiptKeys.all, 'history', id] as const,
 };
@@ -28,6 +34,21 @@ export function useMaterialReceiptsQuery(
     queryKey: materialReceiptKeys.list(filters),
     queryFn: ({ signal }) => loadMaterialReceipts(filters, signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useMaterialReceiptFilterSummaryQuery(
+  filters: { search?: string; warehouseId?: string },
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: materialReceiptKeys.summary(userId, filters),
+    queryFn: ({ signal }) => loadMaterialReceiptFilterSummary(filters, signal),
+    enabled,
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery?.queryKey[3] === userId ? previousData : undefined,
     retry: 0,
   });
 }

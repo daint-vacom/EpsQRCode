@@ -7,6 +7,7 @@ import {
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialModel,
+  MaterialModelFilterSummary,
   MaterialModelFormValues,
   MaterialModelImage,
   MaterialModelImageDraft,
@@ -124,6 +125,20 @@ export async function loadMaterialModels(
         safetyInspectionChecklist: checklistsByModelId.get(row.id) ?? [],
       };
     }),
+  );
+}
+
+export async function loadMaterialModelFilterSummary(
+  filters: { search?: string; groupId?: string } = {},
+  signal?: AbortSignal,
+): Promise<MaterialModelFilterSummary> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_model_filter_summary',
+      { p_filters: filters },
+      { signal },
+    ),
   );
 }
 

@@ -31,6 +31,12 @@ export interface MaterialGroup {
   updatedAt: string;
 }
 
+export interface MaterialGroupFilterSummary {
+  total: number;
+  active: number;
+  inactive: number;
+}
+
 export interface MaterialGroupRow {
   id: string;
   code: string;

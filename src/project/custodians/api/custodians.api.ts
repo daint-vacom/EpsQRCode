@@ -40,6 +40,7 @@ export async function loadEpsOwnerEmployees(
         p_team_id: filters.teamId ?? null,
         p_page: filters.page ?? 1,
         p_page_size: filters.pageSize ?? 30,
+        p_access_mode: filters.accessMode ?? 'manage',
       },
       { signal },
     ),
