@@ -295,6 +295,107 @@ export function AccountsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       {pageHeader}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <ProjectFilterModeSwitcher
+          value={filterMode}
+          onValueChange={(value) => {
+            setFilterMode(value as 'status' | 'type');
+            setFilters((current) => ({
+              ...current,
+              status: NO_FILTER,
+              type: NO_FILTER,
+            }));
+            table.setPageIndex(0);
+          }}
+          options={[
+            {
+              value: 'status',
+              label: intl.formatMessage({
+                id: 'project.management.filters.status',
+              }),
+            },
+            {
+              value: 'type',
+              label: intl.formatMessage({
+                id: 'project.management.filters.accountType',
+              }),
+            },
+          ]}
+          className="shrink-0"
+          disabled={!canView || isPermissionsPending}
+        />
+        <span
+          className="hidden h-5 w-px bg-border sm:block"
+          aria-hidden="true"
+        />
+
+        <FilterCountChips
+          ariaLabel={intl.formatMessage({
+            id:
+              filterMode === 'type'
+                ? 'project.management.filters.accountType'
+                : 'project.management.filters.status',
+          })}
+          value={
+            (filterMode === 'status' ? filters.status : filters.type) ===
+            NO_FILTER
+              ? ''
+              : filterMode === 'status'
+                ? filters.status
+                : filters.type
+          }
+          onValueChange={(value) => {
+            setFilters((current) => ({
+              ...current,
+              [filterMode]: value || NO_FILTER,
+            }));
+            table.setPageIndex(0);
+          }}
+          disabled={!canView || isPermissionsPending}
+          options={
+            filterMode === 'status'
+              ? [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  ...(['active', 'suspended', 'deactivated'] as const).map(
+                    (value) => ({
+                      value,
+                      label: intl.formatMessage({
+                        id: `accounts.status.${value}`,
+                      }),
+                      count: summary?.[value],
+                    }),
+                  ),
+                ]
+              : [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  ...(['eps', 'external', 'unmapped'] as const).map(
+                    (value) => ({
+                      value,
+                      label: intl.formatMessage({
+                        id: `accounts.types.${value}`,
+                      }),
+                      count:
+                        value === 'unmapped'
+                          ? summary?.unmapped
+                          : summary?.[value],
+                    }),
+                  ),
+                ]
+          }
+        />
+      </div>
       {canManage && optionsQuery.isError ? (
         <ErrorState
           title={intl.formatMessage({ id: 'accounts.page.loadError' })}
@@ -339,33 +440,6 @@ export function AccountsPage() {
                     }}
                     className="w-64 shrink-0"
                   />
-                  <ProjectFilterModeSwitcher
-                    value={filterMode}
-                    onValueChange={(value) => {
-                      setFilterMode(value as 'status' | 'type');
-                      setFilters((current) => ({
-                        ...current,
-                        status: NO_FILTER,
-                        type: NO_FILTER,
-                      }));
-                      table.setPageIndex(0);
-                    }}
-                    options={[
-                      {
-                        value: 'status',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.status',
-                        }),
-                      },
-                      {
-                        value: 'type',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.accountType',
-                        }),
-                      },
-                    ]}
-                    disabled={!canView || isPermissionsPending}
-                  />
                   <OptionSelect
                     ariaLabel={intl.formatMessage({
                       id: 'accounts.filters.organization',
@@ -382,73 +456,6 @@ export function AccountsPage() {
                     className="w-44 shrink-0"
                   />
                 </div>
-                <FilterCountChips
-                  ariaLabel={intl.formatMessage({
-                    id:
-                      filterMode === 'type'
-                        ? 'project.management.filters.accountType'
-                        : 'project.management.filters.status',
-                  })}
-                  value={
-                    (filterMode === 'status'
-                      ? filters.status
-                      : filters.type) === NO_FILTER
-                      ? ''
-                      : filterMode === 'status'
-                        ? filters.status
-                        : filters.type
-                  }
-                  onValueChange={(value) => {
-                    setFilters((current) => ({
-                      ...current,
-                      [filterMode]: value || NO_FILTER,
-                    }));
-                    table.setPageIndex(0);
-                  }}
-                  disabled={!canView || isPermissionsPending}
-                  options={
-                    filterMode === 'status'
-                      ? [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          ...(
-                            ['active', 'suspended', 'deactivated'] as const
-                          ).map((value) => ({
-                            value,
-                            label: intl.formatMessage({
-                              id: `accounts.status.${value}`,
-                            }),
-                            count: summary?.[value],
-                          })),
-                        ]
-                      : [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          ...(['eps', 'external', 'unmapped'] as const).map(
-                            (value) => ({
-                              value,
-                              label: intl.formatMessage({
-                                id: `accounts.types.${value}`,
-                              }),
-                              count:
-                                value === 'unmapped'
-                                  ? summary?.unmapped
-                                  : summary?.[value],
-                            }),
-                          ),
-                        ]
-                  }
-                />
               </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}

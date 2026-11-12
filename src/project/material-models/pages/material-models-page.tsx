@@ -180,6 +180,99 @@ export function MaterialModelsPage() {
           ) : null
         }
       />
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <ProjectFilterModeSwitcher
+          value={filterMode}
+          onValueChange={(value) => {
+            setFilterMode(value as 'status' | 'inspection');
+            setActiveFilter('');
+            setInspectionFilter('');
+            table.setPageIndex(0);
+          }}
+          options={[
+            {
+              value: 'status',
+              label: intl.formatMessage({
+                id: 'project.management.filters.status',
+              }),
+            },
+            {
+              value: 'inspection',
+              label: intl.formatMessage({
+                id: 'project.management.filters.inspection',
+              }),
+            },
+          ]}
+          className="shrink-0"
+          disabled={!canView || isPermissionsPending}
+        />
+        <span
+          className="hidden h-5 w-px bg-border sm:block"
+          aria-hidden="true"
+        />
+
+        <FilterCountChips
+          ariaLabel={intl.formatMessage({
+            id: `project.management.filters.${filterMode}`,
+          })}
+          value={filterMode === 'status' ? activeFilter : inspectionFilter}
+          onValueChange={(value) => {
+            if (filterMode === 'status') setActiveFilter(value);
+            else setInspectionFilter(value);
+            table.setPageIndex(0);
+          }}
+          disabled={!canView || isPermissionsPending}
+          options={
+            filterMode === 'status'
+              ? [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  {
+                    value: 'active',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.active',
+                    }),
+                    count: summary?.active,
+                  },
+                  {
+                    value: 'inactive',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.inactive',
+                    }),
+                    count: summary?.inactive,
+                  },
+                ]
+              : [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  {
+                    value: 'required',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.inspectionRequired',
+                    }),
+                    count: summary?.requiresInspection,
+                  },
+                  {
+                    value: 'not_required',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.inspectionNotRequired',
+                    }),
+                    count: summary?.notRequiresInspection,
+                  },
+                ]
+          }
+        />
+      </div>
 
       <DataGrid
         table={table}
@@ -234,94 +327,7 @@ export function MaterialModelsPage() {
                     searchable
                     className="w-56 shrink-0"
                   />
-                  <ProjectFilterModeSwitcher
-                    value={filterMode}
-                    onValueChange={(value) => {
-                      setFilterMode(value as 'status' | 'inspection');
-                      setActiveFilter('');
-                      setInspectionFilter('');
-                      table.setPageIndex(0);
-                    }}
-                    options={[
-                      {
-                        value: 'status',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.status',
-                        }),
-                      },
-                      {
-                        value: 'inspection',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.inspection',
-                        }),
-                      },
-                    ]}
-                    disabled={!canView || isPermissionsPending}
-                  />
                 </div>
-                <FilterCountChips
-                  ariaLabel={intl.formatMessage({
-                    id: `project.management.filters.${filterMode}`,
-                  })}
-                  value={
-                    filterMode === 'status' ? activeFilter : inspectionFilter
-                  }
-                  onValueChange={(value) => {
-                    if (filterMode === 'status') setActiveFilter(value);
-                    else setInspectionFilter(value);
-                    table.setPageIndex(0);
-                  }}
-                  disabled={!canView || isPermissionsPending}
-                  options={
-                    filterMode === 'status'
-                      ? [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          {
-                            value: 'active',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.active',
-                            }),
-                            count: summary?.active,
-                          },
-                          {
-                            value: 'inactive',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.inactive',
-                            }),
-                            count: summary?.inactive,
-                          },
-                        ]
-                      : [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          {
-                            value: 'required',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.inspectionRequired',
-                            }),
-                            count: summary?.requiresInspection,
-                          },
-                          {
-                            value: 'not_required',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.inspectionNotRequired',
-                            }),
-                            count: summary?.notRequiresInspection,
-                          },
-                        ]
-                  }
-                />
               </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}

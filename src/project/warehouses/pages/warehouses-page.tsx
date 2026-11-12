@@ -151,6 +151,42 @@ export function WarehousesPage() {
           ) : null
         }
       />
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <FilterCountChips
+          ariaLabel={intl.formatMessage({
+            id: 'project.management.filters.status',
+          })}
+          value={activeFilter}
+          onValueChange={(value) => {
+            setActiveFilter(value);
+            table.setPageIndex(0);
+          }}
+          disabled={!canView || isPermissionsPending}
+          options={[
+            {
+              value: '',
+              label: intl.formatMessage({
+                id: 'project.management.filters.all',
+              }),
+              count: summary?.total,
+            },
+            {
+              value: 'active',
+              label: intl.formatMessage({
+                id: 'warehouses.status.active',
+              }),
+              count: summary?.active,
+            },
+            {
+              value: 'inactive',
+              label: intl.formatMessage({
+                id: 'warehouses.status.inactive',
+              }),
+              count: summary?.inactive,
+            },
+          ]}
+        />
+      </div>
       <DataGrid
         table={table}
         recordCount={filteredWarehouses.length}
@@ -184,40 +220,6 @@ export function WarehousesPage() {
                     table.setPageIndex(0);
                   }}
                   className="w-72 shrink-0"
-                />
-                <FilterCountChips
-                  ariaLabel={intl.formatMessage({
-                    id: 'project.management.filters.status',
-                  })}
-                  value={activeFilter}
-                  onValueChange={(value) => {
-                    setActiveFilter(value);
-                    table.setPageIndex(0);
-                  }}
-                  disabled={!canView || isPermissionsPending}
-                  options={[
-                    {
-                      value: '',
-                      label: intl.formatMessage({
-                        id: 'project.management.filters.all',
-                      }),
-                      count: summary?.total,
-                    },
-                    {
-                      value: 'active',
-                      label: intl.formatMessage({
-                        id: 'warehouses.status.active',
-                      }),
-                      count: summary?.active,
-                    },
-                    {
-                      value: 'inactive',
-                      label: intl.formatMessage({
-                        id: 'warehouses.status.inactive',
-                      }),
-                      count: summary?.inactive,
-                    },
-                  ]}
                 />
               </div>
             }

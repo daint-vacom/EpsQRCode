@@ -123,6 +123,85 @@ export function MaterialReceiptsPage() {
           ) : null
         }
       />
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <ProjectFilterModeSwitcher
+          value={filterMode}
+          onValueChange={(value) => {
+            setFilterMode(value as 'status' | 'warehouse');
+            setStatus('');
+            setWarehouseId('');
+            setPageIndex(0);
+          }}
+          options={[
+            {
+              value: 'status',
+              label: intl.formatMessage({
+                id: 'project.management.filters.status',
+              }),
+            },
+            {
+              value: 'warehouse',
+              label: intl.formatMessage({
+                id: 'project.management.filters.warehouse',
+              }),
+            },
+          ]}
+          className="shrink-0"
+          disabled={isPermissionsPending || (!canView && !canManage)}
+        />
+        <span
+          className="hidden h-5 w-px bg-border sm:block"
+          aria-hidden="true"
+        />
+
+        {filterMode === 'status' ? (
+          <FilterCountChips
+            ariaLabel={intl.formatMessage({
+              id: 'project.management.filters.status',
+            })}
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value as MaterialReceiptStatus | '');
+              setPageIndex(0);
+            }}
+            disabled={isPermissionsPending || (!canView && !canManage)}
+            options={[
+              {
+                value: '',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.all',
+                }),
+                count: summary?.total,
+              },
+              ...(['draft', 'handover', 'completed', 'cancelled'] as const).map(
+                (value) => ({
+                  value,
+                  label: intl.formatMessage({
+                    id: `receipts.status.${value}`,
+                  }),
+                  count: summary?.[value],
+                }),
+              ),
+            ]}
+          />
+        ) : null}
+        {filterMode === 'warehouse' ? (
+          <WarehouseSelect
+            aria-label={intl.formatMessage({
+              id: 'project.management.filters.warehouse',
+            })}
+            value={warehouseId}
+            onChange={(value) => {
+              setWarehouseId(value);
+              setPageIndex(0);
+            }}
+            canDeselect
+            disabled={isPermissionsPending || (!canView && !canManage)}
+            searchable
+            className="w-64 shrink-0"
+          />
+        ) : null}
+      </div>
       <DataGrid
         table={table}
         recordCount={result?.total ?? 0}
@@ -153,80 +232,7 @@ export function MaterialReceiptsPage() {
                     }}
                     className="w-72 shrink-0"
                   />
-                  <ProjectFilterModeSwitcher
-                    value={filterMode}
-                    onValueChange={(value) => {
-                      setFilterMode(value as 'status' | 'warehouse');
-                      setStatus('');
-                      setWarehouseId('');
-                      setPageIndex(0);
-                    }}
-                    options={[
-                      {
-                        value: 'status',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.status',
-                        }),
-                      },
-                      {
-                        value: 'warehouse',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.warehouse',
-                        }),
-                      },
-                    ]}
-                    disabled={isPermissionsPending || (!canView && !canManage)}
-                  />
-                  {filterMode === 'warehouse' ? (
-                    <WarehouseSelect
-                      aria-label={intl.formatMessage({
-                        id: 'project.management.filters.warehouse',
-                      })}
-                      value={warehouseId}
-                      onChange={(value) => {
-                        setWarehouseId(value);
-                        setPageIndex(0);
-                      }}
-                      canDeselect
-                      disabled={
-                        isPermissionsPending || (!canView && !canManage)
-                      }
-                      searchable
-                      className="w-64 shrink-0"
-                    />
-                  ) : null}
                 </div>
-                {filterMode === 'status' ? (
-                  <FilterCountChips
-                    ariaLabel={intl.formatMessage({
-                      id: 'project.management.filters.status',
-                    })}
-                    value={status}
-                    onValueChange={(value) => {
-                      setStatus(value as MaterialReceiptStatus | '');
-                      setPageIndex(0);
-                    }}
-                    disabled={isPermissionsPending || (!canView && !canManage)}
-                    options={[
-                      {
-                        value: '',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.all',
-                        }),
-                        count: summary?.total,
-                      },
-                      ...(
-                        ['draft', 'handover', 'completed', 'cancelled'] as const
-                      ).map((value) => ({
-                        value,
-                        label: intl.formatMessage({
-                          id: `receipts.status.${value}`,
-                        }),
-                        count: summary?.[value],
-                      })),
-                    ]}
-                  />
-                ) : null}
               </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}

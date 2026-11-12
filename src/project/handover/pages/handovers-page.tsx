@@ -157,6 +157,96 @@ export function HandoversPage() {
           ) : null
         }
       />
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <ProjectFilterModeSwitcher
+          value={filterMode}
+          onValueChange={(value) => {
+            setFilterMode(value as 'status' | 'type');
+            setStatus('');
+            setType('');
+            setPagination((current) => ({ ...current, pageIndex: 0 }));
+          }}
+          options={[
+            {
+              value: 'status',
+              label: intl.formatMessage({
+                id: 'project.management.filters.status',
+              }),
+            },
+            {
+              value: 'type',
+              label: intl.formatMessage({
+                id: 'project.management.filters.type',
+              }),
+            },
+          ]}
+          className="shrink-0"
+          disabled={!canView || isPermissionsPending}
+        />
+        <span
+          className="hidden h-5 w-px bg-border sm:block"
+          aria-hidden="true"
+        />
+
+        <FilterCountChips
+          ariaLabel={intl.formatMessage({
+            id: `project.management.filters.${filterMode}`,
+          })}
+          value={filterMode === 'status' ? status : type}
+          onValueChange={(value) => {
+            if (filterMode === 'status') setFilter(setStatus)(value);
+            else setFilter(setType)(value);
+          }}
+          disabled={!canView || isPermissionsPending}
+          options={
+            filterMode === 'status'
+              ? [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  ...(
+                    [
+                      'awaiting_warehouse_approval',
+                      'draft',
+                      'pending',
+                      'completed',
+                      'rejected',
+                      'cancelled',
+                    ] as const
+                  ).map((value) => ({
+                    value,
+                    label: intl.formatMessage({
+                      id: `project.handover.status.${value}`,
+                    }),
+                    count:
+                      value === 'awaiting_warehouse_approval'
+                        ? summary?.awaitingWarehouseApproval
+                        : summary?.[value],
+                  })),
+                ]
+              : [
+                  {
+                    value: '',
+                    label: intl.formatMessage({
+                      id: 'project.management.filters.all',
+                    }),
+                    count: summary?.total,
+                  },
+                  ...(['transfer', 'loan', 'return'] as const).map((value) => ({
+                    value,
+                    label: intl.formatMessage({
+                      id: `project.handover.type.${value}`,
+                    }),
+                    count: summary?.[value],
+                  })),
+                ]
+          }
+        />
+      </div>
       <DataGrid
         table={table}
         recordCount={query.data?.total ?? 0}
@@ -185,94 +275,7 @@ export function HandoversPage() {
                     onSearch={setFilter(setSearch)}
                     className="w-64 shrink-0"
                   />
-                  <ProjectFilterModeSwitcher
-                    value={filterMode}
-                    onValueChange={(value) => {
-                      setFilterMode(value as 'status' | 'type');
-                      setStatus('');
-                      setType('');
-                      setPagination((current) => ({
-                        ...current,
-                        pageIndex: 0,
-                      }));
-                    }}
-                    options={[
-                      {
-                        value: 'status',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.status',
-                        }),
-                      },
-                      {
-                        value: 'type',
-                        label: intl.formatMessage({
-                          id: 'project.management.filters.type',
-                        }),
-                      },
-                    ]}
-                    disabled={!canView || isPermissionsPending}
-                  />
                 </div>
-                <FilterCountChips
-                  ariaLabel={intl.formatMessage({
-                    id: `project.management.filters.${filterMode}`,
-                  })}
-                  value={filterMode === 'status' ? status : type}
-                  onValueChange={(value) => {
-                    if (filterMode === 'status') setFilter(setStatus)(value);
-                    else setFilter(setType)(value);
-                  }}
-                  disabled={!canView || isPermissionsPending}
-                  options={
-                    filterMode === 'status'
-                      ? [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          ...(
-                            [
-                              'awaiting_warehouse_approval',
-                              'draft',
-                              'pending',
-                              'completed',
-                              'rejected',
-                              'cancelled',
-                            ] as const
-                          ).map((value) => ({
-                            value,
-                            label: intl.formatMessage({
-                              id: `project.handover.status.${value}`,
-                            }),
-                            count:
-                              value === 'awaiting_warehouse_approval'
-                                ? summary?.awaitingWarehouseApproval
-                                : summary?.[value],
-                          })),
-                        ]
-                      : [
-                          {
-                            value: '',
-                            label: intl.formatMessage({
-                              id: 'project.management.filters.all',
-                            }),
-                            count: summary?.total,
-                          },
-                          ...(['transfer', 'loan', 'return'] as const).map(
-                            (value) => ({
-                              value,
-                              label: intl.formatMessage({
-                                id: `project.handover.type.${value}`,
-                              }),
-                              count: summary?.[value],
-                            }),
-                          ),
-                        ]
-                  }
-                />
               </div>
             }
             toolbar={<DataGridHeaderMenu table={table} />}

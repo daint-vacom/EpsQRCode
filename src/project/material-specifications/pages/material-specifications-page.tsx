@@ -195,6 +195,45 @@ export function MaterialSpecificationsPage() {
           ) : null
         }
       />
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <FilterCountChips
+          ariaLabel={intl.formatMessage({
+            id: 'project.management.filters.dataType',
+          })}
+          value={dataType}
+          onValueChange={(value) => {
+            setDataType(value as MaterialSpecificationDataType | '');
+            table.setPageIndex(0);
+          }}
+          disabled={!canView || isPermissionsPending}
+          options={[
+            {
+              value: '',
+              label: intl.formatMessage({
+                id: 'project.management.filters.all',
+              }),
+              count: summary?.total,
+            },
+            ...(
+              [
+                'text',
+                'number',
+                'boolean',
+                'date',
+                'color',
+                'length',
+                'weight',
+              ] as const
+            ).map((value) => ({
+              value,
+              label: intl.formatMessage({
+                id: `materialModels.specifications.types.${value}`,
+              }),
+              count: summary?.[value],
+            })),
+          ]}
+        />
+      </div>
 
       <DataGrid
         table={table}
@@ -228,43 +267,6 @@ export function MaterialSpecificationsPage() {
                     table.setPageIndex(0);
                   }}
                   className="w-full sm:w-72"
-                />
-                <FilterCountChips
-                  ariaLabel={intl.formatMessage({
-                    id: 'project.management.filters.dataType',
-                  })}
-                  value={dataType}
-                  onValueChange={(value) => {
-                    setDataType(value as MaterialSpecificationDataType | '');
-                    table.setPageIndex(0);
-                  }}
-                  disabled={!canView || isPermissionsPending}
-                  options={[
-                    {
-                      value: '',
-                      label: intl.formatMessage({
-                        id: 'project.management.filters.all',
-                      }),
-                      count: summary?.total,
-                    },
-                    ...(
-                      [
-                        'text',
-                        'number',
-                        'boolean',
-                        'date',
-                        'color',
-                        'length',
-                        'weight',
-                      ] as const
-                    ).map((value) => ({
-                      value,
-                      label: intl.formatMessage({
-                        id: `materialModels.specifications.types.${value}`,
-                      }),
-                      count: summary?.[value],
-                    })),
-                  ]}
                 />
               </div>
             }
