@@ -16,6 +16,10 @@ const OPERATION_MENU_ACCESS: Record<
   string,
   { permission: string; messageId: string }
 > = {
+  [ROUTES.HOME]: {
+    permission: MATERIAL_PERMISSION_CODES.view,
+    messageId: 'project.navigation.overview',
+  },
   [ROUTES.PROJECT.MATERIALS]: {
     permission: MATERIAL_PERMISSION_CODES.view,
     messageId: 'project.navigation.allMaterials',

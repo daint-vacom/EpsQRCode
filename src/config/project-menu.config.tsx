@@ -9,6 +9,7 @@ import {
   ClipboardPlus,
   Folder,
   FolderOpen,
+  LayoutDashboard,
   Package,
   QrCode,
   ScanLine,
@@ -21,6 +22,24 @@ import type { MenuGroupConfig } from './menu.types';
 
 /** Shared administration surfaces for the materials-management application. */
 export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
+  {
+    title: 'Báo cáo',
+    titleMessageId: 'project.navigation.groups.reports',
+    items: [
+      {
+        label: 'Tổng quan',
+        labelMessageId: 'project.navigation.overview',
+        icon: LayoutDashboard,
+        path: ROUTES.HOME,
+      },
+      {
+        label: 'Báo cáo',
+        labelMessageId: 'project.navigation.reports',
+        icon: BarChart3,
+        path: ROUTES.PROJECT.REPORTS,
+      },
+    ],
+  },
   {
     title: 'Quản lý vật tư',
     titleMessageId: 'project.navigation.groups.materialManagement',
@@ -66,18 +85,6 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         labelMessageId: 'project.navigation.receipts',
         icon: ClipboardPlus,
         path: ROUTES.PROJECT.RECEIPTS,
-      },
-    ],
-  },
-  {
-    title: 'Báo cáo',
-    titleMessageId: 'project.navigation.groups.reports',
-    items: [
-      {
-        label: 'Báo cáo',
-        labelMessageId: 'project.navigation.reports',
-        icon: BarChart3,
-        path: ROUTES.PROJECT.REPORTS,
       },
     ],
   },

@@ -1,5 +1,6 @@
 import { accountMessagesEn } from '@/project/accounts/messages';
 import { custodianMessagesEn } from '@/project/custodians/messages';
+import { dashboardMessagesEn } from '@/project/dashboard/messages';
 import { handoverMessagesEn } from '@/project/handover/messages';
 import { materialLabelMessagesEn } from '@/project/material-labels/messages';
 import { materialMessagesEn } from '@/project/materials/messages';
@@ -50,6 +51,7 @@ export const en: Record<string, string> = {
   ...warehouseMessagesEn,
   ...accountMessagesEn,
   ...custodianMessagesEn,
+  ...dashboardMessagesEn,
   ...receiptMessagesEn,
   ...handoverMessagesEn,
   'permissions.scopes.selectLabel': 'Scope for {permission}',
@@ -63,6 +65,7 @@ export const en: Record<string, string> = {
   'project.navigation.groups.reports': 'Reports',
   'project.navigation.groups.organization': 'Organization management',
   'project.navigation.groups.system': 'System',
+  'project.navigation.overview': 'Overview',
   'project.navigation.allMaterials': 'All materials',
   'project.navigation.qrTracking': 'QR tracking',
   'project.navigation.materialsRequiringInspection':

@@ -44,6 +44,7 @@ import { NotFoundPage } from '@/pages/not-found/page';
 import { AccountsPage } from '@/project/accounts/pages/accounts-page';
 import { ExternalOrganizationsPage } from '@/project/accounts/pages/external-organizations-page';
 import { EpsOrganizationsPage } from '@/project/custodians/pages/eps-organizations-page';
+import { ProjectDashboardPage } from '@/project/dashboard/pages/project-dashboard-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
 import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
 import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
@@ -66,7 +67,6 @@ import { MaterialListPage } from '@/project/materials/pages/material-list-page';
 import { MaterialPublicAccessPage } from '@/project/materials/pages/material-public-detail-page';
 import { MaterialQrTrackingPage } from '@/project/materials/pages/material-qr-tracking-page';
 import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
-import { ProjectMockPage } from '@/project/pages/project-mock-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
@@ -284,7 +284,7 @@ export function AppRoutingSetup() {
             path={ROUTES.PROJECT.EPS_ORGANIZATIONS}
             element={<EpsOrganizationsPage />}
           />
-          <Route path={ROUTES.HOME} element={<ProjectMockPage />} />
+          <Route path={ROUTES.HOME} element={<ProjectDashboardPage />} />
           <Route path={ROUTES.PROJECT.ACCOUNTS} element={<AccountsPage />} />
           <Route
             path={ROUTES.PROJECT.EXTERNAL_ORGANIZATIONS}

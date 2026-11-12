@@ -4,6 +4,7 @@
  */
 import { accountMessagesVi } from '@/project/accounts/messages';
 import { custodianMessagesVi } from '@/project/custodians/messages';
+import { dashboardMessagesVi } from '@/project/dashboard/messages';
 import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialLabelMessagesVi } from '@/project/material-labels/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
@@ -40,6 +41,7 @@ export const vi: Record<string, string> = {
   ...warehouseMessagesVi,
   ...accountMessagesVi,
   ...custodianMessagesVi,
+  ...dashboardMessagesVi,
   ...receiptMessagesVi,
   ...handoverMessagesVi,
   'project.navigation.groups.materialManagement': 'Quản lý vật tư',
@@ -47,6 +49,7 @@ export const vi: Record<string, string> = {
   'project.navigation.groups.reports': 'Báo cáo',
   'project.navigation.groups.organization': 'Quản trị tổ chức',
   'project.navigation.groups.system': 'Hệ thống',
+  'project.navigation.overview': 'Tổng quan',
   'project.navigation.allMaterials': 'Tất cả vật tư',
   'project.navigation.qrTracking': 'Theo dõi mã QR',
   'project.navigation.materialsRequiringInspection': 'Vật tư cần kiểm tra',
