@@ -1,12 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
-import { FilterCountChips } from '@/project/shared/filter-count-chips';
-import {
-  getCoreRowModel,
-  getPaginationRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
 import { Folder, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
@@ -14,16 +8,18 @@ import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardTable } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardToolbar,
+} from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { DataGrid } from '@/components/ui/data-grid';
-import { DataGridHeader } from '@/components/ui/data-grid-header';
-import { DataGridHeaderMenu } from '@/components/ui/data-grid-header-menu';
-import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
+import type { SelectOption } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { MaterialGroupTreePanel } from '../components/material-group-tree.generated';
 import {
   mapMaterialGroupToFormValues,
   MaterialGroupFormDialog,
@@ -32,17 +28,21 @@ import {
 import {
   useCreateMaterialGroupMutation,
   useDeleteMaterialGroupMutation,
-  useMaterialGroupFilterSummaryQuery,
   useMaterialGroupsQuery,
+  useMoveMaterialGroupMutation,
   useUpdateMaterialGroupAvailabilityMutation,
   useUpdateMaterialGroupMutation,
 } from '../hooks/use-material-groups';
-import type { MaterialGroup } from '../model/material-group';
+import {
+  ROOT_MATERIAL_GROUP_PARENT,
+  type MaterialGroup,
+} from '../model/material-group';
 import { MATERIAL_GROUP_PERMISSION_CODES } from '../model/material-group-permissions';
 import {
-  MATERIAL_GROUP_COLUMN_PINNING,
-  useMaterialGroupColumns,
-} from '../table/material-group.columns.generated';
+  buildMaterialGroupTree,
+  getMaterialGroupDescendantIds,
+  getMaterialGroupPath,
+} from '../model/material-group-tree';
 import { MaterialGroupFilterBar } from '../table/material-group.filters.generated';
 
 const EMPTY_MATERIAL_GROUPS: MaterialGroup[] = [];
@@ -72,10 +72,11 @@ export function MaterialGroupsPage() {
   const query = useMaterialGroupsQuery(isPermissionsPending || canView);
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
+  const moveMutation = useMoveMaterialGroupMutation();
   const availabilityMutation = useUpdateMaterialGroupAvailabilityMutation();
   const deleteMutation = useDeleteMaterialGroupMutation();
   const [keyword, setKeyword] = useState('');
-  const [activeFilter, setActiveFilter] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
@@ -89,22 +90,94 @@ export function MaterialGroupsPage() {
   const editForm = useMaterialGroupForm();
 
   const groups = query.data ?? EMPTY_MATERIAL_GROUPS;
-  const summaryQuery = useMaterialGroupFilterSummaryQuery(
-    keyword.trim(),
-    !isPermissionsPending && canView,
-  );
-  const summary = summaryQuery.data;
   const filteredGroups = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
     return groups.filter(
       (group) =>
-        (!activeFilter || group.isActive === (activeFilter === 'active')) &&
-        (!normalizedKeyword ||
-          [group.code, group.name, group.description].some((value) =>
-            value.toLocaleLowerCase('vi').includes(normalizedKeyword),
-          )),
+        !normalizedKeyword ||
+        [group.code, group.name, group.description].some((value) =>
+          value.toLocaleLowerCase('vi').includes(normalizedKeyword),
+        ),
     );
-  }, [groups, keyword, activeFilter]);
+  }, [groups, keyword]);
+
+  const displayedGroups = useMemo(() => {
+    const includedIds = new Set(filteredGroups.map((group) => group.id));
+    const groupsById = new Map(groups.map((group) => [group.id, group]));
+    for (const group of filteredGroups) {
+      let parentId = group.parentId;
+      while (parentId && !includedIds.has(parentId)) {
+        includedIds.add(parentId);
+        parentId = groupsById.get(parentId)?.parentId ?? null;
+      }
+    }
+    return groups.filter((group) => includedIds.has(group.id));
+  }, [filteredGroups, groups]);
+  const treeNodes = useMemo(
+    () => buildMaterialGroupTree(displayedGroups),
+    [displayedGroups],
+  );
+  const countByNode = useMemo(
+    () =>
+      new Map(
+        displayedGroups.map((group) => [
+          group.id,
+          groups.filter((candidate) => candidate.parentId === group.id).length,
+        ]),
+      ),
+    [displayedGroups, groups],
+  );
+  const parentOptionsFor = (
+    excludeGroupId?: string,
+  ): SelectOption<MaterialGroup>[] => {
+    const excludedIds = excludeGroupId
+      ? getMaterialGroupDescendantIds(groups, excludeGroupId)
+      : new Set<string>();
+    return [
+      {
+        value: ROOT_MATERIAL_GROUP_PARENT,
+        label: intl.formatMessage({ id: 'materialGroups.fields.root' }),
+      },
+      ...groups
+        .filter((group) => !excludedIds.has(group.id))
+        .map((group) => ({
+          value: group.id,
+          label: getMaterialGroupPath(groups, group.id),
+          data: group,
+        })),
+    ];
+  };
+  const createParentIdOptions = parentOptionsFor();
+  const editParentIdOptions = parentOptionsFor(editingGroup?.id);
+
+  const canMoveGroup = (groupId: string, parentId: string | null) => {
+    const group = groups.find((item) => item.id === groupId);
+    if (!group || group.id === parentId || group.parentId === parentId) {
+      return false;
+    }
+    if (parentId === null) return true;
+    return !getMaterialGroupDescendantIds(groups, groupId).has(parentId);
+  };
+
+  const moveGroup = (groupId: string, parentId: string | null) => {
+    if (
+      !canManage ||
+      moveMutation.isPending ||
+      !canMoveGroup(groupId, parentId)
+    ) {
+      return;
+    }
+    moveMutation.mutate(
+      { id: groupId, parentId },
+      {
+        onSuccess: () =>
+          toast.success(
+            intl.formatMessage({ id: 'materialGroups.toasts.moved' }),
+          ),
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      },
+    );
+  };
 
   const openEdit = (group: MaterialGroup) => {
     if (!canManage) return;
@@ -113,46 +186,37 @@ export function MaterialGroupsPage() {
     setEditOpen(true);
   };
 
-  const columns = useMaterialGroupColumns({
-    onEdit: openEdit,
-    onDelete: (group) => {
-      if (canManage) setDeletingGroup(group);
-    },
-    canEdit: canManage,
-    canDelete: canManage,
-    canManage,
-    onAvailabilityChange: async (group, isActive) => {
-      if (!canManage || pendingAvailabilityIds.has(group.id)) return;
-      setPendingAvailabilityIds((current) => new Set(current).add(group.id));
-      try {
-        await availabilityMutation.mutateAsync({ id: group.id, isActive });
-        toast.success(
-          intl.formatMessage({
-            id: isActive
-              ? 'materialGroups.toasts.activated'
-              : 'materialGroups.toasts.deactivated',
-          }),
-        );
-      } catch (error) {
-        toast.error(getApiErrorMessage(error));
-      } finally {
-        setPendingAvailabilityIds((current) => {
-          const next = new Set(current);
-          next.delete(group.id);
-          return next;
-        });
-      }
-    },
-    pendingAvailabilityIds,
-  });
-  const table = useReactTable({
-    data: filteredGroups,
-    columns,
-    getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    state: { columnPinning: MATERIAL_GROUP_COLUMN_PINNING },
-  });
+  const openCreate = (parentId: string | null = null) => {
+    if (!canManage) return;
+    createForm.setValue('parentId', parentId ?? ROOT_MATERIAL_GROUP_PARENT, {
+      shouldDirty: false,
+    });
+    setCreateOpen(true);
+  };
+
+  const toggleAvailability = async (group: MaterialGroup) => {
+    if (!canManage || pendingAvailabilityIds.has(group.id)) return;
+    const isActive = !group.isActive;
+    setPendingAvailabilityIds((current) => new Set(current).add(group.id));
+    try {
+      await availabilityMutation.mutateAsync({ id: group.id, isActive });
+      toast.success(
+        intl.formatMessage({
+          id: isActive
+            ? 'materialGroups.toasts.activated'
+            : 'materialGroups.toasts.deactivated',
+        }),
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+    } finally {
+      setPendingAvailabilityIds((current) => {
+        const next = new Set(current);
+        next.delete(group.id);
+        return next;
+      });
+    }
+  };
 
   const handleCreate = (
     values: Parameters<typeof createMutation.mutate>[0],
@@ -206,6 +270,7 @@ export function MaterialGroupsPage() {
             { name: deletingGroup.name },
           ),
         );
+        if (selectedGroupId === deletingGroup.id) setSelectedGroupId(null);
         setDeletingGroup(null);
       },
       onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -223,7 +288,7 @@ export function MaterialGroupsPage() {
               type="button"
               variant="primary"
               size="md"
-              onClick={() => setCreateOpen(true)}
+              onClick={() => openCreate()}
             >
               <Plus />
               {intl.formatMessage({ id: 'materialGroups.actions.create' })}
@@ -231,112 +296,109 @@ export function MaterialGroupsPage() {
           ) : null
         }
       />
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <FilterCountChips
-          ariaLabel={intl.formatMessage({
-            id: 'project.management.filters.status',
-          })}
-          value={activeFilter}
-          onValueChange={(value) => {
-            setActiveFilter(value);
-            table.setPageIndex(0);
-          }}
-          disabled={!canView || isPermissionsPending}
-          options={[
-            {
-              value: '',
-              label: intl.formatMessage({
-                id: 'project.management.filters.all',
-              }),
-              count: summary?.total,
-            },
-            {
-              value: 'active',
-              label: intl.formatMessage({
-                id: 'project.management.filters.active',
-              }),
-              count: summary?.active,
-            },
-            {
-              value: 'inactive',
-              label: intl.formatMessage({
-                id: 'project.management.filters.inactive',
-              }),
-              count: summary?.inactive,
-            },
-          ]}
-        />
-      </div>
+      <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
+        <CardHeader className="shrink-0 border-b">
+          <CardToolbar className="w-full flex-wrap justify-between gap-3">
+            <span className="text-sm text-foreground">
+              {intl.formatMessage(
+                { id: 'materialGroups.tree.count' },
+                { count: filteredGroups.length },
+              )}
+            </span>
+            <MaterialGroupFilterBar
+              className="w-64 shrink-0"
+              keyword={keyword}
+              onKeywordChange={setKeyword}
+              disabled={!canView || isPermissionsPending}
+            />
+          </CardToolbar>
+        </CardHeader>
 
-      <DataGrid
-        table={table}
-        recordCount={filteredGroups.length}
-        isLoading={isPermissionsPending || (canView && query.isPending)}
-        isFetching={query.isFetching}
-        emptyMessage={
-          keyword || activeFilter
-            ? intl.formatMessage({ id: 'materialGroups.empty.search' })
-            : intl.formatMessage({ id: 'materialGroups.empty.list' })
-        }
-      >
-        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-          <DataGridHeader
-            variant="stats"
-            recordCountLabel="nhóm vật tư"
-            stats={
-              <div className="flex min-w-0 flex-col gap-2">
-                <MaterialGroupFilterBar
-                  className="w-64 shrink-0"
-                  keyword={keyword}
-                  onKeywordChange={(value) => {
-                    setKeyword(value);
-                    table.setPageIndex(0);
-                  }}
+        <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+          {!isPermissionsPending && !canView ? (
+            <ErrorState
+              title={intl.formatMessage({
+                id: 'materialGroups.errors.authorizationTitle',
+              })}
+              description={intl.formatMessage({
+                id: 'materialGroups.errors.authorization',
+              })}
+            />
+          ) : query.isError ? (
+            <ErrorState
+              title={intl.formatMessage({
+                id: 'materialGroups.errors.loadTitle',
+              })}
+              description={
+                isAuthorizationError(query.error)
+                  ? intl.formatMessage({
+                      id: 'materialGroups.errors.authorization',
+                    })
+                  : getApiErrorMessage(query.error)
+              }
+              onRetry={() => void query.refetch()}
+            />
+          ) : isPermissionsPending || query.isPending ? (
+            <div
+              className="flex flex-1 flex-col gap-3 p-5"
+              aria-label={intl.formatMessage({ id: 'common.state.loading' })}
+            >
+              {Array.from({ length: 8 }, (_, index) => (
+                <Skeleton
+                  key={index}
+                  className="h-9 w-full"
+                  style={{ marginInlineStart: `${(index % 3) * 16}px` }}
                 />
-              </div>
-            }
-            toolbar={<DataGridHeaderMenu table={table} />}
-          />
-
-          <CardTable className="min-h-0 flex-1">
-            {!isPermissionsPending && !canView ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'materialGroups.errors.authorizationTitle',
-                })}
-                description={intl.formatMessage({
-                  id: 'materialGroups.errors.authorization',
-                })}
-              />
-            ) : query.isError ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'materialGroups.errors.loadTitle',
-                })}
-                description={
-                  isAuthorizationError(query.error)
-                    ? intl.formatMessage({
-                        id: 'materialGroups.errors.authorization',
-                      })
-                    : getApiErrorMessage(query.error)
-                }
-                onRetry={() => void query.refetch()}
-              />
-            ) : (
-              <ScrollArea className="h-full">
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            )}
-          </CardTable>
-
-          <CardFooter className="justify-between">
-            {canView && !isPermissionsPending && !query.isError ? (
-              <DataGridPagination />
-            ) : null}
-          </CardFooter>
-        </Card>
-      </DataGrid>
+              ))}
+            </div>
+          ) : filteredGroups.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-secondary-foreground">
+              {intl.formatMessage({
+                id: keyword
+                  ? 'materialGroups.empty.search'
+                  : 'materialGroups.empty.list',
+              })}
+            </div>
+          ) : (
+            <MaterialGroupTreePanel
+              className="h-full"
+              nodes={treeNodes}
+              selectedId={selectedGroupId}
+              countByNode={countByNode}
+              allCount={filteredGroups.length}
+              isAllSelected={selectedGroupId === null}
+              onSelectAll={() => setSelectedGroupId(null)}
+              onSelect={setSelectedGroupId}
+              onAdd={canManage ? openCreate : undefined}
+              onEdit={canManage ? openEdit : undefined}
+              onDelete={
+                canManage
+                  ? (group) => {
+                      if (groups.some((item) => item.parentId === group.id)) {
+                        toast.error(
+                          intl.formatMessage({
+                            id: 'materialGroups.errors.hasChildren',
+                          }),
+                        );
+                        return;
+                      }
+                      setDeletingGroup(group);
+                    }
+                  : undefined
+              }
+              onToggleAvailability={
+                canManage
+                  ? (group) => void toggleAvailability(group)
+                  : undefined
+              }
+              onMove={canManage ? moveGroup : undefined}
+              canMove={canMoveGroup}
+              isMovePending={moveMutation.isPending}
+              pendingAvailabilityIds={pendingAvailabilityIds}
+            />
+          )}
+        </CardContent>
+      </Card>
 
       <MaterialGroupFormDialog
         open={createOpen}
@@ -348,6 +410,7 @@ export function MaterialGroupsPage() {
         title={intl.formatMessage({ id: 'materialGroups.dialogs.createTitle' })}
         codePattern={codePattern}
         resetKey="create"
+        parentIdOptions={createParentIdOptions}
       />
       <MaterialGroupFormDialog
         open={editOpen}
@@ -359,6 +422,7 @@ export function MaterialGroupsPage() {
         title={intl.formatMessage({ id: 'materialGroups.dialogs.editTitle' })}
         codePattern={codePattern}
         resetKey={editingGroup?.id ?? 'edit'}
+        parentIdOptions={editParentIdOptions}
       />
       <ConfirmDialog
         open={deletingGroup !== null}

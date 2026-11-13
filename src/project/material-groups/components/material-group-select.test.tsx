@@ -16,6 +16,7 @@ const group = {
   id: 'g1',
   code: 'G1',
   name: 'Nhóm A',
+  parentId: null,
   description: '',
   isActive: true,
   createdAt: '',

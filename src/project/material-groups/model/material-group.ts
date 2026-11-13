@@ -8,10 +8,13 @@ import {
 } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { z } from 'zod';
 
+export const ROOT_MATERIAL_GROUP_PARENT = '__root__';
+
 export const materialGroupFormSchema = z.object({
   code: z.string().trim(),
   codeMode: z.enum(['auto', 'manual']),
   name: z.string().trim().min(1, 'Vui lòng nhập tên nhóm.'),
+  parentId: z.string(),
   description: z.string().trim(),
   specifications: z.array(materialModelSpecificationSchema),
   safetyInspectionChecklist: safetyInspectionChecklistSchema,
@@ -23,6 +26,7 @@ export interface MaterialGroup {
   id: string;
   code: string;
   name: string;
+  parentId: string | null;
   description: string;
   specifications: MaterialModelSpecification[];
   safetyInspectionChecklist?: SafetyInspectionChecklistGroup[];
@@ -41,6 +45,7 @@ export interface MaterialGroupRow {
   id: string;
   code: string;
   name: string;
+  parent_id: string | null;
   description: string | null;
   specifications: MaterialModelSpecification[];
   safety_inspection_checklist?: SafetyInspectionChecklistGroup[] | null;
@@ -54,6 +59,7 @@ export function mapMaterialGroupRow(row: MaterialGroupRow): MaterialGroup {
     id: row.id,
     code: row.code,
     name: row.name,
+    parentId: row.parent_id,
     description: row.description ?? '',
     specifications: row.specifications,
     safetyInspectionChecklist: row.safety_inspection_checklist ?? [],

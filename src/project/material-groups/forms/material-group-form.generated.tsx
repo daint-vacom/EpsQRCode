@@ -7,7 +7,7 @@
  * Do not hand-edit this banner or the generated options consts — that's how review detects a
  * bypassed builder.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import type { MaterialModelFormValues } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
@@ -41,11 +41,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { MaterialGroupSelect } from '../components/material-group-select';
 import {
   materialGroupFormSchema,
+  ROOT_MATERIAL_GROUP_PARENT,
   type MaterialGroupFormValues,
 } from '../model/material-group';
 import type { MaterialGroup } from '../model/material-group';
@@ -54,6 +57,7 @@ export const materialGroupDefaultValues: MaterialGroupFormValues = {
   code: '',
   codeMode: 'auto',
   name: '',
+  parentId: ROOT_MATERIAL_GROUP_PARENT,
   description: '',
   specifications: [],
   safetyInspectionChecklist: [],
@@ -79,6 +83,7 @@ export function mapMaterialGroupToFormValues(
     code: entity.code,
     codeMode: 'manual',
     name: entity.name,
+    parentId: entity.parentId ?? ROOT_MATERIAL_GROUP_PARENT,
     description: entity.description,
     specifications: entity.specifications.map((specification) => ({
       ...specification,
@@ -101,6 +106,7 @@ interface MaterialGroupFormProps {
   mode: 'create' | 'edit';
   codePattern: string;
   resetKey: string;
+  parentIdOptions: SelectOption<MaterialGroup>[];
 }
 
 export function MaterialGroupForm({
@@ -110,10 +116,16 @@ export function MaterialGroupForm({
   mode,
   codePattern,
   resetKey,
+  parentIdOptions,
 }: MaterialGroupFormProps) {
   const intl = useIntl();
   const codeMode = form.watch('codeMode');
   const [activeTab, setActiveTab] = useState('general');
+  const parentGroups = useMemo(
+    () =>
+      parentIdOptions.flatMap((option) => (option.data ? [option.data] : [])),
+    [parentIdOptions],
+  );
   const handleInvalidSubmit: SubmitErrorHandler<MaterialGroupFormValues> = (
     errors,
   ) => {
@@ -189,6 +201,39 @@ export function MaterialGroupForm({
                           form.setValue('code', '');
                           form.clearErrors('code');
                         }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="parentId"
+                render={({ field }) => (
+                  <FormItem
+                    className="md:col-span-12"
+                    layout="horizontal"
+                    labelWidth="md"
+                  >
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'materialGroups.fields.parent',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <MaterialGroupSelect
+                        sourceMode="options"
+                        groups={parentGroups}
+                        includeRootOption
+                        value={field.value}
+                        onChange={field.onChange}
+                        searchable={false}
+                        canDeselect={false}
+                        placeholder={intl.formatMessage({
+                          id: 'materialGroups.fields.root',
+                        })}
                       />
                     </FormControl>
                     <FormMessage />
@@ -284,6 +329,7 @@ interface MaterialGroupFormDialogProps {
   title?: string;
   codePattern: string;
   resetKey: string;
+  parentIdOptions: SelectOption<MaterialGroup>[];
 }
 
 export function MaterialGroupFormDialog({
@@ -296,6 +342,7 @@ export function MaterialGroupFormDialog({
   title,
   codePattern,
   resetKey,
+  parentIdOptions,
 }: MaterialGroupFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -357,6 +404,7 @@ export function MaterialGroupFormDialog({
               mode={mode}
               codePattern={codePattern}
               resetKey={resetKey}
+              parentIdOptions={parentIdOptions}
             />
           </DialogBody>
 

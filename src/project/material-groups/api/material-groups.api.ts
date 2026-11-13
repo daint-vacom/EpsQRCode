@@ -5,7 +5,10 @@ import type {
   MaterialGroupFormValues,
   MaterialGroupRow,
 } from '../model/material-group';
-import { mapMaterialGroupRow } from '../model/material-group';
+import {
+  mapMaterialGroupRow,
+  ROOT_MATERIAL_GROUP_PARENT,
+} from '../model/material-group';
 
 function queryParams(params: Record<string, string>) {
   return { params };
@@ -47,7 +50,7 @@ export async function loadAvailableMaterialGroups(
     supabaseApi.get('/material_groups', {
       ...queryParams({
         select:
-          'id,code,name,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
+          'id,code,name,parent_id,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
         is_active: 'eq.true',
         order: 'name.asc,id.asc',
       }),
@@ -66,7 +69,7 @@ export async function loadMaterialGroupById(
     supabaseApi.get('/material_groups', {
       ...queryParams({
         select:
-          'id,code,name,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
+          'id,code,name,parent_id,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
         id: `eq.${id}`,
       }),
       signal,
@@ -83,11 +86,14 @@ export async function createMaterialGroup(
   const payload: {
     code?: string;
     name: string;
+    parent_id: string | null;
     description: string | null;
     specifications: MaterialGroupFormValues['specifications'];
     safety_inspection_checklist: MaterialGroupFormValues['safetyInspectionChecklist'];
   } = {
     name: values.name.trim(),
+    parent_id:
+      values.parentId === ROOT_MATERIAL_GROUP_PARENT ? null : values.parentId,
     description: values.description.trim() || null,
     specifications: values.specifications,
     safety_inspection_checklist: values.safetyInspectionChecklist,
@@ -107,10 +113,31 @@ export async function updateMaterialGroup(
       {
         code: values.code.trim(),
         name: values.name.trim(),
+        parent_id:
+          values.parentId === ROOT_MATERIAL_GROUP_PARENT
+            ? null
+            : values.parentId,
         description: values.description.trim() || null,
         specifications: values.specifications,
         safety_inspection_checklist: values.safetyInspectionChecklist,
       },
+      {
+        ...queryParams({ id: `eq.${id}` }),
+        headers: { Prefer: 'return=minimal' },
+      },
+    ),
+  );
+}
+
+export async function moveMaterialGroup(
+  id: string,
+  parentId: string | null,
+): Promise<void> {
+  assertSupabaseConfigured();
+  await request(
+    supabaseApi.patch(
+      '/material_groups',
+      { parent_id: parentId },
       {
         ...queryParams({ id: `eq.${id}` }),
         headers: { Prefer: 'return=minimal' },

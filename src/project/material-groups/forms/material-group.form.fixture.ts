@@ -31,6 +31,15 @@ const spec: FormSpec = {
       required: true,
     },
     {
+      kind: 'select',
+      name: 'parentId',
+      label: 'Nhóm cha',
+      labelMessageId: 'materialGroups.fields.parent',
+      width: 'full',
+      placeholder: 'Chọn nhóm cha',
+      optionsFrom: 'prop',
+    },
+    {
       kind: 'textarea',
       name: 'description',
       label: 'Mô tả',

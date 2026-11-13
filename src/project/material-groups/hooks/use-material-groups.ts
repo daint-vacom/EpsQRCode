@@ -9,6 +9,7 @@ import {
   loadMaterialGroupById,
   loadMaterialGroupFilterSummary,
   loadMaterialGroups,
+  moveMaterialGroup,
   updateMaterialGroup,
   updateMaterialGroupAvailability,
 } from '../api/material-groups.api';
@@ -92,6 +93,40 @@ export function useUpdateMaterialGroupMutation() {
     }) => updateMaterialGroup(id, values),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialGroupKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+      ]);
+    },
+  });
+}
+
+export function useMoveMaterialGroupMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, parentId }: { id: string; parentId: string | null }) =>
+      moveMaterialGroup(id, parentId),
+    onMutate: async ({ id, parentId }) => {
+      const queryKey = materialGroupKeys.list();
+      await queryClient.cancelQueries({ queryKey });
+      const previousGroups =
+        queryClient.getQueryData<MaterialGroup[]>(queryKey);
+      queryClient.setQueryData<MaterialGroup[]>(queryKey, (current) =>
+        current?.map((group) =>
+          group.id === id ? { ...group, parentId } : group,
+        ),
+      );
+      return { previousGroups };
+    },
+    onError: (_error, _variables, context) => {
+      if (!context?.previousGroups) return;
+      queryClient.setQueryData(
+        materialGroupKeys.list(),
+        context.previousGroups,
+      );
+    },
+    onSuccess: () => {
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: materialGroupKeys.all }),
         queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
         queryClient.invalidateQueries({ queryKey: materialKeys.all }),
