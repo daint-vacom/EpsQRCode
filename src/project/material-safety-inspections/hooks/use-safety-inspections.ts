@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
+  loadMaterialSafetyInspectionPlan,
   loadMaterialSafetyInspectionQueue,
   loadMaterialSafetyInspections,
   loadSafetyInspection,
@@ -10,6 +11,7 @@ import {
   startMaterialSafetyInspectionDraft,
 } from '../api/safety-inspections.api';
 import type {
+  MaterialSafetyInspectionPlanFilters,
   MaterialSafetyInspectionQueueFilters,
   SafetyInspectionAttachment,
   SafetyInspectionFormValues,
@@ -23,6 +25,8 @@ export const safetyInspectionKeys = {
     userId: string | null,
     filters: MaterialSafetyInspectionQueueFilters,
   ) => [...safetyInspectionKeys.all, 'queue', userId, filters] as const,
+  plan: (userId: string | null, filters: MaterialSafetyInspectionPlanFilters) =>
+    [...safetyInspectionKeys.all, 'plan', userId, filters] as const,
   management: (filters: SafetyInspectionListFilters) =>
     [...safetyInspectionKeys.all, 'management', filters] as const,
   managementSummary: (userId: string | null, search: string) =>
@@ -50,6 +54,20 @@ export function useMaterialSafetyInspectionQueueQuery(
     enabled,
     placeholderData: (previousData, previousQuery) =>
       previousQuery?.queryKey[3] === userId ? previousData : undefined,
+    retry: 0,
+  });
+}
+
+export function useMaterialSafetyInspectionPlanQuery(
+  filters: MaterialSafetyInspectionPlanFilters,
+  enabled = true,
+) {
+  const { userId } = useUser();
+
+  return useQuery({
+    queryKey: safetyInspectionKeys.plan(userId, filters),
+    queryFn: ({ signal }) => loadMaterialSafetyInspectionPlan(filters, signal),
+    enabled,
     retry: 0,
   });
 }

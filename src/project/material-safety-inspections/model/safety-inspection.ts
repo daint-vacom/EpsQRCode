@@ -145,6 +145,34 @@ export interface MaterialSafetyInspectionQueueSummary {
   inProgress: number;
 }
 
+export interface MaterialSafetyInspectionQueueChartPoint {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+export interface MaterialSafetyInspectionPlanFilters {
+  search?: string;
+  ownerPartyId?: string;
+  year: number;
+}
+
+export interface MaterialSafetyInspectionPlanPoint {
+  month: number;
+  notInspected: number;
+  inProgress: number;
+  completed: number;
+}
+
+export interface MaterialSafetyInspectionPlanChartPoint extends MaterialSafetyInspectionPlanPoint {
+  monthLabel: string;
+}
+
+export interface MaterialSafetyInspectionPlanResult {
+  year: number;
+  items: MaterialSafetyInspectionPlanPoint[];
+}
+
 export type MaterialSafetyInspectionQueueOwnerFilterType =
   | 'department'
   | 'team'

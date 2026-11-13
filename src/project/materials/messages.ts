@@ -510,6 +510,19 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.queue.status.upcoming':
     'Chưa cần kiểm tra',
   'project.materials.safetyInspection.queue.status.inProgress': 'Đang kiểm tra',
+  'project.materials.safetyInspection.queue.chart.statusTitle':
+    'Trạng thái kiểm tra',
+  'project.materials.safetyInspection.queue.chart.countLabel': 'Số vật tư',
+  'project.materials.safetyInspection.queue.chart.notInspected':
+    'Chưa kiểm tra',
+  'project.materials.safetyInspection.queue.chart.inProgress': 'Đang kiểm tra',
+  'project.materials.safetyInspection.queue.chart.completed': 'Đã kiểm tra',
+  'project.materials.safetyInspection.queue.chart.total': 'Vật tư cần kiểm tra',
+  'project.materials.safetyInspection.queue.chart.planTitle':
+    'Kế hoạch kiểm tra',
+  'project.materials.safetyInspection.queue.chart.year': 'Năm',
+  'project.materials.safetyInspection.queue.chart.planLoadTitle':
+    'Không tải được kế hoạch kiểm tra',
   'project.materials.safetyInspection.queue.action': 'Thao tác',
   'project.materials.safetyInspection.queue.daysRemaining': 'Còn {days} ngày',
   'project.materials.safetyInspection.queue.daysOverdue': 'Quá hạn {days} ngày',
@@ -1166,6 +1179,19 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.queue.status.due': 'Inspection due',
   'project.materials.safetyInspection.queue.status.upcoming': 'Not due',
   'project.materials.safetyInspection.queue.status.inProgress': 'In progress',
+  'project.materials.safetyInspection.queue.chart.statusTitle':
+    'Inspection status',
+  'project.materials.safetyInspection.queue.chart.countLabel': 'Materials',
+  'project.materials.safetyInspection.queue.chart.notInspected':
+    'Not inspected',
+  'project.materials.safetyInspection.queue.chart.inProgress': 'In progress',
+  'project.materials.safetyInspection.queue.chart.completed': 'Inspected',
+  'project.materials.safetyInspection.queue.chart.total':
+    'Materials requiring inspection',
+  'project.materials.safetyInspection.queue.chart.planTitle': 'Inspection plan',
+  'project.materials.safetyInspection.queue.chart.year': 'Year',
+  'project.materials.safetyInspection.queue.chart.planLoadTitle':
+    'Could not load the inspection plan',
   'project.materials.safetyInspection.queue.action': 'Action',
   'project.materials.safetyInspection.queue.daysRemaining': '{days} days left',
   'project.materials.safetyInspection.queue.daysOverdue': '{days} days overdue',

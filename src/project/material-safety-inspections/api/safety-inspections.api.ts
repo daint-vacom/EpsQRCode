@@ -5,6 +5,8 @@ import {
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
+  MaterialSafetyInspectionPlanFilters,
+  MaterialSafetyInspectionPlanResult,
   MaterialSafetyInspectionQueueFilters,
   MaterialSafetyInspectionQueueResult,
   SafetyInspection,
@@ -91,6 +93,20 @@ export async function loadMaterialSafetyInspectionQueue(
   return request(
     supabaseApi.post(
       '/rpc/list_materials_requiring_safety_inspection',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialSafetyInspectionPlan(
+  filters: MaterialSafetyInspectionPlanFilters,
+  signal?: AbortSignal,
+): Promise<MaterialSafetyInspectionPlanResult> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/get_material_safety_inspection_plan',
       { p_filters: filters },
       { signal },
     ),
