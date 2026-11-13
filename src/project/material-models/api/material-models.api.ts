@@ -218,7 +218,7 @@ export async function loadMaterialModels(
 }
 
 export async function loadMaterialModelFilterSummary(
-  filters: { search?: string; groupId?: string } = {},
+  filters: { search?: string; groupId?: string; groupIds?: string[] } = {},
   signal?: AbortSignal,
 ): Promise<MaterialModelFilterSummary> {
   assertSupabaseConfigured();

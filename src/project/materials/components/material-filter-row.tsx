@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import {
   EpsTeamSelect,
   EpsUnitSelect,
@@ -43,6 +44,7 @@ function toEmployeeOption(employee: EpsEmployeeCatalogEntry) {
 }
 
 export interface MaterialFilterRowProps {
+  leadingAction?: ReactNode;
   mode: MaterialFilterMode;
   onModeChange: (mode: MaterialFilterMode) => void;
   counts?: MaterialFilterSummary;
@@ -70,6 +72,7 @@ export interface MaterialFilterRowProps {
 }
 
 export function MaterialFilterRow({
+  leadingAction,
   mode,
   onModeChange,
   counts = {},
@@ -157,6 +160,7 @@ export function MaterialFilterRow({
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
+      {leadingAction}
       <MaterialFilterViewSwitcher
         value={mode}
         onValueChange={(value) => onModeChange(value as MaterialFilterMode)}

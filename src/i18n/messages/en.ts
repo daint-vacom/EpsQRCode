@@ -134,6 +134,8 @@ export const en: Record<string, string> = {
     'This group has child groups. Move or delete them before deleting this group.',
   'materialGroups.tree.title': 'Material group tree',
   'materialGroups.tree.count': '{count} groups',
+  'materialGroups.tree.showFilter': 'Show material group tree',
+  'materialGroups.tree.hideFilter': 'Hide material group tree',
   'materialGroups.toasts.moved': 'Material group moved.',
   'materialGroups.tabs.general': 'Group information',
   'materialGroups.tabs.technical': 'Technical specifications',

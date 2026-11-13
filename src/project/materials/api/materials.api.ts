@@ -65,7 +65,7 @@ export async function loadMaterials(
 }
 
 export async function loadMaterialFilterSummary(
-  filters: Pick<MaterialListFilters, 'search' | 'status'> = {},
+  filters: Pick<MaterialListFilters, 'search' | 'status' | 'groupIds'> = {},
   signal?: AbortSignal,
 ): Promise<MaterialFilterSummary> {
   assertSupabaseConfigured();

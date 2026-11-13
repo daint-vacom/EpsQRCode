@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
-import { MaterialGroupSelect } from '@/project/material-groups/components/material-group-select';
+import {
+  MaterialGroupFilterSidebar,
+  MaterialGroupFilterToggle,
+} from '@/project/material-groups/components/material-group-filter-tree';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import type { MaterialGroup } from '@/project/material-groups/model/material-group';
+import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
 import { useMaterialTableMainColumnWidth } from '@/project/materials/table/use-material-table-main-column-width';
 import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
@@ -43,6 +48,7 @@ import {
 } from '../table/material-model.columns.generated';
 
 const EMPTY_MATERIAL_MODELS: MaterialModel[] = [];
+const EMPTY_MATERIAL_GROUPS: MaterialGroup[] = [];
 
 function isAuthorizationError(error: unknown): boolean {
   if (typeof error !== 'object' || error === null) return false;
@@ -67,6 +73,7 @@ export function MaterialModelsPage() {
   const deleteMutation = useDeleteMaterialModelMutation();
   const [keyword, setKeyword] = useState('');
   const [groupId, setGroupId] = useState('');
+  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState('');
   const [inspectionFilter, setInspectionFilter] = useState('');
   const [filterMode, setFilterMode] = useState<'status' | 'inspection'>(
@@ -79,21 +86,26 @@ export function MaterialModelsPage() {
     null,
   );
   const models = query.data ?? EMPTY_MATERIAL_MODELS;
+  const groups = groupsQuery.data ?? EMPTY_MATERIAL_GROUPS;
+  const groupIds = useMemo(
+    () =>
+      groupId ? [...getMaterialGroupDescendantIds(groups, groupId)] : undefined,
+    [groupId, groups],
+  );
   const summaryQuery = useMaterialModelFilterSummaryQuery(
-    { search: keyword.trim(), groupId: groupId || undefined },
+    { search: keyword.trim(), groupIds },
     !isPermissionsPending && canView,
   );
   const summary = summaryQuery.data;
   const groupNameById = useMemo(
-    () =>
-      new Map((groupsQuery.data ?? []).map((group) => [group.id, group.name])),
-    [groupsQuery.data],
+    () => new Map(groups.map((group) => [group.id, group.name])),
+    [groups],
   );
   const filteredModels = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase('vi');
     return models.filter(
       (model) =>
-        (!groupId || model.groupId === groupId) &&
+        (!groupIds || groupIds.includes(model.groupId ?? '')) &&
         (!activeFilter || model.isActive === (activeFilter === 'active')) &&
         (!inspectionFilter ||
           model.requiresInspection === (inspectionFilter === 'required')) &&
@@ -102,7 +114,7 @@ export function MaterialModelsPage() {
             value.toLocaleLowerCase('vi').includes(normalizedKeyword),
           )),
     );
-  }, [models, keyword, groupId, activeFilter, inspectionFilter]);
+  }, [models, keyword, groupIds, activeFilter, inspectionFilter]);
 
   const columns = useMaterialModelColumns({
     onEdit: (model) =>
@@ -181,6 +193,12 @@ export function MaterialModelsPage() {
         }
       />
       <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <MaterialGroupFilterToggle
+          isOpen={isGroupTreeOpen}
+          controlsId="material-model-group-filter-tree"
+          disabled={!canView || isPermissionsPending || groupsQuery.isPending}
+          onClick={() => setIsGroupTreeOpen((current) => !current)}
+        />
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
@@ -290,93 +308,91 @@ export function MaterialModelsPage() {
         })}
         tableLayout={{ dense: true }}
       >
-        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-          <DataGridHeader
-            variant="stats"
-            recordCountLabel="mẫu vật tư"
-            stats={
-              <div className="flex min-w-0 flex-col gap-2">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <SearchInput
-                    aria-label={intl.formatMessage({
-                      id: 'materialModels.filters.searchPlaceholder',
-                    })}
-                    placeholder={intl.formatMessage({
-                      id: 'materialModels.filters.searchPlaceholder',
-                    })}
-                    value={keyword}
-                    onSearch={(value) => {
-                      setKeyword(value);
-                      table.setPageIndex(0);
-                    }}
-                    className="w-full sm:w-64"
-                  />
-                  <MaterialGroupSelect
-                    aria-label={intl.formatMessage({
-                      id: 'materialModels.fields.group',
-                    })}
-                    sourceMode="options"
-                    groups={groupsQuery.data ?? []}
-                    value={groupId}
-                    onChange={(value) => {
-                      setGroupId(value);
-                      table.setPageIndex(0);
-                    }}
-                    canDeselect
-                    disabled={!canView || isPermissionsPending}
-                    searchable
-                    className="w-56 shrink-0"
-                  />
-                </div>
-              </div>
-            }
-            toolbar={<DataGridHeaderMenu table={table} />}
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 flex-col transition-[gap] duration-300 ease-in-out motion-reduce:transition-none xl:flex-row ${isGroupTreeOpen ? 'gap-3' : 'gap-0'}`}
+        >
+          <MaterialGroupFilterSidebar
+            id="material-model-group-filter-tree"
+            isOpen={isGroupTreeOpen}
+            groups={groups}
+            selectedGroupId={groupId || null}
+            onSelectGroup={(nextGroupId) => {
+              setGroupId(nextGroupId ?? '');
+              table.setPageIndex(0);
+            }}
           />
+          <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
+            <DataGridHeader
+              variant="stats"
+              recordCountLabel="mẫu vật tư"
+              stats={
+                <div className="flex min-w-0 flex-col gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <SearchInput
+                      aria-label={intl.formatMessage({
+                        id: 'materialModels.filters.searchPlaceholder',
+                      })}
+                      placeholder={intl.formatMessage({
+                        id: 'materialModels.filters.searchPlaceholder',
+                      })}
+                      value={keyword}
+                      onSearch={(value) => {
+                        setKeyword(value);
+                        table.setPageIndex(0);
+                      }}
+                      className="w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+              }
+              toolbar={<DataGridHeaderMenu table={table} />}
+            />
 
-          <CardTable className="min-h-0 flex-1">
-            {!isPermissionsPending && !canView ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'materialModels.errors.authorizationTitle',
-                })}
-                description={intl.formatMessage({
-                  id: 'materialModels.errors.authorization',
-                })}
-              />
-            ) : query.isError || groupsQuery.isError ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'materialModels.errors.loadTitle',
-                })}
-                description={
-                  isAuthorizationError(query.error ?? groupsQuery.error)
-                    ? intl.formatMessage({
-                        id: 'materialModels.errors.authorization',
-                      })
-                    : getApiErrorMessage(query.error ?? groupsQuery.error)
-                }
-                onRetry={() => {
-                  void query.refetch();
-                  void groupsQuery.refetch();
-                }}
-              />
-            ) : (
-              <ScrollArea className="h-full" viewportRef={tableViewportRef}>
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            )}
-          </CardTable>
+            <CardTable className="min-h-0 flex-1">
+              {!isPermissionsPending && !canView ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'materialModels.errors.authorizationTitle',
+                  })}
+                  description={intl.formatMessage({
+                    id: 'materialModels.errors.authorization',
+                  })}
+                />
+              ) : query.isError || groupsQuery.isError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'materialModels.errors.loadTitle',
+                  })}
+                  description={
+                    isAuthorizationError(query.error ?? groupsQuery.error)
+                      ? intl.formatMessage({
+                          id: 'materialModels.errors.authorization',
+                        })
+                      : getApiErrorMessage(query.error ?? groupsQuery.error)
+                  }
+                  onRetry={() => {
+                    void query.refetch();
+                    void groupsQuery.refetch();
+                  }}
+                />
+              ) : (
+                <ScrollArea className="h-full" viewportRef={tableViewportRef}>
+                  <DataGridTable />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              )}
+            </CardTable>
 
-          <CardFooter className="justify-between">
-            {canView &&
-            !isPermissionsPending &&
-            !query.isError &&
-            !groupsQuery.isError ? (
-              <DataGridPagination />
-            ) : null}
-          </CardFooter>
-        </Card>
+            <CardFooter className="justify-between">
+              {canView &&
+              !isPermissionsPending &&
+              !query.isError &&
+              !groupsQuery.isError ? (
+                <DataGridPagination />
+              ) : null}
+            </CardFooter>
+          </Card>
+        </div>
       </DataGrid>
 
       <ConfirmDialog

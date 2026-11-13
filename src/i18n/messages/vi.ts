@@ -155,6 +155,8 @@ export const vi: Record<string, string> = {
   'materialGroups.dialogs.deleteConfirm': 'Xóa nhóm',
   'materialGroups.tree.title': 'Cây nhóm vật tư',
   'materialGroups.tree.count': '{count} nhóm',
+  'materialGroups.tree.showFilter': 'Hiện cây nhóm vật tư',
+  'materialGroups.tree.hideFilter': 'Ẩn cây nhóm vật tư',
   'materialGroups.tabs.general': 'Thông tin nhóm',
   'materialGroups.tabs.technical': 'Thông số kỹ thuật',
   'materialGroups.tabs.inspection': 'Kiểm tra an toàn',

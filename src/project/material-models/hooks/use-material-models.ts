@@ -23,7 +23,7 @@ export const materialModelKeys = {
   list: () => [...materialModelKeys.all, 'list'] as const,
   filterSummary: (
     userId: string | null,
-    filters: { search?: string; groupId?: string },
+    filters: { search?: string; groupId?: string; groupIds?: string[] },
   ) => [...materialModelKeys.all, 'filter-summary', userId, filters] as const,
 };
 
@@ -37,7 +37,7 @@ export function useMaterialModelsQuery(enabled = true) {
 }
 
 export function useMaterialModelFilterSummaryQuery(
-  filters: { search?: string; groupId?: string } = {},
+  filters: { search?: string; groupId?: string; groupIds?: string[] } = {},
   enabled = true,
 ) {
   const { userId } = useUser();

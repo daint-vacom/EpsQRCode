@@ -256,6 +256,7 @@ export interface MaterialListFilters {
   search?: string;
   modelId?: string;
   groupId?: string;
+  groupIds?: string[];
   ownerPartyId?: string;
   ownerScopePartyId?: string;
   ownerName?: string;

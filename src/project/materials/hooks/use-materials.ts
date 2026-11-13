@@ -35,7 +35,7 @@ export const materialKeys = {
     [...materialKeys.lists(), filters] as const,
   filterSummary: (
     userId: string | null,
-    filters: Pick<MaterialListFilters, 'search' | 'status'>,
+    filters: Pick<MaterialListFilters, 'search' | 'status' | 'groupIds'>,
   ) => [...materialKeys.all, 'filter-summary', userId, filters] as const,
   qrFilterSummary: (
     userId: string | null,
@@ -53,7 +53,7 @@ export const materialKeys = {
 };
 
 export function useMaterialFilterSummaryQuery(
-  filters: Pick<MaterialListFilters, 'search' | 'status'> = {},
+  filters: Pick<MaterialListFilters, 'search' | 'status' | 'groupIds'> = {},
   enabled = true,
 ) {
   const { userId } = useUser();

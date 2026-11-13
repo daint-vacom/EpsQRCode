@@ -202,7 +202,10 @@ function MaterialGroupTreeRootRow({
         shape="circle"
         variant={isAllSelected ? 'primary' : 'secondary'}
         appearance={isAllSelected ? 'default' : 'light'}
-        className="absolute end-3 top-1/2 -translate-y-1/2 group-hover:hidden"
+        className={cn(
+          'absolute end-3 top-1/2 -translate-y-1/2',
+          onAdd && 'group-hover:hidden',
+        )}
       >
         {allCount}
       </Badge>
@@ -333,7 +336,7 @@ function MaterialGroupTreeItem({
       <div
         ref={setRowRef}
         className={cn(
-          'group relative z-10 isolate flex items-center gap-1 rounded-admin-control py-1.5 pr-3 text-sm hover:bg-admin-surface-alt',
+          'group relative z-10 isolate flex w-full min-w-0 items-center gap-1 rounded-admin-control py-1.5 pr-3 text-sm hover:bg-admin-surface-alt',
           isSelected && 'bg-admin-surface-alt',
           droppable.isOver && 'bg-primary/5 ring-2 ring-inset ring-primary',
         )}
@@ -423,7 +426,9 @@ function MaterialGroupTreeItem({
           )}
           onClick={() => onSelect(node.id)}
         >
-          <span className="truncate">{node.name}</span>
+          <span className="block min-w-0 whitespace-normal break-words">
+            {node.name}
+          </span>
           {!node.isActive && (
             <Badge size="sm" variant="secondary" appearance="light">
               Ngừng dùng
@@ -436,7 +441,11 @@ function MaterialGroupTreeItem({
           shape="circle"
           variant={isSelected ? 'primary' : 'secondary'}
           appearance={isSelected ? 'default' : 'light'}
-          className="ms-auto shrink-0 group-hover:hidden"
+          className={cn(
+            'ms-auto shrink-0',
+            (onAdd || onEdit || onDelete || onToggleAvailability) &&
+              'group-hover:hidden',
+          )}
           aria-label={`${nodeCount} nhóm con`}
         >
           {nodeCount}
