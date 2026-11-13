@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
-import { useAvailableMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
 import { ArrowLeft, ClipboardPlus, Save } from 'lucide-react';
@@ -23,6 +22,7 @@ import {
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
+import { MaterialReceiptLineMaterialDrawer } from '../components/material-receipt-line-material-drawer';
 import {
   mapMaterialReceiptToFormValues,
   MaterialReceiptHeaderForm,
@@ -40,6 +40,7 @@ import type {
   MaterialReceiptLineInput,
 } from '../model/material-receipt';
 import {
+  createMaterialReceiptLine,
   MATERIAL_RECEIPT_PERMISSION_CODES,
   toMaterialReceiptLineInputs,
 } from '../model/material-receipt';
@@ -63,9 +64,6 @@ export function MaterialReceiptEditorPage() {
     isPermissionsPending || canManage,
   );
   const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canManage);
-  const groupsQuery = useAvailableMaterialGroupsQuery(
-    isPermissionsPending || canManage,
-  );
   const saveMutation = useSaveMaterialReceiptMutation();
   const previewMutation = useMaterialReceiptAdjustmentPreviewMutation();
   const applyMutation = useApplyMaterialReceiptAdjustmentMutation();
@@ -75,6 +73,9 @@ export function MaterialReceiptEditorPage() {
     useState<MaterialReceiptAdjustmentPreview | null>(null);
   const [previewLines, setPreviewLines] = useState<MaterialReceiptLineInput[]>(
     [],
+  );
+  const [activeMaterialLine, setActiveMaterialLine] = useState<number | null>(
+    null,
   );
   const [confirmedHandoverIds, setConfirmedHandoverIds] = useState<
     ReadonlySet<string>
@@ -90,10 +91,8 @@ export function MaterialReceiptEditorPage() {
     !isPermissionsPending &&
     (!id || (!query.isPending && Boolean(receipt))) &&
     !warehousesQuery.isPending &&
-    !modelsQuery.isPending &&
-    !groupsQuery.isPending;
-  const prerequisitesError =
-    warehousesQuery.error ?? modelsQuery.error ?? groupsQuery.error;
+    !modelsQuery.isPending;
+  const prerequisitesError = warehousesQuery.error ?? modelsQuery.error;
   const navigateBack = useCallback(
     () =>
       navigate(
@@ -261,7 +260,6 @@ export function MaterialReceiptEditorPage() {
           onRetry={() => {
             void warehousesQuery.refetch();
             void modelsQuery.refetch();
-            void groupsQuery.refetch();
           }}
         />
       </div>
@@ -294,27 +292,14 @@ export function MaterialReceiptEditorPage() {
     );
   }
 
-  const createLine = () => ({
-    clientId: crypto.randomUUID(),
-    lineId: '',
-    modelMode: 'existing' as const,
-    modelId: '',
-    newModelCode: '',
-    newModelName: '',
-    groupId: '',
-    description: '',
-    requiresInspection: false,
-    externalCode: '',
-    quantity: 1,
-    items: [
-      {
-        serialNumber: '',
-        condition: 'good' as const,
-        conditionNote: '',
-        note: '',
-      },
-    ],
-  });
+  const createLine = createMaterialReceiptLine;
+  const selectedDrawerFormLine =
+    activeMaterialLine === null
+      ? null
+      : form.watch(`lines.${activeMaterialLine}`);
+  const selectedDrawerModel = modelsQuery.data?.find(
+    (model) => model.id === selectedDrawerFormLine?.modelId,
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 lg:p-5">
@@ -354,9 +339,69 @@ export function MaterialReceiptEditorPage() {
           form={form}
           createLine={createLine}
           lockExistingModels={isAdjustment}
+          onEditMaterial={setActiveMaterialLine}
+          onCopySelected={(rows) => {
+            const copies = rows.map((line) => ({
+              ...line,
+              clientId: crypto.randomUUID(),
+              lineId: '',
+              items: Array.from({ length: line.quantity }, (_, index) => {
+                const source = line.items[index];
+                const condition = source?.condition ?? line.condition;
+                return {
+                  serialNumber: '',
+                  condition,
+                  conditionNote:
+                    condition === 'damaged'
+                      ? (source?.conditionNote ?? line.conditionNote)
+                      : '',
+                  note: '',
+                };
+              }),
+            }));
+            form.setValue('lines', [...form.getValues('lines'), ...copies], {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }}
           title={intl.formatMessage({ id: 'receipts.fields.items' })}
         />
       </Card>
+      <MaterialReceiptLineMaterialDrawer
+        open={activeMaterialLine !== null}
+        onOpenChange={(open) => !open && setActiveMaterialLine(null)}
+        line={
+          selectedDrawerFormLine && selectedDrawerModel
+            ? {
+                model: {
+                  name: selectedDrawerModel.name,
+                  specifications: selectedDrawerModel.specifications,
+                },
+                quantity: selectedDrawerFormLine.quantity,
+                specificationOverrides:
+                  selectedDrawerFormLine.specificationOverrides,
+                specificationOverrideLabels:
+                  selectedDrawerFormLine.specificationOverrideLabels,
+              }
+            : null
+        }
+        model={selectedDrawerModel}
+        isSaving={saveBusy}
+        onSave={(values, labels) => {
+          if (activeMaterialLine === null) return;
+          form.setValue(
+            `lines.${activeMaterialLine}.specificationOverrides`,
+            values,
+            { shouldDirty: true, shouldValidate: true },
+          );
+          form.setValue(
+            `lines.${activeMaterialLine}.specificationOverrideLabels`,
+            labels,
+            { shouldDirty: true, shouldValidate: true },
+          );
+          setActiveMaterialLine(null);
+        }}
+      />
       <Dialog
         open={preview !== null}
         onOpenChange={(open) =>

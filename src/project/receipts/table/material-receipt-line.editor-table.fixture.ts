@@ -10,13 +10,17 @@ const spec: EditorTableSpec = {
   createRowProp: 'createLine',
   specPath:
     'src/project/receipts/table/material-receipt-line.editor-table.fixture.ts',
-  tableMinWidthClass: 'min-w-[1180px]',
+  tableMinWidthClass: 'min-w-[1120px]',
   viewport: { mode: 'remaining' },
   toolbar: {
     title: 'Danh sách mẫu vật tư',
     titleProp: 'title',
     addLabel: 'Thêm dòng',
     addVariant: 'primary',
+  },
+  multiEdit: {
+    enabled: true,
+    actions: ['copy', 'delete'],
   },
   pagination: { pageSize: 10, sizes: [10, 25, 50] },
   actions: {
@@ -31,13 +35,13 @@ const spec: EditorTableSpec = {
       kind: 'custom',
       id: 'model',
       header: 'Mẫu vật tư',
-      widthClass: 'min-w-[430px]',
+      widthClass: 'min-w-[360px]',
     },
     {
-      kind: 'text',
-      name: 'externalCode',
-      header: 'Mã liên kết ngoài',
-      ariaLabel: 'Mã liên kết ngoài',
+      kind: 'custom',
+      id: 'editMaterial',
+      header: 'Thông số',
+      widthClass: 'w-28',
     },
     {
       kind: 'number',
@@ -47,12 +51,35 @@ const spec: EditorTableSpec = {
       min: 1,
       max: 10000,
       step: 1,
+      bulkEdit: true,
     },
     {
-      kind: 'custom',
-      id: 'units',
-      header: 'Chi tiết từng vật tư',
-      widthClass: 'min-w-[260px]',
+      kind: 'autocomplete',
+      name: 'condition',
+      header: 'Tình trạng',
+      ariaLabel: 'Tình trạng',
+      options: [
+        {
+          value: 'good',
+          label: 'Tốt',
+          labelMessageId: 'project.handover.condition.good',
+        },
+        {
+          value: 'damaged',
+          label: 'Hỏng',
+          labelMessageId: 'project.handover.condition.damaged',
+        },
+      ],
+      bulkEdit: true,
+      widthClass: 'w-40',
+    },
+    {
+      kind: 'text',
+      name: 'conditionNote',
+      header: 'Ghi chú tình trạng',
+      ariaLabel: 'Ghi chú tình trạng',
+      bulkEdit: true,
+      widthClass: 'min-w-[240px]',
     },
   ],
 };

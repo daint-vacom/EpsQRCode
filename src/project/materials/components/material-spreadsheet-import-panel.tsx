@@ -8,7 +8,7 @@ import {
 } from 'react';
 import type { Custodian } from '@/project/custodians/model/custodian';
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
-import { useCreateMaterialModelMutation } from '@/project/material-models/hooks/use-material-models';
+import { useCreateMaterialModelsBulkMutation } from '@/project/material-models/hooks/use-material-models';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
 import type { MaterialSpecification } from '@/project/material-specifications/model/material-specification';
 import { downloadSpreadsheetTemplateFile } from '@/project/spreadsheets/api/spreadsheet-templates.api';
@@ -58,6 +58,7 @@ import {
 } from '@/components/ui/stepper';
 import { useCreateMaterialsBulkMutation } from '../hooks/use-materials';
 import type { Material } from '../model/material';
+import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
   buildMaterialModelImportProposals,
   findMaterialImportMapping,
@@ -81,6 +82,7 @@ interface MaterialSpreadsheetImportPanelProps {
   models: MaterialModel[];
   custodians: Custodian[];
   groups: MaterialGroup[];
+  capitalSources: MaterialCapitalSource[];
   specifications: MaterialSpecification[];
   canCreateModels: boolean;
 }
@@ -104,13 +106,14 @@ export function MaterialSpreadsheetImportPanel({
   models,
   custodians,
   groups,
+  capitalSources,
   specifications,
   canCreateModels,
 }: MaterialSpreadsheetImportPanelProps) {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const createMutation = useCreateMaterialsBulkMutation();
-  const createModelMutation = useCreateMaterialModelMutation();
+  const createModelMutation = useCreateMaterialModelsBulkMutation();
   const fileUploadRef = useRef<FileUploadContentHandle>(null);
   const canManageModels =
     canCreateModels && hasPermission('material_catalog:material_model:manage');
@@ -200,8 +203,17 @@ export function MaterialSpreadsheetImportPanel({
         fields,
         translate,
         activeProposals,
+        capitalSources,
       ),
-    [activeProposals, custodians, fields, models, sources, translate],
+    [
+      activeProposals,
+      capitalSources,
+      custodians,
+      fields,
+      models,
+      sources,
+      translate,
+    ],
   );
   const previewRows = useMemo(() => {
     const rows = toMaterialImportPreviewRows(
@@ -396,45 +408,75 @@ export function MaterialSpreadsheetImportPanel({
         const proposalsToCreate = modelProposals.filter(
           (proposal) => proposal.formValues && !proposal.error,
         );
-        for (const [index, proposal] of proposalsToCreate.entries()) {
+        for (let start = 0; start < proposalsToCreate.length; start += 100) {
+          const batch = proposalsToCreate.slice(start, start + 100);
           setImportStage(
             translate('project.materials.spreadsheet.creatingModelProgress', {
-              processed: String(index + 1),
+              processed: String(start + batch.length),
               total: String(proposalsToCreate.length),
             }),
           );
           try {
-            const id = await createModelMutation.mutateAsync({
-              values: proposal.formValues!,
-              images: [],
+            const results = await createModelMutation.mutateAsync(
+              batch.map((proposal) => proposal.formValues!),
+            );
+            batch.forEach((proposal, index) => {
+              const result = results[index];
+              if (result?.success && result.id) {
+                modelIdByCode.set(normalizeModelCode(proposal.code), result.id);
+                return;
+              }
+              const message =
+                result?.error ||
+                translate(
+                  'project.materials.spreadsheet.errors.modelCreateFailed',
+                );
+              for (const row of mappedRows) {
+                if (
+                  normalizeModelCode(row.modelCode) !==
+                    normalizeModelCode(proposal.code) ||
+                  row.values === null ||
+                  row.error
+                )
+                  continue;
+                outcomeById.set(row.id, {
+                  id: row.id,
+                  sourceId: row.sourceId,
+                  rowNumber: row.rowNumber,
+                  code: row.code,
+                  success: false,
+                  error: message,
+                });
+                completedCount += 1;
+              }
             });
-            modelIdByCode.set(normalizeModelCode(proposal.code), id);
           } catch (error) {
             const message = getErrorText(error, translate);
-            for (const row of mappedRows) {
-              if (
-                normalizeModelCode(row.modelCode) !==
-                  normalizeModelCode(proposal.code) ||
-                row.values === null ||
-                row.error
-              ) {
-                continue;
+            for (const proposal of batch) {
+              for (const row of mappedRows) {
+                if (
+                  normalizeModelCode(row.modelCode) !==
+                    normalizeModelCode(proposal.code) ||
+                  row.values === null ||
+                  row.error
+                )
+                  continue;
+                outcomeById.set(row.id, {
+                  id: row.id,
+                  sourceId: row.sourceId,
+                  rowNumber: row.rowNumber,
+                  code: row.code,
+                  success: false,
+                  error: message,
+                });
+                completedCount += 1;
               }
-              outcomeById.set(row.id, {
-                id: row.id,
-                sourceId: row.sourceId,
-                rowNumber: row.rowNumber,
-                code: row.code,
-                success: false,
-                error: message,
-              });
-              completedCount += 1;
             }
-            setImportProgress({
-              processed: completedCount,
-              total: mappedRows.length,
-            });
           }
+          setImportProgress({
+            processed: completedCount,
+            total: mappedRows.length,
+          });
         }
       }
 

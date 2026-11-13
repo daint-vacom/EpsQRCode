@@ -140,6 +140,9 @@ export const en: Record<string, string> = {
   'materialModels.specifications.modelTableTitle':
     'Material model technical specifications',
   'materialModels.fields.externalCodes': 'Linked material codes',
+  'materialModels.fields.manufacturer': 'Manufacturer',
+  'materialModels.fields.unit': 'Unit of measure',
+  'materialModels.fields.unitPriceDefault': 'Default unit price',
   'materialModels.fields.requiresInspection': 'Periodic inspection',
   'materialModels.fields.inspectionInterval': 'Inspection interval',
   'materialModels.fields.inspectionIntervalUnit': 'Inspection interval unit',

@@ -1,3 +1,4 @@
+import type { MaterialModelSpecification } from '@/project/material-models/model/material-model';
 import type { MaterialCondition } from '@/project/materials/model/material';
 import { z } from 'zod';
 
@@ -24,6 +25,8 @@ export interface MaterialReceiptItem {
   status: 'active' | 'voided';
   voidReason: string | null;
   material: Record<string, unknown> | null;
+  currentSpecificationOverrides?: Record<string, string[]> | null;
+  currentSpecificationOverrideLabels?: Record<string, string[]> | null;
 }
 
 export interface MaterialReceiptLine {
@@ -36,10 +39,13 @@ export interface MaterialReceiptLine {
     groupId?: string;
     requiresInspection?: boolean;
     externalCodes?: string[];
+    specifications?: MaterialModelSpecification[];
   };
   externalCode: string | null;
   quantity: number;
   sortOrder: number;
+  specificationOverrides: Record<string, string[]>;
+  specificationOverrideLabels: Record<string, string[]>;
   items: MaterialReceiptItem[];
 }
 
@@ -79,6 +85,8 @@ export interface MaterialReceiptLineInput {
   externalCode: string;
   quantity: number;
   sortOrder: number;
+  specificationOverrides: Record<string, string[]>;
+  specificationOverrideLabels: Record<string, string[]>;
   items: Array<{
     receiptItemId?: string;
     serialNumber: string;
@@ -91,15 +99,12 @@ export interface MaterialReceiptLineInput {
 export interface MaterialReceiptFormLine {
   clientId: string;
   lineId: string;
-  modelMode: 'existing' | 'new';
   modelId: string;
-  newModelCode: string;
-  newModelName: string;
-  groupId: string;
-  description: string;
-  requiresInspection: boolean;
-  externalCode: string;
   quantity: number;
+  condition: MaterialCondition;
+  conditionNote: string;
+  specificationOverrides: Record<string, string[]>;
+  specificationOverrideLabels: Record<string, string[]>;
   items: MaterialReceiptFormUnit[];
 }
 
@@ -119,15 +124,12 @@ export const materialReceiptFormSchema = z.object({
       .object({
         clientId: z.string(),
         lineId: z.string(),
-        modelMode: z.enum(['existing', 'new']),
         modelId: z.string(),
-        newModelCode: z.string(),
-        newModelName: z.string(),
-        groupId: z.string(),
-        description: z.string(),
-        requiresInspection: z.boolean(),
-        externalCode: z.string(),
         quantity: z.number().int().min(1).max(10000),
+        condition: z.enum(['good', 'damaged']),
+        conditionNote: z.string(),
+        specificationOverrides: z.record(z.string(), z.array(z.string())),
+        specificationOverrideLabels: z.record(z.string(), z.array(z.string())),
         items: z.array(
           z
             .object({
@@ -149,29 +151,18 @@ export const materialReceiptFormSchema = z.object({
         ),
       })
       .superRefine((line, context) => {
-        if (
-          line.modelMode === 'existing' &&
-          !line.modelId &&
-          !line.externalCode.trim()
-        ) {
+        if (!line.modelId) {
           context.addIssue({
             code: 'custom',
             path: ['modelId'],
             message: 'Vui lòng chọn mẫu vật tư.',
           });
         }
-        if (line.modelMode === 'new' && !line.newModelName.trim()) {
+        if (line.condition === 'damaged' && !line.conditionNote.trim()) {
           context.addIssue({
             code: 'custom',
-            path: ['newModelName'],
-            message: 'Vui lòng nhập tên mẫu mới.',
-          });
-        }
-        if (line.modelMode === 'new' && !line.groupId) {
-          context.addIssue({
-            code: 'custom',
-            path: ['groupId'],
-            message: 'Vui lòng chọn nhóm vật tư.',
+            path: ['conditionNote'],
+            message: 'Vui lòng mô tả tình trạng hỏng.',
           });
         }
       }),
@@ -286,15 +277,12 @@ export function createMaterialReceiptLine(): MaterialReceiptFormLine {
   return {
     clientId: crypto.randomUUID(),
     lineId: '',
-    modelMode: 'existing',
     modelId: '',
-    newModelCode: '',
-    newModelName: '',
-    groupId: '',
-    description: '',
-    requiresInspection: false,
-    externalCode: '',
     quantity: 1,
+    condition: 'good',
+    conditionNote: '',
+    specificationOverrides: {},
+    specificationOverrideLabels: {},
     items: [
       { serialNumber: '', condition: 'good', conditionNote: '', note: '' },
     ],
@@ -304,33 +292,38 @@ export function createMaterialReceiptLine(): MaterialReceiptFormLine {
 export function toMaterialReceiptLineInputs(
   values: MaterialReceiptFormValues,
   keepIds: boolean,
+  preserveUnitConditions = false,
 ): MaterialReceiptLineInput[] {
   return values.lines.map((line, sortOrder) => ({
     ...(keepIds && line.lineId ? { lineId: line.lineId } : {}),
-    modelId: line.modelMode === 'existing' ? line.modelId || null : null,
-    ...(line.modelMode === 'new'
-      ? {
-          newModel: {
-            code: line.newModelCode.trim(),
-            name: line.newModelName.trim(),
-            groupId: line.groupId,
-            description: line.description.trim(),
-            requiresInspection: line.requiresInspection,
-            specifications: [],
-          },
-        }
-      : {}),
-    externalCode: line.externalCode.trim(),
-    quantity: line.items.length,
+    modelId: line.modelId || null,
+    externalCode: '',
+    quantity: line.quantity,
     sortOrder,
-    items: line.items.map((item) => ({
-      ...(keepIds && item.receiptItemId
-        ? { receiptItemId: item.receiptItemId }
-        : {}),
-      serialNumber: item.serialNumber,
-      condition: item.condition,
-      conditionNote: item.conditionNote,
-      note: item.note,
-    })),
+    specificationOverrides: line.specificationOverrides,
+    specificationOverrideLabels: line.specificationOverrideLabels,
+    items: Array.from({ length: line.quantity }, (_, index) => {
+      const item = line.items[index] ?? {
+        serialNumber: '',
+        condition: line.condition,
+        conditionNote: line.conditionNote,
+        note: '',
+      };
+      return {
+        ...(keepIds && item.receiptItemId
+          ? { receiptItemId: item.receiptItemId }
+          : {}),
+        serialNumber: item.serialNumber,
+        condition: preserveUnitConditions ? item.condition : line.condition,
+        conditionNote:
+          (preserveUnitConditions ? item.condition : line.condition) ===
+          'damaged'
+            ? preserveUnitConditions
+              ? item.conditionNote
+              : line.conditionNote
+            : '',
+        note: item.note,
+      };
+    }),
   }));
 }

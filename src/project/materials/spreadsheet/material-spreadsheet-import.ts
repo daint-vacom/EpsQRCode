@@ -15,6 +15,7 @@ import {
   type SpreadsheetWorkbook,
 } from '@/lib/spreadsheets/xlsx';
 import type { Material } from '../model/material';
+import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
   mapMaterialImportRows,
   type MaterialImportRow,
@@ -61,6 +62,9 @@ export interface MaterialModelImportProposal {
   name: string;
   groupCode: string;
   description: string;
+  manufacturer: string;
+  unit: string;
+  unitPriceDefault: number | null;
   formValues: MaterialModelFormValues | null;
   previewModel: MaterialModel | null;
   error: string | null;
@@ -174,6 +178,31 @@ export function buildMaterialModelImportProposals(
         translate,
         code,
       );
+      const manufacturer = consistentValue(
+        modelRows,
+        'material.model.manufacturer',
+        translate,
+        code,
+      );
+      const unit = consistentValue(
+        modelRows,
+        'material.model.unit',
+        translate,
+        code,
+      );
+      const rawUnitPrice = valueOf(firstRow, 'material.model.unitPriceDefault');
+      const unitPriceDefault = parseLocalizedAmount(rawUnitPrice);
+      const externalCodesText = Array.from(
+        new Set(
+          modelRows
+            .flatMap((row) =>
+              valueOf(row, 'material.model.externalCodes')
+                .split(/\r?\n/)
+                .map((item) => item.trim()),
+            )
+            .filter(Boolean),
+        ),
+      ).join('\n');
       const rawSpecifications = consistentValue(
         modelRows,
         'material.model.specifications',
@@ -184,6 +213,11 @@ export function buildMaterialModelImportProposals(
         name.error,
         groupCode.error,
         description.error,
+        manufacturer.error,
+        unit.error,
+        ...(rawUnitPrice && unitPriceDefault === null
+          ? [translate('project.materials.spreadsheet.errors.unitPrice')]
+          : []),
         rawSpecifications.error,
       ].filter((error): error is string => Boolean(error));
       const resolvedGroup = groups.find(
@@ -221,6 +255,9 @@ export function buildMaterialModelImportProposals(
           name: name.value,
           groupCode: groupCode.value,
           description: description.value,
+          manufacturer: manufacturer.value,
+          unit: unit.value,
+          unitPriceDefault,
           formValues: null,
           previewModel: null,
           error: Array.from(new Set(errors)).join(' '),
@@ -234,9 +271,17 @@ export function buildMaterialModelImportProposals(
         name: name.value,
         groupId: resolvedGroup.id,
         description: description.value,
-        externalCodesText: '',
+        manufacturer: manufacturer.value,
+        unit: unit.value,
+        unitPriceDefault,
+        externalCodesText,
         requiresInspection: false,
+        inspectionIntervalValue: 1,
+        inspectionIntervalUnit: 'month',
+        skipInitialInspection: false,
+        useGroupSafetyInspectionChecklist: true,
         specifications,
+        safetyInspectionChecklist: [],
       };
       const previewModel: MaterialModel = {
         id: `pending:${normalizeHeader(code)}`,
@@ -246,9 +291,18 @@ export function buildMaterialModelImportProposals(
         images: [],
         imageUrl: null,
         description: description.value,
-        externalCodes: [],
+        manufacturer: manufacturer.value,
+        unit: unit.value,
+        unitPriceDefault,
+        externalCodes: externalCodesText.split(/\r?\n/).filter(Boolean),
         requiresInspection: false,
+        inspectionIntervalValue: 1,
+        inspectionIntervalUnit: 'month',
+        skipInitialInspection: false,
+        useGroupSafetyInspectionChecklist: true,
         specifications,
+        safetyInspectionChecklist: [],
+        publicDisplaySettings: { basicInfo: true, specifications: true },
         isActive: true,
         createdAt: '',
         updatedAt: '',
@@ -259,6 +313,9 @@ export function buildMaterialModelImportProposals(
         name: name.value,
         groupCode: groupCode.value,
         description: description.value,
+        manufacturer: manufacturer.value,
+        unit: unit.value,
+        unitPriceDefault,
         formValues,
         previewModel,
         error: null,
@@ -276,6 +333,7 @@ export function mapMaterialSpreadsheetRows(
   fields: SpreadsheetField<Material>[],
   translate: TranslateMaterialImportMessage,
   modelProposals: MaterialModelImportProposal[] = [],
+  capitalSources: MaterialCapitalSource[] = [],
 ): MappedMaterialImportRow[] {
   const sourceRows = sources.flatMap((source) =>
     source.rows.map((row, index) => ({ source, row, index })),
@@ -292,6 +350,7 @@ export function mapMaterialSpreadsheetRows(
     custodians,
     fields,
     translate,
+    capitalSources,
   );
 
   return mapped.map((row, index) => {
@@ -374,6 +433,25 @@ function consistentValue(
     };
   }
   return { value: values[0] ?? '', error: null };
+}
+
+function parseLocalizedAmount(value: string): number | null {
+  const normalized = value.replace(/\s|₫|vnd/gi, '').trim();
+  if (!normalized) return null;
+  let numeric = normalized.replace(/[^\d.,+-]/g, '');
+  const lastSeparator = Math.max(
+    numeric.lastIndexOf(','),
+    numeric.lastIndexOf('.'),
+  );
+  if (lastSeparator >= 0) {
+    const decimals = numeric.length - lastSeparator - 1;
+    numeric =
+      decimals > 0 && decimals <= 2
+        ? `${numeric.slice(0, lastSeparator).replace(/[.,]/g, '')}.${numeric.slice(lastSeparator + 1)}`
+        : numeric.replace(/[.,]/g, '');
+  }
+  const parsed = Number(numeric);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function parseModelSpecifications(

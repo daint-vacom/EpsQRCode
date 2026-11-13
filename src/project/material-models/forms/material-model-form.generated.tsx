@@ -32,6 +32,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { NumericInput } from '@/components/ui/inputs/numeric-input';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -46,6 +47,9 @@ export const materialModelDefaultValues: MaterialModelFormValues = {
   name: '',
   groupId: '',
   description: '',
+  manufacturer: '',
+  unit: '',
+  unitPriceDefault: null,
   externalCodesText: '',
   requiresInspection: false,
   inspectionIntervalValue: 1,
@@ -77,6 +81,9 @@ export function mapMaterialModelToFormValues(
     name: entity.name,
     groupId: entity.groupId ?? '',
     description: entity.description,
+    manufacturer: entity.manufacturer,
+    unit: entity.unit,
+    unitPriceDefault: entity.unitPriceDefault,
     externalCodesText: entity.externalCodes.join('\n'),
     requiresInspection: entity.requiresInspection,
     inspectionIntervalValue: entity.inspectionIntervalValue,
@@ -197,6 +204,74 @@ export function MaterialModelForm({
               <MaterialGroupSelect
                 value={field.value}
                 onChange={field.onChange}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="manufacturer"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'materialModels.fields.manufacturer' })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="unit"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'materialModels.fields.unit' })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="unitPriceDefault"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'materialModels.fields.unitPriceDefault',
+              })}
+            </FormLabel>
+            <FormControl>
+              <NumericInput
+                suffix=" ₫"
+                value={field.value}
+                variant="md"
+                onBlur={field.onBlur}
+                onValueChange={field.onChange}
               />
             </FormControl>
             <FormMessage />

@@ -199,6 +199,10 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.fields.nameLegacy': 'Tên vật tư riêng',
   'project.materials.spreadsheet.fields.descriptionLegacy': 'Mô tả riêng',
   'project.materials.spreadsheet.fields.serialNumber': 'Số sê-ri',
+  'project.materials.fields.placedIntoServiceDate': 'Ngày đưa vào sử dụng',
+  'project.materials.fields.capitalSource': 'Nguồn vốn',
+  'project.materials.fields.unitPriceOverride': 'Đơn giá thực tế',
+  'project.materials.fields.conditionNote': 'Ghi chú tình trạng',
   'project.materials.spreadsheet.fields.condition': 'Tình trạng',
   'project.materials.spreadsheet.fields.conditionLegacy':
     'Tình trạng (good/damaged)',
@@ -239,6 +243,14 @@ export const materialMessagesVi: Record<string, string> = {
     'Loại chủ sở hữu không hợp lệ. Hãy chọn Đơn vị EPS, Đơn vị ngoài, Kho hoặc Khác.',
   'project.materials.spreadsheet.errors.condition':
     'Tình trạng chỉ nhận “Còn tốt” hoặc “Hỏng hóc”.',
+  'project.materials.spreadsheet.errors.capitalSource':
+    'Không tìm thấy nguồn vốn trong danh mục.',
+  'project.materials.spreadsheet.errors.availability':
+    'Trạng thái sử dụng chỉ nhận Có hoặc Không.',
+  'project.materials.spreadsheet.errors.unitPrice':
+    'Đơn giá phải là số tiền không âm.',
+  'project.materials.spreadsheet.errors.modelCreateFailed':
+    'Không thể tạo mẫu vật tư.',
   'project.materials.spreadsheet.errors.specificationModel':
     'Thông số “{name}” không thuộc mẫu vật tư đã chọn.',
   'project.materials.spreadsheet.errors.specificationValue':
@@ -315,6 +327,10 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.fields.image': 'Ảnh vật tư',
   'project.materials.fields.imagePreview': 'Xem trước ảnh vật tư',
   'project.materials.fields.serialNumber': 'Số sê-ri',
+  'project.materials.fields.placedIntoServiceDate': 'Service date',
+  'project.materials.fields.capitalSource': 'Capital source',
+  'project.materials.fields.unitPriceOverride': 'Actual unit price',
+  'project.materials.fields.conditionNote': 'Condition note',
   'project.materials.fields.owner': 'Chủ sở hữu',
   'project.materials.fields.managedBy': 'Đơn vị quản lý',
   'project.materials.fields.representative': 'Người phụ trách',
@@ -915,6 +931,14 @@ export const materialMessagesEn: Record<string, string> = {
     'Owner type is invalid. Choose EPS unit, External unit, Warehouse, or Other.',
   'project.materials.spreadsheet.errors.condition':
     'Condition must be “Good” or “Damaged”.',
+  'project.materials.spreadsheet.errors.capitalSource':
+    'Capital source was not found in the catalog.',
+  'project.materials.spreadsheet.errors.availability':
+    'Availability must be Yes or No.',
+  'project.materials.spreadsheet.errors.unitPrice':
+    'Unit price must be a nonnegative amount.',
+  'project.materials.spreadsheet.errors.modelCreateFailed':
+    'Could not create the material model.',
   'project.materials.spreadsheet.errors.specificationModel':
     'Specification “{name}” does not belong to the selected model.',
   'project.materials.spreadsheet.errors.specificationValue':

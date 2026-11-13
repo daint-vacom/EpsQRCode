@@ -20,6 +20,7 @@ import type {
   MaterialFormValues,
   MaterialOwnerKind,
 } from '../model/material';
+import type { MaterialCapitalSource } from '../model/material-capital-source';
 
 export const MATERIAL_SPREADSHEET_ENTITY_KEY = 'materials';
 
@@ -52,6 +53,7 @@ export function getMaterialSpreadsheetFields(
   custodians: Custodian[],
   translate: TranslateMaterialSpreadsheetMessage,
   groups: MaterialGroup[] = [],
+  capitalSources: MaterialCapitalSource[] = [],
 ): SpreadsheetField<Material>[] {
   const fields: SpreadsheetField<Material>[] = [
     {
@@ -82,6 +84,26 @@ export function getMaterialSpreadsheetFields(
       key: 'material.model.description',
       label: translate('project.materials.spreadsheet.fields.modelDescription'),
       read: (row) => row.modelSnapshot.description,
+    },
+    {
+      key: 'material.model.manufacturer',
+      label: translate('materialModels.fields.manufacturer'),
+      read: (row) => row.modelSnapshot.manufacturer,
+    },
+    {
+      key: 'material.model.unit',
+      label: translate('materialModels.fields.unit'),
+      read: (row) => row.modelSnapshot.unit,
+    },
+    {
+      key: 'material.model.unitPriceDefault',
+      label: translate('materialModels.fields.unitPriceDefault'),
+      read: (row) => row.modelSnapshot.unitPriceDefault,
+    },
+    {
+      key: 'material.model.externalCodes',
+      label: translate('materialModels.fields.externalCodes'),
+      read: (row) => row.modelSnapshot.externalCodes.join('\n'),
     },
     {
       key: 'material.model.specifications',
@@ -125,6 +147,28 @@ export function getMaterialSpreadsheetFields(
       key: 'material.serialNumber',
       label: translate('project.materials.spreadsheet.fields.serialNumber'),
       read: (row) => row.serialNumber,
+    },
+    {
+      key: 'material.placedIntoServiceDate',
+      label: translate('project.materials.fields.placedIntoServiceDate'),
+      read: (row) => row.placedIntoServiceDate,
+    },
+    {
+      key: 'material.capitalSource.code',
+      label: translate('project.materials.fields.capitalSource'),
+      read: (row) =>
+        capitalSources.find((source) => source.id === row.capitalSourceId)
+          ?.code ?? '',
+    },
+    {
+      key: 'material.unitPriceOverride',
+      label: translate('project.materials.fields.unitPriceOverride'),
+      read: (row) => row.unitPriceOverride,
+    },
+    {
+      key: 'material.isActive',
+      label: translate('materialModels.fields.availability'),
+      read: (row) => (row.isActive ? 'Có' : 'Không'),
     },
     {
       key: 'material.condition',
@@ -392,6 +436,7 @@ export function mapMaterialImportRows(
   custodians: Custodian[],
   fields: SpreadsheetField<Material>[],
   translate: TranslateMaterialSpreadsheetMessage,
+  capitalSources: MaterialCapitalSource[] = [],
 ): MaterialImportRow[] {
   const usedCodes = new Set<string>();
   return rows.map((row) => {
@@ -559,6 +604,47 @@ export function mapMaterialImportRows(
       };
     }
 
+    const capitalSourceCode = valueOf(row, 'material.capitalSource.code');
+    const capitalSource = capitalSourceCode
+      ? capitalSources.find(
+          (item) =>
+            item.isActive &&
+            (normalizeHeader(item.code) ===
+              normalizeHeader(capitalSourceCode) ||
+              normalizeHeader(item.name) ===
+                normalizeHeader(capitalSourceCode)),
+        )
+      : undefined;
+    if (capitalSourceCode && !capitalSource) {
+      return {
+        rowNumber: row.rowNumber,
+        code,
+        values: null,
+        error: translate('project.materials.spreadsheet.errors.capitalSource'),
+      };
+    }
+
+    const rawIsActive = normalizeHeader(valueOf(row, 'material.isActive'));
+    const isActive = parseBoolean(rawIsActive);
+    if (rawIsActive && isActive === null) {
+      return {
+        rowNumber: row.rowNumber,
+        code,
+        values: null,
+        error: translate('project.materials.spreadsheet.errors.availability'),
+      };
+    }
+    const rawUnitPrice = valueOf(row, 'material.unitPriceOverride');
+    const unitPriceOverride = parseLocalizedAmount(rawUnitPrice);
+    if (rawUnitPrice && unitPriceOverride === null) {
+      return {
+        rowNumber: row.rowNumber,
+        code,
+        values: null,
+        error: translate('project.materials.spreadsheet.errors.unitPrice'),
+      };
+    }
+
     const specificationOverrides: Record<string, string[]> = {};
     for (const specification of model.specifications) {
       const specificationId = specification.id;
@@ -614,9 +700,13 @@ export function mapMaterialImportRows(
       specificationOverrides[specificationId] = normalizedValues;
     }
 
+    const pendingModel = model.id.startsWith('pending:');
     const candidate = {
       code,
-      modelId: model.id,
+      // New models use a temporary non-UUID ID in the preview. Validate the
+      // rest of the material form against a UUID, then restore the temporary
+      // ID so the import flow can resolve it after creating the model.
+      modelId: pendingModel ? '00000000-0000-4000-8000-000000000000' : model.id,
       nameOverride:
         valueOf(row, 'material.nameOverride') === model.name
           ? ''
@@ -626,6 +716,12 @@ export function mapMaterialImportRows(
           ? ''
           : valueOf(row, 'material.descriptionOverride'),
       serialNumber: valueOf(row, 'material.serialNumber'),
+      placedIntoServiceDate: parseSpreadsheetDate(
+        valueOf(row, 'material.placedIntoServiceDate'),
+      ),
+      capitalSourceId: capitalSource?.id ?? '',
+      unitPriceOverride,
+      isActive: isActive ?? true,
       ownerPartyId,
       ownerSnapshot,
       condition,
@@ -645,7 +741,9 @@ export function mapMaterialImportRows(
     return {
       rowNumber: row.rowNumber,
       code,
-      values: parsed.data,
+      values: pendingModel
+        ? { ...parsed.data, modelId: model.id }
+        : parsed.data,
       error: null,
     };
   });
@@ -701,6 +799,53 @@ function parseNumberedEnumCode(value: string): number | null {
 
 function valueOf(row: SpreadsheetDataRow, key: string): string {
   return row.values[key]?.trim() ?? '';
+}
+
+function parseBoolean(value: string): boolean | null {
+  if (['co', 'yes', 'true', '1', 'active'].includes(value)) return true;
+  if (['khong', 'no', 'false', '0', 'inactive'].includes(value)) return false;
+  return null;
+}
+
+function parseLocalizedAmount(value: string): number | null {
+  const normalized = value.replace(/\s|₫|vnd/gi, '').trim();
+  if (!normalized) return null;
+  let numeric = normalized.replace(/[^\d.,+-]/g, '');
+  const lastComma = numeric.lastIndexOf(',');
+  const lastDot = numeric.lastIndexOf('.');
+  if (lastComma >= 0 && lastDot >= 0) {
+    const decimalPosition = Math.max(lastComma, lastDot);
+    const decimals = numeric.length - decimalPosition - 1;
+    numeric =
+      numeric.slice(0, decimalPosition).replace(/[.,]/g, '') +
+      (decimals > 0 && decimals <= 2
+        ? `.${numeric.slice(decimalPosition + 1)}`
+        : '');
+  } else if (lastComma >= 0 || lastDot >= 0) {
+    const position = Math.max(lastComma, lastDot);
+    const decimals = numeric.length - position - 1;
+    if (decimals > 0 && decimals <= 2) {
+      numeric = `${numeric.slice(0, position).replace(/[.,]/g, '')}.${numeric.slice(position + 1)}`;
+    } else {
+      numeric = numeric.replace(/[.,]/g, '');
+    }
+  }
+  const parsed = Number(numeric);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function parseSpreadsheetDate(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const isoDate = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (isoDate?.[1] && isoDate[2] && isoDate[3]) {
+    return `${isoDate[1]}-${isoDate[2].padStart(2, '0')}-${isoDate[3].padStart(2, '0')}`;
+  }
+  const vietnameseDate = trimmed.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (vietnameseDate?.[1] && vietnameseDate[2] && vietnameseDate[3]) {
+    return `${vietnameseDate[3]}-${vietnameseDate[2].padStart(2, '0')}-${vietnameseDate[1].padStart(2, '0')}`;
+  }
+  return trimmed;
 }
 
 function parseCombinedSpecifications(

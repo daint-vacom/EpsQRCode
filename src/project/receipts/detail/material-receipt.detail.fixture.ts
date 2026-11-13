@@ -3,8 +3,8 @@ import type { DetailSpec } from '@/builders/detail';
 const spec = {
   componentName: 'MaterialReceiptDetailLayout',
   tabs: [
-    { value: 'details', label: 'Chi tiết phiếu', icon: 'ClipboardList' },
-    { value: 'handovers', label: 'Bàn giao vật tư', icon: 'ArrowRightLeft' },
+    { value: 'items', label: 'Danh sách vật tư', icon: 'Boxes' },
+    { value: 'allocation', label: 'Phân bổ vật tư', icon: 'ArrowRightLeft' },
   ],
 } satisfies DetailSpec;
 

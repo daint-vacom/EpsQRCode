@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
   createMaterialModel,
+  createMaterialModelsBulk,
   deleteMaterialModel,
   loadMaterialModelFilterSummary,
   loadMaterialModels,
@@ -64,6 +65,18 @@ export function useCreateMaterialModelMutation() {
     }) => createMaterialModel(values, images, publicDisplaySettings),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+  });
+}
+
+export function useCreateMaterialModelsBulkMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createMaterialModelsBulk,
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: materialModelKeys.all,
+        refetchType: 'none',
+      }),
   });
 }
 

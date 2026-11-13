@@ -32,7 +32,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { NumericInput } from '@/components/ui/inputs/numeric-input';
 import { OptionSelect } from '@/components/ui/option-select';
+import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -49,6 +52,10 @@ export const materialDefaultValues: MaterialFormSchemaValues = {
   code: '',
   modelId: '',
   serialNumber: '',
+  placedIntoServiceDate: '',
+  capitalSourceId: '',
+  unitPriceOverride: null,
+  isActive: true,
   nameOverride: '',
   descriptionOverride: '',
   ownerPartyId: '',
@@ -93,6 +100,7 @@ interface MaterialFormProps {
   renderFormElement?: boolean;
   mode: 'create' | 'edit';
   models: MaterialModel[];
+  capitalSourceIdOptions: SelectOption[];
 }
 
 export function MaterialForm({
@@ -102,6 +110,7 @@ export function MaterialForm({
   renderFormElement = true,
   mode,
   models,
+  capitalSourceIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
   const fields = (
@@ -175,6 +184,90 @@ export function MaterialForm({
             </FormLabel>
             <FormControl>
               <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="placedIntoServiceDate"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.placedIntoServiceDate',
+              })}
+            </FormLabel>
+            <FormControl>
+              <DatePickerInput
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                calendarLabel="Chọn ngày đưa vào sử dụng"
+                valueMode="iso-date"
+                variant="md"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="capitalSourceId"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.capitalSource',
+              })}
+            </FormLabel>
+            <FormControl>
+              <OptionSelect
+                value={field.value}
+                onChange={field.onChange}
+                options={capitalSourceIdOptions}
+                searchable
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="unitPriceOverride"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.unitPriceOverride',
+              })}
+            </FormLabel>
+            <FormControl>
+              <NumericInput
+                suffix=" ₫"
+                value={field.value}
+                variant="md"
+                onBlur={field.onBlur}
+                onValueChange={field.onChange}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -299,6 +392,7 @@ interface MaterialFormDialogProps {
   isSaving?: boolean;
   title?: string;
   models: MaterialModel[];
+  capitalSourceIdOptions: SelectOption[];
 }
 
 export function MaterialFormDialog({
@@ -310,6 +404,7 @@ export function MaterialFormDialog({
   isSaving = false,
   title,
   models,
+  capitalSourceIdOptions,
 }: MaterialFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -362,6 +457,7 @@ export function MaterialFormDialog({
               id="material-form"
               mode={mode}
               models={models}
+              capitalSourceIdOptions={capitalSourceIdOptions}
             />
           </div>
 

@@ -72,6 +72,7 @@ import {
   useMaterialForm,
 } from '../forms/material-form.generated';
 import type { MaterialFormSchemaValues } from '../forms/material-form.schema';
+import { useMaterialCapitalSourcesQuery } from '../hooks/use-material-capital-sources';
 import {
   useMaterialQuery,
   useSaveMaterialMutation,
@@ -119,6 +120,9 @@ export function MaterialEditorPage() {
   );
   const custodiansQuery = useCustodiansQuery(
     true,
+    !isPermissionsPending && (canManage || (isEdit && canView)),
+  );
+  const capitalSourcesQuery = useMaterialCapitalSourcesQuery(
     !isPermissionsPending && (canManage || (isEdit && canView)),
   );
   const saveMutation = useSaveMaterialMutation();
@@ -275,10 +279,14 @@ export function MaterialEditorPage() {
     isPermissionsPending ||
     (isEdit &&
       canView &&
-      (materialQuery.isPending || custodiansQuery.isPending)) ||
+      (materialQuery.isPending ||
+        custodiansQuery.isPending ||
+        capitalSourcesQuery.isPending)) ||
     (!isEdit &&
       canManage &&
-      (modelsQuery.isPending || custodiansQuery.isPending));
+      (modelsQuery.isPending ||
+        custodiansQuery.isPending ||
+        capitalSourcesQuery.isPending));
   const isSaving = saveMutation.isPending;
   const title = intl.formatMessage({
     id: isEdit
@@ -417,13 +425,17 @@ export function MaterialEditorPage() {
           label={intl.formatMessage({ id: 'common.state.loading' })}
         />
       ) : materialQuery.isError ||
+        capitalSourcesQuery.isError ||
         (!isEdit && (modelsQuery.isError || custodiansQuery.isError)) ? (
         <ErrorState
           title={intl.formatMessage({
             id: 'project.materials.errors.loadDetailTitle',
           })}
           description={getApiErrorMessage(
-            materialQuery.error ?? modelsQuery.error ?? custodiansQuery.error,
+            materialQuery.error ??
+              modelsQuery.error ??
+              custodiansQuery.error ??
+              capitalSourcesQuery.error,
           )}
           onRetry={() => {
             if (isEdit) void materialQuery.refetch();
@@ -431,6 +443,7 @@ export function MaterialEditorPage() {
               void modelsQuery.refetch();
               void custodiansQuery.refetch();
             }
+            void capitalSourcesQuery.refetch();
           }}
         />
       ) : isEdit && !editingMaterial ? (
@@ -516,6 +529,12 @@ export function MaterialEditorPage() {
                     form={form}
                     onSubmit={handleSubmit}
                     models={availableModels}
+                    capitalSourceIdOptions={(
+                      capitalSourcesQuery.data ?? []
+                    ).map((source) => ({
+                      value: source.id,
+                      label: source.name,
+                    }))}
                     renderFormElement={false}
                   />
                 </CardContent>
@@ -702,6 +721,10 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     nameOverride: material.nameOverride ?? '',
     descriptionOverride: material.descriptionOverride ?? '',
     serialNumber: material.serialNumber ?? '',
+    placedIntoServiceDate: material.placedIntoServiceDate ?? '',
+    capitalSourceId: material.capitalSourceId ?? '',
+    unitPriceOverride: material.unitPriceOverride,
+    isActive: material.isActive,
     ownerPartyId: material.ownerPartyId ?? '',
     ownerSnapshot: {
       kind: material.ownerSnapshot.kind,

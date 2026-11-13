@@ -18,6 +18,10 @@ export interface MaterialModelSnapshot {
   name: string;
   groupId: string | null;
   description: string;
+  externalCodes: string[];
+  manufacturer: string;
+  unit: string;
+  unitPriceDefault: number | null;
   requiresInspection: boolean;
   inspectionIntervalValue: number;
   inspectionIntervalUnit: MaterialModelInspectionIntervalUnit;
@@ -140,6 +144,10 @@ export interface Material {
   code: string;
   modelId: string;
   modelSnapshot: MaterialModelSnapshot;
+  placedIntoServiceDate: string | null;
+  capitalSourceId: string | null;
+  capitalSourceName: string | null;
+  unitPriceOverride: number | null;
   modelSafetyInspectionConfig: MaterialModelSafetyInspectionConfig;
   inspectionSettingsOverrideEnabled: boolean;
   requiresInspectionOverride: boolean | null;
@@ -180,6 +188,10 @@ export interface MaterialFormValues {
   specificationOverrideLabels?: Record<string, string[]>;
   hiddenSpecificationIds?: string[];
   serialNumber: string;
+  placedIntoServiceDate: string;
+  capitalSourceId: string;
+  unitPriceOverride: number | null;
+  isActive?: boolean;
   ownerPartyId: string;
   ownerSnapshot?: MaterialOwnerSnapshotDraft;
   condition: MaterialCondition;

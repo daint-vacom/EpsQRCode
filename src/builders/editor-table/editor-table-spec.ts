@@ -36,7 +36,11 @@ const textColumn = textFieldControlSchema.extend({
 
 const autocompleteColumn = autocompleteFieldControlSchema
   .extend({
-    options: z.array(optionSchema).min(1),
+    options: z
+      .array(
+        optionSchema.extend({ labelMessageId: z.string().min(1).optional() }),
+      )
+      .min(1),
   })
   .extend({
     bulkEdit: z.boolean().default(false),

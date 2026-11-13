@@ -920,6 +920,67 @@ function MaterialSummarySidebar({
             onRetry={onRetryGroup}
             tone="muted"
           />
+          {material.modelSnapshot.manufacturer ? (
+            <DetailFact
+              icon={Factory}
+              label={intl.formatMessage({
+                id: 'materialModels.fields.manufacturer',
+              })}
+              value={material.modelSnapshot.manufacturer}
+              tone="muted"
+            />
+          ) : null}
+          {material.modelSnapshot.unit ? (
+            <DetailFact
+              icon={Boxes}
+              label={intl.formatMessage({ id: 'materialModels.fields.unit' })}
+              value={material.modelSnapshot.unit}
+              tone="muted"
+            />
+          ) : null}
+          {material.placedIntoServiceDate ? (
+            <DetailFact
+              icon={CalendarDays}
+              label={intl.formatMessage({
+                id: 'project.materials.fields.placedIntoServiceDate',
+              })}
+              value={new Intl.DateTimeFormat(intl.locale).format(
+                new Date(`${material.placedIntoServiceDate}T12:00:00`),
+              )}
+              tone="muted"
+            />
+          ) : null}
+          {material.capitalSourceName ? (
+            <DetailFact
+              icon={StickyNote}
+              label={intl.formatMessage({
+                id: 'project.materials.fields.capitalSource',
+              })}
+              value={material.capitalSourceName}
+              tone="muted"
+            />
+          ) : null}
+          {material.unitPriceOverride !== null ||
+          material.modelSnapshot.unitPriceDefault !== null ? (
+            <DetailFact
+              icon={StickyNote}
+              label={intl.formatMessage({
+                id:
+                  material.unitPriceOverride !== null
+                    ? 'project.materials.fields.unitPriceOverride'
+                    : 'materialModels.fields.unitPriceDefault',
+              })}
+              value={new Intl.NumberFormat(intl.locale, {
+                style: 'currency',
+                currency: 'VND',
+                maximumFractionDigits: 0,
+              }).format(
+                material.unitPriceOverride ??
+                  material.modelSnapshot.unitPriceDefault!,
+              )}
+              tone="muted"
+            />
+          ) : null}
           <DetailFact
             icon={Factory}
             label={intl.formatMessage({

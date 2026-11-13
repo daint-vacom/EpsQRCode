@@ -21,6 +21,14 @@ import {
 
 export const MATERIAL_MODEL_IMAGES_BUCKET = 'material-model-images';
 
+export interface BulkMaterialModelCreateResult {
+  rowNumber: number;
+  code: string;
+  success: boolean;
+  id: string | null;
+  error: string | null;
+}
+
 interface MaterialModelImageRow {
   id: string;
   model_id: string;
@@ -41,6 +49,9 @@ interface MaterialModelSafetyChecklistRow {
   checklist: SafetyInspectionChecklistGroup[];
 }
 
+const MATERIAL_MODEL_CATALOG_PAGE_SIZE = 250;
+const MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE = 100;
+
 function queryParams(params: Record<string, string>) {
   return { params };
 }
@@ -51,18 +62,74 @@ async function request<T>(promise: Promise<unknown>): Promise<T> {
 
 async function loadImageRows(
   modelIds: string[],
+  signal?: AbortSignal,
 ): Promise<MaterialModelImageRow[]> {
   if (modelIds.length === 0) return [];
-  return request(
-    supabaseApi.get(
-      '/material_model_images',
-      queryParams({
-        select: 'id,model_id,storage_path,external_url,sort_order,is_cover',
-        model_id: `in.(${modelIds.join(',')})`,
-        order: 'sort_order.asc,id.asc',
-      }),
-    ),
+  const batches = Array.from(
+    {
+      length: Math.ceil(
+        modelIds.length / MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+      ),
+    },
+    (_, index) =>
+      modelIds.slice(
+        index * MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+        (index + 1) * MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+      ),
   );
+  return (
+    await Promise.all(
+      batches.map((batch) =>
+        request<MaterialModelImageRow[]>(
+          supabaseApi.get(
+            '/material_model_images',
+            queryParams({
+              select:
+                'id,model_id,storage_path,external_url,sort_order,is_cover',
+              model_id: `in.(${batch.join(',')})`,
+              order: 'sort_order.asc,id.asc',
+            }),
+            { signal },
+          ),
+        ),
+      ),
+    )
+  ).flat();
+}
+
+async function loadSafetyChecklistRows(
+  modelIds: string[],
+  signal?: AbortSignal,
+): Promise<MaterialModelSafetyChecklistRow[]> {
+  if (modelIds.length === 0) return [];
+  const batches = Array.from(
+    {
+      length: Math.ceil(
+        modelIds.length / MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+      ),
+    },
+    (_, index) =>
+      modelIds.slice(
+        index * MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+        (index + 1) * MATERIAL_MODEL_RELATED_ROWS_BATCH_SIZE,
+      ),
+  );
+  return (
+    await Promise.all(
+      batches.map((batch) =>
+        request<MaterialModelSafetyChecklistRow[]>(
+          supabaseApi.get(
+            '/material_model_safety_checklists',
+            queryParams({
+              select: 'model_id,checklist',
+              model_id: `in.(${batch.join(',')})`,
+            }),
+            { signal },
+          ),
+        ),
+      ),
+    )
+  ).flat();
 }
 
 async function mapImageRow(
@@ -89,22 +156,44 @@ export async function loadMaterialModels(
   signal?: AbortSignal,
 ): Promise<MaterialModel[]> {
   assertSupabaseConfigured();
-  const rows = await request<MaterialModelRow[]>(
-    supabaseApi.post('/rpc/list_material_models', {}, { signal }),
-  );
-  const imageRows = await loadImageRows(rows.map((row) => row.id));
-  const checklistRows = rows.length
-    ? await request<MaterialModelSafetyChecklistRow[]>(
-        supabaseApi.get(
-          '/material_model_safety_checklists',
-          queryParams({
-            select: 'model_id,checklist',
-            model_id: `in.(${rows.map((row) => row.id).join(',')})`,
-          }),
-          { signal },
-        ),
-      )
-    : [];
+  const rows: MaterialModelRow[] = [];
+  let cursor: {
+    p_after_is_active: boolean | null;
+    p_after_name: string | null;
+    p_after_id: string | null;
+  } = {
+    p_after_is_active: null,
+    p_after_name: null,
+    p_after_id: null,
+  };
+
+  while (true) {
+    const page = await request<MaterialModelRow[]>(
+      supabaseApi.post(
+        '/rpc/list_material_models_page',
+        {
+          ...cursor,
+          p_page_size: MATERIAL_MODEL_CATALOG_PAGE_SIZE,
+        },
+        { signal },
+      ),
+    );
+    rows.push(...page);
+    if (page.length < MATERIAL_MODEL_CATALOG_PAGE_SIZE) break;
+    const last = page[page.length - 1];
+    if (!last) break;
+    cursor = {
+      p_after_is_active: last.is_active,
+      p_after_name: last.name,
+      p_after_id: last.id,
+    };
+  }
+
+  const modelIds = rows.map((row) => row.id);
+  const [imageRows, checklistRows] = await Promise.all([
+    loadImageRows(modelIds, signal),
+    loadSafetyChecklistRows(modelIds, signal),
+  ]);
   const checklistsByModelId = new Map(
     checklistRows.map((row) => [row.model_id, row.checklist ?? []]),
   );
@@ -224,6 +313,9 @@ async function saveMaterialModel(
           .filter(Boolean),
         p_public_display_settings: publicDisplaySettings,
         p_safety_inspection_checklist: values.safetyInspectionChecklist,
+        p_manufacturer: values.manufacturer.trim() || null,
+        p_unit: values.unit.trim() || null,
+        p_unit_price_default: values.unitPriceDefault,
       }),
     );
 
@@ -265,6 +357,37 @@ export function createMaterialModel(
   publicDisplaySettings: MaterialPublicDisplaySettings = DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
 ): Promise<string> {
   return saveMaterialModel(null, values, images, [], publicDisplaySettings);
+}
+
+export async function createMaterialModelsBulk(
+  values: MaterialModelFormValues[],
+): Promise<BulkMaterialModelCreateResult[]> {
+  assertSupabaseConfigured();
+  return request<BulkMaterialModelCreateResult[]>(
+    supabaseApi.post('/rpc/create_material_models_bulk', {
+      p_items: values.map((item) => ({
+        code: item.code.trim(),
+        name: item.name.trim(),
+        groupId: item.groupId,
+        description: item.description.trim() || null,
+        manufacturer: item.manufacturer.trim() || null,
+        unit: item.unit.trim() || null,
+        unitPriceDefault: item.unitPriceDefault,
+        externalCodes: item.externalCodesText
+          .split(/\r?\n/)
+          .map((value) => value.trim())
+          .filter(Boolean),
+        requiresInspection: item.requiresInspection,
+        inspectionIntervalValue: item.inspectionIntervalValue,
+        inspectionIntervalUnit: item.inspectionIntervalUnit,
+        skipInitialInspection: item.skipInitialInspection,
+        useGroupSafetyInspectionChecklist:
+          item.useGroupSafetyInspectionChecklist,
+        specifications: item.specifications,
+        safetyInspectionChecklist: item.safetyInspectionChecklist,
+      })),
+    }),
+  );
 }
 
 export async function updateMaterialModel(

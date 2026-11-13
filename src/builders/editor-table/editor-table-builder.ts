@@ -107,12 +107,13 @@ function bulkEditableColumns(spec: NormalizedEditorTableSpec) {
       column,
     ): column is Extract<
       EditorTableColumnSpec,
-      { kind: 'text' | 'number' | 'date' }
+      { kind: 'text' | 'number' | 'date' | 'autocomplete' }
     > => {
       return (
         (column.kind === 'text' ||
           column.kind === 'number' ||
-          column.kind === 'date') &&
+          column.kind === 'date' ||
+          column.kind === 'autocomplete') &&
         column.bulkEdit === true
       );
     },
@@ -125,10 +126,15 @@ function bulkFieldUnion(columns: ReturnType<typeof bulkEditableColumns>) {
 
 function emitBulkFieldOptions(columns: ReturnType<typeof bulkEditableColumns>) {
   return columns
-    .map(
-      (column) =>
-        `  { name: ${quote(column.name)}, label: ${quote(column.header)}, kind: ${quote(column.kind)} },`,
-    )
+    .map((column) => {
+      const options =
+        column.kind === 'autocomplete'
+          ? column.options.some((option) => option.labelMessageId)
+            ? `, options: ${column.name}Options(intl)`
+            : `, options: ${JSON.stringify(column.options)}`
+          : '';
+      return `  { name: ${quote(column.name)}, label: ${quote(column.header)}, kind: ${quote(column.kind)}${options} },`;
+    })
     .join('\n');
 }
 
@@ -203,7 +209,7 @@ function editableCell(
         : column.kind === 'autocomplete'
           ? buildFormFieldControl({
               ...common,
-              optionsExpression: `${column.name}Options`,
+              optionsExpression: `${column.name}Options${column.options.some((option) => option.labelMessageId) ? '(intl)' : ''}`,
               emptyMessage: 'Không có dữ liệu phù hợp',
             })
           : buildFormFieldControl({
@@ -538,6 +544,20 @@ function emitBulkActionBar(spec: NormalizedEditorTableSpec) {
     columns.length > 0
       ? `...(selectedIndexes.length > 0 ? [{ value: 'edit', label: intl.formatMessage({ id: 'editorTable.selection.edit' }), icon: 'edit' }] : []),`
       : '';
+  const dateBulkControl = columns.some((column) => column.kind === 'date')
+    ? `: activeBulkField?.kind === 'date' ? (
+              ${buildFormFieldControl({
+                kind: 'date',
+                surface: 'cell',
+                valueExpression: 'bulkValue',
+                onChangeExpression: 'setBulkValue',
+                onBlurExpression: '() => {}',
+                variant: 'md',
+                ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
+                calendarLabel: 'Chọn giá trị áp dụng hàng loạt',
+              })}
+            )`
+    : '';
   const editControl =
     columns.length > 0
       ? `<>
@@ -559,21 +579,23 @@ function emitBulkActionBar(spec: NormalizedEditorTableSpec) {
                 ))}
               </SelectContent>
             </Select>
-            {activeBulkField?.kind === 'date' ? (
-              ${buildFormFieldControl({
-                kind: 'date',
-                surface: 'cell',
-                valueExpression: 'bulkValue',
-                onChangeExpression: 'setBulkValue',
-                variant: 'md',
-                ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
-                calendarLabel: 'Chọn giá trị áp dụng hàng loạt',
-              })}
-            ) : activeBulkField?.kind === 'number' ? (
+            {activeBulkField?.kind === 'autocomplete' ? (
+              <OptionSelect
+                value={bulkValue}
+                onChange={setBulkValue}
+                options={activeBulkField.options}
+                placeholder="Chọn giá trị"
+                ariaLabel="Giá trị áp dụng hàng loạt"
+                searchable={false}
+                size="md"
+                className="w-48"
+              />
+            ) ${dateBulkControl} : activeBulkField?.kind === 'number' ? (
               ${buildFormFieldControl({
                 kind: 'number',
                 surface: 'cell',
                 valueExpression: 'bulkValue',
+                onBlurExpression: '() => {}',
                 variant: 'md',
                 className: 'w-36 text-right tabular-nums',
                 ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
@@ -585,6 +607,7 @@ function emitBulkActionBar(spec: NormalizedEditorTableSpec) {
                 kind: 'text',
                 surface: 'cell',
                 valueExpression: 'bulkValue',
+                onBlurExpression: '() => {}',
                 variant: 'md',
                 className: 'w-48',
                 ariaLabelExpression: quote('Giá trị áp dụng hàng loạt'),
@@ -775,14 +798,27 @@ function emitAutocompleteOptionConsts(spec: NormalizedEditorTableSpec): string {
     .filter((column) => column.kind === 'autocomplete')
     .map((column) => {
       const rows = column.options
-        .map(
-          (option) =>
-            `  { value: ${quote(option.value)}, label: ${quote(option.label)} },`,
-        )
+        .map((option) => {
+          const label = option.labelMessageId
+            ? `intl.formatMessage({ id: ${quote(option.labelMessageId)} })`
+            : quote(option.label);
+          return `  { value: ${quote(option.value)}, label: ${label} },`;
+        })
         .join('\n');
+      if (column.options.some((option) => option.labelMessageId)) {
+        return `function ${column.name}Options(intl: ReturnType<typeof useIntl>): AutocompleteOption[] {\n  return [\n${rows}\n  ];\n}`;
+      }
       return `const ${column.name}Options: AutocompleteOption[] = [\n${rows}\n];`;
     })
     .join('\n\n');
+}
+
+function hasLocalizedAutocompleteOptions(spec: NormalizedEditorTableSpec) {
+  return spec.columns.some(
+    (column) =>
+      column.kind === 'autocomplete' &&
+      column.options.some((option) => option.labelMessageId),
+  );
 }
 
 function hasPasswordColumn(spec: NormalizedEditorTableSpec): boolean {
@@ -834,10 +870,11 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
   ].filter((icon, index, all) => all.indexOf(icon) === index);
   const rhfValues = editable ? 'Controller, useFieldArray' : 'useFieldArray';
 
+  const localizedAutocompleteOptions = hasLocalizedAutocompleteOptions(spec);
+  const needsIntl =
+    (multiEdit && spec.multiEdit.actionBar) || localizedAutocompleteOptions;
   const lines = [
-    ...(multiEdit && spec.multiEdit.actionBar
-      ? ["import { useIntl } from 'react-intl';"]
-      : []),
+    ...(needsIntl ? ["import { useIntl } from 'react-intl';"] : []),
     ...(spec.toolbar || spec.reorder.enabled
       ? ["import type { ReactNode } from 'react';"]
       : []),
@@ -909,6 +946,15 @@ function emitImports(spec: NormalizedEditorTableSpec): string {
     lines.push(
       "import {\n  Select,\n  SelectContent,\n  SelectItem,\n  SelectTrigger,\n  SelectValue,\n} from '@/components/ui/select';",
     );
+  if (
+    multiEdit &&
+    hasBulkFields &&
+    spec.columns.some(
+      (column) => column.kind === 'autocomplete' && column.bulkEdit,
+    )
+  ) {
+    lines.push("import { OptionSelect } from '@/components/ui/option-select';");
+  }
   lines.push(
     "import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';",
   );
@@ -934,6 +980,9 @@ export function buildEditorTableModule(input: EditorTableSpec): string {
     spec.componentName ?? `${pascalCase(spec.entity)}EditorTable`;
   const createRowProp = spec.createRowProp ?? 'createRow';
   const multiEdit = hasMultiEdit(spec);
+  const needsIntl =
+    (multiEdit && spec.multiEdit.actionBar) ||
+    hasLocalizedAutocompleteOptions(spec);
   const actionBarProps =
     multiEdit && spec.multiEdit.actionBar
       ? [
@@ -1184,7 +1233,7 @@ export function ${componentName}({
     keyName: 'fieldId',
   });
   const watchedRows = form.watch('${spec.arrayName}') ?? [];
-  ${multiEdit && spec.multiEdit.actionBar ? 'const intl = useIntl();' : ''}
+  ${needsIntl ? 'const intl = useIntl();' : ''}
 
   const handleAddRow = () => {
     append(${createRowProp}());${

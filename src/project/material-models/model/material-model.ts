@@ -37,6 +37,13 @@ export const materialModelFormSchema = z.object({
   name: z.string().trim().min(1, 'Vui lòng nhập tên mẫu.'),
   groupId: z.string().min(1, 'Vui lòng chọn nhóm vật tư.'),
   description: z.string().trim(),
+  manufacturer: z.string().trim(),
+  unit: z.string().trim(),
+  unitPriceDefault: z.preprocess(
+    (value) =>
+      value === '' || value === undefined || value === null ? null : value,
+    z.coerce.number().min(0, 'Đơn giá không được âm.').nullable(),
+  ),
   externalCodesText: z.string(),
   requiresInspection: z.boolean(),
   inspectionIntervalValue: z.coerce
@@ -87,6 +94,9 @@ export interface MaterialModel {
   code: string;
   name: string;
   groupId: string | null;
+  manufacturer: string;
+  unit: string;
+  unitPriceDefault: number | null;
   images: MaterialModelImage[];
   imageUrl: string | null;
   description: string;
@@ -138,6 +148,9 @@ export interface MaterialModelRow {
   name: string;
   group_id: string | null;
   description: string | null;
+  manufacturer: string | null;
+  unit: string | null;
+  unit_price_default: number | null;
   external_codes: string[];
   requires_inspection: boolean;
   inspection_interval_value: number;
@@ -161,6 +174,9 @@ export function mapMaterialModelRow(
     code: row.code,
     name: row.name,
     groupId: row.group_id,
+    manufacturer: row.manufacturer ?? '',
+    unit: row.unit ?? '',
+    unitPriceDefault: row.unit_price_default,
     images,
     imageUrl: cover?.url ?? null,
     description: row.description ?? '',

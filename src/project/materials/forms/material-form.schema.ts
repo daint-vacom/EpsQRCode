@@ -12,6 +12,19 @@ export const materialFormSchema = z
     nameOverride: z.string().trim(),
     descriptionOverride: z.string().trim(),
     serialNumber: z.string().trim(),
+    placedIntoServiceDate: z.string().trim(),
+    capitalSourceId: z
+      .string()
+      .refine(
+        (value) => value === '' || z.string().uuid().safeParse(value).success,
+        'Vui lòng chọn nguồn vốn hợp lệ.',
+      ),
+    unitPriceOverride: z.preprocess(
+      (value) =>
+        value === '' || value === undefined || value === null ? null : value,
+      z.coerce.number().min(0, 'Đơn giá không được âm.').nullable(),
+    ),
+    isActive: z.boolean().optional(),
     ownerPartyId: z
       .string()
       .refine(

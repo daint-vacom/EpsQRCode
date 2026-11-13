@@ -70,15 +70,14 @@ export function mapMaterialReceiptToFormValues(
       return {
         clientId: line.id,
         lineId: line.id,
-        modelMode: line.modelId ? ('existing' as const) : ('new' as const),
         modelId: line.modelId ?? '',
-        newModelCode: line.model.code ?? '',
-        newModelName: line.model.name,
-        groupId: line.model.groupId ?? '',
-        description: '',
-        requiresInspection: line.model.requiresInspection ?? false,
-        externalCode: line.externalCode ?? '',
         quantity: activeItems.length,
+        condition: activeItems[0]?.condition ?? 'good',
+        conditionNote:
+          activeItems.find((item) => item.condition === 'damaged')
+            ?.conditionNote ?? '',
+        specificationOverrides: line.specificationOverrides ?? {},
+        specificationOverrideLabels: line.specificationOverrideLabels ?? {},
         items: activeItems.map((item) => ({
           receiptItemId: item.id,
           serialNumber: item.serialNumber ?? '',

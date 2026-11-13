@@ -4,8 +4,7 @@
  * columns or viewport behavior, edit the spec and re-gen to a scratch path, then reconcile your edits.
  */
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import { MaterialGroupSelect } from '@/project/material-groups/components/material-group-select';
+import { useEffect, useMemo, useState } from 'react';
 import { MaterialModelSelect } from '@/project/material-models/components/material-model-select';
 import {
   getCoreRowModel,
@@ -13,15 +12,28 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { Copy, Plus, Trash2 } from 'lucide-react';
+import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
+import { useIntl } from 'react-intl';
+import { AutocompleteInput } from '@/components/ui/autocomplete-input';
+import type { AutocompleteOption } from '@/components/ui/autocomplete-input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataGridProvider } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Input } from '@/components/ui/input';
 import { OptionSelect } from '@/components/ui/option-select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SelectionActionBar } from '@/components/ui/selection-action-bar';
+import type { SelectionActionOption } from '@/components/ui/selection-action-bar';
 import {
   TableBody,
   TableCell,
@@ -29,7 +41,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Tooltip,
   TooltipContent,
@@ -40,9 +51,26 @@ import type {
   MaterialReceiptFormValues,
 } from '../model/material-receipt';
 
+function conditionOptions(
+  intl: ReturnType<typeof useIntl>,
+): AutocompleteOption[] {
+  return [
+    {
+      value: 'good',
+      label: intl.formatMessage({ id: 'project.handover.condition.good' }),
+    },
+    {
+      value: 'damaged',
+      label: intl.formatMessage({ id: 'project.handover.condition.damaged' }),
+    },
+  ];
+}
+
 interface MaterialReceiptLinesEditorTableProps {
   form: UseFormReturn<MaterialReceiptFormValues>;
   createLine: () => MaterialReceiptFormLine;
+  onCopySelected?: (rows: MaterialReceiptFormLine[]) => void;
+  onEditMaterial: (index: number) => void;
   lockExistingModels?: boolean;
   toolbarContent?: ReactNode;
   title?: ReactNode;
@@ -51,6 +79,8 @@ interface MaterialReceiptLinesEditorTableProps {
 export function MaterialReceiptLinesEditorTable({
   form,
   createLine,
+  onCopySelected,
+  onEditMaterial,
   lockExistingModels = false,
   toolbarContent,
   title,
@@ -61,6 +91,7 @@ export function MaterialReceiptLinesEditorTable({
     keyName: 'fieldId',
   });
   const watchedRows = form.watch('lines') ?? [];
+  const intl = useIntl();
 
   const handleAddRow = () => {
     append(createLine());
@@ -82,14 +113,7 @@ export function MaterialReceiptLinesEditorTable({
   const handleDuplicateRow = (index: number) => {
     const currentRow = form.getValues(`lines.${index}`);
     const insertIndex = index + 1;
-    insert(insertIndex, {
-      ...currentRow,
-      clientId: crypto.randomUUID(),
-      lineId: '',
-      items: currentRow.items.map(
-        ({ receiptItemId: _receiptItemId, ...item }) => item,
-      ),
-    });
+    insert(insertIndex, cloneReceiptLine(currentRow));
     setPagination((current) => ({
       ...current,
       pageIndex: Math.floor(insertIndex / current.pageSize),
@@ -107,6 +131,90 @@ export function MaterialReceiptLinesEditorTable({
         ? { ...current, pageIndex: lastPageIndex }
         : current;
     });
+  };
+
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [selectionAction, setSelectionAction] = useState('copy');
+  const selectedIndexes = useMemo(
+    () =>
+      fields
+        .map((field, index) =>
+          selectedRowIds.includes(field.fieldId) ? index : null,
+        )
+        .filter((index): index is number => index !== null),
+    [fields, selectedRowIds],
+  );
+  type BulkFieldName = 'quantity' | 'condition' | 'conditionNote';
+  const bulkFields = [
+    { name: 'quantity', label: 'Số lượng', kind: 'number' },
+    {
+      name: 'condition',
+      label: 'Tình trạng',
+      kind: 'autocomplete',
+      options: conditionOptions(intl),
+    },
+    { name: 'conditionNote', label: 'Ghi chú tình trạng', kind: 'text' },
+  ] as const;
+  const [bulkField, setBulkField] = useState<BulkFieldName>('quantity');
+  const [bulkValue, setBulkValue] = useState('');
+  const activeBulkField = bulkFields.find((field) => field.name === bulkField);
+
+  const coerceBulkValue = (fieldName: BulkFieldName, rawValue: string) => {
+    switch (fieldName) {
+      case 'quantity':
+        return Number.isNaN(Number(rawValue)) ? 0 : Number(rawValue);
+      case 'condition':
+        return rawValue;
+      case 'conditionNote':
+        return rawValue;
+    }
+  };
+
+  const applyBulkValue = (fieldName: BulkFieldName, rawValue: string) => {
+    const value = coerceBulkValue(fieldName, rawValue);
+    selectedIndexes.forEach((index) => {
+      form.setValue(`lines.${index}.${fieldName}` as never, value as never, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+  };
+
+  const handleBulkApply = () => {
+    if (selectedIndexes.length === 0) return;
+    applyBulkValue(bulkField, bulkValue);
+  };
+
+  const handleSelectAllRows = (checked: boolean) => {
+    setSelectedRowIds(checked ? fields.map((field) => field.fieldId) : []);
+  };
+
+  const handleSelectRow = (rowId: string, checked: boolean) => {
+    setSelectedRowIds((current) =>
+      checked
+        ? current.includes(rowId)
+          ? current
+          : [...current, rowId]
+        : current.filter((id) => id !== rowId),
+    );
+  };
+
+  const handleSelectionAction = (action: string) => {
+    if (action === 'copy') {
+      onCopySelected?.(
+        selectedIndexes.map(
+          (index) => form.getValues('lines')[index] as MaterialReceiptFormLine,
+        ),
+      );
+      setSelectedRowIds([]);
+      return;
+    }
+    if (action === 'delete') {
+      remove([...selectedIndexes].sort((a, b) => b - a));
+      setSelectedRowIds([]);
+      return;
+    }
+    if (action === 'edit') handleBulkApply();
   };
 
   const [pagination, setPagination] = useState<PaginationState>({
@@ -141,519 +249,560 @@ export function MaterialReceiptLinesEditorTable({
 
   return (
     <DataGridProvider table={paginationTable} recordCount={fields.length}>
-      <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
-        <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="text-sm font-semibold text-foreground">
-              {title ?? 'Danh sách mẫu vật tư'}
-            </h2>
-            <div className="text-xs text-muted-foreground">
-              {fields.length} dòng
+      <>
+        <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
+          <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
+            <div className="flex min-w-0 flex-col gap-1">
+              <h2 className="text-sm font-semibold text-foreground">
+                {title ?? 'Danh sách mẫu vật tư'}
+              </h2>
+              <div className="text-xs text-muted-foreground">
+                {fields.length} dòng
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+              {toolbarContent}
+
+              <Button type="button" variant="primary" onClick={handleAddRow}>
+                <Plus />
+                Thêm dòng
+              </Button>
             </div>
           </div>
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-            {toolbarContent}
-
-            <Button type="button" variant="primary" onClick={handleAddRow}>
-              <Plus />
-              Thêm dòng
-            </Button>
-          </div>
-        </div>
-        <ScrollArea
-          type="always"
-          className="min-w-0 min-h-[360px] min-h-0 flex-1"
-          viewportClassName="h-full min-w-0 overflow-y-auto"
-        >
-          <div className="min-w-[1180px]">
-            <table className="w-full caption-bottom text-foreground text-sm">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="sticky top-0 z-20 bg-muted min-w-[430px]">
-                    Mẫu vật tư
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted w-36">
-                    Mã liên kết ngoài
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted w-36 text-right">
-                    Số lượng
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-20 bg-muted min-w-[260px]">
-                    Chi tiết từng vật tư
-                  </TableHead>
-                  <TableHead className="sticky top-0 right-0 z-30 bg-muted w-14 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fields.length === 0 ? (
-                  <TableRow hoverable={false}>
-                    <TableCell colSpan={5} className="h-28 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <span className="text-muted-foreground">
-                          Chưa có dữ liệu
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleAddRow}
-                        >
-                          <Plus />
-                          Thêm dòng
-                        </Button>
+          <ScrollArea
+            type="always"
+            className="min-w-0 min-h-[360px] min-h-0 flex-1"
+            viewportClassName="h-full min-w-0 overflow-y-auto"
+          >
+            <div className="min-w-[1120px]">
+              <table className="w-full caption-bottom text-foreground text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
+                      <div className="flex justify-center">
+                        <Checkbox
+                          aria-label="Chọn tất cả dòng"
+                          checked={
+                            fields.length > 0 &&
+                            (selectedRowIds.length === fields.length ||
+                              (selectedRowIds.length > 0 && 'indeterminate'))
+                          }
+                          disabled={fields.length === 0}
+                          size="sm"
+                          onCheckedChange={(checked) =>
+                            handleSelectAllRows(!!checked)
+                          }
+                        />
                       </div>
-                    </TableCell>
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[360px]">
+                      Mẫu vật tư
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted w-28">
+                      Thông số
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted w-36 text-right">
+                      Số lượng
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted w-40">
+                      Tình trạng
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[240px]">
+                      Ghi chú tình trạng
+                    </TableHead>
+                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-14 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
                   </TableRow>
-                ) : (
-                  visibleFields.map((field, pageOffset) => {
-                    const index = pageStartIndex + pageOffset;
-                    const row = watchedRows[index] as
-                      MaterialReceiptFormLine | undefined;
-                    const errors = form.formState.errors.lines?.[index];
-                    void row;
+                </TableHeader>
+                <TableBody>
+                  {fields.length === 0 ? (
+                    <TableRow hoverable={false}>
+                      <TableCell colSpan={7} className="h-28 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-muted-foreground">
+                            Chưa có dữ liệu
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAddRow}
+                          >
+                            <Plus />
+                            Thêm dòng
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    visibleFields.map((field, pageOffset) => {
+                      const index = pageStartIndex + pageOffset;
+                      const row = watchedRows[index] as
+                        | MaterialReceiptFormLine
+                        | undefined;
+                      const errors = form.formState.errors.lines?.[index];
+                      return (
+                        <TableRow key={field.fieldId} hoverable={false}>
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
+                            <div className="flex justify-center">
+                              <Checkbox
+                                aria-label={`Chọn dòng ${index + 1}`}
+                                checked={selectedRowIds.includes(field.fieldId)}
+                                size="sm"
+                                onCheckedChange={(checked) =>
+                                  handleSelectRow(field.fieldId, !!checked)
+                                }
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-2 py-2 align-top">
+                            <MaterialReceiptModelCell
+                              form={form}
+                              index={index}
+                              line={row}
+                              locked={
+                                lockExistingModels && Boolean(row?.lineId)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="px-2 py-2 align-top">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={!row?.modelId}
+                              onClick={() => onEditMaterial(index)}
+                            >
+                              <Pencil className="size-3.5" />
+                              {intl.formatMessage({
+                                id: 'receipts.actions.editMaterial',
+                              })}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="px-2 py-2">
+                            <Controller
+                              control={form.control}
+                              name={`lines.${index}.quantity`}
+                              render={({ field: inputField }) => {
+                                const quantityWarning = undefined;
+                                const quantityMessage =
+                                  errors?.quantity?.message ?? quantityWarning;
 
-                    return (
-                      <TableRow key={field.fieldId} hoverable={false}>
-                        <TableCell className="px-2 py-2 align-top">
-                          <MaterialReceiptModelCell
-                            form={form}
-                            index={index}
-                            line={row}
-                            lockExistingModels={lockExistingModels}
-                          />
-                        </TableCell>
-                        <TableCell className="px-2 py-2">
-                          <Controller
-                            control={form.control}
-                            name={`lines.${index}.externalCode`}
-                            render={({ field: inputField }) => {
-                              const externalCodeWarning = undefined;
-                              const externalCodeMessage =
-                                errors?.externalCode?.message ??
-                                externalCodeWarning;
-
-                              return externalCodeMessage ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="block w-full">
-                                      <Input
-                                        {...inputField}
-                                        aria-label={`Mã liên kết ngoài dòng ${index + 1}`}
-                                        aria-invalid={!!errors?.externalCode}
-                                        onPointerDown={(event) =>
-                                          event.stopPropagation()
-                                        }
-                                        variant="md"
-                                      />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    variant={
-                                      errors?.externalCode
-                                        ? 'destructive'
-                                        : 'warning'
-                                    }
-                                  >
-                                    {externalCodeMessage}
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <span className="block w-full">
-                                  <Input
-                                    {...inputField}
-                                    aria-label={`Mã liên kết ngoài dòng ${index + 1}`}
-                                    aria-invalid={!!errors?.externalCode}
-                                    onPointerDown={(event) =>
-                                      event.stopPropagation()
-                                    }
-                                    variant="md"
-                                  />
-                                </span>
-                              );
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="px-2 py-2">
-                          <Controller
-                            control={form.control}
-                            name={`lines.${index}.quantity`}
-                            render={({ field: inputField }) => {
-                              const quantityWarning = undefined;
-                              const quantityMessage =
-                                errors?.quantity?.message ?? quantityWarning;
-                              const updateQuantity = (value: number) => {
-                                inputField.onChange(value);
-                                const current =
-                                  form.getValues(`lines.${index}.items`) ?? [];
-                                const desired = Math.max(
-                                  0,
-                                  Math.min(10000, Math.trunc(value || 0)),
-                                );
-                                form.setValue(
-                                  `lines.${index}.items`,
-                                  Array.from(
-                                    { length: desired },
-                                    (_unused, itemIndex) =>
-                                      current[itemIndex] ?? {
-                                        serialNumber: '',
-                                        condition: 'good' as const,
-                                        conditionNote: '',
-                                        note: '',
-                                      },
-                                  ),
-                                  { shouldDirty: true, shouldValidate: true },
-                                );
-                              };
-
-                              return quantityMessage ? (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="block w-full">
-                                      <Input
-                                        aria-label={`Số lượng dòng ${index + 1}`}
-                                        aria-invalid={!!errors?.quantity}
-                                        onPointerDown={(event) =>
-                                          event.stopPropagation()
-                                        }
-                                        className="text-right tabular-nums"
-                                        min={1}
-                                        max={10000}
-                                        step={1}
-                                        type="number"
-                                        value={inputField.value}
-                                        variant="md"
-                                        onBlur={inputField.onBlur}
-                                        onChange={(event) =>
-                                          updateQuantity(
-                                            Number.isNaN(
-                                              event.target.valueAsNumber,
+                                return quantityMessage ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block w-full">
+                                        <Input
+                                          aria-label={`Số lượng dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.quantity}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          className="text-right tabular-nums"
+                                          min={1}
+                                          max={10000}
+                                          step={1}
+                                          type="number"
+                                          value={inputField.value}
+                                          variant="md"
+                                          onBlur={inputField.onBlur}
+                                          onChange={(event) =>
+                                            inputField.onChange(
+                                              Number.isNaN(
+                                                event.target.valueAsNumber,
+                                              )
+                                                ? 0
+                                                : event.target.valueAsNumber,
                                             )
-                                              ? 0
-                                              : event.target.valueAsNumber,
+                                          }
+                                        />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      variant={
+                                        errors?.quantity
+                                          ? 'destructive'
+                                          : 'warning'
+                                      }
+                                    >
+                                      {quantityMessage}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="block w-full">
+                                    <Input
+                                      aria-label={`Số lượng dòng ${index + 1}`}
+                                      aria-invalid={!!errors?.quantity}
+                                      onPointerDown={(event) =>
+                                        event.stopPropagation()
+                                      }
+                                      className="text-right tabular-nums"
+                                      min={1}
+                                      max={10000}
+                                      step={1}
+                                      type="number"
+                                      value={inputField.value}
+                                      variant="md"
+                                      onBlur={inputField.onBlur}
+                                      onChange={(event) =>
+                                        inputField.onChange(
+                                          Number.isNaN(
+                                            event.target.valueAsNumber,
                                           )
-                                        }
-                                      />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    variant={
-                                      errors?.quantity
-                                        ? 'destructive'
-                                        : 'warning'
-                                    }
-                                  >
-                                    {quantityMessage}
-                                  </TooltipContent>
-                                </Tooltip>
-                              ) : (
-                                <span className="block w-full">
-                                  <Input
-                                    aria-label={`Số lượng dòng ${index + 1}`}
-                                    aria-invalid={!!errors?.quantity}
-                                    onPointerDown={(event) =>
-                                      event.stopPropagation()
-                                    }
-                                    className="text-right tabular-nums"
-                                    min={1}
-                                    max={10000}
-                                    step={1}
-                                    type="number"
-                                    value={inputField.value}
-                                    variant="md"
-                                    onBlur={inputField.onBlur}
-                                    onChange={(event) =>
-                                      updateQuantity(
-                                        Number.isNaN(event.target.valueAsNumber)
-                                          ? 0
-                                          : event.target.valueAsNumber,
-                                      )
-                                    }
-                                  />
-                                </span>
-                              );
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell className="px-2 py-2 align-top">
-                          <MaterialReceiptUnitsCell form={form} index={index} />
-                        </TableCell>
-                        <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              aria-label={`Nhân đôi dòng ${index + 1}`}
-                              title="Nhân đôi"
-                              type="button"
-                              variant="ghost"
-                              mode="icon"
-                              size="sm"
-                              onClick={() => handleDuplicateRow(index)}
-                            >
-                              <Copy />
-                            </Button>
-                            <Button
-                              aria-label={`Thêm dòng dưới dòng ${index + 1}`}
-                              title="Thêm dòng dưới"
-                              type="button"
-                              variant="ghost"
-                              mode="icon"
-                              size="sm"
-                              onClick={() => handleAddRowBelow(index)}
-                            >
-                              <Plus />
-                            </Button>
-                            <Button
-                              aria-label={`Xóa dòng ${index + 1}`}
-                              title="Xóa"
-                              type="button"
-                              variant="destructive"
-                              appearance="ghost"
-                              mode="icon"
-                              size="sm"
-                              onClick={() => handleDeleteRow(index)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </table>
-          </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
-        {fields.length > 0 ? (
-          <div className="shrink-0 border-t border-border px-4 py-2">
-            <DataGridPagination
-              sizes={[10, 25, 50]}
-              sizesDescription="dòng"
-              info="{from} - {to} / {count} dòng"
-            />
-          </div>
-        ) : null}
-      </div>
+                                            ? 0
+                                            : event.target.valueAsNumber,
+                                        )
+                                      }
+                                    />
+                                  </span>
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="px-2 py-2">
+                            <Controller
+                              control={form.control}
+                              name={`lines.${index}.condition`}
+                              render={({ field: inputField }) => {
+                                const conditionWarning = undefined;
+                                const conditionMessage =
+                                  errors?.condition?.message ??
+                                  conditionWarning;
+
+                                return conditionMessage ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block w-full">
+                                        <AutocompleteInput
+                                          value={inputField.value}
+                                          onChange={inputField.onChange}
+                                          options={conditionOptions(intl)}
+                                          emptyMessage="Không có dữ liệu phù hợp"
+                                          onBlur={inputField.onBlur}
+                                        />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      variant={
+                                        errors?.condition
+                                          ? 'destructive'
+                                          : 'warning'
+                                      }
+                                    >
+                                      {conditionMessage}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="block w-full">
+                                    <AutocompleteInput
+                                      value={inputField.value}
+                                      onChange={inputField.onChange}
+                                      options={conditionOptions(intl)}
+                                      emptyMessage="Không có dữ liệu phù hợp"
+                                      onBlur={inputField.onBlur}
+                                    />
+                                  </span>
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="px-2 py-2">
+                            <Controller
+                              control={form.control}
+                              name={`lines.${index}.conditionNote`}
+                              render={({ field: inputField }) => {
+                                const conditionNoteWarning = undefined;
+                                const conditionNoteMessage =
+                                  errors?.conditionNote?.message ??
+                                  conditionNoteWarning;
+
+                                return conditionNoteMessage ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="block w-full">
+                                        <Input
+                                          {...inputField}
+                                          aria-label={`Ghi chú tình trạng dòng ${index + 1}`}
+                                          aria-invalid={!!errors?.conditionNote}
+                                          onPointerDown={(event) =>
+                                            event.stopPropagation()
+                                          }
+                                          variant="md"
+                                        />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      variant={
+                                        errors?.conditionNote
+                                          ? 'destructive'
+                                          : 'warning'
+                                      }
+                                    >
+                                      {conditionNoteMessage}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <span className="block w-full">
+                                    <Input
+                                      {...inputField}
+                                      aria-label={`Ghi chú tình trạng dòng ${index + 1}`}
+                                      aria-invalid={!!errors?.conditionNote}
+                                      onPointerDown={(event) =>
+                                        event.stopPropagation()
+                                      }
+                                      variant="md"
+                                    />
+                                  </span>
+                                );
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                aria-label={`Nhân đôi dòng ${index + 1}`}
+                                title="Nhân đôi"
+                                type="button"
+                                variant="ghost"
+                                mode="icon"
+                                size="sm"
+                                onClick={() => handleDuplicateRow(index)}
+                              >
+                                <Copy />
+                              </Button>
+                              <Button
+                                aria-label={`Thêm dòng dưới dòng ${index + 1}`}
+                                title="Thêm dòng dưới"
+                                type="button"
+                                variant="ghost"
+                                mode="icon"
+                                size="sm"
+                                onClick={() => handleAddRowBelow(index)}
+                              >
+                                <Plus />
+                              </Button>
+                              <Button
+                                aria-label={`Xóa dòng ${index + 1}`}
+                                title="Xóa"
+                                type="button"
+                                variant="destructive"
+                                appearance="ghost"
+                                mode="icon"
+                                size="sm"
+                                onClick={() => handleDeleteRow(index)}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </table>
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          {fields.length > 0 ? (
+            <div className="shrink-0 border-t border-border px-4 py-2">
+              <DataGridPagination
+                sizes={[10, 25, 50]}
+                sizesDescription="dòng"
+                info="{from} - {to} / {count} dòng"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        {selectedIndexes.length > 0 && (
+          <SelectionActionBar
+            ariaLabel={intl.formatMessage({
+              id: 'editorTable.selection.toolbar',
+            })}
+            selectionLabel={
+              selectedIndexes.length > 0
+                ? intl.formatMessage(
+                    { id: 'editorTable.selection.selected' },
+                    { count: selectedIndexes.length },
+                  )
+                : ''
+            }
+            actionLabel={intl.formatMessage({
+              id: 'editorTable.selection.action',
+            })}
+            actionPlaceholder={intl.formatMessage({
+              id: 'editorTable.selection.chooseAction',
+            })}
+            actions={
+              [
+                ...(selectedIndexes.length > 0 && onCopySelected
+                  ? [
+                      {
+                        value: 'copy',
+                        label: intl.formatMessage({
+                          id: 'editorTable.selection.copy',
+                        }),
+                        icon: 'copy',
+                      },
+                    ]
+                  : []),
+                ...(selectedIndexes.length > 0
+                  ? [
+                      {
+                        value: 'delete',
+                        label: intl.formatMessage({
+                          id: 'editorTable.selection.delete',
+                        }),
+                        icon: 'delete',
+                        destructive: true,
+                      },
+                    ]
+                  : []),
+                ...(selectedIndexes.length > 0
+                  ? [
+                      {
+                        value: 'edit',
+                        label: intl.formatMessage({
+                          id: 'editorTable.selection.edit',
+                        }),
+                        icon: 'edit',
+                      },
+                    ]
+                  : []),
+              ] as SelectionActionOption[]
+            }
+            action={selectionAction}
+            onActionChange={(value) => {
+              setSelectionAction(value);
+              setBulkValue('');
+            }}
+            applyLabel={intl.formatMessage({
+              id: 'editorTable.selection.apply',
+            })}
+            onApply={handleSelectionAction}
+            applyDisabled={selectedIndexes.length === 0}
+            onClear={
+              selectedIndexes.length > 0
+                ? () => setSelectedRowIds([])
+                : undefined
+            }
+            clearLabel={intl.formatMessage({
+              id: 'editorTable.selection.clear',
+            })}
+            extraControl={
+              selectionAction === 'edit' ? (
+                <>
+                  <Select
+                    value={bulkField}
+                    onValueChange={(value) => {
+                      setBulkField(value as BulkFieldName);
+                      setBulkValue('');
+                    }}
+                  >
+                    <SelectTrigger size="md" className="w-[150px]">
+                      <SelectValue label="Trường" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bulkFields.map((field) => (
+                        <SelectItem key={field.name} value={field.name}>
+                          {field.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {activeBulkField?.kind === 'autocomplete' ? (
+                    <OptionSelect
+                      value={bulkValue}
+                      onChange={setBulkValue}
+                      options={activeBulkField.options}
+                      placeholder="Chọn giá trị"
+                      ariaLabel="Giá trị áp dụng hàng loạt"
+                      searchable={false}
+                      size="md"
+                      className="w-48"
+                    />
+                  ) : activeBulkField?.kind === 'number' ? (
+                    <Input
+                      aria-label={'Giá trị áp dụng hàng loạt'}
+                      className="w-36 text-right tabular-nums"
+                      type="number"
+                      value={bulkValue}
+                      variant="md"
+                      onChange={(event) => setBulkValue(event.target.value)}
+                    />
+                  ) : (
+                    <Input
+                      aria-label={'Giá trị áp dụng hàng loạt'}
+                      className="w-48"
+                      value={bulkValue}
+                      variant="md"
+                      onChange={(event) => setBulkValue(event.target.value)}
+                    />
+                  )}
+                </>
+              ) : null
+            }
+          />
+        )}
+      </>
     </DataGridProvider>
   );
+}
+
+function cloneReceiptLine(
+  line: MaterialReceiptFormLine,
+): MaterialReceiptFormLine {
+  return {
+    ...line,
+    clientId: crypto.randomUUID(),
+    lineId: '',
+    items: Array.from({ length: line.quantity }, (_, index) => {
+      const source = line.items[index];
+      const condition = source?.condition ?? line.condition;
+      return {
+        serialNumber: '',
+        condition,
+        conditionNote:
+          condition === 'damaged'
+            ? (source?.conditionNote ?? line.conditionNote)
+            : '',
+        note: '',
+      };
+    }),
+  };
 }
 
 function MaterialReceiptModelCell({
   form,
   index,
   line,
-  lockExistingModels,
+  locked,
 }: {
   form: UseFormReturn<MaterialReceiptFormValues>;
   index: number;
   line?: MaterialReceiptFormLine;
-  lockExistingModels: boolean;
+  locked: boolean;
 }) {
-  const mode = form.watch(`lines.${index}.modelMode`);
-  const locked = lockExistingModels && Boolean(line?.lineId);
   return (
-    <div className="min-w-[390px] space-y-2">
-      <OptionSelect
-        aria-label={`Loại mẫu vật tư dòng ${index + 1}`}
-        value={mode}
+    <div className="min-w-[360px]">
+      <MaterialModelSelect
+        aria-label={`Mẫu vật tư dòng ${index + 1}`}
+        value={line?.modelId ?? ''}
         disabled={locked}
         onChange={(value) => {
-          const next = value as 'existing' | 'new';
-          form.setValue(`lines.${index}.modelMode`, next, {
+          form.setValue(`lines.${index}.modelId`, value, {
             shouldDirty: true,
+            shouldValidate: true,
           });
-          if (next === 'existing') {
-            form.setValue(`lines.${index}.newModelName`, '', {
+          form.setValue(
+            `lines.${index}.specificationOverrides`,
+            {},
+            {
               shouldDirty: true,
-            });
-            form.setValue(`lines.${index}.groupId`, '', { shouldDirty: true });
-          } else {
-            form.setValue(`lines.${index}.modelId`, '', { shouldDirty: true });
-          }
+              shouldValidate: true,
+            },
+          );
         }}
-        options={[
-          { value: 'existing', label: 'Mẫu có sẵn' },
-          { value: 'new', label: 'Khai báo mẫu mới' },
-        ]}
-        searchable={false}
       />
-      {mode === 'new' ? (
-        <div className="space-y-2">
-          <Input
-            aria-label={`Tên mẫu mới dòng ${index + 1}`}
-            value={form.watch(`lines.${index}.newModelName`) ?? ''}
-            onChange={(event) =>
-              form.setValue(`lines.${index}.newModelName`, event.target.value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-            variant="md"
-          />
-          <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
-            <MaterialGroupSelect
-              aria-label={`Nhóm vật tư dòng ${index + 1}`}
-              value={form.watch(`lines.${index}.groupId`) ?? ''}
-              onChange={(value) =>
-                form.setValue(`lines.${index}.groupId`, value, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
-            <Input
-              aria-label={`Mã mẫu mới dòng ${index + 1}`}
-              value={form.watch(`lines.${index}.newModelCode`) ?? ''}
-              onChange={(event) =>
-                form.setValue(
-                  `lines.${index}.newModelCode`,
-                  event.target.value,
-                  { shouldDirty: true },
-                )
-              }
-              variant="md"
-            />
-          </div>
-        </div>
-      ) : (
-        <>
-          <MaterialModelSelect
-            aria-label={`Mẫu vật tư dòng ${index + 1}`}
-            value={form.watch(`lines.${index}.modelId`) ?? ''}
-            disabled={locked}
-            onChange={(value) =>
-              form.setValue(`lines.${index}.modelId`, value, {
-                shouldDirty: true,
-                shouldValidate: true,
-              })
-            }
-          />
-          {!line?.modelId && line?.externalCode?.trim() ? (
-            <p className="text-xs text-muted-foreground">
-              Mã liên kết ngoài sẽ được tra cứu khi lưu.
-            </p>
-          ) : null}
-        </>
-      )}
     </div>
-  );
-}
-
-function MaterialReceiptUnitsCell({
-  form,
-  index,
-}: {
-  form: UseFormReturn<MaterialReceiptFormValues>;
-  index: number;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <Controller
-      control={form.control}
-      name={`lines.${index}.items`}
-      render={({ field }) => {
-        const items = field.value ?? [];
-        const damagedCount = items.filter(
-          (item) => item.condition === 'damaged',
-        ).length;
-        return (
-          <div className="min-w-[245px]">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpanded((value) => !value)}
-            >
-              {expanded ? 'Ẩn chi tiết' : 'Sửa từng vật tư'} ({items.length})
-            </Button>
-            <span className="ml-2 text-xs text-muted-foreground">
-              {damagedCount ? `${damagedCount} hỏng` : 'Tốt'}
-            </span>
-            {expanded ? (
-              <div className="mt-2 max-h-64 space-y-3 overflow-y-auto rounded-md border border-border p-2">
-                {items.map((item, itemIndex) => (
-                  <div
-                    key={item.receiptItemId ?? itemIndex}
-                    className="space-y-2 border-b border-border pb-3 last:border-0 last:pb-0"
-                  >
-                    <div className="text-xs font-medium text-muted-foreground">
-                      Vật tư {itemIndex + 1}
-                    </div>
-                    <Input
-                      aria-label={`Số sê-ri vật tư ${itemIndex + 1}`}
-                      value={item.serialNumber}
-                      onChange={(event) =>
-                        field.onChange(
-                          items.map((current, position) =>
-                            position === itemIndex
-                              ? { ...current, serialNumber: event.target.value }
-                              : current,
-                          ),
-                        )
-                      }
-                      variant="sm"
-                    />
-                    <OptionSelect
-                      aria-label={`Tình trạng vật tư ${itemIndex + 1}`}
-                      value={item.condition}
-                      onChange={(value) =>
-                        field.onChange(
-                          items.map((current, position) =>
-                            position === itemIndex
-                              ? {
-                                  ...current,
-                                  condition: value as 'good' | 'damaged',
-                                }
-                              : current,
-                          ),
-                        )
-                      }
-                      options={[
-                        { value: 'good', label: 'Tốt' },
-                        { value: 'damaged', label: 'Hỏng' },
-                      ]}
-                      searchable={false}
-                      size="sm"
-                    />
-                    {item.condition === 'damaged' ? (
-                      <Input
-                        aria-label={`Mô tả tình trạng hỏng vật tư ${itemIndex + 1}`}
-                        value={item.conditionNote}
-                        onChange={(event) =>
-                          field.onChange(
-                            items.map((current, position) =>
-                              position === itemIndex
-                                ? {
-                                    ...current,
-                                    conditionNote: event.target.value,
-                                  }
-                                : current,
-                            ),
-                          )
-                        }
-                        variant="sm"
-                      />
-                    ) : null}
-                    <Textarea
-                      aria-label={`Ghi chú vật tư ${itemIndex + 1}`}
-                      rows={1}
-                      value={item.note}
-                      onChange={(event) =>
-                        field.onChange(
-                          items.map((current, position) =>
-                            position === itemIndex
-                              ? { ...current, note: event.target.value }
-                              : current,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        );
-      }}
-    />
   );
 }
