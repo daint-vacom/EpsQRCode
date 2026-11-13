@@ -4,6 +4,10 @@ alter table public.material_receipt_lines
   add column specification_override_labels jsonb not null default '{}'::jsonb
   check (jsonb_typeof(specification_override_labels) = 'object');
 
+-- This set-based migration backfill has no authenticated request context.
+alter table public.material_receipt_lines
+  disable trigger material_receipt_lines_scope_guard;
+
 with uniform_line_overrides as (
   select line.id,
     (array_agg(material.specification_overrides))[1] as specification_overrides,
@@ -21,6 +25,9 @@ set specification_overrides = uniform_line_overrides.specification_overrides,
     specification_override_labels = uniform_line_overrides.specification_override_labels
 from uniform_line_overrides
 where line.id = uniform_line_overrides.id;
+
+alter table public.material_receipt_lines
+  enable trigger material_receipt_lines_scope_guard;
 
 create or replace function private.receipt_line_specification_overrides_valid(
   p_model_id uuid,
