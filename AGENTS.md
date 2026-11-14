@@ -80,6 +80,15 @@ Current code, `package.json`, and `docs/00-stack-and-architecture.md` win over o
 - When a UI needs details for multiple selected IDs, prefer a bounded batch read over firing one detail request per ID. Preserve per-record authorization and a stable result order; keep individually cacheable detail reads for screens that open one record at a time.
 - Include every output-affecting filter in the request contract and query-cache key so summaries and lists describe the same scope.
 
+### Endpoint Performance and Authorization
+
+- For large or growing collections, apply authorization scope, filters, ordering, and pagination in SQL before building JSON. Do not fetch a complete catalog and filter, sort, or paginate it in the browser. Use a stable tie-breaker for paginated results.
+- In list and summary RPCs, do not call a security-definer permission helper once per candidate row when the same access context can be resolved once per request. Materialize the caller's visibility context or authorized IDs once, then use set-based joins or `EXISTS` checks. Keep the canonical permission logic and apply it to the same current or snapshotted scope; this is a query-shape optimization, never an authorization shortcut. Point reads and mutations should continue to use the appropriate per-record authorization check.
+- Compute repeated per-row permission flags once and reuse them. When a lookup depends only on a related ID, deduplicate those IDs, compute the lookup once per distinct ID, then join the result back. Avoid repeated correlated lookups and one-request-per-record patterns; prefer bounded batch reads or set-based aggregates when the screen needs multiple records.
+- Add indexes only after examining the real predicates, joins, ordering, and query plan. Match indexes to those access paths; do not treat an advisor's unused-index or missing-index notice as sufficient evidence by itself.
+- Diagnose slow endpoints with both end-to-end API logs and database measurements (`pg_stat_statements` plus `EXPLAIN (ANALYZE, BUFFERS)`) using representative authenticated roles and permission scopes. Separate database execution time from gateway/network latency, response size, request fan-out, and cold-start effects before attributing delay to the Supabase plan.
+- Before and after changing an RPC, compare returned IDs, counts, filters, and ordering for each relevant permission scope, then compare execution time and rows/buffers scanned. Keep the endpoint contract and authorization results unchanged unless the user approved a behavior change.
+
 ## Import and Runtime Symbol Rules
 
 - When adding or renaming a JSX component, hook, icon, helper, or type, update its import in the same patch. Do not rely on Vite HMR or a previous import being present in a nearby file.
