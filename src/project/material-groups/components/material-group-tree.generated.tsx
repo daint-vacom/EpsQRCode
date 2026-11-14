@@ -3,7 +3,7 @@
  * You own this file now — wire the callback props to screen logic or override the presentation.
  * To change the node shape or action list, edit the spec and re-gen to a scratch path first.
  */
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
   closestCenter,
   DndContext,
@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { MaterialGroupTreeNode } from '../model/material-group-tree';
+import { debugMaterialGroupTree } from '../utils/material-group-tree-debug';
 
 export interface MaterialGroupTreeProps {
   nodes: MaterialGroupTreeNode[];
@@ -234,9 +235,10 @@ function MaterialGroupTreeRootRow({
 
 type MaterialGroupTreeListProps = MaterialGroupTreeProps & {
   activeGroup: { id: string; parentId: string | null } | null;
+  hidden?: boolean;
 };
 
-export function MaterialGroupTree({
+export const MaterialGroupTree = memo(function MaterialGroupTree({
   nodes,
   selectedId,
   countByNode,
@@ -250,9 +252,10 @@ export function MaterialGroupTree({
   isMovePending,
   pendingAvailabilityIds,
   activeGroup,
+  hidden = false,
 }: MaterialGroupTreeListProps) {
   return (
-    <ul className="flex flex-col gap-0.5">
+    <ul className={cn('flex flex-col gap-0.5', hidden && 'hidden')}>
       {nodes.map((node, index) => (
         <MaterialGroupTreeItem
           key={node.id}
@@ -274,7 +277,7 @@ export function MaterialGroupTree({
       ))}
     </ul>
   );
-}
+});
 
 type MaterialGroupTreeItemProps = Omit<MaterialGroupTreeProps, 'nodes'> & {
   node: MaterialGroupTreeNode;
@@ -282,7 +285,7 @@ type MaterialGroupTreeItemProps = Omit<MaterialGroupTreeProps, 'nodes'> & {
   activeGroup: { id: string; parentId: string | null } | null;
 };
 
-function MaterialGroupTreeItem({
+const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
   node,
   isLastSibling,
   selectedId,
@@ -381,7 +384,17 @@ function MaterialGroupTreeItem({
             type="button"
             aria-label={isExpanded ? 'Thu gọn' : 'Mở rộng'}
             className="relative z-10 flex size-5 shrink-0 items-center justify-center text-muted-foreground"
-            onClick={() => setIsExpanded((prev) => !prev)}
+            onClick={() => {
+              const nextExpanded = !isExpanded;
+              debugMaterialGroupTree('node:toggle', {
+                groupId: node.id,
+                groupName: node.name,
+                fromExpanded: isExpanded,
+                toExpanded: nextExpanded,
+                directChildCount: node.children.length,
+              });
+              setIsExpanded(nextExpanded);
+            }}
           >
             <ChevronRight
               className={cn(
@@ -529,8 +542,10 @@ function MaterialGroupTreeItem({
         </div>
       </div>
 
-      {hasChildren && isExpanded && (
+      {/* Keep the subtree mounted so expanding it does not remount every row and drag target. */}
+      {hasChildren && (
         <MaterialGroupTree
+          hidden={!isExpanded}
           nodes={node.children}
           selectedId={selectedId}
           countByNode={countByNode}
@@ -547,4 +562,4 @@ function MaterialGroupTreeItem({
       )}
     </li>
   );
-}
+});

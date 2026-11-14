@@ -1,14 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Profiler, useEffect, useMemo, useRef, useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
 import {
+  MaterialGroupFilterLayout,
+  MaterialGroupFilterLayoutProvider,
   MaterialGroupFilterSidebar,
   MaterialGroupFilterToggle,
 } from '@/project/material-groups/components/material-group-filter-tree';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
 import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
+import {
+  debugMaterialGroupTree,
+  isMaterialGroupTreeDebugEnabled,
+} from '@/project/material-groups/utils/material-group-tree-debug';
 import {
   MATERIAL_LABEL_SELECTION_STATE_KEY,
   storeMaterialLabelSelection,
@@ -162,7 +168,6 @@ export function MaterialListPage() {
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
-  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(false);
   const [status, setStatus] = useState('');
   const [filterMode, setFilterMode] = useState<MaterialFilterMode>('status');
   const [isActive, setIsActive] = useState<boolean | undefined>();
@@ -196,6 +201,33 @@ export function MaterialListPage() {
     queryEnabled && !isPermissionsPending,
   );
   const groups = groupsQuery.data ?? EMPTY_MATERIAL_GROUPS;
+
+  useEffect(() => {
+    if (
+      !isMaterialGroupTreeDebugEnabled() ||
+      typeof PerformanceObserver === 'undefined'
+    ) {
+      return;
+    }
+
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        debugMaterialGroupTree('long-task', {
+          durationMs: Number(entry.duration.toFixed(1)),
+          startAtMs: Number(entry.startTime.toFixed(1)),
+        });
+      }
+    });
+
+    try {
+      observer.observe({ type: 'longtask', buffered: true });
+    } catch {
+      observer.disconnect();
+      return;
+    }
+
+    return () => observer.disconnect();
+  }, []);
   const groupIds = useMemo(
     () =>
       groupId ? [...getMaterialGroupDescendantIds(groups, groupId)] : undefined,
@@ -518,442 +550,504 @@ export function MaterialListPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
-      <PageHeader
-        title={intl.formatMessage({ id: 'project.materials.page.title' })}
-        icon={Boxes}
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {canView ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    mode="icon"
-                    size="md"
-                    aria-label={exportExcelLabel}
-                    onClick={() => setIsExportDialogOpen(true)}
-                  >
-                    <Download aria-hidden="true" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{exportExcelLabel}</TooltipContent>
-              </Tooltip>
-            ) : null}
-            {canManage ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    mode="icon"
-                    size="md"
-                    aria-label={importExcelLabel}
-                    onClick={() => setIsImportDialogOpen(true)}
-                  >
-                    <Upload aria-hidden="true" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{importExcelLabel}</TooltipContent>
-              </Tooltip>
-            ) : null}
-            {canManage ? (
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
-              >
-                <Plus />
-                {intl.formatMessage({ id: 'project.materials.actions.create' })}
-              </Button>
-            ) : null}
-          </div>
-        }
-      />
-      <MaterialFilterRow
-        leadingAction={
-          <MaterialGroupFilterToggle
-            isOpen={isGroupTreeOpen}
-            controlsId="material-group-filter-tree"
-            disabled={!canView || isPermissionsPending || groupsQuery.isPending}
-            onClick={() => setIsGroupTreeOpen((current) => !current)}
-          />
-        }
-        mode={filterMode}
-        onModeChange={handleFilterModeChange}
-        counts={filterSummary.data}
-        isCountsLoading={filterSummary.isPending}
-        ownerFilter={filterSummary.data?.ownerFilter}
-        isActive={isActive}
-        onIsActiveChange={(value) => {
-          setIsActive(value);
-          setPagination((current) => ({ ...current, pageIndex: 0 }));
-        }}
-        condition={condition}
-        onConditionChange={(value) => {
-          setCondition(value);
-          setPagination((current) => ({ ...current, pageIndex: 0 }));
-        }}
-        ownerType={ownerType}
-        onOwnerTypeChange={handleOwnerTypeChange}
-        ownerDepartmentId={ownerDepartmentId}
-        onOwnerDepartmentChange={handleOwnerDepartmentChange}
-        ownerTeamId={ownerTeamId}
-        onOwnerTeamChange={handleOwnerTeamChange}
-        ownerPartyId={ownerPartyId}
-        onOwnerPartyIdChange={(value) => {
-          setOwnerPartyId(value);
-          setPagination((current) => ({ ...current, pageIndex: 0 }));
-        }}
-        selectedEmployee={selectedOwnerEmployee}
-        onSelectedEmployeeChange={setSelectedOwnerEmployee}
-        parties={partiesQuery.data ?? []}
-        disabled={isPermissionsPending || !canView || partiesQuery.isPending}
-      />
-      <DataGrid
-        table={table}
-        recordCount={total}
-        isLoading={
-          isPermissionsPending ||
-          (canView &&
-            (query.isPending ||
-              partiesQuery.isPending ||
-              groupsQuery.isPending))
-        }
-        isFetching={
-          query.isFetching || partiesQuery.isFetching || groupsQuery.isFetching
-        }
-        emptyMessage={intl.formatMessage({
-          id: hasActiveFilters
-            ? 'project.materials.empty.search'
-            : 'project.materials.empty.list',
-        })}
-        tableLayout={{ dense: true }}
-      >
-        <div
-          className={`flex min-h-0 min-w-0 flex-1 flex-col transition-[gap] duration-300 ease-in-out motion-reduce:transition-none xl:flex-row ${isGroupTreeOpen ? 'gap-3' : 'gap-0'}`}
-        >
-          <MaterialGroupFilterSidebar
-            id="material-group-filter-tree"
-            isOpen={isGroupTreeOpen}
-            groups={groups}
-            selectedGroupId={groupId || null}
-            onSelectGroup={(nextGroupId) => {
-              setGroupId(nextGroupId ?? '');
+    <Profiler
+      id="material-list-page"
+      onRender={(
+        id,
+        phase,
+        actualDuration,
+        baseDuration,
+        startTime,
+        commitTime,
+      ) =>
+        debugMaterialGroupTree('react:profile', {
+          id,
+          phase,
+          actualDurationMs: Number(actualDuration.toFixed(1)),
+          baseDurationMs: Number(baseDuration.toFixed(1)),
+          startAtMs: Number(startTime.toFixed(1)),
+          commitAtMs: Number(commitTime.toFixed(1)),
+        })
+      }
+    >
+      <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
+        <PageHeader
+          title={intl.formatMessage({ id: 'project.materials.page.title' })}
+          icon={Boxes}
+          actions={
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {canView ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      size="md"
+                      aria-label={exportExcelLabel}
+                      onClick={() => setIsExportDialogOpen(true)}
+                    >
+                      <Download aria-hidden="true" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{exportExcelLabel}</TooltipContent>
+                </Tooltip>
+              ) : null}
+              {canManage ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      mode="icon"
+                      size="md"
+                      aria-label={importExcelLabel}
+                      onClick={() => setIsImportDialogOpen(true)}
+                    >
+                      <Upload aria-hidden="true" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{importExcelLabel}</TooltipContent>
+                </Tooltip>
+              ) : null}
+              {canManage ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={() => navigate(ROUTES.PROJECT.MATERIAL_CREATE)}
+                >
+                  <Plus />
+                  {intl.formatMessage({
+                    id: 'project.materials.actions.create',
+                  })}
+                </Button>
+              ) : null}
+            </div>
+          }
+        />
+        <MaterialGroupFilterLayoutProvider>
+          <MaterialFilterRow
+            leadingAction={
+              <MaterialGroupFilterToggle
+                controlsId="material-group-filter-tree"
+                disabled={
+                  !canView || isPermissionsPending || groupsQuery.isPending
+                }
+              />
+            }
+            mode={filterMode}
+            onModeChange={handleFilterModeChange}
+            counts={filterSummary.data}
+            isCountsLoading={filterSummary.isPending}
+            ownerFilter={filterSummary.data?.ownerFilter}
+            isActive={isActive}
+            onIsActiveChange={(value) => {
+              setIsActive(value);
               setPagination((current) => ({ ...current, pageIndex: 0 }));
             }}
+            condition={condition}
+            onConditionChange={(value) => {
+              setCondition(value);
+              setPagination((current) => ({ ...current, pageIndex: 0 }));
+            }}
+            ownerType={ownerType}
+            onOwnerTypeChange={handleOwnerTypeChange}
+            ownerDepartmentId={ownerDepartmentId}
+            onOwnerDepartmentChange={handleOwnerDepartmentChange}
+            ownerTeamId={ownerTeamId}
+            onOwnerTeamChange={handleOwnerTeamChange}
+            ownerPartyId={ownerPartyId}
+            onOwnerPartyIdChange={(value) => {
+              setOwnerPartyId(value);
+              setPagination((current) => ({ ...current, pageIndex: 0 }));
+            }}
+            selectedEmployee={selectedOwnerEmployee}
+            onSelectedEmployeeChange={setSelectedOwnerEmployee}
+            parties={partiesQuery.data ?? []}
+            disabled={
+              isPermissionsPending || !canView || partiesQuery.isPending
+            }
           />
-          <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-            <DataGridHeader
-              variant="stats"
-              recordCountLabel={intl.formatMessage({
-                id: 'project.materials.list.recordCountLabel',
+          <Profiler
+            id="material-grid"
+            onRender={(id, phase, actualDuration, baseDuration) =>
+              debugMaterialGroupTree('react:profile', {
+                id,
+                phase,
+                actualDurationMs: Number(actualDuration.toFixed(1)),
+                baseDurationMs: Number(baseDuration.toFixed(1)),
+              })
+            }
+          >
+            <DataGrid
+              table={table}
+              recordCount={total}
+              isLoading={
+                isPermissionsPending ||
+                (canView &&
+                  (query.isPending ||
+                    partiesQuery.isPending ||
+                    groupsQuery.isPending))
+              }
+              isFetching={
+                query.isFetching ||
+                partiesQuery.isFetching ||
+                groupsQuery.isFetching
+              }
+              emptyMessage={intl.formatMessage({
+                id: hasActiveFilters
+                  ? 'project.materials.empty.search'
+                  : 'project.materials.empty.list',
               })}
-              stats={
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <SearchInput
-                    aria-label={intl.formatMessage({
-                      id: 'project.materials.filters.search',
-                    })}
-                    placeholder={intl.formatMessage({
-                      id: 'project.materials.filters.search',
-                    })}
-                    value={search}
-                    className="w-64 shrink-0"
-                    onSearch={(value) => {
-                      setSearch(value);
+              tableLayout={{ dense: true }}
+            >
+              <MaterialGroupFilterLayout>
+                <Profiler
+                  id="material-group-filter-sidebar"
+                  onRender={(id, phase, actualDuration, baseDuration) =>
+                    debugMaterialGroupTree('react:profile', {
+                      id,
+                      phase,
+                      actualDurationMs: Number(actualDuration.toFixed(1)),
+                      baseDurationMs: Number(baseDuration.toFixed(1)),
+                    })
+                  }
+                >
+                  <MaterialGroupFilterSidebar
+                    id="material-group-filter-tree"
+                    groups={groups}
+                    selectedGroupId={groupId || null}
+                    onSelectGroup={(nextGroupId) => {
+                      setGroupId(nextGroupId ?? '');
                       setPagination((current) => ({
                         ...current,
                         pageIndex: 0,
                       }));
                     }}
                   />
-                  <OptionSelect
-                    aria-label={intl.formatMessage({
-                      id: 'project.materials.filters.loanStatus',
+                </Profiler>
+                <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
+                  <DataGridHeader
+                    variant="stats"
+                    recordCountLabel={intl.formatMessage({
+                      id: 'project.materials.list.recordCountLabel',
                     })}
-                    placeholder={intl.formatMessage({
-                      id: 'project.materials.filters.loanStatusPlaceholder',
-                    })}
-                    options={statusOptions}
-                    value={status}
-                    onChange={handleFilterChange(setStatus)}
-                    searchable={false}
-                    className="w-52 shrink-0"
+                    stats={
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <SearchInput
+                          aria-label={intl.formatMessage({
+                            id: 'project.materials.filters.search',
+                          })}
+                          placeholder={intl.formatMessage({
+                            id: 'project.materials.filters.search',
+                          })}
+                          value={search}
+                          className="w-64 shrink-0"
+                          onSearch={(value) => {
+                            setSearch(value);
+                            setPagination((current) => ({
+                              ...current,
+                              pageIndex: 0,
+                            }));
+                          }}
+                        />
+                        <OptionSelect
+                          aria-label={intl.formatMessage({
+                            id: 'project.materials.filters.loanStatus',
+                          })}
+                          placeholder={intl.formatMessage({
+                            id: 'project.materials.filters.loanStatusPlaceholder',
+                          })}
+                          options={statusOptions}
+                          value={status}
+                          onChange={handleFilterChange(setStatus)}
+                          searchable={false}
+                          className="w-52 shrink-0"
+                        />
+                      </div>
+                    }
+                    toolbar={<DataGridHeaderMenu table={table} />}
                   />
-                </div>
-              }
-              toolbar={<DataGridHeaderMenu table={table} />}
-            />
-            <CardTable className="min-h-0 flex-1">
-              {!isPermissionsPending && !canView ? (
-                <ErrorState
-                  title={intl.formatMessage({
-                    id: 'project.materials.errors.loadTitle',
+                  <CardTable className="min-h-0 flex-1">
+                    {!isPermissionsPending && !canView ? (
+                      <ErrorState
+                        title={intl.formatMessage({
+                          id: 'project.materials.errors.loadTitle',
+                        })}
+                        description={intl.formatMessage({
+                          id: 'project.materials.errors.authorization',
+                        })}
+                      />
+                    ) : query.isError ||
+                      partiesQuery.isError ||
+                      groupsQuery.isError ? (
+                      <ErrorState
+                        title={intl.formatMessage({
+                          id: query.isError
+                            ? 'project.materials.errors.loadTitle'
+                            : 'project.materials.errors.loadFiltersTitle',
+                        })}
+                        description={getApiErrorMessage(
+                          query.error ??
+                            partiesQuery.error ??
+                            groupsQuery.error,
+                        )}
+                        onRetry={() => {
+                          void query.refetch();
+                          void partiesQuery.refetch();
+                          void groupsQuery.refetch();
+                        }}
+                      />
+                    ) : (
+                      <ScrollArea
+                        className="h-full"
+                        viewportRef={tableViewportRef}
+                      >
+                        <DataGridTable />
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
+                    )}
+                  </CardTable>
+                  <CardFooter className="justify-between">
+                    {canView &&
+                    !isPermissionsPending &&
+                    !query.isError &&
+                    !partiesQuery.isError &&
+                    !groupsQuery.isError ? (
+                      <DataGridPagination />
+                    ) : null}
+                  </CardFooter>
+                </Card>
+              </MaterialGroupFilterLayout>
+              <DataGridActionBar
+                onSelectionChange={setSelectedMaterials}
+                selectionLabel={(count) =>
+                  intl.formatMessage(
+                    { id: 'project.materials.bulk.selectedCount' },
+                    { count },
+                  )
+                }
+              >
+                <OptionSelect
+                  value={bulkAction}
+                  onChange={(value) =>
+                    setBulkAction(value as MaterialBulkAction)
+                  }
+                  options={[
+                    ...(canView
+                      ? [
+                          {
+                            value: 'printQr',
+                            label: intl.formatMessage({
+                              id: 'project.materials.bulk.printQr',
+                            }),
+                          },
+                        ]
+                      : []),
+                    ...(canManage
+                      ? [
+                          {
+                            value: 'handover',
+                            label: intl.formatMessage({
+                              id: 'project.materials.bulk.handover',
+                            }),
+                          },
+                          {
+                            value: 'delete',
+                            label: intl.formatMessage({
+                              id: 'project.materials.bulk.delete',
+                            }),
+                          },
+                        ]
+                      : []),
+                  ]}
+                  placeholder={intl.formatMessage({
+                    id: 'project.materials.bulk.chooseAction',
                   })}
-                  description={intl.formatMessage({
-                    id: 'project.materials.errors.authorization',
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.materials.bulk.chooseAction',
                   })}
-                />
-              ) : query.isError ||
-                partiesQuery.isError ||
-                groupsQuery.isError ? (
-                <ErrorState
-                  title={intl.formatMessage({
-                    id: query.isError
-                      ? 'project.materials.errors.loadTitle'
-                      : 'project.materials.errors.loadFiltersTitle',
-                  })}
-                  description={getApiErrorMessage(
-                    query.error ?? partiesQuery.error ?? groupsQuery.error,
-                  )}
-                  onRetry={() => {
-                    void query.refetch();
-                    void partiesQuery.refetch();
-                    void groupsQuery.refetch();
+                  searchable={false}
+                  size="md"
+                  className="w-56"
+                  renderOption={(option) => {
+                    const Icon =
+                      option.value === 'printQr'
+                        ? QrCode
+                        : option.value === 'handover'
+                          ? Handshake
+                          : Trash2;
+                    const isDestructive = option.value === 'delete';
+
+                    return (
+                      <span className="flex items-center gap-2">
+                        <Icon
+                          className={`size-4 shrink-0 ${isDestructive ? 'text-destructive' : ''}`}
+                        />
+                        <span
+                          className={isDestructive ? 'text-destructive' : ''}
+                        >
+                          {option.label}
+                        </span>
+                      </span>
+                    );
                   }}
                 />
-              ) : (
-                <ScrollArea className="h-full" viewportRef={tableViewportRef}>
-                  <DataGridTable />
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              )}
-            </CardTable>
-            <CardFooter className="justify-between">
-              {canView &&
-              !isPermissionsPending &&
-              !query.isError &&
-              !partiesQuery.isError &&
-              !groupsQuery.isError ? (
-                <DataGridPagination />
-              ) : null}
-            </CardFooter>
-          </Card>
-        </div>
-        <DataGridActionBar
-          onSelectionChange={setSelectedMaterials}
-          selectionLabel={(count) =>
-            intl.formatMessage(
-              { id: 'project.materials.bulk.selectedCount' },
-              { count },
-            )
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  disabled={
+                    !bulkAction ||
+                    (bulkAction === 'delete' && deleteMutation.isPending)
+                  }
+                  onClick={handleApplyBulkAction}
+                >
+                  {intl.formatMessage({ id: 'project.materials.bulk.apply' })}
+                </Button>
+              </DataGridActionBar>
+            </DataGrid>
+          </Profiler>
+        </MaterialGroupFilterLayoutProvider>
+        <ConfirmDialog
+          open={deletingMaterials.length > 0}
+          onOpenChange={(open) => !open && setDeletingMaterials([])}
+          title={intl.formatMessage({
+            id: 'project.materials.dialogs.deleteTitle',
+          })}
+          description={
+            deletingMaterials.length > 1
+              ? intl.formatMessage(
+                  { id: 'project.materials.bulk.deleteDescription' },
+                  { count: deletingMaterials.length },
+                )
+              : intl.formatMessage(
+                  { id: 'project.materials.dialogs.deleteDescription' },
+                  {
+                    name:
+                      deletingMaterials[0]?.nameOverride?.trim() ||
+                      deletingMaterials[0]?.modelSnapshot.name ||
+                      '',
+                  },
+                )
           }
+          confirmLabel={
+            deletingMaterials.length > 1
+              ? intl.formatMessage(
+                  { id: 'project.materials.bulk.deleteConfirm' },
+                  { count: deletingMaterials.length },
+                )
+              : intl.formatMessage({
+                  id: 'project.materials.dialogs.deleteConfirm',
+                })
+          }
+          confirmVariant="destructive"
+          isConfirming={deleteMutation.isPending}
+          closeOnConfirm={false}
+          onConfirm={handleDelete}
+        />
+        <MaterialQrCodeDialog
+          material={qrDialogMaterial}
+          onOpenChange={(open) => !open && setQrDialogMaterial(null)}
+          onPrint={(material) => navigateToLabelPrint([material.id])}
+        />
+        <MaterialHandoverPreflightDialogShell
+          open={isHandoverPreflightOpen}
+          onOpenChange={setIsHandoverPreflightOpen}
+          onCancel={() => setIsHandoverPreflightOpen(false)}
         >
-          <OptionSelect
-            value={bulkAction}
-            onChange={(value) => setBulkAction(value as MaterialBulkAction)}
-            options={[
-              ...(canView
-                ? [
-                    {
-                      value: 'printQr',
-                      label: intl.formatMessage({
-                        id: 'project.materials.bulk.printQr',
-                      }),
-                    },
-                  ]
-                : []),
-              ...(canManage
-                ? [
-                    {
-                      value: 'handover',
-                      label: intl.formatMessage({
-                        id: 'project.materials.bulk.handover',
-                      }),
-                    },
-                    {
-                      value: 'delete',
-                      label: intl.formatMessage({
-                        id: 'project.materials.bulk.delete',
-                      }),
-                    },
-                  ]
-                : []),
-            ]}
-            placeholder={intl.formatMessage({
-              id: 'project.materials.bulk.chooseAction',
-            })}
-            ariaLabel={intl.formatMessage({
-              id: 'project.materials.bulk.chooseAction',
-            })}
-            searchable={false}
-            size="md"
-            className="w-56"
-            renderOption={(option) => {
-              const Icon =
-                option.value === 'printQr'
-                  ? QrCode
-                  : option.value === 'handover'
-                    ? Handshake
-                    : Trash2;
-              const isDestructive = option.value === 'delete';
-
-              return (
-                <span className="flex items-center gap-2">
-                  <Icon
-                    className={`size-4 shrink-0 ${isDestructive ? 'text-destructive' : ''}`}
-                  />
-                  <span className={isDestructive ? 'text-destructive' : ''}>
-                    {option.label}
-                  </span>
-                </span>
-              );
-            }}
-          />
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            disabled={
-              !bulkAction ||
-              (bulkAction === 'delete' && deleteMutation.isPending)
-            }
-            onClick={handleApplyBulkAction}
-          >
-            {intl.formatMessage({ id: 'project.materials.bulk.apply' })}
-          </Button>
-        </DataGridActionBar>
-      </DataGrid>
-      <ConfirmDialog
-        open={deletingMaterials.length > 0}
-        onOpenChange={(open) => !open && setDeletingMaterials([])}
-        title={intl.formatMessage({
-          id: 'project.materials.dialogs.deleteTitle',
-        })}
-        description={
-          deletingMaterials.length > 1
-            ? intl.formatMessage(
-                { id: 'project.materials.bulk.deleteDescription' },
-                { count: deletingMaterials.length },
-              )
-            : intl.formatMessage(
-                { id: 'project.materials.dialogs.deleteDescription' },
-                {
-                  name:
-                    deletingMaterials[0]?.nameOverride?.trim() ||
-                    deletingMaterials[0]?.modelSnapshot.name ||
-                    '',
-                },
-              )
-        }
-        confirmLabel={
-          deletingMaterials.length > 1
-            ? intl.formatMessage(
-                { id: 'project.materials.bulk.deleteConfirm' },
-                { count: deletingMaterials.length },
-              )
-            : intl.formatMessage({
-                id: 'project.materials.dialogs.deleteConfirm',
-              })
-        }
-        confirmVariant="destructive"
-        isConfirming={deleteMutation.isPending}
-        closeOnConfirm={false}
-        onConfirm={handleDelete}
-      />
-      <MaterialQrCodeDialog
-        material={qrDialogMaterial}
-        onOpenChange={(open) => !open && setQrDialogMaterial(null)}
-        onPrint={(material) => navigateToLabelPrint([material.id])}
-      />
-      <MaterialHandoverPreflightDialogShell
-        open={isHandoverPreflightOpen}
-        onOpenChange={setIsHandoverPreflightOpen}
-        onCancel={() => setIsHandoverPreflightOpen(false)}
-      >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <HandoverCheckRow
-              label={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.sameOwner',
-              })}
-              passed={hasSameOwner}
-              passedLabel={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.passed',
-              })}
-              failedLabel={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.failed',
-              })}
-            />
-            <HandoverCheckRow
-              label={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.ready',
-              })}
-              passed={
-                unavailableMaterials.length === 0 &&
-                reservedMaterials.length === 0
-              }
-              passedLabel={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.passed',
-              })}
-              failedLabel={intl.formatMessage({
-                id: 'project.materials.bulk.handover.check.failed',
-              })}
-            />
-          </div>
-          {handoverErrors.length > 0 ? (
-            <ul
-              role="alert"
-              className="list-inside list-disc space-y-1 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
-            >
-              {handoverErrors.map((error, index) => (
-                <li key={`${index}-${error}`}>{error}</li>
-              ))}
-            </ul>
-          ) : null}
-          <ul className="max-h-64 divide-y overflow-y-auto rounded-md border border-border">
-            {selectedMaterials.map((material) => (
-              <li
-                key={material.id}
-                className="flex items-center justify-between gap-3 px-3 py-2"
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <HandoverCheckRow
+                label={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.sameOwner',
+                })}
+                passed={hasSameOwner}
+                passedLabel={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.passed',
+                })}
+                failedLabel={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.failed',
+                })}
+              />
+              <HandoverCheckRow
+                label={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.ready',
+                })}
+                passed={
+                  unavailableMaterials.length === 0 &&
+                  reservedMaterials.length === 0
+                }
+                passedLabel={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.passed',
+                })}
+                failedLabel={intl.formatMessage({
+                  id: 'project.materials.bulk.handover.check.failed',
+                })}
+              />
+            </div>
+            {handoverErrors.length > 0 ? (
+              <ul
+                role="alert"
+                className="list-inside list-disc space-y-1 rounded-md border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {material.code} ·{' '}
-                    {material.nameOverride?.trim() ||
-                      material.modelSnapshot.name}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {material.ownerSnapshot.name || '—'}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Badge
-                    size="sm"
-                    variant={
-                      material.status === 'available' ? 'success' : 'warning'
-                    }
-                    appearance="light"
-                  >
-                    {intl.formatMessage({
-                      id: `project.materials.status.${material.status}`,
-                    })}
-                  </Badge>
-                  {material.reservationStatus ? (
-                    <Badge size="sm" variant="destructive" appearance="light">
+                {handoverErrors.map((error, index) => (
+                  <li key={`${index}-${error}`}>{error}</li>
+                ))}
+              </ul>
+            ) : null}
+            <ul className="max-h-64 divide-y overflow-y-auto rounded-md border border-border">
+              {selectedMaterials.map((material) => (
+                <li
+                  key={material.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {material.code} ·{' '}
+                      {material.nameOverride?.trim() ||
+                        material.modelSnapshot.name}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {material.ownerSnapshot.name || '—'}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Badge
+                      size="sm"
+                      variant={
+                        material.status === 'available' ? 'success' : 'warning'
+                      }
+                      appearance="light"
+                    >
                       {intl.formatMessage({
-                        id: `project.handover.status.${material.reservationStatus}`,
+                        id: `project.materials.status.${material.status}`,
                       })}
                     </Badge>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </MaterialHandoverPreflightDialogShell>
-      <MaterialSpreadsheetImportDialog
-        open={isImportDialogOpen}
-        onOpenChange={setIsImportDialogOpen}
-      />
-      <MaterialSpreadsheetExportDialog
-        open={isExportDialogOpen}
-        onOpenChange={setIsExportDialogOpen}
-        filters={spreadsheetFilters}
-      />
-    </div>
+                    {material.reservationStatus ? (
+                      <Badge size="sm" variant="destructive" appearance="light">
+                        {intl.formatMessage({
+                          id: `project.handover.status.${material.reservationStatus}`,
+                        })}
+                      </Badge>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </MaterialHandoverPreflightDialogShell>
+        <MaterialSpreadsheetImportDialog
+          open={isImportDialogOpen}
+          onOpenChange={setIsImportDialogOpen}
+        />
+        <MaterialSpreadsheetExportDialog
+          open={isExportDialogOpen}
+          onOpenChange={setIsExportDialogOpen}
+          filters={spreadsheetFilters}
+        />
+      </div>
+    </Profiler>
   );
 }
