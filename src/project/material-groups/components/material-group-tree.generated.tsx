@@ -26,6 +26,7 @@ import {
   Power,
   Trash2,
 } from 'lucide-react';
+import { useIntl } from 'react-intl';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export interface MaterialGroupTreeProps {
   nodes: MaterialGroupTreeNode[];
   selectedId: string | null;
   countByNode: Map<string, number>;
+  countLabelId?: string;
   onSelect: (id: string) => void;
   onAdd?: (parentId: string | null) => void;
   onEdit?: (node: MaterialGroupTreeNode) => void;
@@ -242,6 +244,7 @@ export const MaterialGroupTree = memo(function MaterialGroupTree({
   nodes,
   selectedId,
   countByNode,
+  countLabelId,
   onSelect,
   onAdd,
   onEdit,
@@ -263,6 +266,7 @@ export const MaterialGroupTree = memo(function MaterialGroupTree({
           isLastSibling={index === nodes.length - 1}
           selectedId={selectedId}
           countByNode={countByNode}
+          countLabelId={countLabelId}
           onSelect={onSelect}
           onAdd={onAdd}
           onEdit={onEdit}
@@ -290,6 +294,7 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
   isLastSibling,
   selectedId,
   countByNode,
+  countLabelId,
   onSelect,
   onAdd,
   onEdit,
@@ -301,7 +306,8 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
   pendingAvailabilityIds,
   activeGroup,
 }: MaterialGroupTreeItemProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const intl = useIntl();
+  const [isExpanded, setIsExpanded] = useState(false);
   const hasChildren = node.children.length > 0;
   const isSelected = node.id === selectedId;
   const nodeCount = countByNode.get(node.id) ?? 0;
@@ -459,7 +465,10 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
             (onAdd || onEdit || onDelete || onToggleAvailability) &&
               'group-hover:hidden',
           )}
-          aria-label={`${nodeCount} nhóm con`}
+          aria-label={intl.formatMessage(
+            { id: countLabelId ?? 'materialGroups.tree.materialCount' },
+            { count: nodeCount },
+          )}
         >
           {nodeCount}
         </Badge>
@@ -549,6 +558,7 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
           nodes={node.children}
           selectedId={selectedId}
           countByNode={countByNode}
+          countLabelId={countLabelId}
           onSelect={onSelect}
           onAdd={onAdd}
           onEdit={onEdit}

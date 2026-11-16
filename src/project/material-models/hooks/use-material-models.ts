@@ -5,12 +5,14 @@ import {
   createMaterialModel,
   createMaterialModelsBulk,
   deleteMaterialModel,
+  loadMaterialGroupModelCounts,
   loadMaterialModelFilterSummary,
   loadMaterialModels,
   updateMaterialModel,
   updateMaterialModelAvailability,
 } from '../api/material-models.api';
 import type {
+  MaterialGroupModelCounts,
   MaterialModel,
   MaterialModelFormValues,
   MaterialModelImage,
@@ -21,6 +23,8 @@ import type {
 export const materialModelKeys = {
   all: ['project', 'material-models'] as const,
   list: () => [...materialModelKeys.all, 'list'] as const,
+  groupCounts: (userId: string | null) =>
+    [...materialModelKeys.all, 'group-counts', userId] as const,
   filterSummary: (
     userId: string | null,
     filters: { search?: string; groupId?: string; groupIds?: string[] },
@@ -32,6 +36,17 @@ export function useMaterialModelsQuery(enabled = true) {
     queryKey: materialModelKeys.list(),
     queryFn: ({ signal }) => loadMaterialModels(signal),
     enabled,
+    retry: 0,
+  });
+}
+
+export function useMaterialGroupModelCountsQuery(enabled = true) {
+  const { userId, hasPermission } = useUser();
+
+  return useQuery<MaterialGroupModelCounts>({
+    queryKey: materialModelKeys.groupCounts(userId),
+    queryFn: ({ signal }) => loadMaterialGroupModelCounts(signal),
+    enabled: enabled && hasPermission('material_catalog:material_model:view'),
     retry: 0,
   });
 }

@@ -21,6 +21,8 @@ export interface MaterialSelectionDialogShellProps {
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
   onConfirm: () => void;
+  confirmLabel?: ReactNode;
+  confirmDisabled?: boolean;
   footerLeading?: ReactNode;
   contentClassName?: string;
   title?: ReactNode;
@@ -30,6 +32,8 @@ export function MaterialSelectionDialogShell({
   onOpenChange,
   children,
   onConfirm,
+  confirmLabel,
+  confirmDisabled = false,
   footerLeading,
   contentClassName,
   title,
@@ -54,8 +58,14 @@ export function MaterialSelectionDialogShell({
         </DialogBody>
         <DialogFooter className="shrink-0 items-center justify-between border-t border-border px-6 py-4">
           {footerLeading}
-          <Button type="button" variant="primary" onClick={onConfirm}>
-            {intl.formatMessage({ id: 'project.materials.selection.confirm' })}
+          <Button
+            type="button"
+            variant="primary"
+            disabled={confirmDisabled}
+            onClick={onConfirm}
+          >
+            {confirmLabel ??
+              intl.formatMessage({ id: 'project.materials.selection.confirm' })}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
-import { ArrowLeft, ClipboardPlus, Save } from 'lucide-react';
+import { ClipboardPlus, Save } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -83,16 +83,33 @@ export function MaterialReceiptEditorPage() {
   const loadedId = useRef('');
   const receipt = query.data;
   const warehouses = warehousesQuery.data ?? [];
+  const modelById = useMemo(() => {
+    const models = new Map<
+      string,
+      { name: string; code: string; imageUrl?: string | null }
+    >();
+    for (const line of receipt?.lines ?? []) {
+      if (!line.modelId) continue;
+      models.set(line.modelId, {
+        name: line.model.name,
+        code: line.model.code ?? '',
+      });
+    }
+    for (const model of modelsQuery.data ?? []) {
+      models.set(model.id, {
+        name: model.name,
+        code: model.code,
+        imageUrl: model.imageUrl,
+      });
+    }
+    return models;
+  }, [modelsQuery.data, receipt?.lines]);
   const saveBusy =
     saveMutation.isPending ||
     previewMutation.isPending ||
     applyMutation.isPending;
   const pageReady =
-    !isPermissionsPending &&
-    (!id || (!query.isPending && Boolean(receipt))) &&
-    !warehousesQuery.isPending &&
-    !modelsQuery.isPending;
-  const prerequisitesError = warehousesQuery.error ?? modelsQuery.error;
+    !isPermissionsPending && (!id || (!query.isPending && Boolean(receipt)));
   const navigateBack = useCallback(
     () =>
       navigate(
@@ -170,15 +187,6 @@ export function MaterialReceiptEditorPage() {
       onBack: navigateBack,
       actions: (
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={navigateBack}
-          >
-            <ArrowLeft className="size-4" />
-            {intl.formatMessage({ id: 'common.actions.cancel' })}
-          </Button>
           {canManage ? (
             <Button
               type="submit"
@@ -251,20 +259,6 @@ export function MaterialReceiptEditorPage() {
       </div>
     );
   }
-  if (prerequisitesError) {
-    return (
-      <div className="p-4">
-        <ErrorState
-          title={intl.formatMessage({ id: 'warehouses.errors.loadTitle' })}
-          description={getApiErrorMessage(prerequisitesError)}
-          onRetry={() => {
-            void warehousesQuery.refetch();
-            void modelsQuery.refetch();
-          }}
-        />
-      </div>
-    );
-  }
   if (!pageReady)
     return <div className="h-full min-h-0 animate-pulse bg-muted" />;
   if (receipt && !isAdjustment && receipt.status !== 'draft') {
@@ -327,6 +321,13 @@ export function MaterialReceiptEditorPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {warehousesQuery.isError ? (
+            <ErrorState
+              title={intl.formatMessage({ id: 'warehouses.errors.loadTitle' })}
+              description={getApiErrorMessage(warehousesQuery.error)}
+              onRetry={() => void warehousesQuery.refetch()}
+            />
+          ) : null}
           <MaterialReceiptHeaderForm
             form={form}
             onSubmit={(values) => onSubmit(values)}
@@ -338,7 +339,7 @@ export function MaterialReceiptEditorPage() {
         <MaterialReceiptLinesEditorTable
           form={form}
           createLine={createLine}
-          lockExistingModels={isAdjustment}
+          modelById={modelById}
           onEditMaterial={setActiveMaterialLine}
           onCopySelected={(rows) => {
             const copies = rows.map((line) => ({
@@ -364,7 +365,6 @@ export function MaterialReceiptEditorPage() {
               shouldValidate: true,
             });
           }}
-          title={intl.formatMessage({ id: 'receipts.fields.items' })}
         />
       </Card>
       <MaterialReceiptLineMaterialDrawer

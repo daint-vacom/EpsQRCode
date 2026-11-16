@@ -8,6 +8,8 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
+import { useMaterialGroupModelCountsQuery } from '@/project/material-models/hooks/use-material-models';
+import { useMaterialGroupMaterialCountsQuery } from '@/project/materials/hooks/use-materials';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { cn } from '@/lib/utils';
@@ -32,7 +34,7 @@ const MaterialGroupFilterLayoutContext =
 export function MaterialGroupFilterLayoutProvider({
   children,
 }: PropsWithChildren) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const toggleStartedAt = useRef<number | null>(null);
   const toggle = useCallback(() => {
     const startedAt = performance.now();
@@ -97,6 +99,10 @@ export interface MaterialGroupFilterTreeProps {
   groups: readonly MaterialGroup[];
   selectedGroupId: string | null;
   onSelectGroup: (groupId: string | null) => void;
+  countMode?: 'materials' | 'models';
+  countByNode?: Map<string, number>;
+  allCount?: number;
+  countLabelId?: string;
   className?: string;
 }
 
@@ -213,17 +219,25 @@ export function MaterialGroupFilterTree({
   groups,
   selectedGroupId,
   onSelectGroup,
+  countMode = 'materials',
+  countByNode: countByNodeOverride,
+  allCount: allCountOverride,
+  countLabelId: countLabelIdOverride,
   className,
 }: MaterialGroupFilterTreeProps) {
   const nodes = useMemo(() => buildMaterialGroupTree([...groups]), [groups]);
-  const countByNode = useMemo(() => {
-    const counts = new Map(groups.map((group) => [group.id, 0]));
-    for (const group of groups) {
-      if (!group.parentId || !counts.has(group.parentId)) continue;
-      counts.set(group.parentId, (counts.get(group.parentId) ?? 0) + 1);
-    }
-    return counts;
-  }, [groups]);
+  const materialCountsQuery = useMaterialGroupMaterialCountsQuery(
+    countByNodeOverride === undefined && countMode === 'materials',
+  );
+  const modelCountsQuery = useMaterialGroupModelCountsQuery(
+    countByNodeOverride === undefined && countMode === 'models',
+  );
+  const counts =
+    countMode === 'models' ? modelCountsQuery.data : materialCountsQuery.data;
+  const countByNode = useMemo(
+    () => countByNodeOverride ?? new Map(Object.entries(counts?.counts ?? {})),
+    [countByNodeOverride, counts?.counts],
+  );
 
   return (
     <MaterialGroupTreePanel
@@ -231,7 +245,13 @@ export function MaterialGroupFilterTree({
       nodes={nodes}
       selectedId={selectedGroupId}
       countByNode={countByNode}
-      allCount={groups.length}
+      countLabelId={
+        countLabelIdOverride ??
+        (countMode === 'models'
+          ? 'materialGroups.tree.modelCount'
+          : 'materialGroups.tree.materialCount')
+      }
+      allCount={allCountOverride ?? counts?.total ?? 0}
       isAllSelected={selectedGroupId === null}
       onSelectAll={() => onSelectGroup(null)}
       onSelect={onSelectGroup}

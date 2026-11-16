@@ -11,6 +11,11 @@ export type MaterialCondition = 'good' | 'damaged';
 export type MaterialStatus = 'available' | 'loaned';
 export type MaterialReservationStatus = 'draft' | 'pending';
 
+export interface MaterialGroupMaterialCounts {
+  counts: Record<string, number>;
+  total: number;
+}
+
 /** Immutable metadata copied from the selected model when the material is created. */
 export interface MaterialModelSnapshot {
   id: string;

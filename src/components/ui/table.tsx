@@ -89,7 +89,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        'h-10 bg-muted px-4 text-left align-middle text-grid-header font-semibold normal-case tracking-[0.01em] text-foreground/80 rtl:text-right [&:has([role=checkbox])]:pe-0',
+        'h-10 bg-muted px-4 text-left align-middle text-grid-header font-semibold normal-case tracking-[0.01em] text-secondary-foreground rtl:text-right [&:has([role=checkbox])]:pe-0',
         className,
       )}
       {...props}

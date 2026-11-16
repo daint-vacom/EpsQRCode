@@ -132,6 +132,7 @@ export interface SafetyInspectionListSummary {
 
 export interface MaterialSafetyInspectionQueueFilters {
   search?: string;
+  groupIds?: string[];
   status?: MaterialSafetyInspectionQueueRow['status'];
   ownerPartyId?: string;
   page?: number;
@@ -153,6 +154,7 @@ export interface MaterialSafetyInspectionQueueChartPoint {
 
 export interface MaterialSafetyInspectionPlanFilters {
   search?: string;
+  groupIds?: string[];
   ownerPartyId?: string;
   year: number;
 }
@@ -189,6 +191,8 @@ export interface MaterialSafetyInspectionQueueOwnerFilter {
 export interface MaterialSafetyInspectionQueueResult extends SafetyInspectionListResult<MaterialSafetyInspectionQueueRow> {
   summary: MaterialSafetyInspectionQueueSummary;
   ownerFilter: MaterialSafetyInspectionQueueOwnerFilter;
+  groupCounts: Record<string, number>;
+  groupCountsTotal: number;
 }
 
 export interface SafetyInspectionListResult<T> {

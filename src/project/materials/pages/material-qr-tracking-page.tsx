@@ -3,6 +3,13 @@ import { ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
 import {
+  MaterialGroupFilterSidebar,
+  MaterialGroupFilterToggle,
+} from '@/project/material-groups/components/material-group-filter-tree';
+import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import type { MaterialGroup } from '@/project/material-groups/model/material-group';
+import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
+import {
   MATERIAL_LABEL_SELECTION_STATE_KEY,
   storeMaterialLabelSelection,
 } from '@/project/material-labels/utils/material-label-print-selection';
@@ -66,6 +73,7 @@ import {
 const DEFAULT_PAGE_SIZE = 25;
 type MaterialQrTrackingBulkAction = 'downloadPng' | 'copyQr' | 'printQr' | '';
 const EMPTY_MATERIALS: Material[] = [];
+const EMPTY_MATERIAL_GROUPS: MaterialGroup[] = [];
 const EMPTY_METRICS: MaterialQrTrackingMetric[] = [];
 
 export function MaterialQrTrackingPage() {
@@ -76,6 +84,8 @@ export function MaterialQrTrackingPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
+  const [groupId, setGroupId] = useState('');
+  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
   const [filterMode, setFilterMode] = useState<MaterialFilterMode>('scan');
   const [scanState, setScanState] = useState<
     'scanned' | 'not_scanned' | undefined
@@ -107,16 +117,25 @@ export function MaterialQrTrackingPage() {
     true,
     canView && !isPermissionsPending,
   );
+  const groupsQuery = useMaterialGroupsQuery(isPermissionsPending || canView);
+  const groups = groupsQuery.data ?? EMPTY_MATERIAL_GROUPS;
+  const groupIds = useMemo(
+    () =>
+      groupId ? [...getMaterialGroupDescendantIds(groups, groupId)] : undefined,
+    [groupId, groups],
+  );
   const filters = useMemo<MaterialListFilters>(
     () => ({
       search: search.trim() || undefined,
       ownerPartyId: ownerPartyId || undefined,
+      groupIds,
       scanState,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
     [
       ownerPartyId,
+      groupIds,
       pagination.pageIndex,
       pagination.pageSize,
       scanState,
@@ -127,6 +146,7 @@ export function MaterialQrTrackingPage() {
     {
       search: search.trim() || undefined,
       ownerPartyId: ownerPartyId || undefined,
+      groupIds,
     },
     canView && !isPermissionsPending,
   );
@@ -337,40 +357,50 @@ export function MaterialQrTrackingPage() {
         })}
         icon={QrCode}
       />
-      <MaterialFilterRow
-        mode={filterMode}
-        onModeChange={handleFilterModeChange}
-        availableModes={['scan', 'owner']}
-        counts={filterSummary.data}
-        isCountsLoading={filterSummary.isPending && !filterSummary.data}
-        ownerFilter={filterSummary.data?.ownerFilter}
-        isActive={undefined}
-        onIsActiveChange={() => undefined}
-        condition={undefined}
-        onConditionChange={() => undefined}
-        scanState={scanState}
-        onScanStateChange={(value) => {
-          setScanState(value);
-          resetPage();
-        }}
-        ownerType={ownerType}
-        onOwnerTypeChange={handleOwnerTypeChange}
-        ownerDepartmentId={ownerDepartmentId}
-        onOwnerDepartmentChange={handleOwnerDepartmentChange}
-        ownerTeamId={ownerTeamId}
-        onOwnerTeamChange={handleOwnerTeamChange}
-        ownerPartyId={ownerPartyId}
-        onOwnerPartyIdChange={handleOwnerPartyIdChange}
-        selectedEmployee={selectedOwnerEmployee}
-        onSelectedEmployeeChange={setSelectedOwnerEmployee}
-        parties={partiesQuery.data ?? []}
-        disabled={
-          isPermissionsPending ||
-          !canView ||
-          partiesQuery.isPending ||
-          (filterSummary.isPending && !filterSummary.data)
-        }
-      />
+      <div className="flex min-w-0 flex-wrap items-start gap-2">
+        <MaterialGroupFilterToggle
+          isOpen={isGroupTreeOpen}
+          controlsId="material-qr-tracking-group-tree"
+          disabled={!canView || isPermissionsPending || groupsQuery.isPending}
+          onClick={() => setIsGroupTreeOpen((current) => !current)}
+        />
+        <div className="min-w-0 flex-1">
+          <MaterialFilterRow
+            mode={filterMode}
+            onModeChange={handleFilterModeChange}
+            availableModes={['scan', 'owner']}
+            counts={filterSummary.data}
+            isCountsLoading={filterSummary.isPending && !filterSummary.data}
+            ownerFilter={filterSummary.data?.ownerFilter}
+            isActive={undefined}
+            onIsActiveChange={() => undefined}
+            condition={undefined}
+            onConditionChange={() => undefined}
+            scanState={scanState}
+            onScanStateChange={(value) => {
+              setScanState(value);
+              resetPage();
+            }}
+            ownerType={ownerType}
+            onOwnerTypeChange={handleOwnerTypeChange}
+            ownerDepartmentId={ownerDepartmentId}
+            onOwnerDepartmentChange={handleOwnerDepartmentChange}
+            ownerTeamId={ownerTeamId}
+            onOwnerTeamChange={handleOwnerTeamChange}
+            ownerPartyId={ownerPartyId}
+            onOwnerPartyIdChange={handleOwnerPartyIdChange}
+            selectedEmployee={selectedOwnerEmployee}
+            onSelectedEmployeeChange={setSelectedOwnerEmployee}
+            parties={partiesQuery.data ?? []}
+            disabled={
+              isPermissionsPending ||
+              !canView ||
+              partiesQuery.isPending ||
+              (filterSummary.isPending && !filterSummary.data)
+            }
+          />
+        </div>
+      </div>
       <DataGrid
         table={table}
         recordCount={total}
@@ -388,71 +418,85 @@ export function MaterialQrTrackingPage() {
         })}
         tableLayout={{ dense: true }}
       >
-        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-          <DataGridHeader
-            variant="stats"
-            recordCountLabel={intl.formatMessage({
-              id: 'project.materialQrTracking.list.recordCountLabel',
-            })}
-            stats={
-              <SearchInput
-                aria-label={intl.formatMessage({
-                  id: 'project.materialQrTracking.filters.search',
-                })}
-                placeholder={intl.formatMessage({
-                  id: 'project.materialQrTracking.filters.search',
-                })}
-                value={search}
-                className="w-64 shrink-0"
-                onSearch={(value) => {
-                  setSearch(value);
-                  setPagination((current) => ({ ...current, pageIndex: 0 }));
-                }}
-              />
-            }
-            toolbar={<DataGridHeaderMenu table={table} />}
+        <div
+          className={`flex min-h-0 min-w-0 flex-1 flex-col transition-[gap] duration-300 ease-in-out motion-reduce:transition-none xl:flex-row ${isGroupTreeOpen ? 'gap-3' : 'gap-0'}`}
+        >
+          <MaterialGroupFilterSidebar
+            id="material-qr-tracking-group-tree"
+            isOpen={isGroupTreeOpen}
+            groups={groups}
+            selectedGroupId={groupId || null}
+            onSelectGroup={(nextGroupId) => {
+              setGroupId(nextGroupId ?? '');
+              resetPage();
+            }}
           />
-          <CardTable className="min-h-0 flex-1">
-            {!isPermissionsPending && !canView ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'project.materialQrTracking.errors.loadTitle',
-                })}
-                description={intl.formatMessage({
-                  id: 'project.materialQrTracking.errors.authorization',
-                })}
-              />
-            ) : isError ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'project.materialQrTracking.errors.loadTitle',
-                })}
-                description={getApiErrorMessage(
-                  materialsQuery.error ?? metricsQuery.error,
-                  {
-                    fallbackMessage: intl.formatMessage({
-                      id: 'project.materialQrTracking.errors.load',
-                    }),
-                  },
-                )}
-                onRetry={() => {
-                  void materialsQuery.refetch();
-                  if (materialIds.length > 0) void metricsQuery.refetch();
-                }}
-              />
-            ) : (
-              <ScrollArea className="h-full">
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            )}
-          </CardTable>
-          <CardFooter className="justify-between">
-            {canView && !isPermissionsPending && !isError ? (
-              <DataGridPagination />
-            ) : null}
-          </CardFooter>
-        </Card>
+          <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
+            <DataGridHeader
+              variant="stats"
+              recordCountLabel={intl.formatMessage({
+                id: 'project.materialQrTracking.list.recordCountLabel',
+              })}
+              stats={
+                <SearchInput
+                  aria-label={intl.formatMessage({
+                    id: 'project.materialQrTracking.filters.search',
+                  })}
+                  placeholder={intl.formatMessage({
+                    id: 'project.materialQrTracking.filters.search',
+                  })}
+                  value={search}
+                  className="w-64 shrink-0"
+                  onSearch={(value) => {
+                    setSearch(value);
+                    setPagination((current) => ({ ...current, pageIndex: 0 }));
+                  }}
+                />
+              }
+              toolbar={<DataGridHeaderMenu table={table} />}
+            />
+            <CardTable className="min-h-0 flex-1">
+              {!isPermissionsPending && !canView ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'project.materialQrTracking.errors.loadTitle',
+                  })}
+                  description={intl.formatMessage({
+                    id: 'project.materialQrTracking.errors.authorization',
+                  })}
+                />
+              ) : isError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'project.materialQrTracking.errors.loadTitle',
+                  })}
+                  description={getApiErrorMessage(
+                    materialsQuery.error ?? metricsQuery.error,
+                    {
+                      fallbackMessage: intl.formatMessage({
+                        id: 'project.materialQrTracking.errors.load',
+                      }),
+                    },
+                  )}
+                  onRetry={() => {
+                    void materialsQuery.refetch();
+                    if (materialIds.length > 0) void metricsQuery.refetch();
+                  }}
+                />
+              ) : (
+                <ScrollArea className="h-full">
+                  <DataGridTable />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              )}
+            </CardTable>
+            <CardFooter className="justify-between">
+              {canView && !isPermissionsPending && !isError ? (
+                <DataGridPagination />
+              ) : null}
+            </CardFooter>
+          </Card>
+        </div>
         <DataGridActionBar
           onSelectionChange={setSelectedMaterials}
           selectionLabel={(count) =>

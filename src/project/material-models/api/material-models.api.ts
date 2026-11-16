@@ -6,6 +6,7 @@ import {
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
+  MaterialGroupModelCounts,
   MaterialModel,
   MaterialModelFilterSummary,
   MaterialModelFormValues,
@@ -228,6 +229,15 @@ export async function loadMaterialModelFilterSummary(
       { p_filters: filters },
       { signal },
     ),
+  );
+}
+
+export async function loadMaterialGroupModelCounts(
+  signal?: AbortSignal,
+): Promise<MaterialGroupModelCounts> {
+  assertSupabaseConfigured();
+  return request<MaterialGroupModelCounts>(
+    supabaseApi.post('/rpc/get_material_group_model_counts', {}, { signal }),
   );
 }
 

@@ -89,6 +89,11 @@ export type MaterialModelSpecification = z.infer<
   typeof materialModelSpecificationSchema
 >;
 
+export interface MaterialGroupModelCounts {
+  counts: Record<string, number>;
+  total: number;
+}
+
 export interface MaterialModel {
   id: string;
   code: string;

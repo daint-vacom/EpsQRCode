@@ -73,7 +73,7 @@ export function MaterialModelsPage() {
   const deleteMutation = useDeleteMaterialModelMutation();
   const [keyword, setKeyword] = useState('');
   const [groupId, setGroupId] = useState('');
-  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(false);
+  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
   const [activeFilter, setActiveFilter] = useState('');
   const [inspectionFilter, setInspectionFilter] = useState('');
   const [filterMode, setFilterMode] = useState<'status' | 'inspection'>(
@@ -315,6 +315,7 @@ export function MaterialModelsPage() {
             id="material-model-group-filter-tree"
             isOpen={isGroupTreeOpen}
             groups={groups}
+            countMode="models"
             selectedGroupId={groupId || null}
             onSelectGroup={(nextGroupId) => {
               setGroupId(nextGroupId ?? '');

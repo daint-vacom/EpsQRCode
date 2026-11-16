@@ -515,6 +515,8 @@ export const materialMessagesVi: Record<string, string> = {
     '{count} nội dung',
   'project.materials.safetyInspection.queue.title': 'Vật tư cần kiểm tra',
   'project.materials.safetyInspection.queue.recordCountLabel': 'vật tư',
+  'project.materials.safetyInspection.queue.groupCount':
+    '{count} vật tư cần kiểm tra',
   'project.materials.safetyInspection.queue.search': 'Tìm mã hoặc tên vật tư',
   'project.materials.safetyInspection.queue.filterStatus': 'Lọc trạng thái',
   'project.materials.safetyInspection.queue.allStatuses': 'Tất cả trạng thái',
@@ -1193,6 +1195,8 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.queue.title':
     'Materials requiring inspection',
   'project.materials.safetyInspection.queue.recordCountLabel': 'materials',
+  'project.materials.safetyInspection.queue.groupCount':
+    '{count} materials requiring inspection',
   'project.materials.safetyInspection.queue.search':
     'Search material code or name',
   'project.materials.safetyInspection.queue.filterStatus': 'Filter by status',

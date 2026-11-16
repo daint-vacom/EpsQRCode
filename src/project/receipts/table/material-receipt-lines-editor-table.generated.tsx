@@ -5,14 +5,14 @@
  */
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { MaterialModelSelect } from '@/project/material-models/components/material-model-select';
+import type { MaterialModel } from '@/project/material-models/model/material-model';
 import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, ListPlus, Pencil, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -46,10 +46,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { MaterialIdentity } from '@/components/material-identity';
+import { MaterialModelSelectionDialog } from '../components/material-model-selection-dialog';
 import type {
   MaterialReceiptFormLine,
   MaterialReceiptFormValues,
 } from '../model/material-receipt';
+
+const materialNameCollator = new Intl.Collator('vi', {
+  sensitivity: 'base',
+  numeric: true,
+});
 
 function conditionOptions(
   intl: ReturnType<typeof useIntl>,
@@ -69,44 +76,36 @@ function conditionOptions(
 interface MaterialReceiptLinesEditorTableProps {
   form: UseFormReturn<MaterialReceiptFormValues>;
   createLine: () => MaterialReceiptFormLine;
+  modelById: ReadonlyMap<string, MaterialReceiptModelIdentity>;
   onCopySelected?: (rows: MaterialReceiptFormLine[]) => void;
   onEditMaterial: (index: number) => void;
-  lockExistingModels?: boolean;
   toolbarContent?: ReactNode;
-  title?: ReactNode;
 }
 
 export function MaterialReceiptLinesEditorTable({
   form,
   createLine,
+  modelById,
   onCopySelected,
   onEditMaterial,
-  lockExistingModels = false,
   toolbarContent,
-  title,
 }: MaterialReceiptLinesEditorTableProps) {
   const { fields, append, insert, remove } = useFieldArray({
     control: form.control,
     name: 'lines',
     keyName: 'fieldId',
   });
-  const watchedRows = form.watch('lines') ?? [];
+  const watchedRows = form.watch('lines');
   const intl = useIntl();
+  const [isModelSelectionOpen, setIsModelSelectionOpen] = useState(false);
 
-  const handleAddRow = () => {
-    append(createLine());
+  const handleModelsConfirm = (models: MaterialModel[]) => {
+    if (models.length === 0) return;
+    const firstNewIndex = fields.length;
+    append(models.map((model) => ({ ...createLine(), modelId: model.id })));
     setPagination((current) => ({
       ...current,
-      pageIndex: Math.floor(fields.length / current.pageSize),
-    }));
-  };
-
-  const handleAddRowBelow = (index: number) => {
-    const insertIndex = index + 1;
-    insert(insertIndex, createLine());
-    setPagination((current) => ({
-      ...current,
-      pageIndex: Math.floor(insertIndex / current.pageSize),
+      pageIndex: Math.floor(firstNewIndex / current.pageSize),
     }));
   };
 
@@ -144,7 +143,7 @@ export function MaterialReceiptLinesEditorTable({
         .filter((index): index is number => index !== null),
     [fields, selectedRowIds],
   );
-  type BulkFieldName = 'quantity' | 'condition' | 'conditionNote';
+  type BulkFieldName = 'quantity' | 'condition' | 'note';
   const bulkFields = [
     { name: 'quantity', label: 'Số lượng', kind: 'number' },
     {
@@ -153,7 +152,7 @@ export function MaterialReceiptLinesEditorTable({
       kind: 'autocomplete',
       options: conditionOptions(intl),
     },
-    { name: 'conditionNote', label: 'Ghi chú tình trạng', kind: 'text' },
+    { name: 'note', label: 'Ghi chú', kind: 'text' },
   ] as const;
   const [bulkField, setBulkField] = useState<BulkFieldName>('quantity');
   const [bulkValue, setBulkValue] = useState('');
@@ -165,7 +164,7 @@ export function MaterialReceiptLinesEditorTable({
         return Number.isNaN(Number(rawValue)) ? 0 : Number(rawValue);
       case 'condition':
         return rawValue;
-      case 'conditionNote':
+      case 'note':
         return rawValue;
     }
   };
@@ -177,6 +176,12 @@ export function MaterialReceiptLinesEditorTable({
         shouldDirty: true,
         shouldValidate: true,
       });
+      if (fieldName === 'note') {
+        form.setValue(`lines.${index}.conditionNote`, String(value), {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
     });
   };
 
@@ -221,6 +226,24 @@ export function MaterialReceiptLinesEditorTable({
     pageIndex: 0,
     pageSize: 10,
   });
+  const sortedRows = useMemo(
+    () =>
+      fields
+        .map((field, formIndex) => ({
+          field,
+          formIndex,
+          row: watchedRows?.[formIndex],
+        }))
+        .sort((left, right) => {
+          const leftName = modelById.get(left.row?.modelId ?? '')?.name ?? '';
+          const rightName = modelById.get(right.row?.modelId ?? '')?.name ?? '';
+          return (
+            materialNameCollator.compare(leftName, rightName) ||
+            left.formIndex - right.formIndex
+          );
+        }),
+    [fields, modelById, watchedRows],
+  );
   const paginationTable = useReactTable({
     data: fields,
     columns: [],
@@ -231,7 +254,7 @@ export function MaterialReceiptLinesEditorTable({
     onPaginationChange: setPagination,
   });
   const pageStartIndex = pagination.pageIndex * pagination.pageSize;
-  const visibleFields = fields.slice(
+  const visibleRows = sortedRows.slice(
     pageStartIndex,
     pageStartIndex + pagination.pageSize,
   );
@@ -252,20 +275,24 @@ export function MaterialReceiptLinesEditorTable({
       <>
         <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
           <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-            <div className="flex min-w-0 flex-col gap-1">
-              <h2 className="text-sm font-semibold text-foreground">
-                {title ?? 'Danh sách mẫu vật tư'}
+            <div className="flex min-w-0 items-center">
+              <h2 className="whitespace-nowrap text-sm font-semibold text-foreground">
+                {intl.formatMessage(
+                  { id: 'receipts.fields.itemsHeaderCount' },
+                  { count: fields.length },
+                )}
               </h2>
-              <div className="text-xs text-muted-foreground">
-                {fields.length} dòng
-              </div>
             </div>
             <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
               {toolbarContent}
 
-              <Button type="button" variant="primary" onClick={handleAddRow}>
-                <Plus />
-                Thêm dòng
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setIsModelSelectionOpen(true)}
+              >
+                <ListPlus />
+                {intl.formatMessage({ id: 'receipts.actions.chooseModels' })}
               </Button>
             </div>
           </div>
@@ -296,7 +323,7 @@ export function MaterialReceiptLinesEditorTable({
                       </div>
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted min-w-[360px]">
-                      Mẫu vật tư
+                      {intl.formatMessage({ id: 'receipts.fields.material' })}
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted w-28">
                       Thông số
@@ -308,7 +335,7 @@ export function MaterialReceiptLinesEditorTable({
                       Tình trạng
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted min-w-[240px]">
-                      Ghi chú tình trạng
+                      {intl.formatMessage({ id: 'receipts.fields.note' })}
                     </TableHead>
                     <TableHead className="sticky top-0 right-0 z-30 bg-muted w-14 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
                   </TableRow>
@@ -317,31 +344,18 @@ export function MaterialReceiptLinesEditorTable({
                   {fields.length === 0 ? (
                     <TableRow hoverable={false}>
                       <TableCell colSpan={7} className="h-28 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="text-muted-foreground">
-                            Chưa có dữ liệu
-                          </span>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleAddRow}
-                          >
-                            <Plus />
-                            Thêm dòng
-                          </Button>
-                        </div>
+                        <span className="text-muted-foreground">
+                          {intl.formatMessage({ id: 'receipts.emptyLines' })}
+                        </span>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    visibleFields.map((field, pageOffset) => {
-                      const index = pageStartIndex + pageOffset;
-                      const row = watchedRows[index] as
-                        | MaterialReceiptFormLine
-                        | undefined;
+                    visibleRows.map(({ field, formIndex, row }) => {
+                      const index = formIndex;
                       const errors = form.formState.errors.lines?.[index];
                       return (
                         <TableRow key={field.fieldId} hoverable={false}>
-                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-top">
+                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
                             <div className="flex justify-center">
                               <Checkbox
                                 aria-label={`Chọn dòng ${index + 1}`}
@@ -353,17 +367,13 @@ export function MaterialReceiptLinesEditorTable({
                               />
                             </div>
                           </TableCell>
-                          <TableCell className="px-2 py-2 align-top">
+                          <TableCell className="px-2 py-2 align-middle">
                             <MaterialReceiptModelCell
-                              form={form}
-                              index={index}
                               line={row}
-                              locked={
-                                lockExistingModels && Boolean(row?.lineId)
-                              }
+                              model={modelById.get(row?.modelId ?? '')}
                             />
                           </TableCell>
-                          <TableCell className="px-2 py-2 align-top">
+                          <TableCell className="px-2 py-2 align-middle">
                             <Button
                               type="button"
                               variant="outline"
@@ -507,59 +517,35 @@ export function MaterialReceiptLinesEditorTable({
                           <TableCell className="px-2 py-2">
                             <Controller
                               control={form.control}
-                              name={`lines.${index}.conditionNote`}
-                              render={({ field: inputField }) => {
-                                const conditionNoteWarning = undefined;
-                                const conditionNoteMessage =
-                                  errors?.conditionNote?.message ??
-                                  conditionNoteWarning;
-
-                                return conditionNoteMessage ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="block w-full">
-                                        <Input
-                                          {...inputField}
-                                          aria-label={`Ghi chú tình trạng dòng ${index + 1}`}
-                                          aria-invalid={!!errors?.conditionNote}
-                                          onPointerDown={(event) =>
-                                            event.stopPropagation()
-                                          }
-                                          variant="md"
-                                        />
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                      variant={
-                                        errors?.conditionNote
-                                          ? 'destructive'
-                                          : 'warning'
-                                      }
-                                    >
-                                      {conditionNoteMessage}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ) : (
-                                  <span className="block w-full">
-                                    <Input
-                                      {...inputField}
-                                      aria-label={`Ghi chú tình trạng dòng ${index + 1}`}
-                                      aria-invalid={!!errors?.conditionNote}
-                                      onPointerDown={(event) =>
-                                        event.stopPropagation()
-                                      }
-                                      variant="md"
-                                    />
-                                  </span>
-                                );
-                              }}
+                              name={`lines.${index}.note`}
+                              render={({ field: inputField }) => (
+                                <Input
+                                  {...inputField}
+                                  aria-label={`Ghi chú dòng ${index + 1}`}
+                                  onPointerDown={(event) =>
+                                    event.stopPropagation()
+                                  }
+                                  onChange={(event) => {
+                                    inputField.onChange(event);
+                                    form.setValue(
+                                      `lines.${index}.conditionNote`,
+                                      event.currentTarget.value,
+                                      {
+                                        shouldDirty: true,
+                                        shouldValidate: true,
+                                      },
+                                    );
+                                  }}
+                                  variant="md"
+                                />
+                              )}
                             />
                           </TableCell>
-                          <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-top shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                          <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-middle shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
                             <div className="flex justify-end gap-1">
                               <Button
-                                aria-label={`Nhân đôi dòng ${index + 1}`}
-                                title="Nhân đôi"
+                                aria-label={`Nhân bản dòng ${index + 1}`}
+                                title="Nhân bản"
                                 type="button"
                                 variant="ghost"
                                 mode="icon"
@@ -567,17 +553,6 @@ export function MaterialReceiptLinesEditorTable({
                                 onClick={() => handleDuplicateRow(index)}
                               >
                                 <Copy />
-                              </Button>
-                              <Button
-                                aria-label={`Thêm dòng dưới dòng ${index + 1}`}
-                                title="Thêm dòng dưới"
-                                type="button"
-                                variant="ghost"
-                                mode="icon"
-                                size="sm"
-                                onClick={() => handleAddRowBelow(index)}
-                              >
-                                <Plus />
                               </Button>
                               <Button
                                 aria-label={`Xóa dòng ${index + 1}`}
@@ -743,6 +718,11 @@ export function MaterialReceiptLinesEditorTable({
             }
           />
         )}
+        <MaterialModelSelectionDialog
+          open={isModelSelectionOpen}
+          onOpenChange={setIsModelSelectionOpen}
+          onConfirm={handleModelsConfirm}
+        />
       </>
     </DataGridProvider>
   );
@@ -772,37 +752,24 @@ function cloneReceiptLine(
 }
 
 function MaterialReceiptModelCell({
-  form,
-  index,
   line,
-  locked,
+  model,
 }: {
-  form: UseFormReturn<MaterialReceiptFormValues>;
-  index: number;
   line?: MaterialReceiptFormLine;
-  locked: boolean;
+  model?: MaterialReceiptModelIdentity;
 }) {
+  if (!line || !model) return null;
   return (
-    <div className="min-w-[360px]">
-      <MaterialModelSelect
-        aria-label={`Mẫu vật tư dòng ${index + 1}`}
-        value={line?.modelId ?? ''}
-        disabled={locked}
-        onChange={(value) => {
-          form.setValue(`lines.${index}.modelId`, value, {
-            shouldDirty: true,
-            shouldValidate: true,
-          });
-          form.setValue(
-            `lines.${index}.specificationOverrides`,
-            {},
-            {
-              shouldDirty: true,
-              shouldValidate: true,
-            },
-          );
-        }}
-      />
-    </div>
+    <MaterialIdentity
+      name={model.name}
+      code={model.code}
+      imageUrl={model.imageUrl}
+    />
   );
+}
+
+interface MaterialReceiptModelIdentity {
+  name: string;
+  code: string;
+  imageUrl?: string | null;
 }

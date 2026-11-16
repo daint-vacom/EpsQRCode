@@ -1,6 +1,7 @@
 import type { MaterialModelSpecification } from '@/project/material-models/model/material-model';
 import type { MaterialCondition } from '@/project/materials/model/material';
 import { z } from 'zod';
+import { formatMessage } from '@/lib/validation/messages';
 
 export type MaterialReceiptStatus =
   | 'draft'
@@ -102,6 +103,7 @@ export interface MaterialReceiptFormLine {
   modelId: string;
   quantity: number;
   condition: MaterialCondition;
+  note: string;
   conditionNote: string;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
@@ -116,58 +118,62 @@ export interface MaterialReceiptFormUnit {
   note: string;
 }
 
-export const materialReceiptFormSchema = z.object({
-  warehouseId: z.string().min(1, 'Vui lòng chọn kho.'),
-  note: z.string(),
-  lines: z.array(
-    z
-      .object({
-        clientId: z.string(),
-        lineId: z.string(),
-        modelId: z.string(),
-        quantity: z.number().int().min(1).max(10000),
-        condition: z.enum(['good', 'damaged']),
-        conditionNote: z.string(),
-        specificationOverrides: z.record(z.string(), z.array(z.string())),
-        specificationOverrideLabels: z.record(z.string(), z.array(z.string())),
-        items: z.array(
-          z
-            .object({
+export const materialReceiptFormSchema = z
+  .object({
+    warehouseId: z.string().min(1, 'Vui lòng chọn kho.'),
+    note: z.string(),
+    lines: z.array(
+      z
+        .object({
+          clientId: z.string(),
+          lineId: z.string(),
+          modelId: z.string(),
+          quantity: z.number().int().min(1).max(10000),
+          condition: z.enum(['good', 'damaged']),
+          note: z.string(),
+          conditionNote: z.string(),
+          specificationOverrides: z.record(z.string(), z.array(z.string())),
+          specificationOverrideLabels: z.record(
+            z.string(),
+            z.array(z.string()),
+          ),
+          items: z.array(
+            z.object({
               receiptItemId: z.string().optional(),
               serialNumber: z.string(),
               condition: z.enum(['good', 'damaged']),
               conditionNote: z.string(),
               note: z.string(),
-            })
-            .superRefine((item, context) => {
-              if (item.condition === 'damaged' && !item.conditionNote.trim()) {
-                context.addIssue({
-                  code: 'custom',
-                  path: ['conditionNote'],
-                  message: 'Vui lòng mô tả tình trạng hỏng.',
-                });
-              }
             }),
-        ),
-      })
-      .superRefine((line, context) => {
-        if (!line.modelId) {
-          context.addIssue({
-            code: 'custom',
-            path: ['modelId'],
-            message: 'Vui lòng chọn mẫu vật tư.',
-          });
-        }
-        if (line.condition === 'damaged' && !line.conditionNote.trim()) {
-          context.addIssue({
-            code: 'custom',
-            path: ['conditionNote'],
-            message: 'Vui lòng mô tả tình trạng hỏng.',
-          });
-        }
-      }),
-  ),
-});
+          ),
+        })
+        .superRefine((line, context) => {
+          if (!line.modelId) {
+            context.addIssue({
+              code: 'custom',
+              path: ['modelId'],
+              message: 'Vui lòng chọn mẫu vật tư.',
+            });
+          }
+        }),
+    ),
+  })
+  .superRefine((values, context) => {
+    values.lines.forEach((line) => {
+      if (
+        line.condition === 'damaged' &&
+        !line.note.trim() &&
+        !line.conditionNote.trim() &&
+        !values.note.trim()
+      ) {
+        context.addIssue({
+          code: 'custom',
+          path: ['note'],
+          message: formatMessage('receipts.errors.damagedMaterialNote'),
+        });
+      }
+    });
+  });
 
 export type MaterialReceiptFormValues = z.infer<
   typeof materialReceiptFormSchema
@@ -280,6 +286,7 @@ export function createMaterialReceiptLine(): MaterialReceiptFormLine {
     modelId: '',
     quantity: 1,
     condition: 'good',
+    note: '',
     conditionNote: '',
     specificationOverrides: {},
     specificationOverrideLabels: {},
@@ -309,20 +316,23 @@ export function toMaterialReceiptLineInputs(
         conditionNote: line.conditionNote,
         note: '',
       };
+      const condition = preserveUnitConditions
+        ? item.condition
+        : line.condition;
       return {
         ...(keepIds && item.receiptItemId
           ? { receiptItemId: item.receiptItemId }
           : {}),
         serialNumber: item.serialNumber,
-        condition: preserveUnitConditions ? item.condition : line.condition,
+        condition,
         conditionNote:
-          (preserveUnitConditions ? item.condition : line.condition) ===
-          'damaged'
-            ? preserveUnitConditions
-              ? item.conditionNote
-              : line.conditionNote
+          condition === 'damaged'
+            ? item.conditionNote ||
+              line.conditionNote ||
+              line.note ||
+              values.note
             : '',
-        note: item.note,
+        note: item.note || line.note,
       };
     }),
   }));

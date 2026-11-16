@@ -13,9 +13,8 @@ const spec: EditorTableSpec = {
   tableMinWidthClass: 'min-w-[1120px]',
   viewport: { mode: 'remaining' },
   toolbar: {
-    title: 'Danh sách mẫu vật tư',
-    titleProp: 'title',
-    addLabel: 'Thêm dòng',
+    title: 'Vật tư đã nhập',
+    addLabel: 'Chọn mẫu VT',
     addVariant: 'primary',
   },
   multiEdit: {
@@ -27,14 +26,14 @@ const spec: EditorTableSpec = {
     enabled: true,
     widthClass: 'w-14',
     duplicate: true,
-    insert: true,
+    insert: false,
     delete: true,
   },
   columns: [
     {
       kind: 'custom',
       id: 'model',
-      header: 'Mẫu vật tư',
+      header: 'Vật tư',
       widthClass: 'min-w-[360px]',
     },
     {
@@ -75,9 +74,9 @@ const spec: EditorTableSpec = {
     },
     {
       kind: 'text',
-      name: 'conditionNote',
-      header: 'Ghi chú tình trạng',
-      ariaLabel: 'Ghi chú tình trạng',
+      name: 'note',
+      header: 'Ghi chú',
+      ariaLabel: 'Ghi chú',
       bulkEdit: true,
       widthClass: 'min-w-[240px]',
     },

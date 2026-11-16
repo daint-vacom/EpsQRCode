@@ -73,6 +73,11 @@ export function mapMaterialReceiptToFormValues(
         modelId: line.modelId ?? '',
         quantity: activeItems.length,
         condition: activeItems[0]?.condition ?? 'good',
+        note:
+          activeItems.find((item) => item.note.trim())?.note ??
+          activeItems.find((item) => item.conditionNote?.trim())
+            ?.conditionNote ??
+          '',
         conditionNote:
           activeItems.find((item) => item.condition === 'damaged')
             ?.conditionNote ?? '',

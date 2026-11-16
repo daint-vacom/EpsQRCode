@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
+import {
+  MaterialGroupFilterSidebar,
+  MaterialGroupFilterToggle,
+} from '@/project/material-groups/components/material-group-filter-tree';
+import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import type { MaterialGroup } from '@/project/material-groups/model/material-group';
+import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import {
   getCoreRowModel,
@@ -51,6 +58,7 @@ import type {
 import { useMaterialSafetyInspectionQueueColumns } from '../table/safety-inspection-queue.columns.generated';
 
 const DEFAULT_PAGE_SIZE = 25;
+const EMPTY_MATERIAL_GROUPS: MaterialGroup[] = [];
 
 function getCurrentVietnameseYear() {
   return Number(
@@ -68,6 +76,8 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
+  const [groupId, setGroupId] = useState('');
+  const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
   const [filterMode, setFilterMode] =
     useState<MaterialSafetyInspectionQueueFilterMode>('status');
   const [status, setStatus] =
@@ -80,6 +90,13 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const [ownerPartyId, setOwnerPartyId] = useState('');
   const currentYear = getCurrentVietnameseYear();
   const [planYear, setPlanYear] = useState(currentYear);
+  const groupsQuery = useMaterialGroupsQuery(isPermissionsPending || canView);
+  const groups = groupsQuery.data ?? EMPTY_MATERIAL_GROUPS;
+  const groupIds = useMemo(
+    () =>
+      groupId ? [...getMaterialGroupDescendantIds(groups, groupId)] : undefined,
+    [groupId, groups],
+  );
   const [selectedOwnerEmployee, setSelectedOwnerEmployee] =
     useState<EpsEmployeeCatalogEntry | null>(null);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -89,12 +106,20 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const filters = useMemo<MaterialSafetyInspectionQueueFilters>(
     () => ({
       search: search.trim() || undefined,
+      groupIds,
       status,
       ownerPartyId: ownerPartyId || undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [ownerPartyId, pagination.pageIndex, pagination.pageSize, search, status],
+    [
+      groupIds,
+      ownerPartyId,
+      pagination.pageIndex,
+      pagination.pageSize,
+      search,
+      status,
+    ],
   );
   const query = useMaterialSafetyInspectionQueueQuery(
     filters,
@@ -103,10 +128,11 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const planFilters = useMemo<MaterialSafetyInspectionPlanFilters>(
     () => ({
       search: search.trim() || undefined,
+      groupIds,
       ownerPartyId: ownerPartyId || undefined,
       year: planYear,
     }),
-    [ownerPartyId, planYear, search],
+    [groupIds, ownerPartyId, planYear, search],
   );
   const planQuery = useMaterialSafetyInspectionPlanQuery(
     planFilters,
@@ -162,6 +188,10 @@ export function MaterialsRequiringSafetyInspectionPage() {
   );
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
+  const groupCounts = useMemo(
+    () => new Map(Object.entries(query.data?.groupCounts ?? {})),
+    [query.data?.groupCounts],
+  );
   const columns = useMaterialSafetyInspectionQueueColumns({ canManage });
   const table = useReactTable({
     data: items,
@@ -355,32 +385,42 @@ export function MaterialsRequiringSafetyInspectionPage() {
           </Card>
         </div>
       )}
-      <MaterialSafetyInspectionQueueFilterRow
-        mode={filterMode}
-        onModeChange={handleFilterModeChange}
-        status={status}
-        onStatusChange={(value) => {
-          setStatus(value);
-          resetPage();
-        }}
-        summary={query.data?.summary}
-        isCountsLoading={query.isPending}
-        ownerFilter={query.data?.ownerFilter}
-        ownerType={ownerType}
-        onOwnerTypeChange={handleOwnerTypeChange}
-        ownerDepartmentId={ownerDepartmentId}
-        onOwnerDepartmentChange={handleOwnerDepartmentChange}
-        ownerTeamId={ownerTeamId}
-        onOwnerTeamChange={handleOwnerTeamChange}
-        ownerPartyId={ownerPartyId}
-        onOwnerPartyIdChange={(value) => {
-          setOwnerPartyId(value);
-          resetPage();
-        }}
-        selectedEmployee={selectedOwnerEmployee}
-        onSelectedEmployeeChange={setSelectedOwnerEmployee}
-        disabled={isPermissionsPending || !canView}
-      />
+      <div className="flex min-w-0 flex-wrap items-start gap-2">
+        <MaterialGroupFilterToggle
+          isOpen={isGroupTreeOpen}
+          controlsId="material-safety-inspection-group-tree"
+          disabled={!canView || isPermissionsPending || groupsQuery.isPending}
+          onClick={() => setIsGroupTreeOpen((current) => !current)}
+        />
+        <div className="min-w-0 flex-1">
+          <MaterialSafetyInspectionQueueFilterRow
+            mode={filterMode}
+            onModeChange={handleFilterModeChange}
+            status={status}
+            onStatusChange={(value) => {
+              setStatus(value);
+              resetPage();
+            }}
+            summary={query.data?.summary}
+            isCountsLoading={query.isPending}
+            ownerFilter={query.data?.ownerFilter}
+            ownerType={ownerType}
+            onOwnerTypeChange={handleOwnerTypeChange}
+            ownerDepartmentId={ownerDepartmentId}
+            onOwnerDepartmentChange={handleOwnerDepartmentChange}
+            ownerTeamId={ownerTeamId}
+            onOwnerTeamChange={handleOwnerTeamChange}
+            ownerPartyId={ownerPartyId}
+            onOwnerPartyIdChange={(value) => {
+              setOwnerPartyId(value);
+              resetPage();
+            }}
+            selectedEmployee={selectedOwnerEmployee}
+            onSelectedEmployeeChange={setSelectedOwnerEmployee}
+            disabled={isPermissionsPending || !canView}
+          />
+        </div>
+      </div>
       <DataGrid
         table={table}
         recordCount={total}
@@ -389,62 +429,79 @@ export function MaterialsRequiringSafetyInspectionPage() {
         emptyMessage={emptyMessage}
         tableLayout={{ dense: true }}
       >
-        <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
-          <DataGridHeader
-            variant="stats"
-            recordCountLabel={intl.formatMessage({
-              id: 'project.materials.safetyInspection.queue.recordCountLabel',
-            })}
-            stats={
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <SearchInput
-                  aria-label={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.queue.search',
-                  })}
-                  placeholder={intl.formatMessage({
-                    id: 'project.materials.safetyInspection.queue.search',
-                  })}
-                  value={search}
-                  className="w-64 shrink-0"
-                  onSearch={(value) => {
-                    setSearch(value);
-                    resetPage();
-                  }}
-                />
-              </div>
-            }
+        <div
+          className={`flex min-h-[32rem] min-w-0 flex-1 flex-col transition-[gap] duration-300 ease-in-out motion-reduce:transition-none xl:flex-row ${isGroupTreeOpen ? 'gap-3' : 'gap-0'}`}
+        >
+          <MaterialGroupFilterSidebar
+            id="material-safety-inspection-group-tree"
+            isOpen={isGroupTreeOpen}
+            groups={groups}
+            selectedGroupId={groupId || null}
+            countByNode={groupCounts}
+            allCount={query.data?.groupCountsTotal ?? 0}
+            countLabelId="project.materials.safetyInspection.queue.groupCount"
+            onSelectGroup={(nextGroupId) => {
+              setGroupId(nextGroupId ?? '');
+              resetPage();
+            }}
           />
-          <CardTable className="min-h-0 flex-1">
-            {!isPermissionsPending && !canView ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'project.materials.errors.authorizationTitle',
-                })}
-                description={intl.formatMessage({
-                  id: 'project.materials.errors.authorization',
-                })}
-              />
-            ) : query.isError ? (
-              <ErrorState
-                title={intl.formatMessage({
-                  id: 'project.materials.safetyInspection.queue.loadTitle',
-                })}
-                description={getApiErrorMessage(query.error)}
-                onRetry={() => void query.refetch()}
-              />
-            ) : (
-              <ScrollArea className="h-full">
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            )}
-          </CardTable>
-          <CardFooter className="justify-between">
-            {canView && !isPermissionsPending && !query.isError ? (
-              <DataGridPagination />
-            ) : null}
-          </CardFooter>
-        </Card>
+          <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
+            <DataGridHeader
+              variant="stats"
+              recordCountLabel={intl.formatMessage({
+                id: 'project.materials.safetyInspection.queue.recordCountLabel',
+              })}
+              stats={
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <SearchInput
+                    aria-label={intl.formatMessage({
+                      id: 'project.materials.safetyInspection.queue.search',
+                    })}
+                    placeholder={intl.formatMessage({
+                      id: 'project.materials.safetyInspection.queue.search',
+                    })}
+                    value={search}
+                    className="w-64 shrink-0"
+                    onSearch={(value) => {
+                      setSearch(value);
+                      resetPage();
+                    }}
+                  />
+                </div>
+              }
+            />
+            <CardTable className="min-h-0 flex-1">
+              {!isPermissionsPending && !canView ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'project.materials.errors.authorizationTitle',
+                  })}
+                  description={intl.formatMessage({
+                    id: 'project.materials.errors.authorization',
+                  })}
+                />
+              ) : query.isError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'project.materials.safetyInspection.queue.loadTitle',
+                  })}
+                  description={getApiErrorMessage(query.error)}
+                  onRetry={() => void query.refetch()}
+                />
+              ) : (
+                <ScrollArea className="h-full">
+                  <DataGridTable />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              )}
+            </CardTable>
+            <CardFooter className="justify-between">
+              {canView && !isPermissionsPending && !query.isError ? (
+                <DataGridPagination />
+              ) : null}
+            </CardFooter>
+          </Card>
+        </div>
       </DataGrid>
       <div aria-hidden="true" className="h-2 shrink-0" />
     </div>

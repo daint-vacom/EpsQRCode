@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
+import { useMaterialGroupMaterialCountsQuery } from '@/project/materials/hooks/use-materials';
 import { Folder, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
@@ -70,6 +71,9 @@ export function MaterialGroupsPage() {
     codePatternsQuery.data?.find((item) => item.entityKey === 'material_group')
       ?.pattern ?? DEFAULT_CODE_GENERATION_PATTERNS.material_group;
   const query = useMaterialGroupsQuery(isPermissionsPending || canView);
+  const materialCountsQuery = useMaterialGroupMaterialCountsQuery(
+    !isPermissionsPending && canView,
+  );
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
   const moveMutation = useMoveMaterialGroupMutation();
@@ -118,14 +122,8 @@ export function MaterialGroupsPage() {
     [displayedGroups],
   );
   const countByNode = useMemo(
-    () =>
-      new Map(
-        displayedGroups.map((group) => [
-          group.id,
-          groups.filter((candidate) => candidate.parentId === group.id).length,
-        ]),
-      ),
-    [displayedGroups, groups],
+    () => new Map(Object.entries(materialCountsQuery.data?.counts ?? {})),
+    [materialCountsQuery.data?.counts],
   );
   const parentOptionsFor = (
     excludeGroupId?: string,
@@ -365,7 +363,7 @@ export function MaterialGroupsPage() {
               nodes={treeNodes}
               selectedId={selectedGroupId}
               countByNode={countByNode}
-              allCount={filteredGroups.length}
+              allCount={materialCountsQuery.data?.total ?? 0}
               isAllSelected={selectedGroupId === null}
               onSelectAll={() => setSelectedGroupId(null)}
               onSelect={setSelectedGroupId}

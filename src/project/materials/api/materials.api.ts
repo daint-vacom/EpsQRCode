@@ -10,6 +10,7 @@ import type {
   Material,
   MaterialFilterSummary,
   MaterialFormValues,
+  MaterialGroupMaterialCounts,
   MaterialHistoryEntry,
   MaterialImage,
   MaterialImageDraft,
@@ -78,8 +79,20 @@ export async function loadMaterialFilterSummary(
   );
 }
 
+export async function loadMaterialGroupMaterialCounts(
+  signal?: AbortSignal,
+): Promise<MaterialGroupMaterialCounts> {
+  assertSupabaseConfigured();
+  return request<MaterialGroupMaterialCounts>(
+    supabaseApi.post('/rpc/get_material_group_material_counts', {}, { signal }),
+  );
+}
+
 export async function loadMaterialQrTrackingFilterSummary(
-  filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'> = {},
+  filters: Pick<
+    MaterialListFilters,
+    'search' | 'status' | 'ownerPartyId' | 'groupIds'
+  > = {},
   signal?: AbortSignal,
 ): Promise<MaterialFilterSummary> {
   assertSupabaseConfigured();

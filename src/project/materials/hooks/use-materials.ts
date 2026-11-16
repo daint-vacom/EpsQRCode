@@ -11,6 +11,7 @@ import {
   deleteMaterials,
   loadMaterial,
   loadMaterialFilterSummary,
+  loadMaterialGroupMaterialCounts,
   loadMaterialHistory,
   loadMaterialQrTrackingFilterSummary,
   loadMaterials,
@@ -23,6 +24,7 @@ import type {
   ApplyMaterialModelSyncInput,
   Material,
   MaterialFilterSummary,
+  MaterialGroupMaterialCounts,
   MaterialListFilters,
   MaterialPublicDetail,
   SaveMaterialInput,
@@ -37,6 +39,8 @@ export const materialKeys = {
     userId: string | null,
     filters: Pick<MaterialListFilters, 'search' | 'status' | 'groupIds'>,
   ) => [...materialKeys.all, 'filter-summary', userId, filters] as const,
+  groupMaterialCounts: (userId: string | null) =>
+    [...materialKeys.all, 'group-material-counts', userId] as const,
   qrFilterSummary: (
     userId: string | null,
     filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'>,
@@ -68,8 +72,22 @@ export function useMaterialFilterSummaryQuery(
   });
 }
 
+export function useMaterialGroupMaterialCountsQuery(enabled = true) {
+  const { userId, hasPermission } = useUser();
+
+  return useQuery<MaterialGroupMaterialCounts>({
+    queryKey: materialKeys.groupMaterialCounts(userId),
+    queryFn: ({ signal }) => loadMaterialGroupMaterialCounts(signal),
+    enabled: enabled && hasPermission('materials:material:view'),
+    retry: 0,
+  });
+}
+
 export function useMaterialQrTrackingFilterSummaryQuery(
-  filters: Pick<MaterialListFilters, 'search' | 'status' | 'ownerPartyId'> = {},
+  filters: Pick<
+    MaterialListFilters,
+    'search' | 'status' | 'ownerPartyId' | 'groupIds'
+  > = {},
   enabled = true,
 ) {
   const { userId } = useUser();
