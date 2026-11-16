@@ -256,6 +256,10 @@ export function MaterialEditorPage() {
           shouldDirty: true,
         });
       }
+      const currentUnit = form.getValues('unit');
+      if (!currentUnit || currentUnit === previousModel?.unit) {
+        form.setValue('unit', currentModel.unit, { shouldDirty: true });
+      }
       hydratedModelId.current = selectedModelId;
     }
     previousModelId.current = selectedModelId;
@@ -720,6 +724,7 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     modelId: material.modelId,
     nameOverride: material.nameOverride ?? '',
     descriptionOverride: material.descriptionOverride ?? '',
+    unit: material.modelSnapshot.unit,
     serialNumber: material.serialNumber ?? '',
     placedIntoServiceDate: material.placedIntoServiceDate ?? '',
     capitalSourceId: material.capitalSourceId ?? '',
@@ -760,7 +765,7 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
   };
 }
 
-function MaterialInspectionScheduleCard({
+export function MaterialInspectionScheduleCard({
   form,
   modelName,
   modelSafetyInspectionConfig,
@@ -1046,7 +1051,7 @@ function MaterialInspectionScheduleCard({
   );
 }
 
-function MaterialSafetyChecklistSection({
+export function MaterialSafetyChecklistSection({
   form,
   modelChecklist,
 }: {

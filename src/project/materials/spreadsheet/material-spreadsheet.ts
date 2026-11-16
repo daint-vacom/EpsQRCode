@@ -715,6 +715,7 @@ export function mapMaterialImportRows(
         valueOf(row, 'material.descriptionOverride') === model.description
           ? ''
           : valueOf(row, 'material.descriptionOverride'),
+      unit: model.unit,
       serialNumber: valueOf(row, 'material.serialNumber'),
       placedIntoServiceDate: parseSpreadsheetDate(
         valueOf(row, 'material.placedIntoServiceDate'),

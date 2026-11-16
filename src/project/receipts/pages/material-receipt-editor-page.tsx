@@ -38,6 +38,7 @@ import type {
   MaterialReceiptAdjustmentPreview,
   MaterialReceiptFormValues,
   MaterialReceiptLineInput,
+  MaterialReceiptRepresentativeInput,
 } from '../model/material-receipt';
 import {
   createMaterialReceiptLine,
@@ -77,6 +78,9 @@ export function MaterialReceiptEditorPage() {
   const [activeMaterialLine, setActiveMaterialLine] = useState<number | null>(
     null,
   );
+  const [representatives, setRepresentatives] = useState<
+    Record<string, MaterialReceiptRepresentativeInput>
+  >({});
   const [confirmedHandoverIds, setConfirmedHandoverIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -123,12 +127,38 @@ export function MaterialReceiptEditorPage() {
   useEffect(() => {
     if (!receipt || loadedId.current === receipt.id) return;
     form.reset(mapMaterialReceiptToFormValues(receipt));
+    setRepresentatives(
+      Object.fromEntries(
+        receipt.lines.flatMap((line) =>
+          line.representative
+            ? [
+                [
+                  line.id,
+                  {
+                    materialValues: line.representative.materialValues,
+                    images: line.representative.images,
+                    publicDisplaySettings:
+                      line.representative.publicDisplaySettings,
+                    publicSpecificationSettings:
+                      line.representative.publicSpecificationSettings,
+                  },
+                ],
+              ]
+            : [],
+        ),
+      ),
+    );
     loadedId.current = receipt.id;
   }, [form, receipt]);
 
   const onSubmit = (values: MaterialReceiptFormValues) => {
     if (!canManage) return;
-    const lines = toMaterialReceiptLineInputs(values, isAdjustment);
+    const lines = toMaterialReceiptLineInputs(
+      values,
+      isAdjustment,
+      false,
+      representatives,
+    );
     if (isAdjustment) {
       if (!adjustmentReason.trim()) {
         toast.error(
@@ -157,7 +187,12 @@ export function MaterialReceiptEditorPage() {
           warehouseId: values.warehouseId,
           note: values.note,
           ...(receipt ? { expectedVersion: receipt.version } : {}),
-          lines: toMaterialReceiptLineInputs(values, false),
+          lines: toMaterialReceiptLineInputs(
+            values,
+            false,
+            false,
+            representatives,
+          ),
         },
       },
       {
@@ -342,24 +377,36 @@ export function MaterialReceiptEditorPage() {
           modelById={modelById}
           onEditMaterial={setActiveMaterialLine}
           onCopySelected={(rows) => {
-            const copies = rows.map((line) => ({
-              ...line,
-              clientId: crypto.randomUUID(),
-              lineId: '',
-              items: Array.from({ length: line.quantity }, (_, index) => {
-                const source = line.items[index];
-                const condition = source?.condition ?? line.condition;
-                return {
-                  serialNumber: '',
-                  condition,
-                  conditionNote:
-                    condition === 'damaged'
-                      ? (source?.conditionNote ?? line.conditionNote)
-                      : '',
-                  note: '',
-                };
-              }),
-            }));
+            const entries = rows.map((line) => {
+              const copy = {
+                ...line,
+                clientId: crypto.randomUUID(),
+                lineId: '',
+                items: Array.from({ length: line.quantity }, (_, index) => {
+                  const source = line.items[index];
+                  const condition = source?.condition ?? line.condition;
+                  return {
+                    serialNumber: '',
+                    condition,
+                    conditionNote:
+                      condition === 'damaged'
+                        ? (source?.conditionNote ?? line.conditionNote)
+                        : '',
+                    note: '',
+                  };
+                }),
+              };
+              return { source: line, copy };
+            });
+            const copies = entries.map(({ copy }) => copy);
+            setRepresentatives((current) => {
+              const next = { ...current };
+              for (const { source, copy } of entries) {
+                const representative = current[source.clientId];
+                if (representative) next[copy.clientId] = representative;
+              }
+              return next;
+            });
             form.setValue('lines', [...form.getValues('lines'), ...copies], {
               shouldDirty: true,
               shouldValidate: true,
@@ -370,33 +417,40 @@ export function MaterialReceiptEditorPage() {
       <MaterialReceiptLineMaterialDrawer
         open={activeMaterialLine !== null}
         onOpenChange={(open) => !open && setActiveMaterialLine(null)}
-        line={
-          selectedDrawerFormLine && selectedDrawerModel
+        model={selectedDrawerModel}
+        modelLoading={modelsQuery.isPending}
+        modelError={modelsQuery.error}
+        onRetryModel={() => void modelsQuery.refetch()}
+        quantity={selectedDrawerFormLine?.quantity ?? 0}
+        warehouseId={form.watch('warehouseId')}
+        representative={
+          selectedDrawerFormLine &&
+          representatives[selectedDrawerFormLine.clientId]?.materialValues
+            .modelId === selectedDrawerFormLine.modelId
             ? {
-                model: {
-                  name: selectedDrawerModel.name,
-                  specifications: selectedDrawerModel.specifications,
-                },
-                quantity: selectedDrawerFormLine.quantity,
-                specificationOverrides:
-                  selectedDrawerFormLine.specificationOverrides,
-                specificationOverrideLabels:
-                  selectedDrawerFormLine.specificationOverrideLabels,
+                id: selectedDrawerFormLine.lineId,
+                ...representatives[selectedDrawerFormLine.clientId],
               }
             : null
         }
-        model={selectedDrawerModel}
+        readOnly={isAdjustment}
         isSaving={saveBusy}
-        onSave={(values, labels) => {
+        onSave={(representative) => {
           if (activeMaterialLine === null) return;
+          const line = form.getValues(`lines.${activeMaterialLine}`);
+          if (!line) return;
+          setRepresentatives((current) => ({
+            ...current,
+            [line.clientId]: representative,
+          }));
           form.setValue(
             `lines.${activeMaterialLine}.specificationOverrides`,
-            values,
+            representative.materialValues.specificationOverrides,
             { shouldDirty: true, shouldValidate: true },
           );
           form.setValue(
             `lines.${activeMaterialLine}.specificationOverrideLabels`,
-            labels,
+            representative.materialValues.specificationOverrideLabels ?? {},
             { shouldDirty: true, shouldValidate: true },
           );
           setActiveMaterialLine(null);

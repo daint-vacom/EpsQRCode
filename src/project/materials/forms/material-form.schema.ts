@@ -11,6 +11,7 @@ export const materialFormSchema = z
     modelId: z.string().uuid('Vui lòng chọn mẫu vật tư.'),
     nameOverride: z.string().trim(),
     descriptionOverride: z.string().trim(),
+    unit: z.string().trim(),
     serialNumber: z.string().trim(),
     placedIntoServiceDate: z.string().trim(),
     capitalSourceId: z

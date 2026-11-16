@@ -1,5 +1,12 @@
-import type { MaterialModelSpecification } from '@/project/material-models/model/material-model';
-import type { MaterialCondition } from '@/project/materials/model/material';
+import type {
+  MaterialModelSpecification,
+  MaterialPublicDisplaySettings,
+} from '@/project/material-models/model/material-model';
+import type {
+  MaterialCondition,
+  MaterialFormValues,
+  MaterialImageDraft,
+} from '@/project/materials/model/material';
 import { z } from 'zod';
 import { formatMessage } from '@/lib/validation/messages';
 
@@ -19,6 +26,7 @@ export interface MaterialReceiptWarehouseSnapshot {
 export interface MaterialReceiptItem {
   id: string;
   materialId: string | null;
+  representativeId?: string | null;
   serialNumber: string | null;
   condition: MaterialCondition;
   conditionNote: string | null;
@@ -29,6 +37,19 @@ export interface MaterialReceiptItem {
   currentSpecificationOverrides?: Record<string, string[]> | null;
   currentSpecificationOverrideLabels?: Record<string, string[]> | null;
 }
+
+export interface MaterialReceiptRepresentative {
+  id: string;
+  materialValues: MaterialFormValues;
+  images: MaterialImageDraft[];
+  publicDisplaySettings: MaterialPublicDisplaySettings;
+  publicSpecificationSettings: Record<string, boolean>;
+}
+
+export type MaterialReceiptRepresentativeInput = Omit<
+  MaterialReceiptRepresentative,
+  'id'
+>;
 
 export interface MaterialReceiptLine {
   id: string;
@@ -47,6 +68,7 @@ export interface MaterialReceiptLine {
   sortOrder: number;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
+  representative?: MaterialReceiptRepresentative | null;
   items: MaterialReceiptItem[];
 }
 
@@ -88,6 +110,7 @@ export interface MaterialReceiptLineInput {
   sortOrder: number;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
+  representative?: MaterialReceiptRepresentativeInput;
   items: Array<{
     receiptItemId?: string;
     serialNumber: string;
@@ -300,40 +323,47 @@ export function toMaterialReceiptLineInputs(
   values: MaterialReceiptFormValues,
   keepIds: boolean,
   preserveUnitConditions = false,
+  representatives: Record<string, MaterialReceiptRepresentativeInput> = {},
 ): MaterialReceiptLineInput[] {
-  return values.lines.map((line, sortOrder) => ({
-    ...(keepIds && line.lineId ? { lineId: line.lineId } : {}),
-    modelId: line.modelId || null,
-    externalCode: '',
-    quantity: line.quantity,
-    sortOrder,
-    specificationOverrides: line.specificationOverrides,
-    specificationOverrideLabels: line.specificationOverrideLabels,
-    items: Array.from({ length: line.quantity }, (_, index) => {
-      const item = line.items[index] ?? {
-        serialNumber: '',
-        condition: line.condition,
-        conditionNote: line.conditionNote,
-        note: '',
-      };
-      const condition = preserveUnitConditions
-        ? item.condition
-        : line.condition;
-      return {
-        ...(keepIds && item.receiptItemId
-          ? { receiptItemId: item.receiptItemId }
-          : {}),
-        serialNumber: item.serialNumber,
-        condition,
-        conditionNote:
-          condition === 'damaged'
-            ? item.conditionNote ||
-              line.conditionNote ||
-              line.note ||
-              values.note
-            : '',
-        note: item.note || line.note,
-      };
-    }),
-  }));
+  return values.lines.map((line, sortOrder) => {
+    const representative = representatives[line.clientId];
+    return {
+      ...(keepIds && line.lineId ? { lineId: line.lineId } : {}),
+      modelId: line.modelId || null,
+      externalCode: '',
+      quantity: line.quantity,
+      sortOrder,
+      specificationOverrides: line.specificationOverrides,
+      specificationOverrideLabels: line.specificationOverrideLabels,
+      ...(representative?.materialValues.modelId === line.modelId
+        ? { representative }
+        : {}),
+      items: Array.from({ length: line.quantity }, (_, index) => {
+        const item = line.items[index] ?? {
+          serialNumber: '',
+          condition: line.condition,
+          conditionNote: line.conditionNote,
+          note: '',
+        };
+        const condition = preserveUnitConditions
+          ? item.condition
+          : line.condition;
+        return {
+          ...(keepIds && item.receiptItemId
+            ? { receiptItemId: item.receiptItemId }
+            : {}),
+          serialNumber: item.serialNumber,
+          condition,
+          conditionNote:
+            condition === 'damaged'
+              ? item.conditionNote ||
+                line.conditionNote ||
+                line.note ||
+                values.note
+              : '',
+          note: item.note || line.note,
+        };
+      }),
+    };
+  });
 }

@@ -12,8 +12,8 @@ const spec: TableSpec = {
     {
       kind: 'custom',
       id: 'material',
-      header: 'Mẫu vật tư',
-      headerMessageId: 'receipts.items.columns.model',
+      header: 'Vật tư',
+      headerMessageId: 'receipts.items.columns.material',
       size: 300,
     },
     {

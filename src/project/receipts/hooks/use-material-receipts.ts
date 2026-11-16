@@ -10,6 +10,7 @@ import {
   loadMaterialReceipts,
   previewMaterialReceiptAdjustment,
   saveMaterialReceipt,
+  saveMaterialReceiptRepresentative,
 } from '../api/material-receipts.api';
 import type { MaterialReceiptListFilters } from '../model/material-receipt';
 
@@ -114,6 +115,21 @@ export function useSaveMaterialReceiptMutation() {
       values: Parameters<typeof saveMaterialReceipt>[1];
     }) => saveMaterialReceipt(input.id, input.values),
   );
+}
+
+export function useSaveMaterialReceiptRepresentativeMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: saveMaterialReceiptRepresentative,
+    onSuccess: (_result, input) => {
+      queryClient.invalidateQueries({
+        queryKey: materialReceiptKeys.detail(input.receiptId),
+      });
+      queryClient.invalidateQueries({ queryKey: materialReceiptKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
+      queryClient.invalidateQueries({ queryKey: ['project', 'handovers'] });
+    },
+  });
 }
 
 export function useMaterialReceiptActionMutation() {

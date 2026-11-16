@@ -44,17 +44,19 @@ export function useMaterialReceiptLineColumns({
       col.select(),
       col.custom({
         id: 'material',
-        header: intl.formatMessage({ id: 'receipts.items.columns.model' }),
+        header: intl.formatMessage({ id: 'receipts.items.columns.material' }),
         size: 300,
         enableSorting: false,
         cell: (row) => (
           <div className="min-w-0">
-            <div className="truncate font-medium">{row.model.name}</div>
-            {row.model.code ? (
-              <div className="truncate text-xs text-muted-foreground">
-                {row.model.code}
-              </div>
-            ) : null}
+            <div className="truncate font-medium">
+              {row.representative?.materialValues.nameOverride?.trim() ||
+                row.model.name}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {row.model.name}
+              {row.model.code ? ` · ${row.model.code}` : ''}
+            </div>
           </div>
         ),
       }),

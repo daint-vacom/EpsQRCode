@@ -8,6 +8,7 @@ import {
   HANDOVER_DOCUMENT_COLUMN_PINNING,
   useHandoverDocumentColumns,
 } from '@/project/handover/table/handover.columns.generated';
+import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -69,6 +70,7 @@ import {
   useMaterialReceiptHistoryQuery,
   useMaterialReceiptQuery,
   useSaveMaterialReceiptMutation,
+  useSaveMaterialReceiptRepresentativeMutation,
 } from '../hooks/use-material-receipts';
 import {
   MATERIAL_RECEIPT_PERMISSION_CODES,
@@ -78,6 +80,7 @@ import type {
   MaterialReceiptAdjustmentPreview,
   MaterialReceiptFormLine,
   MaterialReceiptLine,
+  MaterialReceiptRepresentativeInput,
 } from '../model/material-receipt';
 import {
   MATERIAL_RECEIPT_LINE_COLUMN_PINNING,
@@ -118,6 +121,9 @@ export function MaterialReceiptDetailPage() {
     true,
     isPermissionsPending || canView || canManage,
   );
+  const modelsQuery = useMaterialModelsQuery(
+    isPermissionsPending || canView || canManage,
+  );
   const [itemPagination, setItemPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -149,6 +155,8 @@ export function MaterialReceiptDetailPage() {
   const saveMutation = useSaveMaterialReceiptMutation();
   const previewMutation = useMaterialReceiptAdjustmentPreviewMutation();
   const applyMutation = useApplyMaterialReceiptAdjustmentMutation();
+  const saveRepresentativeMutation =
+    useSaveMaterialReceiptRepresentativeMutation();
   const receipt = query.data;
   const canEditReceiptLines = Boolean(
     canManage &&
@@ -156,6 +164,7 @@ export function MaterialReceiptDetailPage() {
   );
   const saveBusy =
     saveMutation.isPending ||
+    saveRepresentativeMutation.isPending ||
     previewMutation.isPending ||
     applyMutation.isPending;
   const custodians = custodiansQuery.data ?? [];
@@ -416,31 +425,30 @@ export function MaterialReceiptDetailPage() {
     }
   };
 
-  const saveMaterialSpecifications = (
-    values: Record<string, string[]>,
-    labels: Record<string, string[]>,
-    reasonText?: string,
+  const saveRepresentative = (
+    representative: MaterialReceiptRepresentativeInput,
+    reasonText: string,
   ) => {
     if (!receipt || !activeMaterialLine) return;
-    const receiptValues = mapMaterialReceiptToFormValues(receipt);
-    const line = receiptValues.lines.find(
-      (candidate) => candidate.lineId === activeMaterialLine.id,
+    saveRepresentativeMutation.mutate(
+      {
+        receiptId: receipt.id,
+        lineId: activeMaterialLine.id,
+        expectedVersion: receipt.version,
+        warehouseId: receipt.warehouseId,
+        representative,
+        reason: reasonText,
+      },
+      {
+        onSuccess: () => {
+          toast.success(
+            intl.formatMessage({ id: 'receipts.toasts.representativeUpdated' }),
+          );
+          setActiveMaterialLine(null);
+        },
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      },
     );
-    if (!line) return;
-    line.specificationOverrides = values;
-    line.specificationOverrideLabels = labels;
-    const lines = toMaterialReceiptLineInputs(
-      receiptValues,
-      receipt.status === 'handover',
-      true,
-    );
-    if (receipt.status === 'draft') {
-      persistDraftLines(lines, () => setActiveMaterialLine(null));
-    } else if (receipt.status === 'handover' && reasonText?.trim()) {
-      previewLinesForAdjustment(lines, reasonText.trim(), () =>
-        setActiveMaterialLine(null),
-      );
-    }
   };
 
   const applyAdjustment = () => {
@@ -890,10 +898,19 @@ export function MaterialReceiptDetailPage() {
       <MaterialReceiptLineMaterialDrawer
         open={activeMaterialLine !== null}
         onOpenChange={(open) => !open && setActiveMaterialLine(null)}
-        line={activeMaterialLine}
+        model={modelsQuery.data?.find(
+          (model) => model.id === activeMaterialLine?.modelId,
+        )}
+        modelLoading={modelsQuery.isPending}
+        modelError={modelsQuery.error}
+        onRetryModel={() => void modelsQuery.refetch()}
+        quantity={activeMaterialLine?.quantity ?? 0}
+        warehouseId={receipt.warehouseId}
+        representative={activeMaterialLine?.representative}
+        readOnly={!canEditReceiptLines}
         requiresReason={receipt.status === 'handover'}
         isSaving={saveBusy}
-        onSave={saveMaterialSpecifications}
+        onSave={saveRepresentative}
       />
       <Dialog
         open={bulkDialogOpen}

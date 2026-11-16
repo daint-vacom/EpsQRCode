@@ -58,6 +58,7 @@ export const materialDefaultValues: MaterialFormSchemaValues = {
   isActive: true,
   nameOverride: '',
   descriptionOverride: '',
+  unit: '',
   ownerPartyId: '',
   ownerSnapshot: {
     kind: 'eps',
@@ -99,6 +100,7 @@ interface MaterialFormProps {
   id?: string;
   renderFormElement?: boolean;
   mode: 'create' | 'edit';
+  hideCode?: boolean;
   models: MaterialModel[];
   capitalSourceIdOptions: SelectOption[];
 }
@@ -109,34 +111,37 @@ export function MaterialForm({
   id = 'material-form',
   renderFormElement = true,
   mode,
+  hideCode = false,
   models,
   capitalSourceIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
   const fields = (
     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
-      <FormField
-        control={form.control}
-        name="code"
-        render={({ field }) => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-          >
-            <FormLabel>
-              {intl.formatMessage({
-                id: 'project.materials.fields.code',
-              })}
-              <span className="text-destructive"> *</span>
-            </FormLabel>
-            <FormControl>
-              <Input variant="md" {...field} readOnly={mode === 'edit'} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {!hideCode ? (
+        <FormField
+          control={form.control}
+          name="code"
+          render={({ field }) => (
+            <FormItem
+              className="md:col-span-12"
+              layout="horizontal"
+              labelWidth="md"
+            >
+              <FormLabel>
+                {intl.formatMessage({
+                  id: 'project.materials.fields.code',
+                })}
+                <span className="text-destructive"> *</span>
+              </FormLabel>
+              <FormControl>
+                <Input variant="md" {...field} readOnly={mode === 'edit'} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ) : null}
 
       <FormField
         control={form.control}
@@ -181,6 +186,69 @@ export function MaterialForm({
               {intl.formatMessage({
                 id: 'project.materials.fields.serialNumber',
               })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="nameOverride"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'project.materials.fields.name' })}
+            </FormLabel>
+            <FormControl>
+              <Input variant="md" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="descriptionOverride"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+            alignment="start"
+          >
+            <FormLabel>
+              {intl.formatMessage({
+                id: 'project.materials.fields.description',
+              })}
+            </FormLabel>
+            <FormControl>
+              <Textarea rows={3} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="unit"
+        render={({ field }) => (
+          <FormItem
+            className="md:col-span-12"
+            layout="horizontal"
+            labelWidth="md"
+          >
+            <FormLabel>
+              {intl.formatMessage({ id: 'project.materials.fields.unit' })}
             </FormLabel>
             <FormControl>
               <Input variant="md" {...field} />
@@ -262,55 +330,13 @@ export function MaterialForm({
             </FormLabel>
             <FormControl>
               <NumericInput
-                suffix=" ₫"
+                prefix="₫ "
+                className="text-left"
                 value={field.value}
                 variant="md"
                 onBlur={field.onBlur}
                 onValueChange={field.onChange}
               />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="nameOverride"
-        render={({ field }) => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-          >
-            <FormLabel>
-              {intl.formatMessage({ id: 'project.materials.fields.name' })}
-            </FormLabel>
-            <FormControl>
-              <Input variant="md" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="descriptionOverride"
-        render={({ field }) => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-            alignment="start"
-          >
-            <FormLabel>
-              {intl.formatMessage({
-                id: 'project.materials.fields.description',
-              })}
-            </FormLabel>
-            <FormControl>
-              <Textarea rows={3} {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

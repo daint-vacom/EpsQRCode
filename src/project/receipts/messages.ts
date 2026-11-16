@@ -133,6 +133,8 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.toasts.reopened': 'Đã mở lại phiếu nhập.',
   'receipts.toasts.cancelled': 'Đã hủy phiếu nhập.',
   'receipts.toasts.adjusted': 'Đã áp dụng hiệu chỉnh phiếu nhập.',
+  'receipts.toasts.representativeUpdated':
+    'Đã lưu vật tư đại diện và đồng bộ vật tư chưa bàn giao hoàn tất.',
   'receipts.search.label': 'Tìm theo mã phiếu hoặc kho',
   'receipts.filters.allStatus': 'Tất cả trạng thái',
   'receipts.detail.defaultTitle': 'Chi tiết phiếu nhập vật tư',
@@ -300,6 +302,8 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.toasts.reopened': 'Receipt reopened.',
   'receipts.toasts.cancelled': 'Receipt cancelled.',
   'receipts.toasts.adjusted': 'Receipt adjustment applied.',
+  'receipts.toasts.representativeUpdated':
+    'Representative material saved and linked materials updated.',
   'receipts.search.label': 'Search by receipt code or warehouse',
   'receipts.filters.allStatus': 'All statuses',
   'receipts.detail.defaultTitle': 'Material receipt details',

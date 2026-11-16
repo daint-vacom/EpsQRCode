@@ -189,6 +189,7 @@ export interface MaterialFormValues {
   modelId: string;
   nameOverride: string;
   descriptionOverride: string;
+  unit: string;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels?: Record<string, string[]>;
   hiddenSpecificationIds?: string[];
