@@ -51,11 +51,26 @@ function getPinningStyles<TData>(column: Column<TData>): CSSProperties {
 }
 
 function DataGridTableBase({ children }: { children: ReactNode }) {
-  const { props } = useDataGrid();
+  const { props, table } = useDataGrid();
+  const fillColumn =
+    props.tableLayout?.width === 'fixed' && props.tableLayout.fillColumn;
+  const minWidth = fillColumn
+    ? table
+        .getVisibleLeafColumns()
+        .reduce(
+          (total, column) =>
+            total +
+            (column.id === fillColumn.id
+              ? fillColumn.minWidth
+              : column.getSize()),
+          0,
+        )
+    : undefined;
 
   return (
     <table
       data-slot="data-grid-table"
+      style={minWidth === undefined ? undefined : { minWidth }}
       className={cn(
         'w-full align-middle caption-bottom text-left rtl:text-right text-foreground font-normal text-sm',
         !props.tableLayout?.columnsDraggable &&
@@ -142,9 +157,10 @@ function DataGridTableHeadRowCell<TData>({
       key={header.id}
       ref={dndRef}
       style={{
-        ...(props.tableLayout?.width === 'fixed' && {
-          width: `${header.getSize()}px`,
-        }),
+        ...(props.tableLayout?.width === 'fixed' &&
+          column.id !== props.tableLayout.fillColumn?.id && {
+            width: `${header.getSize()}px`,
+          }),
         ...(isPinned ? getPinningStyles(column) : null),
         ...(dndStyle ? dndStyle : null),
       }}

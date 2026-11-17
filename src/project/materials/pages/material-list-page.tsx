@@ -1,4 +1,11 @@
-import { Profiler, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Profiler,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import type { EpsEmployeeCatalogEntry } from '@/project/custodians/model/custodian';
@@ -91,10 +98,13 @@ import {
   MATERIAL_COLUMN_PINNING,
   useMaterialColumns,
 } from '../table/material.columns.generated';
-import { useMaterialTableMainColumnWidth } from '../table/use-material-table-main-column-width';
 
 const DEFAULT_PAGE_SIZE = 25;
 const EMPTY_MATERIAL_GROUPS: MaterialGroup[] = [];
+const MATERIAL_TABLE_LAYOUT = {
+  dense: true,
+  fillColumn: { id: 'identity', minWidth: 260 },
+};
 type MaterialBulkAction = 'printQr' | 'handover' | 'delete' | '';
 
 function getMaterialOwnerIdentity(material: Material): string | null {
@@ -156,12 +166,15 @@ export function MaterialListPage() {
     id: 'project.materials.actions.importExcel',
   });
   const navigate = useNavigate();
-  const navigateToLabelPrint = (materialIds: readonly string[]) => {
-    const selectionKey = storeMaterialLabelSelection(materialIds);
-    navigate(ROUTES.PROJECT.MATERIAL_LABEL_PRINT, {
-      state: { [MATERIAL_LABEL_SELECTION_STATE_KEY]: selectionKey },
-    });
-  };
+  const navigateToLabelPrint = useCallback(
+    (materialIds: readonly string[]) => {
+      const selectionKey = storeMaterialLabelSelection(materialIds);
+      navigate(ROUTES.PROJECT.MATERIAL_LABEL_PRINT, {
+        state: { [MATERIAL_LABEL_SELECTION_STATE_KEY]: selectionKey },
+      });
+    },
+    [navigate],
+  );
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
@@ -196,6 +209,12 @@ export function MaterialListPage() {
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+  const handleSelectGroup = useCallback((nextGroupId: string | null) => {
+    setGroupId(nextGroupId ?? '');
+    setPagination((current) =>
+      current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+    );
+  }, []);
   const queryEnabled = isPermissionsPending || canView;
   const groupsQuery = useMaterialGroupsQuery(
     queryEnabled && !isPermissionsPending,
@@ -296,7 +315,8 @@ export function MaterialListPage() {
   );
   const items = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
-  const availabilityMutation = useUpdateMaterialAvailabilityMutation();
+  const { mutateAsync: updateAvailability } =
+    useUpdateMaterialAvailabilityMutation();
   const deleteMutation = useDeleteMaterialMutation();
   const partyNameById = useMemo(
     () =>
@@ -308,17 +328,12 @@ export function MaterialListPage() {
       new Map((groupsQuery.data ?? []).map((group) => [group.id, group.name])),
     [groupsQuery.data],
   );
-  const columns = useMaterialColumns({
-    partyNameById,
-    groupNameById,
-    canManage,
-    pendingAvailabilityIds,
-    onOpenQr: setQrDialogMaterial,
-    onAvailabilityChange: async (material, isActive) => {
+  const handleAvailabilityChange = useCallback(
+    async (material: Material, isActive: boolean) => {
       if (!canManage || pendingAvailabilityIds.has(material.id)) return;
       setPendingAvailabilityIds((current) => new Set(current).add(material.id));
       try {
-        await availabilityMutation.mutateAsync({ id: material.id, isActive });
+        await updateAvailability({ id: material.id, isActive });
         toast.success(
           intl.formatMessage({
             id: isActive
@@ -336,20 +351,47 @@ export function MaterialListPage() {
         });
       }
     },
-    onView: (material) =>
-      window.open(
-        buildPath(ROUTES.PROJECT.MATERIAL_DETAIL, { id: material.id }),
-        '_blank',
-        'noopener,noreferrer',
-      ),
-    onEdit: (material) =>
+    [canManage, intl, pendingAvailabilityIds, updateAvailability],
+  );
+  const handleView = useCallback((material: Material) => {
+    window.open(
+      buildPath(ROUTES.PROJECT.MATERIAL_DETAIL, { id: material.id }),
+      '_blank',
+      'noopener,noreferrer',
+    );
+  }, []);
+  const handleEdit = useCallback(
+    (material: Material) =>
       navigate(buildPath(ROUTES.PROJECT.MATERIAL_EDIT, { id: material.id })),
-    onHandover: (material) =>
+    [navigate],
+  );
+  const handleHandover = useCallback(
+    (material: Material) =>
       navigate(
         `${ROUTES.PROJECT.HANDOVER_CREATE}?materialId=${encodeURIComponent(material.id)}`,
       ),
-    onDelete: (material) => setDeletingMaterials([material]),
-    onPrint: (material) => navigateToLabelPrint([material.id]),
+    [navigate],
+  );
+  const handleRequestDelete = useCallback(
+    (material: Material) => setDeletingMaterials([material]),
+    [],
+  );
+  const handlePrint = useCallback(
+    (material: Material) => navigateToLabelPrint([material.id]),
+    [navigateToLabelPrint],
+  );
+  const columns = useMaterialColumns({
+    partyNameById,
+    groupNameById,
+    canManage,
+    pendingAvailabilityIds,
+    onOpenQr: setQrDialogMaterial,
+    onAvailabilityChange: handleAvailabilityChange,
+    onView: handleView,
+    onEdit: handleEdit,
+    onHandover: handleHandover,
+    onDelete: handleRequestDelete,
+    onPrint: handlePrint,
   });
   const table = useReactTable({
     data: items,
@@ -461,7 +503,6 @@ export function MaterialListPage() {
     }
     setBulkAction('');
   };
-  const tableViewportRef = useMaterialTableMainColumnWidth(table);
   const statusOptions: SelectOption[] = [
     {
       value: 'available',
@@ -700,7 +741,7 @@ export function MaterialListPage() {
                   ? 'project.materials.empty.search'
                   : 'project.materials.empty.list',
               })}
-              tableLayout={{ dense: true }}
+              tableLayout={MATERIAL_TABLE_LAYOUT}
             >
               <MaterialGroupFilterLayout>
                 <Profiler
@@ -716,15 +757,10 @@ export function MaterialListPage() {
                 >
                   <MaterialGroupFilterSidebar
                     id="material-group-filter-tree"
+                    animateSize
                     groups={groups}
                     selectedGroupId={groupId || null}
-                    onSelectGroup={(nextGroupId) => {
-                      setGroupId(nextGroupId ?? '');
-                      setPagination((current) => ({
-                        ...current,
-                        pageIndex: 0,
-                      }));
-                    }}
+                    onSelectGroup={handleSelectGroup}
                   />
                 </Profiler>
                 <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
@@ -800,10 +836,7 @@ export function MaterialListPage() {
                         }}
                       />
                     ) : (
-                      <ScrollArea
-                        className="h-full"
-                        viewportRef={tableViewportRef}
-                      >
+                      <ScrollArea className="h-full">
                         <DataGridTable />
                         <ScrollBar orientation="horizontal" />
                       </ScrollArea>

@@ -78,7 +78,7 @@ function HiddenInlineFilterTable() {
   );
 }
 
-function PinnedTable() {
+function PinnedTable({ fillName = false }: { fillName?: boolean }) {
   const table = useReactTable({
     data: [{ id: '1', name: 'Nhân viên' }],
     columns: [
@@ -93,7 +93,13 @@ function PinnedTable() {
   });
 
   return (
-    <DataGrid table={table} recordCount={1}>
+    <DataGrid
+      table={table}
+      recordCount={1}
+      tableLayout={
+        fillName ? { fillColumn: { id: 'name', minWidth: 260 } } : undefined
+      }
+    >
       <DataGridTable />
     </DataGrid>
   );
@@ -221,6 +227,19 @@ describe('DataGridTable loading state', () => {
     expect(pinnedHeader).toHaveStyle({ position: 'sticky' });
     expect(pinnedHeader).toHaveTextContent('Thao tác');
     expect(screen.queryByText('Ghim phải')).not.toBeInTheDocument();
+  });
+
+  it('lets the fill column grow while preserving fixed widths and horizontal overflow', () => {
+    render(<PinnedTable fillName />);
+
+    expect(screen.getByRole('table')).toHaveStyle({ minWidth: '340px' });
+    expect(screen.getByRole('columnheader', { name: 'Tên' }).style.width).toBe(
+      '',
+    );
+    expect(screen.getByRole('columnheader', { name: 'Thao tác' })).toHaveStyle({
+      position: 'sticky',
+      width: '80px',
+    });
   });
 });
 

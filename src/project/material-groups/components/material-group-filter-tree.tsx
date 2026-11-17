@@ -86,7 +86,7 @@ export function MaterialGroupFilterLayout({ children }: PropsWithChildren) {
   return (
     <div
       className={cn(
-        'flex min-h-0 min-w-0 flex-1 flex-col xl:flex-row',
+        'flex min-h-0 min-w-0 flex-1 flex-col motion-safe:transition-[gap] motion-safe:duration-300 motion-safe:ease-in-out xl:flex-row',
         isOpen ? 'gap-3' : 'gap-0',
       )}
     >
@@ -152,11 +152,13 @@ export function MaterialGroupFilterToggle({
 export interface MaterialGroupFilterSidebarProps extends MaterialGroupFilterTreeProps {
   id: string;
   isOpen?: boolean;
+  animateSize?: boolean;
 }
 
 export function MaterialGroupFilterSidebar({
   id,
   isOpen,
+  animateSize = false,
   ...treeProps
 }: MaterialGroupFilterSidebarProps) {
   const layoutState = useContext(MaterialGroupFilterLayoutContext);
@@ -169,10 +171,12 @@ export function MaterialGroupFilterSidebar({
       aria-hidden={!resolvedIsOpen}
       inert={!resolvedIsOpen}
       className={cn(
-        'grid min-h-0 min-w-0 overflow-hidden transition-opacity duration-150 ease-out motion-reduce:transition-none xl:h-full xl:shrink-0',
-        resolvedIsOpen
-          ? 'grid-rows-[1fr] opacity-100 xl:w-72'
-          : 'grid-rows-[0fr] opacity-0 xl:w-0',
+        'grid min-h-0 min-w-0 overflow-hidden xl:h-full xl:shrink-0',
+        animateSize
+          ? 'motion-safe:transition-[grid-template-rows] motion-safe:duration-300 motion-safe:ease-in-out xl:grid-rows-[1fr] motion-safe:xl:transition-[width]'
+          : 'motion-safe:transition-opacity motion-safe:duration-150 motion-safe:ease-out',
+        resolvedIsOpen ? 'grid-rows-[1fr] xl:w-72' : 'grid-rows-[0fr] xl:w-0',
+        !animateSize && (resolvedIsOpen ? 'opacity-100' : 'opacity-0'),
       )}
       onTransitionRun={(event) => {
         if (event.target !== event.currentTarget) return;

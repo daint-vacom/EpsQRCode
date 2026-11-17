@@ -131,6 +131,31 @@ const table = useReactTable({
 
 ---
 
+## 5. Co giãn bảng cạnh sidebar hoặc cây lọc
+
+Khi sidebar hoặc cây lọc thu mở, chiều rộng vùng bảng có thể đổi ở từng khung hình. Gọi
+`table.setColumnSizing` từ `ResizeObserver` trong lúc đó khiến toàn bộ bảng có thể render lại liên tục.
+Chi phí tăng rõ khi mỗi dòng có QR SVG, công tắc hoặc menu thao tác.
+
+- Dùng CSS cho kích thước phát sinh từ layout. Với bảng có chiều rộng cột cố định, cấu hình
+  `tableLayout={{ fillColumn: { id: 'identity', minWidth: 260 } }}` khi cần một cột hấp thụ phần chiều
+  rộng còn lại. Chọn cột lá không ghim. `DataGridTable` cộng chiều rộng tối thiểu của cột đó với kích
+  thước các cột đang hiện để bảng cuộn ngang trong `ScrollArea` khi thiếu chỗ.
+- Tránh nối thay đổi chiều rộng của container vào state React hoặc TanStack Table theo từng khung
+  hình. Giữ tham chiếu dữ liệu, cột và callback ổn định khi nội dung bảng không đổi. Nếu hook tạo
+  cột dùng `useMemo`, các callback truyền vào hook cũng cần ổn định để hàm render ô được tái sử dụng.
+- Giữ transition ở khung sidebar/cây lọc và khoảng cách layout nếu có. Tôn trọng
+  `prefers-reduced-motion`. Trước khi bật hiệu ứng đổi kích thước trên panel dùng chung, kiểm tra các
+  trang đang dùng panel xem có còn đo lại bảng rồi cập nhật state hay không.
+- Khi đổi layout này, thử thu mở theo cả hai chiều với dữ liệu thật trước khi kết luận đã mượt.
+  Kiểm tra cột tối thiểu, cuộn ngang và cột ghim ở 1366 px và 1920 px. Nếu vẫn thấy giật, dùng React
+  Profiler để đo render và Performance của trình duyệt để xem layout, paint và tác vụ dài.
+
+Tham chiếu triển khai: [trang Quản lý vật tư](../../src/project/materials/pages/material-list-page.tsx)
+và [khung cây nhóm vật tư](../../src/project/material-groups/components/material-group-filter-tree.tsx).
+
+---
+
 ## Ghi chú
 
 - Width/căn lề cột đặt qua `meta.headerClassName` / `meta.cellClassName`, **không** style trực tiếp `<th>/<td>`.

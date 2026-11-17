@@ -86,6 +86,8 @@ export interface DataGridProps<TData extends object> {
     headerSticky?: boolean;
     showInlineFilters?: boolean;
     width?: 'auto' | 'fixed';
+    /** An unpinned leaf column that fills the remaining space in a fixed table. */
+    fillColumn?: { id: string; minWidth: number };
     columnsVisibility?: boolean;
     columnsResizable?: boolean;
     columnsPinnable?: boolean;
