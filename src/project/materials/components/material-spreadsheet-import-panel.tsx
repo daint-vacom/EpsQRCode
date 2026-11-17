@@ -62,6 +62,7 @@ import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
   buildMaterialModelImportProposals,
   findMaterialImportMapping,
+  getMaterialImportCodes,
   getMissingMaterialImportFields,
   mapMaterialSpreadsheetRows,
   toMaterialImportPreviewRows,
@@ -258,6 +259,15 @@ export function MaterialSpreadsheetImportPanel({
   const validRowCount = mappedRows.filter(
     (row) => row.values !== null && !row.error,
   ).length;
+  const requestedMaterialCount = mappedRows.reduce(
+    (total, row) => total + row.quantity,
+    0,
+  );
+  const validMaterialCount = mappedRows.reduce(
+    (total, row) =>
+      row.values !== null && !row.error ? total + row.quantity : total,
+    0,
+  );
   const proposalErrors = canManageModels
     ? modelProposals.filter((proposal) => proposal.error)
     : [];
@@ -268,9 +278,15 @@ export function MaterialSpreadsheetImportPanel({
       (proposal) => Boolean(proposal.formValues) && !proposal.error,
     );
   const importFailureCount =
-    outcomes?.filter((outcome) => !outcome.success).length ?? 0;
+    outcomes?.reduce(
+      (total, outcome) => total + outcome.quantity - outcome.createdCount,
+      0,
+    ) ?? 0;
   const importSuccessCount =
-    outcomes?.filter((outcome) => outcome.success).length ?? 0;
+    outcomes?.reduce(
+      (total, outcome) => total + (outcome.createdCount ?? 0),
+      0,
+    ) ?? 0;
   const importPercent =
     importProgress.total > 0
       ? Math.min(
@@ -394,13 +410,19 @@ export function MaterialSpreadsheetImportPanel({
         rowNumber: row.rowNumber,
         code: row.code,
         success: false,
+        quantity: row.quantity,
+        createdCount: 0,
         error:
           row.error ||
           translate('project.materials.spreadsheet.errors.formInvalid'),
       });
     }
-    let completedCount = invalidRows.length;
-    setImportProgress({ processed: completedCount, total: mappedRows.length });
+    const totalItemCount = requestedMaterialCount;
+    let completedCount = invalidRows.reduce(
+      (total, row) => total + row.quantity,
+      0,
+    );
+    setImportProgress({ processed: completedCount, total: totalItemCount });
     const modelIdByCode = new Map<string, string>();
 
     try {
@@ -445,9 +467,11 @@ export function MaterialSpreadsheetImportPanel({
                   rowNumber: row.rowNumber,
                   code: row.code,
                   success: false,
+                  quantity: row.quantity,
+                  createdCount: 0,
                   error: message,
                 });
-                completedCount += 1;
+                completedCount += row.quantity;
               }
             });
           } catch (error) {
@@ -467,15 +491,17 @@ export function MaterialSpreadsheetImportPanel({
                   rowNumber: row.rowNumber,
                   code: row.code,
                   success: false,
+                  quantity: row.quantity,
+                  createdCount: 0,
                   error: message,
                 });
-                completedCount += 1;
+                completedCount += row.quantity;
               }
             }
           }
           setImportProgress({
             processed: completedCount,
-            total: mappedRows.length,
+            total: totalItemCount,
           });
         }
       }
@@ -493,11 +519,13 @@ export function MaterialSpreadsheetImportPanel({
             rowNumber: row.rowNumber,
             code: row.code,
             success: false,
+            quantity: row.quantity,
+            createdCount: 0,
             error: translate(
               'project.materials.spreadsheet.errors.modelCreateFailed',
             ),
           });
-          completedCount += 1;
+          completedCount += row.quantity;
           return [];
         }
         return [
@@ -512,15 +540,27 @@ export function MaterialSpreadsheetImportPanel({
       });
       setImportProgress({
         processed: completedCount,
-        total: mappedRows.length,
+        total: totalItemCount,
       });
 
-      for (
-        let start = 0;
-        start < rowsWithResolvedModelIds.length;
-        start += 100
-      ) {
-        const batch = rowsWithResolvedModelIds.slice(start, start + 100);
+      const materialRows = rowsWithResolvedModelIds.flatMap(({ row, values }) =>
+        getMaterialImportCodes(row.code, row.quantity).map((code) => ({
+          row,
+          values: { ...values, code },
+        })),
+      );
+      const resultStatsByRow = new Map<
+        string,
+        { createdCount: number; error: string }
+      >(
+        rowsWithResolvedModelIds.map(({ row }) => [
+          row.id,
+          { createdCount: 0, error: '' },
+        ]),
+      );
+
+      for (let start = 0; start < materialRows.length; start += 100) {
+        const batch = materialRows.slice(start, start + 100);
         setImportStage('');
         try {
           const results = await createMutation.mutateAsync(
@@ -528,38 +568,46 @@ export function MaterialSpreadsheetImportPanel({
           );
           batch.forEach(({ row }, index) => {
             const result = results[index];
-            outcomeById.set(row.id, {
-              id: row.id,
-              sourceId: row.sourceId,
-              rowNumber: row.rowNumber,
-              code: row.code,
-              success: result?.success ?? false,
-              error:
-                result?.error ??
-                (result?.success
-                  ? ''
-                  : translate(
-                      'project.materials.spreadsheet.errors.formInvalid',
-                    )),
-            });
+            const stats = resultStatsByRow.get(row.id);
+            if (!stats) return;
+            if (result?.success) {
+              stats.createdCount += 1;
+            } else if (!stats.error) {
+              stats.error =
+                result?.error ||
+                translate('project.materials.spreadsheet.errors.formInvalid');
+            }
           });
         } catch (error) {
           const message = getErrorText(error, translate);
           batch.forEach(({ row }) => {
-            outcomeById.set(row.id, {
-              id: row.id,
-              sourceId: row.sourceId,
-              rowNumber: row.rowNumber,
-              code: row.code,
-              success: false,
-              error: message,
-            });
+            const stats = resultStatsByRow.get(row.id);
+            if (stats && !stats.error) stats.error = message;
           });
         }
         completedCount += batch.length;
         setImportProgress({
           processed: completedCount,
-          total: mappedRows.length,
+          total: totalItemCount,
+        });
+      }
+
+      for (const { row } of rowsWithResolvedModelIds) {
+        const stats = resultStatsByRow.get(row.id);
+        const createdCount = stats?.createdCount ?? 0;
+        const success = createdCount === row.quantity;
+        outcomeById.set(row.id, {
+          id: row.id,
+          sourceId: row.sourceId,
+          rowNumber: row.rowNumber,
+          code: row.code,
+          success,
+          quantity: row.quantity,
+          createdCount,
+          error: success
+            ? ''
+            : stats?.error ||
+              translate('project.materials.spreadsheet.errors.formInvalid'),
         });
       }
 
@@ -571,6 +619,8 @@ export function MaterialSpreadsheetImportPanel({
             rowNumber: row.rowNumber,
             code: row.code,
             success: false,
+            quantity: row.quantity,
+            createdCount: 0,
             error: translate(
               'project.materials.spreadsheet.errors.formInvalid',
             ),
@@ -578,8 +628,8 @@ export function MaterialSpreadsheetImportPanel({
       );
       setOutcomes(finalOutcomes);
       setImportProgress({
-        processed: mappedRows.length,
-        total: mappedRows.length,
+        processed: totalItemCount,
+        total: totalItemCount,
       });
     } catch (error) {
       const message = getErrorText(error, translate);
@@ -591,13 +641,15 @@ export function MaterialSpreadsheetImportPanel({
             rowNumber: row.rowNumber,
             code: row.code,
             success: false,
+            quantity: row.quantity,
+            createdCount: 0,
             error: message,
           },
       );
       setOutcomes(finalOutcomes);
       setImportProgress({
-        processed: mappedRows.length,
-        total: mappedRows.length,
+        processed: totalItemCount,
+        total: totalItemCount,
       });
     } finally {
       setImporting(false);
@@ -694,7 +746,9 @@ export function MaterialSpreadsheetImportPanel({
             onClick={() => footerActionsRef.current.import()}
           >
             <Upload />
-            {translate('project.materials.spreadsheet.importNow')}
+            {translate('project.materials.spreadsheet.importNowWithCount', {
+              count: String(validMaterialCount),
+            })}
           </Button>
         </>
       );
@@ -749,6 +803,7 @@ export function MaterialSpreadsheetImportPanel({
     sources.length,
     step,
     translate,
+    validMaterialCount,
   ]);
 
   useEffect(() => {
@@ -917,6 +972,11 @@ export function MaterialSpreadsheetImportPanel({
             <span className="text-success">
               {translate('project.materials.spreadsheet.validCount', {
                 count: String(validRowCount),
+              })}
+            </span>
+            <span>
+              {translate('project.materials.spreadsheet.quantitySummary', {
+                count: String(validMaterialCount),
               })}
             </span>
             {errorRows.length > 0 ? (
@@ -1123,16 +1183,22 @@ export function MaterialSpreadsheetImportPanel({
             >
               <span className="inline-flex items-center gap-1.5 text-success">
                 <CheckCircle2 className="size-4" />
-                {translate('project.materials.spreadsheet.validCount', {
-                  count: String(importSuccessCount),
-                })}
+                {translate(
+                  'project.materials.spreadsheet.createdMaterialsCount',
+                  {
+                    count: String(importSuccessCount),
+                  },
+                )}
               </span>
               {importFailureCount > 0 ? (
                 <span className="inline-flex items-center gap-1.5 text-destructive">
                   <AlertCircle className="size-4" />
-                  {translate('project.materials.spreadsheet.errorCount', {
-                    count: String(importFailureCount),
-                  })}
+                  {translate(
+                    'project.materials.spreadsheet.failedMaterialsCount',
+                    {
+                      count: String(importFailureCount),
+                    },
+                  )}
                 </span>
               ) : null}
             </div>

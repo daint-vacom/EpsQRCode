@@ -27,6 +27,9 @@ export const MATERIAL_IMPORT_REQUIRED_FIELD_KEYS = [
   'material.owner.name',
 ] as const;
 
+export const MATERIAL_IMPORT_MAX_ITEMS = 50_000;
+const MATERIAL_IMPORT_MAX_ROW_QUANTITY = 10_000;
+
 export interface MaterialSpreadsheetSource {
   id: string;
   file: File;
@@ -43,6 +46,7 @@ export interface MaterialSpreadsheetImportPreviewRow {
   fileName: string;
   excelRow: number;
   code: string;
+  quantity: number;
   modelCode: string;
   modelName: string;
   name: string;
@@ -75,6 +79,7 @@ export interface MappedMaterialImportRow extends MaterialImportRow {
   sourceId: string;
   fileName: string;
   rawValues: Record<string, string>;
+  quantity: number;
   modelCode: string;
   error: string | null;
 }
@@ -151,7 +156,7 @@ export function buildMaterialModelImportProposals(
     rowsByModelCode.set(key, currentRows);
   }
 
-  return Array.from(rowsByModelCode.values())
+  const proposals = Array.from(rowsByModelCode.values())
     .map((modelRows) => {
       const firstRow = modelRows[0];
       const code = valueOf(firstRow, 'material.model.code');
@@ -324,6 +329,46 @@ export function buildMaterialModelImportProposals(
     .filter(
       (proposal): proposal is MaterialModelImportProposal => proposal !== null,
     );
+
+  const reservedCodes = new Set(
+    models
+      .flatMap((model) => [model.code, ...model.externalCodes])
+      .map((code) => code.trim().toLowerCase()),
+  );
+  return proposals.map((proposal) => {
+    if (!proposal.formValues || proposal.error) return proposal;
+
+    const codes = [
+      proposal.code,
+      ...proposal.formValues.externalCodesText
+        .split(/\r?\n/)
+        .map((code) => code.trim())
+        .filter(Boolean),
+    ];
+    const proposalCodes = new Set<string>();
+    const conflict = codes.find((code) => {
+      const normalized = code.toLowerCase();
+      if (reservedCodes.has(normalized) || proposalCodes.has(normalized)) {
+        return true;
+      }
+      proposalCodes.add(normalized);
+      return false;
+    });
+    if (conflict) {
+      return {
+        ...proposal,
+        formValues: null,
+        previewModel: null,
+        error: translate(
+          'project.materials.spreadsheet.errors.externalCodeConflict',
+          { code: conflict },
+        ),
+      };
+    }
+
+    codes.forEach((code) => reservedCodes.add(code.toLowerCase()));
+    return proposal;
+  });
 }
 
 export function mapMaterialSpreadsheetRows(
@@ -353,7 +398,8 @@ export function mapMaterialSpreadsheetRows(
     capitalSources,
   );
 
-  return mapped.map((row, index) => {
+  let plannedItemCount = 0;
+  const mappedRows = mapped.map((row, index) => {
     const sourceRow = sourceRows[index];
     const source = sourceRow?.source;
     const rawValues = sourceRow?.row.values ?? {};
@@ -361,17 +407,38 @@ export function mapMaterialSpreadsheetRows(
     const proposal = modelProposals.find(
       (item) => normalizeHeader(item.code) === normalizeHeader(modelCode),
     );
-    const error = proposal?.error ? proposal.error : row.error;
+    const quantityResult = parseImportQuantity(
+      rawValues['material.quantity'] ?? '',
+      translate,
+    );
+    const serialNumber = rawValues['material.serialNumber']?.trim() ?? '';
+    let error = proposal?.error || quantityResult.error || row.error;
+    if (!error && quantityResult.quantity > 1 && serialNumber) {
+      error = translate('project.materials.spreadsheet.errors.serialQuantity');
+    }
+    if (
+      !error &&
+      plannedItemCount + quantityResult.quantity > MATERIAL_IMPORT_MAX_ITEMS
+    ) {
+      error = translate('project.materials.spreadsheet.errors.quantityLimit', {
+        count: MATERIAL_IMPORT_MAX_ITEMS.toLocaleString(),
+      });
+    }
+    if (!error) plannedItemCount += quantityResult.quantity;
     return {
       ...row,
+      values: error ? null : row.values,
       id: `${source?.id ?? 'file'}:${sourceRow?.row.rowNumber ?? row.rowNumber}:${sourceRow?.index ?? index}`,
       sourceId: source?.id ?? '',
       fileName: source?.file.name ?? '',
       rawValues,
+      quantity: quantityResult.quantity,
       modelCode,
       error,
     };
   });
+
+  return markGeneratedCodeCollisions(mappedRows, translate);
 }
 
 export function toMaterialImportPreviewRows(
@@ -391,7 +458,8 @@ export function toMaterialImportPreviewRows(
       sourceId: row.sourceId,
       fileName: row.fileName,
       excelRow: row.rowNumber,
-      code: row.code,
+      code: formatMaterialImportCodeRange(row.code, row.quantity),
+      quantity: row.quantity,
       modelCode: row.modelCode,
       modelName: model?.name ?? proposal?.name ?? '',
       name: valueOf(row.rawValues, 'material.nameOverride'),
@@ -410,6 +478,88 @@ export function toMaterialImportPreviewRows(
       error: row.error ?? '',
     };
   });
+}
+
+export function getMaterialImportCodes(
+  code: string,
+  quantity: number,
+): string[] {
+  if (quantity <= 1) return [code];
+  const suffixLength = Math.max(3, String(quantity).length);
+  return Array.from(
+    { length: quantity },
+    (_, index) => `${code}-${String(index + 1).padStart(suffixLength, '0')}`,
+  );
+}
+
+function formatMaterialImportCodeRange(code: string, quantity: number) {
+  const codes = getMaterialImportCodes(code, quantity);
+  return codes.length > 1 ? `${codes[0]} … ${codes[codes.length - 1]}` : code;
+}
+
+function markGeneratedCodeCollisions(
+  rows: MappedMaterialImportRow[],
+  translate: TranslateMaterialImportMessage,
+) {
+  const rowByCode = new Map<string, string>();
+  const collidingRows = new Set<string>();
+  for (const row of rows) {
+    if (!row.values || row.error) continue;
+    for (const code of getMaterialImportCodes(row.code, row.quantity)) {
+      const key = normalizeHeader(code);
+      const previousRowId = rowByCode.get(key);
+      if (previousRowId) {
+        collidingRows.add(previousRowId);
+        collidingRows.add(row.id);
+      } else {
+        rowByCode.set(key, row.id);
+      }
+    }
+  }
+
+  return rows.map((row) =>
+    collidingRows.has(row.id)
+      ? {
+          ...row,
+          values: null,
+          error: translate(
+            'project.materials.spreadsheet.errors.duplicateCode',
+          ),
+        }
+      : row,
+  );
+}
+
+function parseImportQuantity(
+  value: string,
+  translate: TranslateMaterialImportMessage,
+): { quantity: number; error: string | null } {
+  const normalized = value.trim().replace(/[\s\u00a0]/g, '');
+  if (!normalized) return { quantity: 1, error: null };
+
+  const groupedThousands = /^\d{1,3}(?:[,.]\d{3})+$/.test(normalized);
+  const digits = groupedThousands
+    ? normalized.replace(/[,.]/g, '')
+    : normalized;
+  if (!/^\d+$/.test(digits)) {
+    return {
+      quantity: 1,
+      error: translate('project.materials.spreadsheet.errors.quantity'),
+    };
+  }
+
+  const quantity = Number(digits);
+  if (
+    !Number.isSafeInteger(quantity) ||
+    quantity < 1 ||
+    quantity > MATERIAL_IMPORT_MAX_ROW_QUANTITY
+  ) {
+    return {
+      quantity: 1,
+      error: translate('project.materials.spreadsheet.errors.quantity'),
+    };
+  }
+  return { quantity, error: null };
 }
 
 function consistentValue(

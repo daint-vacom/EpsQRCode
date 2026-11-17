@@ -31,6 +31,14 @@ const spec: TableSpec = {
       size: 130,
     },
     {
+      kind: 'number',
+      id: 'quantity',
+      field: 'quantity',
+      header: 'Số lượng',
+      headerMessageId: 'project.materials.spreadsheet.fields.quantity',
+      size: 88,
+    },
+    {
       kind: 'text',
       id: 'modelCode',
       field: 'modelCode',

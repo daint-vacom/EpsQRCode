@@ -12,6 +12,8 @@ export interface MaterialImportOutcome {
   rowNumber: number;
   code: string;
   success: boolean;
+  quantity: number;
+  createdCount: number;
   error: string;
 }
 

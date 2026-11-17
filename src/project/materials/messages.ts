@@ -143,10 +143,17 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.preview': 'Xem trước dữ liệu',
   'project.materials.spreadsheet.previewCount': '{count} dòng dữ liệu',
   'project.materials.spreadsheet.validCount': '{count} dòng hợp lệ',
+  'project.materials.spreadsheet.quantitySummary':
+    'Số vật tư QR hợp lệ sẽ tạo: {count}',
+  'project.materials.spreadsheet.createdMaterialsCount':
+    'Đã tạo {count} vật tư QR',
+  'project.materials.spreadsheet.failedMaterialsCount':
+    '{count} vật tư QR chưa tạo được',
   'project.materials.spreadsheet.errorCount': '{count} dòng cần sửa',
   'project.materials.spreadsheet.row': 'Dòng',
   'project.materials.spreadsheet.result': 'Kết quả',
   'project.materials.spreadsheet.importNow': 'Nhập',
+  'project.materials.spreadsheet.importNowWithCount': 'Nhập {count} vật tư',
   'project.materials.spreadsheet.importing': 'Đang nhập',
   'project.materials.spreadsheet.exportNow': 'Xuất danh sách vật tư',
   'project.materials.spreadsheet.exporting': 'Đang xuất',
@@ -178,6 +185,7 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.dropFiles':
     'Kéo thả tệp Excel vào đây hoặc bấm để chọn nhiều tệp',
   'project.materials.spreadsheet.fields.code': 'Mã vật tư',
+  'project.materials.spreadsheet.fields.quantity': 'Số lượng',
   'project.materials.spreadsheet.fields.modelCode': 'Mã mẫu vật tư',
   'project.materials.spreadsheet.fields.modelName': 'Tên mẫu',
   'project.materials.spreadsheet.fields.modelGroupCode': 'Mã nhóm',
@@ -218,6 +226,12 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.errors.missingCode': 'Thiếu mã vật tư.',
   'project.materials.spreadsheet.errors.duplicateCode':
     'Mã vật tư bị trùng trong tệp.',
+  'project.materials.spreadsheet.errors.quantity':
+    'Số lượng phải là số nguyên từ 1 đến 10.000.',
+  'project.materials.spreadsheet.errors.serialQuantity':
+    'Dòng có số sê-ri chỉ nhập số lượng 1; hãy tách từng số sê-ri thành dòng riêng.',
+  'project.materials.spreadsheet.errors.quantityLimit':
+    'Tổng số vật tư vượt giới hạn nhập {count}.',
   'project.materials.spreadsheet.errors.modelNotFound':
     'Không tìm thấy mẫu vật tư đang hoạt động theo mã đã nhập.',
   'project.materials.spreadsheet.errors.modelNameRequired':
@@ -228,6 +242,8 @@ export const materialMessagesVi: Record<string, string> = {
     'Không tìm thấy nhóm vật tư đang hoạt động có mã “{code}”.',
   'project.materials.spreadsheet.errors.modelMetadataConflict':
     'Thông tin mẫu “{code}” không thống nhất giữa các dòng.',
+  'project.materials.spreadsheet.errors.externalCodeConflict':
+    'Mã mẫu vật tư hoặc mã CCDC nguồn “{code}” bị trùng với mã đã có hoặc dòng khác trong tệp.',
   'project.materials.spreadsheet.errors.modelSpecificationsFormat':
     'Thông số mẫu cần theo định dạng “Tên thông số: giá trị 1; giá trị 2”, mỗi thông số một dòng.',
   'project.materials.spreadsheet.errors.modelSpecificationUnknown':
@@ -831,10 +847,18 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.preview': 'Data preview',
   'project.materials.spreadsheet.previewCount': '{count} data rows',
   'project.materials.spreadsheet.validCount': '{count} valid rows',
+  'project.materials.spreadsheet.quantitySummary':
+    'Valid QR materials to create: {count}',
+  'project.materials.spreadsheet.createdMaterialsCount':
+    'Created {count} QR materials',
+  'project.materials.spreadsheet.failedMaterialsCount':
+    '{count} QR materials could not be created',
   'project.materials.spreadsheet.errorCount': '{count} rows need attention',
   'project.materials.spreadsheet.row': 'Row',
   'project.materials.spreadsheet.result': 'Result',
   'project.materials.spreadsheet.importNow': 'Import',
+  'project.materials.spreadsheet.importNowWithCount':
+    'Import {count} materials',
   'project.materials.spreadsheet.importing': 'Importing',
   'project.materials.spreadsheet.exportNow': 'Export material list',
   'project.materials.spreadsheet.exporting': 'Exporting',
@@ -866,6 +890,7 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.dropFiles':
     'Drop Excel files here or click to select multiple files',
   'project.materials.spreadsheet.fields.code': 'Material code',
+  'project.materials.spreadsheet.fields.quantity': 'Quantity',
   'project.materials.spreadsheet.fields.modelCode': 'Material model code',
   'project.materials.spreadsheet.fields.modelName': 'Model name',
   'project.materials.spreadsheet.fields.modelGroupCode': 'Group code',
@@ -904,6 +929,12 @@ export const materialMessagesEn: Record<string, string> = {
     'Material code is required.',
   'project.materials.spreadsheet.errors.duplicateCode':
     'The material code is duplicated in the file.',
+  'project.materials.spreadsheet.errors.quantity':
+    'Quantity must be a whole number from 1 to 10,000.',
+  'project.materials.spreadsheet.errors.serialQuantity':
+    'A row with a serial number must have quantity 1; add each serial number on a separate row.',
+  'project.materials.spreadsheet.errors.quantityLimit':
+    'The requested quantity exceeds the import limit of {count} materials.',
   'project.materials.spreadsheet.errors.modelNotFound':
     'No active material model matches this code.',
   'project.materials.spreadsheet.errors.modelNameRequired':
@@ -914,6 +945,8 @@ export const materialMessagesEn: Record<string, string> = {
     'No active material group has code “{code}”.',
   'project.materials.spreadsheet.errors.modelMetadataConflict':
     'Metadata for model “{code}” differs between rows.',
+  'project.materials.spreadsheet.errors.externalCodeConflict':
+    'Model or source code “{code}” conflicts with an existing model or another row in the file.',
   'project.materials.spreadsheet.errors.modelSpecificationsFormat':
     'Model specifications must use “Specification name: value 1; value 2”, one specification per line.',
   'project.materials.spreadsheet.errors.modelSpecificationUnknown':

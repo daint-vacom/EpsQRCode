@@ -63,6 +63,12 @@ export function getMaterialSpreadsheetFields(
       read: (row) => row.code,
     },
     {
+      key: 'material.quantity',
+      label: translate('project.materials.spreadsheet.fields.quantity'),
+      headerAliases: ['Quantity', 'Qty'],
+      read: () => 1,
+    },
+    {
       key: 'material.model.code',
       label: translate('project.materials.spreadsheet.fields.modelCode'),
       required: true,

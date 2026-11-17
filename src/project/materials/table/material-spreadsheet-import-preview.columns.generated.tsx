@@ -8,14 +8,20 @@ import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { BadgeCheck, BadgeX } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import { useNumberFormat } from '@/providers/number-format-provider';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
 import type { MaterialSpreadsheetImportPreviewRow } from '../spreadsheet/material-spreadsheet-import';
 
 export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<MaterialSpreadsheetImportPreviewRow>[] {
   const intl = useIntl();
+  const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
 
   return useMemo(() => {
-    const col = createColumnHelpers<MaterialSpreadsheetImportPreviewRow>();
+    const col = createColumnHelpers<MaterialSpreadsheetImportPreviewRow>({
+      formatNumber,
+      formatCurrency,
+      formatPercent,
+    });
 
     return [
       col.text({
@@ -41,6 +47,15 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<Mater
         }),
         get: (row) => row.code,
         size: 130,
+        enableSorting: false,
+      }),
+      col.number({
+        id: 'quantity',
+        header: intl.formatMessage({
+          id: 'project.materials.spreadsheet.fields.quantity',
+        }),
+        get: (row) => row.quantity,
+        size: 88,
         enableSorting: false,
       }),
       col.text({
@@ -165,5 +180,5 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<Mater
         ),
       }),
     ];
-  }, [intl]);
+  }, [formatCurrency, formatNumber, formatPercent, intl]);
 }
