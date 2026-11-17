@@ -645,13 +645,22 @@ export const vi: Record<string, string> = {
   'settings.spreadsheetTemplates.materialsImport': 'Nhập vật tư',
   'settings.spreadsheetTemplates.materialsExport': 'Xuất vật tư',
   'settings.spreadsheetTemplates.chooseFile': 'Chọn biểu mẫu Excel .xlsx',
-  'settings.spreadsheetTemplates.replaceFile': 'Thay tệp',
+  'settings.spreadsheetTemplates.addFile': 'Thêm biểu mẫu',
   'settings.spreadsheetTemplates.downloadFile': 'Tải xuống',
+  'settings.spreadsheetTemplates.deleteFile': 'Xóa',
+  'settings.spreadsheetTemplates.cancel': 'Hủy',
   'settings.spreadsheetTemplates.uploading': 'Đang tải biểu mẫu lên',
   'settings.spreadsheetTemplates.downloading': 'Đang tải xuống',
   'settings.spreadsheetTemplates.fileHelp':
-    'Chọn tệp .xlsx để thêm hoặc thay thế biểu mẫu. Tệp tối đa 20 MB.',
-  'settings.spreadsheetTemplates.saved': 'Đã cập nhật biểu mẫu Excel.',
+    'Thêm nhiều tệp .xlsx cho mỗi chức năng. Tệp tối đa 20 MB; tải tệp cùng tên lên sẽ thay thế bản cũ.',
+  'settings.spreadsheetTemplates.defaultTemplate':
+    'Biểu mẫu mặc định tích hợp sẵn',
+  'settings.spreadsheetTemplates.sharedTemplate': 'Biểu mẫu dùng chung',
+  'settings.spreadsheetTemplates.saved': 'Đã lưu biểu mẫu Excel.',
+  'settings.spreadsheetTemplates.deleted': 'Đã xóa biểu mẫu Excel.',
+  'settings.spreadsheetTemplates.deleteConfirmTitle': 'Xóa biểu mẫu Excel?',
+  'settings.spreadsheetTemplates.deleteConfirmDescription':
+    'Tệp “{name}” sẽ bị xóa khỏi kho biểu mẫu.',
   'settings.spreadsheetTemplates.loadErrorTitle':
     'Không tải được biểu mẫu Excel',
   'settings.dataConfiguration.title': 'Quy tắc sinh mã tự động',

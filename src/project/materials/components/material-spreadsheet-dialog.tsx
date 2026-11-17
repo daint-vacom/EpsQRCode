@@ -10,7 +10,6 @@ import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-mate
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import { useMaterialSpecificationsQuery } from '@/project/material-specifications/hooks/use-material-specifications';
-import { useSpreadsheetTemplateQuery } from '@/project/spreadsheets/hooks/use-spreadsheet-templates';
 import { LoaderCircle } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useUser } from '@/providers/user-provider';
@@ -203,13 +202,7 @@ export function MaterialSpreadsheetExportDialog({
   onOpenChange,
   filters,
 }: MaterialSpreadsheetExportDialogProps) {
-  const { hasPermission } = useUser();
-  const canLoadSharedTemplate = hasPermission('files:file_manager:view');
   const groupsQuery = useMaterialGroupsQuery(open);
-  const sharedTemplateQuery = useSpreadsheetTemplateQuery(
-    'materialsExport',
-    open && canLoadSharedTemplate,
-  );
   const { exportFields, modelsQuery, custodiansQuery, capitalSourcesQuery } =
     useMaterialSpreadsheetOptions(open, groupsQuery.data ?? []);
   const catalogsLoading =
@@ -222,18 +215,10 @@ export function MaterialSpreadsheetExportDialog({
     custodiansQuery.isError ||
     capitalSourcesQuery.isError ||
     groupsQuery.isError;
-  const sharedTemplate = sharedTemplateQuery.data ?? null;
-  const sharedTemplateLoading =
-    canLoadSharedTemplate && sharedTemplateQuery.isPending;
-  const sharedTemplateError =
-    !canLoadSharedTemplate || sharedTemplateQuery.isError;
   const exportState = useMaterialSpreadsheetExport({
     open,
     filters,
     fields: exportFields,
-    sharedTemplate,
-    sharedTemplateLoading,
-    sharedTemplateError,
     catalogsLoading,
     catalogsError,
   });

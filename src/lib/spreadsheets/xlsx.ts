@@ -54,6 +54,7 @@ interface SpreadsheetCell {
   fill?: unknown;
   alignment?: unknown;
   style?: unknown;
+  dataValidation?: unknown;
 }
 
 interface SpreadsheetRow {
@@ -69,6 +70,7 @@ interface SpreadsheetRow {
 export interface SpreadsheetWorksheet {
   name: string;
   rowCount: number;
+  state?: 'visible' | 'hidden' | 'veryHidden';
   getRow: (row: number) => SpreadsheetRow;
   eachRow?: (
     options: { includeEmpty?: boolean },
@@ -228,6 +230,8 @@ export async function readXlsxFile(file: File): Promise<SpreadsheetWorkbook> {
 
 function validateSpreadsheetMarkerRows(workbook: SpreadsheetWorkbook) {
   for (const worksheet of workbook.worksheets) {
+    if (isSpreadsheetFieldCatalogWorksheet(worksheet)) continue;
+
     let markerRow: number | undefined;
     let hasMarkersInMultipleRows = false;
 
@@ -250,6 +254,14 @@ function validateSpreadsheetMarkerRows(workbook: SpreadsheetWorkbook) {
       );
     }
   }
+}
+
+function isSpreadsheetFieldCatalogWorksheet(worksheet: SpreadsheetWorksheet) {
+  const normalizedName = normalizeHeader(worksheet.name).replace(
+    /\s*-\s*hide\s*$/i,
+    '',
+  );
+  return normalizedName === normalizeHeader('Trường dữ liệu');
 }
 
 function upgradeLegacyMarkerLayouts(workbook: SpreadsheetWorkbook) {
@@ -354,6 +366,8 @@ export function detectSpreadsheetExportMapping<TRecord>(
   let bestMatchCount = 0;
 
   for (const worksheet of workbook.worksheets) {
+    if (isSpreadsheetFieldCatalogWorksheet(worksheet)) continue;
+
     const markedMapping = detectMarkedSpreadsheetMapping(worksheet, fields);
     if (markedMapping) {
       return markedMapping;
@@ -559,15 +573,41 @@ export async function exportSpreadsheet<TRecord>({
 
   const lastExistingRow = worksheet.rowCount;
   const sampleStyles = new Map<number, unknown>();
+  const sampleValidations = new Map<number, unknown>();
+  let sampleRowHeight: number | undefined;
   if (providedMapping) {
-    const styleSourceRow = mapping.markerRow ?? mapping.dataStartRow;
+    const sampleRow =
+      mapping.markerRow === undefined
+        ? mapping.dataStartRow
+        : mapping.markerRow + 1;
+    const fallbackStyleRow = mapping.markerRow ?? mapping.dataStartRow;
+    const sampleHeight = worksheet.getRow(sampleRow).height;
+    const fallbackHeight = worksheet.getRow(fallbackStyleRow).height;
+    sampleRowHeight =
+      typeof sampleHeight === 'number' && sampleHeight > 0
+        ? sampleHeight
+        : fallbackHeight;
     for (const field of fields) {
       const column = mapping.columnByFieldKey[field.key];
-      const style = column
-        ? worksheet.getCell(styleSourceRow, column).style
-        : undefined;
-      if (column && style && typeof style === 'object') {
+      if (!column) continue;
+
+      const sampleStyle = worksheet.getCell(sampleRow, column).style;
+      const hasSampleStyle =
+        sampleStyle &&
+        typeof sampleStyle === 'object' &&
+        Object.keys(sampleStyle).length > 0;
+      const fallbackStyle = worksheet.getCell(fallbackStyleRow, column).style;
+      const style = hasSampleStyle ? sampleStyle : fallbackStyle;
+      if (style && typeof style === 'object' && Object.keys(style).length > 0) {
         sampleStyles.set(column, structuredClone(style));
+      }
+
+      const dataValidation = worksheet.getCell(
+        sampleRow,
+        column,
+      ).dataValidation;
+      if (dataValidation && typeof dataValidation === 'object') {
+        sampleValidations.set(column, structuredClone(dataValidation));
       }
     }
   }
@@ -597,6 +637,7 @@ export async function exportSpreadsheet<TRecord>({
 
   records.forEach((record, index) => {
     const rowNumber = mapping.dataStartRow + index;
+    if (sampleRowHeight) worksheet.getRow(rowNumber).height = sampleRowHeight;
     for (const field of fields) {
       const column = mapping.columnByFieldKey[field.key];
       if (!column) continue;
@@ -607,6 +648,10 @@ export async function exportSpreadsheet<TRecord>({
       ) {
         const sampleStyle = sampleStyles.get(column);
         if (sampleStyle) cell.style = structuredClone(sampleStyle);
+        const sampleValidation = sampleValidations.get(column);
+        if (sampleValidation) {
+          cell.dataValidation = structuredClone(sampleValidation);
+        }
       }
       cell.value = field.read(record);
     }
@@ -614,6 +659,19 @@ export async function exportSpreadsheet<TRecord>({
 
   if (mapping.markerRow !== undefined) {
     worksheet.getRow(mapping.markerRow).hidden = true;
+  }
+
+  for (const sheet of workbook.worksheets) {
+    if (/\s*-\s*HIDE$/i.test(sheet.name.trim())) {
+      sheet.state = 'hidden';
+    }
+  }
+  if (
+    !workbook.worksheets.some(
+      (sheet) => sheet.state !== 'hidden' && sheet.state !== 'veryHidden',
+    )
+  ) {
+    worksheet.state = 'visible';
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

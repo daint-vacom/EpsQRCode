@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { SpreadsheetTemplate } from '@/project/spreadsheets/api/spreadsheet-templates.api';
+import {
+  useSpreadsheetTemplateQuery,
+  useSpreadsheetTemplatesQuery,
+} from '@/project/spreadsheets/hooks/use-spreadsheet-templates';
 import { LoaderCircle } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
@@ -13,6 +16,7 @@ import type {
   SpreadsheetField,
   SpreadsheetWorkbook,
 } from '@/lib/spreadsheets/xlsx';
+import { useUser } from '@/providers/user-provider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
@@ -22,7 +26,7 @@ import type { Material, MaterialListFilters } from '../model/material';
 import { prepareMaterialExportMapping } from '../spreadsheet/material-spreadsheet';
 
 type ExportScope = 'filtered' | 'all';
-type ExportTemplateSource = 'system' | 'custom';
+type ExportTemplateSource = string;
 type ExportPhase = 'idle' | 'fetching' | 'writing' | 'complete' | 'failed';
 
 interface ExportProgress {
@@ -34,9 +38,6 @@ interface MaterialSpreadsheetExportOptions {
   open: boolean;
   filters: Omit<MaterialListFilters, 'page' | 'pageSize'>;
   fields: SpreadsheetField<Material>[];
-  sharedTemplate: SpreadsheetTemplate | null;
-  sharedTemplateLoading: boolean;
-  sharedTemplateError: boolean;
   catalogsLoading: boolean;
   catalogsError: boolean;
 }
@@ -66,13 +67,17 @@ export function useMaterialSpreadsheetExport({
   open,
   filters,
   fields,
-  sharedTemplate,
-  sharedTemplateLoading,
-  sharedTemplateError,
   catalogsLoading,
   catalogsError,
 }: MaterialSpreadsheetExportOptions): MaterialSpreadsheetExportState {
   const intl = useIntl();
+  const { hasPermission } = useUser();
+  const canLoadSharedTemplate = hasPermission('files:file_manager:view');
+  const templatesQuery = useSpreadsheetTemplatesQuery(
+    'materialsExport',
+    open && canLoadSharedTemplate,
+  );
+  const templates = templatesQuery.data ?? [];
   const [scope, setScope] = useState<ExportScope>('filtered');
   const [templateSource, setTemplateSource] =
     useState<ExportTemplateSource>('system');
@@ -87,6 +92,26 @@ export function useMaterialSpreadsheetExport({
     processed: 0,
     total: 0,
   });
+  const selectedTemplate =
+    templates.find((template) => template.id === templateSource) ??
+    templates[0] ??
+    null;
+  const selectedTemplateQuery = useSpreadsheetTemplateQuery(
+    'materialsExport',
+    templateSource === 'custom' ? null : (selectedTemplate?.id ?? null),
+    open && canLoadSharedTemplate,
+  );
+  const effectiveTemplateSource =
+    templateSource === 'custom' ? 'custom' : (selectedTemplate?.id ?? 'system');
+  const sharedTemplate = selectedTemplateQuery.data ?? null;
+  const sharedTemplateLoading =
+    canLoadSharedTemplate &&
+    (templatesQuery.isPending ||
+      (selectedTemplate !== null && selectedTemplateQuery.isPending));
+  const sharedTemplateError =
+    !canLoadSharedTemplate ||
+    templatesQuery.isError ||
+    selectedTemplateQuery.isError;
 
   const scopeOptions: SelectOption[] = [
     {
@@ -102,13 +127,23 @@ export function useMaterialSpreadsheetExport({
       }),
     },
   ];
+  const sharedTemplateOptions: SelectOption[] = templates.map((template) => ({
+    value: template.id,
+    label: template.isBundled
+      ? `${template.fileName} · ${intl.formatMessage({ id: 'settings.spreadsheetTemplates.defaultTemplate' })}`
+      : template.fileName,
+  }));
   const templateOptions: SelectOption[] = [
-    {
-      value: 'system',
-      label: intl.formatMessage({
-        id: 'project.materials.spreadsheet.exportTemplateSystem',
-      }),
-    },
+    ...(sharedTemplateOptions.length > 0
+      ? sharedTemplateOptions
+      : [
+          {
+            value: 'system',
+            label: intl.formatMessage({
+              id: 'project.materials.spreadsheet.exportTemplateSystem',
+            }),
+          },
+        ]),
     {
       value: 'custom',
       label: intl.formatMessage({
@@ -118,15 +153,17 @@ export function useMaterialSpreadsheetExport({
   ];
 
   const workbook =
-    templateSource === 'system'
+    effectiveTemplateSource !== 'custom'
       ? (sharedTemplate?.workbook ?? null)
       : customWorkbook;
   const templateName =
-    templateSource === 'system'
-      ? (sharedTemplate?.fileName ?? '')
+    effectiveTemplateSource !== 'custom'
+      ? (selectedTemplate?.fileName ?? '')
       : customTemplateName;
   const systemTemplateError =
-    templateSource === 'system' && !sharedTemplateLoading && !sharedTemplate
+    effectiveTemplateSource !== 'custom' &&
+    !sharedTemplateLoading &&
+    !sharedTemplate
       ? intl.formatMessage({
           id: sharedTemplateError
             ? 'project.materials.spreadsheet.sharedTemplateLoadError'
@@ -189,7 +226,7 @@ export function useMaterialSpreadsheetExport({
     try {
       if (!workbook) {
         throw new SpreadsheetError(
-          templateSource === 'custom'
+          effectiveTemplateSource === 'custom'
             ? 'project.materials.spreadsheet.customTemplateRequired'
             : sharedTemplateError
               ? 'project.materials.spreadsheet.sharedTemplateLoadError'
@@ -211,7 +248,7 @@ export function useMaterialSpreadsheetExport({
       const mapping = prepareMaterialExportMapping(
         workbook,
         fields,
-        templateSource === 'system',
+        effectiveTemplateSource !== 'custom',
       );
       if (!mapping || Object.keys(mapping.columnByFieldKey).length === 0) {
         throw new SpreadsheetError('common.spreadsheets.errors.mappingEmpty');
@@ -247,7 +284,7 @@ export function useMaterialSpreadsheetExport({
     fileLoading ||
     catalogsLoading ||
     catalogsError ||
-    (templateSource === 'system'
+    (effectiveTemplateSource !== 'custom'
       ? sharedTemplateLoading || !sharedTemplate
       : !customWorkbook);
 
@@ -255,7 +292,7 @@ export function useMaterialSpreadsheetExport({
     scope,
     scopeOptions,
     setScope,
-    templateSource,
+    templateSource: effectiveTemplateSource,
     templateOptions,
     setTemplateSource: (source) => {
       setTemplateSource(source);
@@ -352,7 +389,7 @@ export function MaterialSpreadsheetExportPanel({
               ) : null}
             </div>
           ) : null}
-          {((state.templateSource === 'system' && state.templateLoading) ||
+          {((state.templateSource !== 'custom' && state.templateLoading) ||
             state.fileLoading) && (
             <div
               className="flex items-center gap-2 text-sm text-muted-foreground"
