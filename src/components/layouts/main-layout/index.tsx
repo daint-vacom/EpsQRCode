@@ -21,7 +21,7 @@ export function MainLayout({ shell }: MainLayoutProps = {}) {
         style={
           {
             '--sidebar-width': '224px',
-            '--sidebar-collapsed-width': '0px',
+            '--sidebar-collapsed-width': '64px',
             '--header-height': '56px',
             '--header-height-mobile': '56px',
           } as CSSProperties

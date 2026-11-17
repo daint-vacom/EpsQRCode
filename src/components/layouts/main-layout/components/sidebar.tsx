@@ -9,13 +9,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'fixed inset-y-0 start-0 z-20 flex w-(--sidebar-current-width) shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out',
+        'fixed inset-y-0 start-0 z-20 flex w-(--sidebar-current-width) shrink-0 overflow-hidden transition-[width] duration-200 ease-out',
         isDark
           ? 'border-e border-admin-shell-border/70 bg-admin-shell-deep'
           : 'border-e border-border bg-card',
       )}
     >
-      {isSidebarOpen && <SidebarSecondary />}
+      <SidebarSecondary collapsed={!isSidebarOpen} />
     </aside>
   );
 }

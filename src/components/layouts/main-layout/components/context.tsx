@@ -120,7 +120,7 @@ export function LayoutProvider({
 
   const style = {
     '--sidebar-width': '224px',
-    '--sidebar-collapsed-width': '0px',
+    '--sidebar-collapsed-width': '64px',
     '--sidebar-current-width': sidebarCurrentWidth,
     '--header-height': '56px',
     '--header-height-mobile': '56px',

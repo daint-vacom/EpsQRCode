@@ -62,7 +62,7 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
-import { OptionSelect, type SelectOption } from '@/components/ui/option-select';
+import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -91,7 +91,6 @@ import type {
   MaterialCondition,
   MaterialListFilters,
   MaterialOwnerFilterType,
-  MaterialStatus,
 } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import {
@@ -181,7 +180,6 @@ export function MaterialListPage() {
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
-  const [status, setStatus] = useState('');
   const [filterMode, setFilterMode] = useState<MaterialFilterMode>('status');
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [condition, setCondition] = useState<MaterialCondition | undefined>();
@@ -256,7 +254,6 @@ export function MaterialListPage() {
     () => ({
       search: search.trim() || undefined,
       groupIds,
-      status: (status || undefined) as MaterialStatus | undefined,
       isActive,
       condition,
       ownerPartyId: ownerPartyId || undefined,
@@ -271,32 +268,28 @@ export function MaterialListPage() {
       pagination.pageIndex,
       pagination.pageSize,
       search,
-      status,
     ],
   );
   const spreadsheetFilters = useMemo(
     () => ({
       search: search.trim() || undefined,
       groupIds,
-      status: status || undefined,
       isActive,
       condition,
       ownerPartyId: ownerPartyId || undefined,
     }),
-    [condition, groupIds, isActive, ownerPartyId, search, status],
+    [condition, groupIds, isActive, ownerPartyId, search],
   );
   const filterSummaryFilters = useMemo(
     () => ({
       search: search.trim() || undefined,
       groupIds,
-      status: (status || undefined) as MaterialStatus | undefined,
     }),
-    [groupIds, search, status],
+    [groupIds, search],
   );
   const hasActiveFilters = Boolean(
     search.trim() ||
     groupId ||
-    status ||
     isActive !== undefined ||
     condition ||
     ownerPartyId,
@@ -503,21 +496,6 @@ export function MaterialListPage() {
     }
     setBulkAction('');
   };
-  const statusOptions: SelectOption[] = [
-    {
-      value: 'available',
-      label: intl.formatMessage({ id: 'project.materials.status.available' }),
-    },
-    {
-      value: 'loaned',
-      label: intl.formatMessage({ id: 'project.materials.status.loaned' }),
-    },
-  ];
-  const handleFilterChange =
-    (setValue: (value: string) => void) => (value: string) => {
-      setValue(value);
-      setPagination((current) => ({ ...current, pageIndex: 0 }));
-    };
   const handleFilterModeChange = (nextMode: MaterialFilterMode) => {
     if (nextMode === filterMode) return;
 
@@ -787,19 +765,6 @@ export function MaterialListPage() {
                               pageIndex: 0,
                             }));
                           }}
-                        />
-                        <OptionSelect
-                          aria-label={intl.formatMessage({
-                            id: 'project.materials.filters.loanStatus',
-                          })}
-                          placeholder={intl.formatMessage({
-                            id: 'project.materials.filters.loanStatusPlaceholder',
-                          })}
-                          options={statusOptions}
-                          value={status}
-                          onChange={handleFilterChange(setStatus)}
-                          searchable={false}
-                          className="w-52 shrink-0"
                         />
                       </div>
                     }
