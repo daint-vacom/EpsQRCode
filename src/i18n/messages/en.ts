@@ -5,6 +5,7 @@ import { handoverMessagesEn } from '@/project/handover/messages';
 import { materialLabelMessagesEn } from '@/project/material-labels/messages';
 import { materialMessagesEn } from '@/project/materials/messages';
 import { receiptMessagesEn } from '@/project/receipts/messages';
+import { warehouseStockMessagesEn } from '@/project/warehouse-stock/messages';
 import { warehouseMessagesEn } from '@/project/warehouses/messages';
 
 /** English translations for the material operations modules. */
@@ -67,6 +68,7 @@ export const en: Record<string, string> = {
   ...materialMessagesEn,
   ...materialLabelMessagesEn,
   ...warehouseMessagesEn,
+  ...warehouseStockMessagesEn,
   ...accountMessagesEn,
   ...custodianMessagesEn,
   ...dashboardMessagesEn,
@@ -91,6 +93,7 @@ export const en: Record<string, string> = {
   'project.navigation.safetyInspections': 'Safety inspections',
   'project.navigation.comingSoon': 'Coming soon',
   'project.navigation.reports': 'Reports',
+  'project.navigation.warehouseStock': 'Warehouse stock',
   'project.navigation.handovers': 'Material handovers',
   'project.navigation.warehouses': 'Warehouses',
   'project.navigation.receipts': 'Material intake',

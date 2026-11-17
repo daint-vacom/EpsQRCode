@@ -212,6 +212,23 @@ export interface MaterialReceiptListFilters {
   dateTo?: string;
 }
 
+export interface MaterialReceiptSelectOption {
+  id: string;
+  code: string;
+  status: Extract<MaterialReceiptStatus, 'draft' | 'handover'>;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  createdAt: string;
+}
+
+export interface MaterialReceiptSelectResult {
+  items: MaterialReceiptSelectOption[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface MaterialReceiptListResult {
   items: MaterialReceipt[];
   total: number;

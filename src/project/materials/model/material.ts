@@ -147,6 +147,7 @@ export type MaterialOwnerSnapshotDraft = Pick<
 export interface Material {
   id: string;
   code: string;
+  receiptCode?: string | null;
   modelId: string;
   modelSnapshot: MaterialModelSnapshot;
   placedIntoServiceDate: string | null;
@@ -271,6 +272,7 @@ export interface MaterialListFilters {
   borrowerScopePartyId?: string;
   borrowerName?: string;
   receiptId?: string;
+  ownerKind?: MaterialOwnerKind;
   isActive?: boolean;
   status?: MaterialStatus;
   condition?: MaterialCondition;

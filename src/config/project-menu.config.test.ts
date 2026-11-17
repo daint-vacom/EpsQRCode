@@ -7,23 +7,26 @@ import {
 describe('PROJECT_MENU_GROUPS', () => {
   it('includes material operations and shared administration surfaces', () => {
     expect(PROJECT_MENU_GROUPS.map((group) => group.title)).toEqual([
+      'Báo cáo',
       'Quản lý vật tư',
       'Quản lý phiếu',
-      'Báo cáo',
       'Quản trị tổ chức',
       'Hệ thống',
     ]);
     expect(PROJECT_MENU_GROUPS[0]?.items.map((item) => item.label)).toEqual([
-      'Tất cả vật tư',
-      'Theo dõi mã QR',
-      'Vật tư cần kiểm định',
+      'Tổng quan',
+      'Báo cáo',
     ]);
     expect(PROJECT_MENU_GROUPS[1]?.items.map((item) => item.label)).toEqual([
-      'Bàn giao vật tư',
-      'Nhập vật tư',
+      'Tất cả vật tư',
+      'Theo dõi mã QR',
+      'Vật tư cần kiểm tra',
+      'Vật tư kho',
     ]);
     expect(PROJECT_MENU_GROUPS[2]?.items.map((item) => item.label)).toEqual([
-      'Báo cáo',
+      'Phiếu kiểm tra an toàn',
+      'Bàn giao vật tư',
+      'Nhập vật tư',
     ]);
     expect(PROJECT_MENU_GROUPS[3]?.items.map((item) => item.label)).toEqual([
       'Nhóm vật tư',

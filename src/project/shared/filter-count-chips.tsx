@@ -13,6 +13,7 @@ export interface FilterCountChipsProps {
   options: readonly FilterCountChipOption[];
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  showCount?: boolean;
 }
 
 export function FilterCountChips({
@@ -21,6 +22,7 @@ export function FilterCountChips({
   options,
   onValueChange,
   disabled = false,
+  showCount = true,
 }: FilterCountChipsProps) {
   const intl = useIntl();
 
@@ -44,17 +46,19 @@ export function FilterCountChips({
             aria-pressed={selected}
           >
             {option.label}
-            <span
-              className={
-                selected
-                  ? 'text-primary-foreground/80'
-                  : 'text-muted-foreground'
-              }
-            >
-              {option.count === undefined
-                ? '—'
-                : intl.formatNumber(option.count)}
-            </span>
+            {showCount ? (
+              <span
+                className={
+                  selected
+                    ? 'text-primary-foreground/80'
+                    : 'text-muted-foreground'
+                }
+              >
+                {option.count === undefined
+                  ? '—'
+                  : intl.formatNumber(option.count)}
+              </span>
+            ) : null}
           </Button>
         );
       })}

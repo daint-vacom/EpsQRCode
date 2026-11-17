@@ -74,6 +74,7 @@ import { MaterialReceiptDetailPage } from '@/project/receipts/pages/material-rec
 import { MaterialReceiptEditorPage } from '@/project/receipts/pages/material-receipt-editor-page';
 import { MaterialReceiptsPage } from '@/project/receipts/pages/material-receipts-page';
 import { ReportsPage } from '@/project/reports/pages/reports-page';
+import { WarehouseStockPage } from '@/project/warehouse-stock/pages/warehouse-stock-page';
 import { WarehousesPage } from '@/project/warehouses/pages/warehouses-page';
 import { Navigate, Route, Routes } from 'react-router';
 import { DetailEntryLayout } from '@/components/layouts/detail-entry-layout';
@@ -249,6 +250,10 @@ export function AppRoutingSetup() {
           <Route
             path={ROUTES.PROJECT.MATERIALS}
             element={<MaterialListPage />}
+          />
+          <Route
+            path={ROUTES.PROJECT.WAREHOUSE_STOCK}
+            element={<WarehouseStockPage />}
           />
           <Route
             path={ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION}

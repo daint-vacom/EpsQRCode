@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Users,
+  Warehouse,
 } from 'lucide-react';
 import type { MenuGroupConfig } from './menu.types';
 
@@ -61,6 +62,12 @@ export const PROJECT_MENU_GROUPS: MenuGroupConfig[] = [
         labelMessageId: 'project.navigation.materialsRequiringInspection',
         icon: ClipboardCheck,
         path: ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION,
+      },
+      {
+        label: 'Vật tư kho',
+        labelMessageId: 'project.navigation.warehouseStock',
+        icon: Warehouse,
+        path: ROUTES.PROJECT.WAREHOUSE_STOCK,
       },
     ],
   },

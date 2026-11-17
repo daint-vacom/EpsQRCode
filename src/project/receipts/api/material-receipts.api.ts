@@ -15,6 +15,7 @@ import type {
   MaterialReceiptListFilters,
   MaterialReceiptListResult,
   MaterialReceiptRepresentativeInput,
+  MaterialReceiptSelectResult,
 } from '../model/material-receipt';
 
 async function request<T>(promise: Promise<unknown>): Promise<T> {
@@ -29,6 +30,25 @@ export async function loadMaterialReceipts(
   return request<MaterialReceiptListResult>(
     supabaseApi.post(
       '/rpc/list_material_receipts',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialReceiptOptions(
+  filters: {
+    search?: string;
+    statuses?: Array<'draft' | 'handover'>;
+    page?: number;
+    pageSize?: number;
+  },
+  signal?: AbortSignal,
+): Promise<MaterialReceiptSelectResult> {
+  assertSupabaseConfigured();
+  return request<MaterialReceiptSelectResult>(
+    supabaseApi.post(
+      '/rpc/list_incomplete_material_receipt_options',
       { p_filters: filters },
       { signal },
     ),

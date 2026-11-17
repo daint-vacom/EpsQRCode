@@ -9,6 +9,7 @@ import { handoverMessagesVi } from '@/project/handover/messages';
 import { materialLabelMessagesVi } from '@/project/material-labels/messages';
 import { materialMessagesVi } from '@/project/materials/messages';
 import { receiptMessagesVi } from '@/project/receipts/messages';
+import { warehouseStockMessagesVi } from '@/project/warehouse-stock/messages';
 import { warehouseMessagesVi } from '@/project/warehouses/messages';
 
 export const vi: Record<string, string> = {
@@ -39,6 +40,7 @@ export const vi: Record<string, string> = {
   ...materialMessagesVi,
   ...materialLabelMessagesVi,
   ...warehouseMessagesVi,
+  ...warehouseStockMessagesVi,
   ...accountMessagesVi,
   ...custodianMessagesVi,
   ...dashboardMessagesVi,
@@ -51,6 +53,7 @@ export const vi: Record<string, string> = {
   'project.navigation.groups.system': 'Hệ thống',
   'project.navigation.overview': 'Tổng quan',
   'project.navigation.allMaterials': 'Tất cả vật tư',
+  'project.navigation.warehouseStock': 'Vật tư kho',
   'project.navigation.qrTracking': 'Theo dõi mã QR',
   'project.navigation.materialsRequiringInspection': 'Vật tư cần kiểm tra',
   'project.navigation.safetyInspections': 'Phiếu kiểm tra an toàn',
