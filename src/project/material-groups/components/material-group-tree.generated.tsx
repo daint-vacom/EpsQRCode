@@ -18,14 +18,7 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import {
-  ChevronRight,
-  Folder,
-  Pencil,
-  Plus,
-  Power,
-  Trash2,
-} from 'lucide-react';
+import { ChevronRight, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -48,11 +41,9 @@ export interface MaterialGroupTreeProps {
   onAdd?: (parentId: string | null) => void;
   onEdit?: (node: MaterialGroupTreeNode) => void;
   onDelete?: (node: MaterialGroupTreeNode) => void;
-  onToggleAvailability?: (node: MaterialGroupTreeNode) => void;
   onMove?: (groupId: string, parentId: string | null) => void;
   canMove?: (groupId: string, parentId: string | null) => boolean;
   isMovePending?: boolean;
-  pendingAvailabilityIds?: ReadonlySet<string>;
 }
 
 export interface MaterialGroupTreePanelProps extends MaterialGroupTreeProps {
@@ -212,7 +203,7 @@ function MaterialGroupTreeRootRow({
       >
         {allCount}
       </Badge>
-      <div className="absolute end-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+      <div className="absolute end-3 top-1/2 z-20 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:opacity-100">
         {onAdd && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -249,11 +240,9 @@ export const MaterialGroupTree = memo(function MaterialGroupTree({
   onAdd,
   onEdit,
   onDelete,
-  onToggleAvailability,
   onMove,
   canMove,
   isMovePending,
-  pendingAvailabilityIds,
   activeGroup,
   hidden = false,
 }: MaterialGroupTreeListProps) {
@@ -271,12 +260,10 @@ export const MaterialGroupTree = memo(function MaterialGroupTree({
           onAdd={onAdd}
           onEdit={onEdit}
           onDelete={onDelete}
-          onToggleAvailability={onToggleAvailability}
           onMove={onMove}
           canMove={canMove}
           isMovePending={isMovePending}
           activeGroup={activeGroup}
-          pendingAvailabilityIds={pendingAvailabilityIds}
         />
       ))}
     </ul>
@@ -299,11 +286,9 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
   onAdd,
   onEdit,
   onDelete,
-  onToggleAvailability,
   onMove,
   canMove,
   isMovePending,
-  pendingAvailabilityIds,
   activeGroup,
 }: MaterialGroupTreeItemProps) {
   const intl = useIntl();
@@ -462,8 +447,7 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
           appearance={isSelected ? 'default' : 'light'}
           className={cn(
             'ms-auto shrink-0',
-            (onAdd || onEdit || onDelete || onToggleAvailability) &&
-              'group-hover:hidden',
+            (onAdd || onEdit || onDelete) && 'group-hover:hidden',
           )}
           aria-label={intl.formatMessage(
             { id: countLabelId ?? 'materialGroups.tree.materialCount' },
@@ -472,7 +456,7 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
         >
           {nodeCount}
         </Badge>
-        <div className="absolute end-3 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+        <div className="absolute end-3 top-1/2 z-20 flex -translate-y-1/2 items-center gap-0.5 opacity-0 group-hover:opacity-100">
           {onAdd && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -524,30 +508,6 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
               <TooltipContent variant="light">{'Xóa nhóm'}</TooltipContent>
             </Tooltip>
           )}
-          {onToggleAvailability && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label={
-                    node.isActive
-                      ? `Ngừng sử dụng nhóm ${node.name}`
-                      : `Bật sử dụng nhóm ${node.name}`
-                  }
-                  className="size-6 text-muted-foreground"
-                  disabled={pendingAvailabilityIds?.has(node.id)}
-                  onClick={() => onToggleAvailability(node)}
-                >
-                  <Power className="size-3.5 !opacity-100" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent variant="light">
-                {node.isActive ? 'Ngừng sử dụng' : 'Bật sử dụng'}
-              </TooltipContent>
-            </Tooltip>
-          )}
         </div>
       </div>
 
@@ -563,11 +523,9 @@ const MaterialGroupTreeItem = memo(function MaterialGroupTreeItem({
           onAdd={onAdd}
           onEdit={onEdit}
           onDelete={onDelete}
-          onToggleAvailability={onToggleAvailability}
           onMove={onMove}
           canMove={canMove}
           activeGroup={activeGroup}
-          pendingAvailabilityIds={pendingAvailabilityIds}
         />
       )}
     </li>

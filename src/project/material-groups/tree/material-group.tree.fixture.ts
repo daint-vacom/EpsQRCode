@@ -27,13 +27,6 @@ const spec = {
       label: 'Xóa nhóm',
       optional: true,
     },
-    {
-      key: 'toggleAvailability',
-      kind: 'custom',
-      label: 'Đổi trạng thái sử dụng',
-      icon: 'Power',
-      optional: true,
-    },
   ],
 } satisfies TreeSpec;
 

@@ -31,7 +31,6 @@ import {
   useDeleteMaterialGroupMutation,
   useMaterialGroupsQuery,
   useMoveMaterialGroupMutation,
-  useUpdateMaterialGroupAvailabilityMutation,
   useUpdateMaterialGroupMutation,
 } from '../hooks/use-material-groups';
 import {
@@ -77,15 +76,11 @@ export function MaterialGroupsPage() {
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
   const moveMutation = useMoveMaterialGroupMutation();
-  const availabilityMutation = useUpdateMaterialGroupAvailabilityMutation();
   const deleteMutation = useDeleteMaterialGroupMutation();
   const [keyword, setKeyword] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
-    ReadonlySet<string>
-  >(() => new Set());
   const [editingGroup, setEditingGroup] = useState<MaterialGroup | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<MaterialGroup | null>(
     null,
@@ -190,30 +185,6 @@ export function MaterialGroupsPage() {
       shouldDirty: false,
     });
     setCreateOpen(true);
-  };
-
-  const toggleAvailability = async (group: MaterialGroup) => {
-    if (!canManage || pendingAvailabilityIds.has(group.id)) return;
-    const isActive = !group.isActive;
-    setPendingAvailabilityIds((current) => new Set(current).add(group.id));
-    try {
-      await availabilityMutation.mutateAsync({ id: group.id, isActive });
-      toast.success(
-        intl.formatMessage({
-          id: isActive
-            ? 'materialGroups.toasts.activated'
-            : 'materialGroups.toasts.deactivated',
-        }),
-      );
-    } catch (error) {
-      toast.error(getApiErrorMessage(error));
-    } finally {
-      setPendingAvailabilityIds((current) => {
-        const next = new Set(current);
-        next.delete(group.id);
-        return next;
-      });
-    }
   };
 
   const handleCreate = (
@@ -384,15 +355,9 @@ export function MaterialGroupsPage() {
                     }
                   : undefined
               }
-              onToggleAvailability={
-                canManage
-                  ? (group) => void toggleAvailability(group)
-                  : undefined
-              }
               onMove={canManage ? moveGroup : undefined}
               canMove={canMoveGroup}
               isMovePending={moveMutation.isPending}
-              pendingAvailabilityIds={pendingAvailabilityIds}
             />
           )}
         </CardContent>
