@@ -230,7 +230,7 @@ export async function readXlsxFile(file: File): Promise<SpreadsheetWorkbook> {
 
 function validateSpreadsheetMarkerRows(workbook: SpreadsheetWorkbook) {
   for (const worksheet of workbook.worksheets) {
-    if (isSpreadsheetFieldCatalogWorksheet(worksheet)) continue;
+    if (isSpreadsheetMetadataWorksheet(worksheet)) continue;
 
     let markerRow: number | undefined;
     let hasMarkersInMultipleRows = false;
@@ -256,12 +256,14 @@ function validateSpreadsheetMarkerRows(workbook: SpreadsheetWorkbook) {
   }
 }
 
-function isSpreadsheetFieldCatalogWorksheet(worksheet: SpreadsheetWorksheet) {
+function isSpreadsheetMetadataWorksheet(worksheet: SpreadsheetWorksheet) {
   const normalizedName = normalizeHeader(worksheet.name).replace(
     /\s*-\s*hide\s*$/i,
     '',
   );
-  return normalizedName === normalizeHeader('Trường dữ liệu');
+  return ['Trường dữ liệu', 'Cấu hình gom nhóm'].some(
+    (name) => normalizedName === normalizeHeader(name),
+  );
 }
 
 function upgradeLegacyMarkerLayouts(workbook: SpreadsheetWorkbook) {
@@ -366,7 +368,7 @@ export function detectSpreadsheetExportMapping<TRecord>(
   let bestMatchCount = 0;
 
   for (const worksheet of workbook.worksheets) {
-    if (isSpreadsheetFieldCatalogWorksheet(worksheet)) continue;
+    if (isSpreadsheetMetadataWorksheet(worksheet)) continue;
 
     const markedMapping = detectMarkedSpreadsheetMapping(worksheet, fields);
     if (markedMapping) {

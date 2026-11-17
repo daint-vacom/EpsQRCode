@@ -167,6 +167,25 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.exportFetchingData': 'Đang lấy dữ liệu',
   'project.materials.spreadsheet.exportProgressCount':
     'Đã xuất {processed}/{total} vật tư',
+  'project.materials.spreadsheet.exportGroupedProgressCount':
+    'Đã ghi {processed}/{total} dòng',
+  'project.materials.spreadsheet.groupBy': 'Gom nhóm theo',
+  'project.materials.spreadsheet.groupByHint':
+    'Không chọn tiêu chí nào sẽ xuất từng vật tư. Có thể chọn nhiều tiêu chí để kết hợp.',
+  'project.materials.spreadsheet.groupByUnavailable':
+    'chưa có cột trong biểu mẫu',
+  'project.materials.spreadsheet.groupBy.model': 'Mẫu vật tư',
+  'project.materials.spreadsheet.groupBy.owner': 'Đơn vị sở hữu',
+  'project.materials.spreadsheet.groupBy.group': 'Nhóm mẫu vật tư',
+  'project.materials.spreadsheet.groupBy.condition': 'Tình trạng',
+  'project.materials.spreadsheet.groupBy.capitalSource': 'Nguồn vốn',
+  'project.materials.spreadsheet.groupBy.isActive': 'Trạng thái sử dụng',
+  'project.materials.spreadsheet.groupByConfigInvalid':
+    'Không đọc được cấu hình gom nhóm. Hãy kiểm tra sheet Cấu hình gom nhóm.',
+  'project.materials.spreadsheet.groupByUnsupported':
+    'Biểu mẫu có tiêu chí gom nhóm chưa được phần mềm hỗ trợ.',
+  'project.materials.spreadsheet.groupByCellTooLong':
+    'Dữ liệu sau khi gom nhóm vượt giới hạn ký tự của Excel. Hãy giảm dữ liệu hoặc để trống trường khi có xung đột.',
   'project.materials.spreadsheet.customTemplateRequired':
     'Hãy chọn biểu mẫu Excel trước khi xuất.',
   'project.materials.spreadsheet.selectedScope':
@@ -176,6 +195,8 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.successSummary':
     'Đã tạo {success} vật tư; {failed} dòng lỗi.',
   'project.materials.spreadsheet.exportedCount': 'Đã xuất {count} vật tư.',
+  'project.materials.spreadsheet.exportedGroupedCount':
+    'Đã xuất {rows} dòng từ {materials} vật tư.',
   'project.materials.spreadsheet.validLabel': 'Hợp lệ',
   'project.materials.spreadsheet.loadingCatalog': 'Đang tải danh mục vật tư',
   'project.materials.spreadsheet.catalogError':
@@ -872,6 +893,25 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.exportFetchingData': 'Loading data',
   'project.materials.spreadsheet.exportProgressCount':
     'Exported {processed}/{total} materials',
+  'project.materials.spreadsheet.exportGroupedProgressCount':
+    'Wrote {processed}/{total} rows',
+  'project.materials.spreadsheet.groupBy': 'Group by',
+  'project.materials.spreadsheet.groupByHint':
+    'Leave all criteria unchecked to export one row per material. Select multiple criteria to combine them.',
+  'project.materials.spreadsheet.groupByUnavailable':
+    'column missing from template',
+  'project.materials.spreadsheet.groupBy.model': 'Material model',
+  'project.materials.spreadsheet.groupBy.owner': 'Owning unit',
+  'project.materials.spreadsheet.groupBy.group': 'Material model group',
+  'project.materials.spreadsheet.groupBy.condition': 'Condition',
+  'project.materials.spreadsheet.groupBy.capitalSource': 'Funding source',
+  'project.materials.spreadsheet.groupBy.isActive': 'Availability',
+  'project.materials.spreadsheet.groupByConfigInvalid':
+    'Could not read the grouping configuration. Check the Grouping configuration sheet.',
+  'project.materials.spreadsheet.groupByUnsupported':
+    'The template contains a grouping criterion that is not supported.',
+  'project.materials.spreadsheet.groupByCellTooLong':
+    'A grouped value exceeds Excel’s cell character limit. Reduce the data or set that field to blank on conflicts.',
   'project.materials.spreadsheet.customTemplateRequired':
     'Choose an Excel template before exporting.',
   'project.materials.spreadsheet.selectedScope':
@@ -881,6 +921,8 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.successSummary':
     'Created {success} materials; {failed} rows failed.',
   'project.materials.spreadsheet.exportedCount': 'Exported {count} materials.',
+  'project.materials.spreadsheet.exportedGroupedCount':
+    'Exported {rows} rows from {materials} materials.',
   'project.materials.spreadsheet.validLabel': 'Valid',
   'project.materials.spreadsheet.loadingCatalog': 'Loading material catalogs',
   'project.materials.spreadsheet.catalogError':
