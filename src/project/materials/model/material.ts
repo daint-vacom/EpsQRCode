@@ -6,6 +6,7 @@ import type {
   MaterialPublicDisplaySettings,
 } from '@/project/material-models/model/material-model';
 import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import type { LinkedCode } from './linked-code';
 
 export type MaterialCondition = 'good' | 'damaged';
 export type MaterialStatus = 'available' | 'loaned';
@@ -24,6 +25,7 @@ export interface MaterialModelSnapshot {
   groupId: string | null;
   description: string;
   externalCodes: string[];
+  linkedCodes: LinkedCode[];
   manufacturer: string;
   unit: string;
   unitPriceDefault: number | null;
@@ -167,6 +169,7 @@ export interface Material {
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
   serialNumber: string | null;
+  linkedCodes: LinkedCode[];
   ownerPartyId: string | null;
   ownerSnapshot: MaterialOwnerSnapshot;
   borrowerPartyId: string | null;
@@ -195,6 +198,7 @@ export interface MaterialFormValues {
   specificationOverrideLabels?: Record<string, string[]>;
   hiddenSpecificationIds?: string[];
   serialNumber: string;
+  linkedCodes: LinkedCode[];
   placedIntoServiceDate: string;
   capitalSourceId: string;
   unitPriceOverride: number | null;

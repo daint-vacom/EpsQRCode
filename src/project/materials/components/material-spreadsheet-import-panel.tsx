@@ -8,7 +8,10 @@ import {
 } from 'react';
 import type { Custodian } from '@/project/custodians/model/custodian';
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
-import { useCreateMaterialModelsBulkMutation } from '@/project/material-models/hooks/use-material-models';
+import {
+  useCreateMaterialModelsBulkMutation,
+  useUpdateMaterialModelLinkedCodesMutation,
+} from '@/project/material-models/hooks/use-material-models';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
 import type { MaterialSpecification } from '@/project/material-specifications/model/material-specification';
 import { loadSpreadsheetTemplate } from '@/project/spreadsheets/api/spreadsheet-templates.api';
@@ -73,6 +76,7 @@ import {
   getMissingMaterialImportFields,
   isMaterialImportExampleRow,
   mapMaterialSpreadsheetRows,
+  readMaterialImportLinkedCodes,
   toMaterialImportPreviewRows,
   type MaterialSpreadsheetSource,
 } from '../spreadsheet/material-spreadsheet-import';
@@ -132,6 +136,8 @@ export function MaterialSpreadsheetImportPanel({
   const templates = templatesQuery.data ?? [];
   const createMutation = useCreateMaterialsBulkMutation();
   const createModelMutation = useCreateMaterialModelsBulkMutation();
+  const updateModelLinkedCodesMutation =
+    useUpdateMaterialModelLinkedCodesMutation();
   const fileUploadRef = useRef<FileUploadContentHandle>(null);
   const pendingFilesRef = useRef<File[]>([]);
   const canManageModels =
@@ -409,6 +415,15 @@ export function MaterialSpreadsheetImportPanel({
                 mapping,
                 fields.map((field) => field.key),
               ).filter((row) => !isMaterialImportExampleRow(row));
+              const linkedCodes = readMaterialImportLinkedCodes(
+                workbook,
+                mapping,
+                source.rows,
+                (id, values) => translate(id, values),
+              );
+              source.rows =
+                linkedCodes.errors.length > 0 ? [] : linkedCodes.rows;
+              source.globalErrors.push(...linkedCodes.errors);
               if (source.rows.length === 0) {
                 source.globalErrors.push(
                   translate('project.materials.spreadsheet.templateNoRows'),
@@ -583,6 +598,66 @@ export function MaterialSpreadsheetImportPanel({
             processed: completedCount,
             total: totalItemCount,
           });
+        }
+      }
+
+      const linkedCodeUpdates = new Map<
+        string,
+        { id: string; linkedCodes: MaterialModel['linkedCodes'] }
+      >();
+      for (const row of mappedRows) {
+        if (
+          row.values === null ||
+          row.error ||
+          row.modelLinkedCodes.length === 0
+        ) {
+          continue;
+        }
+        if (modelIdByCode.has(normalizeModelCode(row.modelCode))) continue;
+        const model = models.find(
+          (item) =>
+            normalizeModelCode(item.code) === normalizeModelCode(row.modelCode),
+        );
+        if (!model) continue;
+        const key = normalizeModelCode(model.code);
+        const existing =
+          linkedCodeUpdates.get(key)?.linkedCodes ?? model.linkedCodes;
+        const codes = new Map(
+          existing.map((item) => [normalizeModelCode(item.value), item]),
+        );
+        row.modelLinkedCodes.forEach((item) => {
+          codes.set(normalizeModelCode(item.value), item);
+        });
+        linkedCodeUpdates.set(key, {
+          id: model.id,
+          linkedCodes: Array.from(codes.values()),
+        });
+      }
+      for (const [modelCode, update] of linkedCodeUpdates) {
+        try {
+          await updateModelLinkedCodesMutation.mutateAsync(update);
+        } catch (error) {
+          const message = getErrorText(error, translate);
+          for (const row of mappedRows) {
+            if (
+              normalizeModelCode(row.modelCode) !== modelCode ||
+              row.values === null ||
+              row.error ||
+              row.modelLinkedCodes.length === 0
+            )
+              continue;
+            outcomeById.set(row.id, {
+              id: row.id,
+              sourceId: row.sourceId,
+              rowNumber: row.rowNumber,
+              code: row.code,
+              success: false,
+              quantity: row.quantity,
+              createdCount: 0,
+              error: message,
+            });
+            completedCount += row.quantity;
+          }
         }
       }
 

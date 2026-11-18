@@ -1,6 +1,7 @@
 import { safetyInspectionChecklistSchema } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { z } from 'zod';
 import { formatMessage } from '@/lib/validation';
+import { linkedCodesSchema } from '../model/linked-code';
 
 const ownerSnapshotString = () =>
   z.string({ error: () => formatMessage('validation.required') });
@@ -13,6 +14,7 @@ export const materialFormSchema = z
     descriptionOverride: z.string().trim(),
     unit: z.string().trim(),
     serialNumber: z.string().trim(),
+    linkedCodes: linkedCodesSchema,
     placedIntoServiceDate: z.string().trim(),
     capitalSourceId: z
       .string()

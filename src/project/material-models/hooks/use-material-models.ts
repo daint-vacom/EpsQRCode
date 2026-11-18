@@ -10,6 +10,7 @@ import {
   loadMaterialModels,
   updateMaterialModel,
   updateMaterialModelAvailability,
+  updateMaterialModelLinkedCodes,
 } from '../api/material-models.api';
 import type {
   MaterialGroupModelCounts,
@@ -118,6 +119,25 @@ export function useUpdateMaterialModelMutation() {
         previousImages,
         publicDisplaySettings,
       ),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),
+        queryClient.invalidateQueries({ queryKey: materialKeys.all }),
+      ]);
+    },
+  });
+}
+
+export function useUpdateMaterialModelLinkedCodesMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      linkedCodes,
+    }: {
+      id: string;
+      linkedCodes: MaterialModelFormValues['linkedCodes'];
+    }) => updateMaterialModelLinkedCodes(id, linkedCodes),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: materialModelKeys.all }),

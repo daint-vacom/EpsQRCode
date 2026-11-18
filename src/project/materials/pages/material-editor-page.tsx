@@ -726,6 +726,7 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
     descriptionOverride: material.descriptionOverride ?? '',
     unit: material.modelSnapshot.unit,
     serialNumber: material.serialNumber ?? '',
+    linkedCodes: material.linkedCodes.map((code) => ({ ...code })),
     placedIntoServiceDate: material.placedIntoServiceDate ?? '',
     capitalSourceId: material.capitalSourceId ?? '',
     unitPriceOverride: material.unitPriceOverride,

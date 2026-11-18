@@ -10,6 +10,7 @@
 import { useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import { MaterialGroupSelect } from '@/project/material-groups/components/material-group-select';
+import { LinkedCodesEditor } from '@/project/materials/components/linked-codes-editor';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import type { UseFormProps, UseFormReturn } from 'react-hook-form';
@@ -50,7 +51,7 @@ export const materialModelDefaultValues: MaterialModelFormValues = {
   manufacturer: '',
   unit: '',
   unitPriceDefault: null,
-  externalCodesText: '',
+  linkedCodes: [],
   requiresInspection: false,
   inspectionIntervalValue: 1,
   inspectionIntervalUnit: 'month',
@@ -84,7 +85,7 @@ export function mapMaterialModelToFormValues(
     manufacturer: entity.manufacturer,
     unit: entity.unit,
     unitPriceDefault: entity.unitPriceDefault,
-    externalCodesText: entity.externalCodes.join('\n'),
+    linkedCodes: entity.linkedCodes.map((code) => ({ ...code })),
     requiresInspection: entity.requiresInspection,
     inspectionIntervalValue: entity.inspectionIntervalValue,
     inspectionIntervalUnit: entity.inspectionIntervalUnit,
@@ -304,24 +305,17 @@ export function MaterialModelForm({
 
       <FormField
         control={form.control}
-        name="externalCodesText"
+        name="linkedCodes"
         render={({ field }) => (
-          <FormItem
-            className="md:col-span-12"
-            layout="horizontal"
-            labelWidth="md"
-            alignment="start"
-          >
-            <FormLabel>
-              {intl.formatMessage({
-                id: 'materialModels.fields.externalCodes',
+          <div className="md:col-span-12">
+            <LinkedCodesEditor
+              label={intl.formatMessage({
+                id: 'project.materials.fields.linkedCodes',
               })}
-            </FormLabel>
-            <FormControl>
-              <Textarea rows={3} {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
+              value={field.value}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       />
     </div>

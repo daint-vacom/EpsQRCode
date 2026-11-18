@@ -112,6 +112,18 @@ export function getMaterialSpreadsheetFields(
       read: (row) => row.modelSnapshot.externalCodes.join('\n'),
     },
     {
+      key: 'material.model.linkedCodes',
+      label: translate('project.materials.spreadsheet.fields.modelLinkedCodes'),
+      read: (row) => formatLinkedCodes(row.modelSnapshot.linkedCodes),
+    },
+    {
+      key: 'material.linkedCodes',
+      label: translate(
+        'project.materials.spreadsheet.fields.materialLinkedCodes',
+      ),
+      read: (row) => formatLinkedCodes(row.linkedCodes),
+    },
+    {
       key: 'material.model.specifications',
       label: translate(
         'project.materials.spreadsheet.fields.modelSpecifications',
@@ -723,6 +735,7 @@ export function mapMaterialImportRows(
           : valueOf(row, 'material.descriptionOverride'),
       unit: model.unit,
       serialNumber: valueOf(row, 'material.serialNumber'),
+      linkedCodes: [],
       placedIntoServiceDate: parseSpreadsheetDate(
         valueOf(row, 'material.placedIntoServiceDate'),
       ),
@@ -802,6 +815,10 @@ function parseNumberedEnumCode(value: string): number | null {
   if (!match?.[1]) return null;
   const code = Number(match[1]);
   return Number.isInteger(code) ? code : null;
+}
+
+function formatLinkedCodes(codes: Material['linkedCodes']) {
+  return codes.map((code) => `${code.label}: ${code.value}`).join('\n');
 }
 
 function valueOf(row: SpreadsheetDataRow, key: string): string {

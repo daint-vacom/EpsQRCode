@@ -38,6 +38,7 @@ import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
+import { LinkedCodesEditor } from '../components/linked-codes-editor';
 import {
   materialFormSchema,
   type MaterialFormSchemaValues,
@@ -52,6 +53,7 @@ export const materialDefaultValues: MaterialFormSchemaValues = {
   code: '',
   modelId: '',
   serialNumber: '',
+  linkedCodes: [],
   placedIntoServiceDate: '',
   capitalSourceId: '',
   unitPriceOverride: null,
@@ -192,6 +194,22 @@ export function MaterialForm({
             </FormControl>
             <FormMessage />
           </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="linkedCodes"
+        render={({ field }) => (
+          <div className="md:col-span-12">
+            <LinkedCodesEditor
+              label={intl.formatMessage({
+                id: 'project.materials.fields.linkedCodes',
+              })}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          </div>
         )}
       />
 

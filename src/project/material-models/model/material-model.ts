@@ -3,6 +3,10 @@ import {
   type SafetyInspectionChecklistGroup,
 } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import { materialSpecificationDataTypeSchema } from '@/project/material-specifications/model/material-specification';
+import {
+  linkedCodesSchema,
+  type LinkedCode,
+} from '@/project/materials/model/linked-code';
 import { z } from 'zod';
 import { formatMessage } from '@/lib/validation';
 
@@ -44,7 +48,7 @@ export const materialModelFormSchema = z.object({
       value === '' || value === undefined || value === null ? null : value,
     z.coerce.number().min(0, 'Đơn giá không được âm.').nullable(),
   ),
-  externalCodesText: z.string(),
+  linkedCodes: linkedCodesSchema,
   requiresInspection: z.boolean(),
   inspectionIntervalValue: z.coerce
     .number({ error: () => formatMessage('validation.required') })
@@ -106,6 +110,7 @@ export interface MaterialModel {
   imageUrl: string | null;
   description: string;
   externalCodes: string[];
+  linkedCodes: LinkedCode[];
   requiresInspection: boolean;
   inspectionIntervalValue: number;
   inspectionIntervalUnit: MaterialModelInspectionIntervalUnit;
@@ -157,6 +162,7 @@ export interface MaterialModelRow {
   unit: string | null;
   unit_price_default: number | null;
   external_codes: string[];
+  linked_codes: LinkedCode[];
   requires_inspection: boolean;
   inspection_interval_value: number;
   inspection_interval_unit: MaterialModelInspectionIntervalUnit;
@@ -186,6 +192,7 @@ export function mapMaterialModelRow(
     imageUrl: cover?.url ?? null,
     description: row.description ?? '',
     externalCodes: row.external_codes ?? [],
+    linkedCodes: row.linked_codes ?? [],
     requiresInspection: row.requires_inspection,
     inspectionIntervalValue: row.inspection_interval_value,
     inspectionIntervalUnit: row.inspection_interval_unit,

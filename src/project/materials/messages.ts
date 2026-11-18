@@ -275,6 +275,9 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.fields.modelGroupCode': 'Mã nhóm',
   'project.materials.spreadsheet.fields.modelDescription': 'Mô tả mẫu',
   'project.materials.spreadsheet.fields.modelSpecifications': 'Thông số mẫu',
+  'project.materials.spreadsheet.fields.modelLinkedCodes': 'Mã liên kết mẫu',
+  'project.materials.spreadsheet.fields.materialLinkedCodes':
+    'Mã liên kết vật tư',
   'project.materials.spreadsheet.fields.ownerCode': 'Mã chủ sở hữu',
   'project.materials.spreadsheet.fields.ownerName': 'Tên chủ sở hữu',
   'project.materials.spreadsheet.fields.ownerKind': 'Loại chủ sở hữu',
@@ -291,6 +294,15 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.fields.nameLegacy': 'Tên vật tư riêng',
   'project.materials.spreadsheet.fields.descriptionLegacy': 'Mô tả riêng',
   'project.materials.spreadsheet.fields.serialNumber': 'Số sê-ri',
+  'project.materials.fields.linkedCodes': 'Mã liên kết',
+  'project.materials.linkedCodes.label': 'Nhãn mã liên kết',
+  'project.materials.linkedCodes.value': 'Giá trị mã liên kết',
+  'project.materials.linkedCodes.add': 'Thêm mã liên kết',
+  'project.materials.linkedCodes.remove': 'Xóa mã liên kết',
+  'project.materials.linkedCodes.pairRequired':
+    'Vui lòng nhập cả nhãn và giá trị mã liên kết.',
+  'project.materials.linkedCodes.duplicateValue':
+    'Giá trị mã liên kết không được trùng.',
   'project.materials.fields.placedIntoServiceDate': 'Ngày đưa vào sử dụng',
   'project.materials.fields.capitalSource': 'Nguồn vốn',
   'project.materials.fields.unitPriceOverride': 'Đơn giá',
@@ -328,6 +340,18 @@ export const materialMessagesVi: Record<string, string> = {
     'Thông tin mẫu “{code}” không thống nhất giữa các dòng.',
   'project.materials.spreadsheet.errors.externalCodeConflict':
     'Mã mẫu vật tư hoặc mã CCDC nguồn “{code}” bị trùng với mã đã có hoặc dòng khác trong tệp.',
+  'project.materials.spreadsheet.errors.linkedCodeConfigMissingColumns':
+    'Sheet cấu hình mã liên kết thiếu cột bắt buộc.',
+  'project.materials.spreadsheet.errors.linkedCodeConfigIncomplete':
+    'Một dòng trong cấu hình mã liên kết còn thiếu thông tin.',
+  'project.materials.spreadsheet.errors.linkedCodeScopeInvalid':
+    'Phạm vi lưu mã liên kết “{scope}” không hợp lệ.',
+  'project.materials.spreadsheet.errors.linkedCodeColumnMissing':
+    'Không tìm thấy cột “{column}” trên sheet dữ liệu.',
+  'project.materials.spreadsheet.errors.linkedCodeQuantity':
+    'Mã liên kết ở cấp vật tư gắn với từng tài sản; hãy đặt số lượng bằng 1 cho dòng có mã này.',
+  'project.materials.spreadsheet.errors.linkedCodeDuplicate':
+    'Giá trị mã liên kết bị lặp ở cùng một vật tư.',
   'project.materials.spreadsheet.errors.modelSpecificationsFormat':
     'Thông số mẫu cần theo định dạng “Tên thông số: giá trị 1; giá trị 2”, mỗi thông số một dòng.',
   'project.materials.spreadsheet.errors.modelSpecificationUnknown':
@@ -1066,6 +1090,9 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.fields.modelDescription': 'Model description',
   'project.materials.spreadsheet.fields.modelSpecifications':
     'Model specifications',
+  'project.materials.spreadsheet.fields.modelLinkedCodes': 'Model linked codes',
+  'project.materials.spreadsheet.fields.materialLinkedCodes':
+    'Material linked codes',
   'project.materials.spreadsheet.fields.ownerCode': 'Owner code',
   'project.materials.spreadsheet.fields.ownerName': 'Owner name',
   'project.materials.spreadsheet.fields.ownerKind': 'Owner type',
@@ -1083,6 +1110,15 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.fields.descriptionLegacy':
     'Custom description',
   'project.materials.spreadsheet.fields.serialNumber': 'Serial number',
+  'project.materials.fields.linkedCodes': 'Linked codes',
+  'project.materials.linkedCodes.label': 'Linked code label',
+  'project.materials.linkedCodes.value': 'Linked code value',
+  'project.materials.linkedCodes.add': 'Add linked code',
+  'project.materials.linkedCodes.remove': 'Remove linked code',
+  'project.materials.linkedCodes.pairRequired':
+    'Enter both the linked code label and value.',
+  'project.materials.linkedCodes.duplicateValue':
+    'Linked code values must be unique.',
   'project.materials.spreadsheet.fields.condition': 'Condition',
   'project.materials.spreadsheet.fields.conditionLegacy':
     'Condition (good/damaged)',
@@ -1116,6 +1152,18 @@ export const materialMessagesEn: Record<string, string> = {
     'Metadata for model “{code}” differs between rows.',
   'project.materials.spreadsheet.errors.externalCodeConflict':
     'Model or source code “{code}” conflicts with an existing model or another row in the file.',
+  'project.materials.spreadsheet.errors.linkedCodeConfigMissingColumns':
+    'The linked code configuration sheet is missing required columns.',
+  'project.materials.spreadsheet.errors.linkedCodeConfigIncomplete':
+    'A linked code configuration row is missing information.',
+  'project.materials.spreadsheet.errors.linkedCodeScopeInvalid':
+    'The linked code storage scope “{scope}” is invalid.',
+  'project.materials.spreadsheet.errors.linkedCodeColumnMissing':
+    'Column “{column}” was not found on the data sheet.',
+  'project.materials.spreadsheet.errors.linkedCodeQuantity':
+    'A linked code belongs to one material; set quantity to 1 on rows with item-level codes.',
+  'project.materials.spreadsheet.errors.linkedCodeDuplicate':
+    'A linked code value is repeated on the same material.',
   'project.materials.spreadsheet.errors.modelSpecificationsFormat':
     'Model specifications must use “Specification name: value 1; value 2”, one specification per line.',
   'project.materials.spreadsheet.errors.modelSpecificationUnknown':

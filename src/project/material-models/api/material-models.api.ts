@@ -1,4 +1,5 @@
 import type { SafetyInspectionChecklistGroup } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import { normalizeLinkedCodes } from '@/project/materials/model/linked-code';
 import {
   createSignedStorageUrl,
   removeStorageObjects,
@@ -317,15 +318,21 @@ async function saveMaterialModel(
           values.useGroupSafetyInspectionChecklist,
         p_specifications: values.specifications,
         p_images: imagePayload,
-        p_external_codes: values.externalCodesText
-          .split(/\r?\n/)
-          .map((value) => value.trim())
-          .filter(Boolean),
+        p_external_codes: normalizeLinkedCodes(values.linkedCodes).map(
+          (value) => value.value,
+        ),
         p_public_display_settings: publicDisplaySettings,
         p_safety_inspection_checklist: values.safetyInspectionChecklist,
         p_manufacturer: values.manufacturer.trim() || null,
         p_unit: values.unit.trim() || null,
         p_unit_price_default: values.unitPriceDefault,
+      }),
+    );
+
+    await request(
+      supabaseApi.post('/rpc/set_material_model_linked_codes', {
+        p_id: savedId,
+        p_linked_codes: normalizeLinkedCodes(values.linkedCodes),
       }),
     );
 
@@ -373,7 +380,7 @@ export async function createMaterialModelsBulk(
   values: MaterialModelFormValues[],
 ): Promise<BulkMaterialModelCreateResult[]> {
   assertSupabaseConfigured();
-  return request<BulkMaterialModelCreateResult[]>(
+  const results = await request<BulkMaterialModelCreateResult[]>(
     supabaseApi.post('/rpc/create_material_models_bulk', {
       p_items: values.map((item) => ({
         code: item.code.trim(),
@@ -383,10 +390,10 @@ export async function createMaterialModelsBulk(
         manufacturer: item.manufacturer.trim() || null,
         unit: item.unit.trim() || null,
         unitPriceDefault: item.unitPriceDefault,
-        externalCodes: item.externalCodesText
-          .split(/\r?\n/)
-          .map((value) => value.trim())
-          .filter(Boolean),
+        externalCodes: normalizeLinkedCodes(item.linkedCodes).map(
+          (value) => value.value,
+        ),
+        linkedCodes: normalizeLinkedCodes(item.linkedCodes),
         requiresInspection: item.requiresInspection,
         inspectionIntervalValue: item.inspectionIntervalValue,
         inspectionIntervalUnit: item.inspectionIntervalUnit,
@@ -398,6 +405,21 @@ export async function createMaterialModelsBulk(
       })),
     }),
   );
+  await Promise.all(
+    results.flatMap((result, index) => {
+      const linkedCodes = values[index]?.linkedCodes;
+      if (!result.success || !result.id || !linkedCodes?.length) return [];
+      return [
+        request(
+          supabaseApi.post('/rpc/set_material_model_linked_codes', {
+            p_id: result.id,
+            p_linked_codes: normalizeLinkedCodes(linkedCodes),
+          }),
+        ),
+      ];
+    }),
+  );
+  return results;
 }
 
 export async function updateMaterialModel(
@@ -413,6 +435,19 @@ export async function updateMaterialModel(
     images,
     previousImages,
     publicDisplaySettings,
+  );
+}
+
+export async function updateMaterialModelLinkedCodes(
+  id: string,
+  linkedCodes: MaterialModelFormValues['linkedCodes'],
+): Promise<void> {
+  assertSupabaseConfigured();
+  await request(
+    supabaseApi.post('/rpc/set_material_model_linked_codes', {
+      p_id: id,
+      p_linked_codes: normalizeLinkedCodes(linkedCodes),
+    }),
   );
 }
 

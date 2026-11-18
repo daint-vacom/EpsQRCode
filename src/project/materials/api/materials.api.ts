@@ -7,6 +7,7 @@ import {
   uploadStorageObject,
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
+import { normalizeLinkedCodes } from '../model/linked-code';
 import type {
   Material,
   MaterialFilterSummary,
@@ -328,6 +329,13 @@ export async function saveMaterial(
         },
         p_public_display_settings: publicDisplaySettings,
         p_public_specification_settings: publicSpecificationSettings,
+      }),
+    );
+
+    await request(
+      supabaseApi.post('/rpc/set_material_linked_codes', {
+        p_id: savedId,
+        p_linked_codes: normalizeLinkedCodes(values.linkedCodes ?? []),
       }),
     );
 

@@ -14,6 +14,7 @@ import {
   type SpreadsheetMapping,
   type SpreadsheetWorkbook,
 } from '@/lib/spreadsheets/xlsx';
+import type { LinkedCode } from '../model/linked-code';
 import type { Material } from '../model/material';
 import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
@@ -29,6 +30,18 @@ export const MATERIAL_IMPORT_REQUIRED_FIELD_KEYS = [
 
 export const MATERIAL_IMPORT_MAX_ITEMS = 50_000;
 const MATERIAL_IMPORT_MAX_ROW_QUANTITY = 10_000;
+const LINKED_CODES_CONFIG_SHEET_NAME = 'Cấu hình mã liên kết';
+const LINKED_CODES_MODEL_FIELD = '__linkedModelCodes';
+const LINKED_CODES_MATERIAL_FIELD = '__linkedMaterialCodes';
+
+export type MaterialImportLinkedCodeScope = 'model' | 'material';
+
+interface MaterialImportLinkedCodeConfig {
+  worksheetName: string;
+  columnName: string;
+  scope: MaterialImportLinkedCodeScope;
+  label: string;
+}
 
 export interface MaterialSpreadsheetSource {
   id: string;
@@ -81,6 +94,7 @@ export interface MappedMaterialImportRow extends MaterialImportRow {
   rawValues: Record<string, string>;
   quantity: number;
   modelCode: string;
+  modelLinkedCodes: LinkedCode[];
   error: string | null;
 }
 
@@ -119,6 +133,159 @@ export function findMaterialImportMapping(
   }
 
   return bestMapping;
+}
+
+export function readMaterialImportLinkedCodes(
+  workbook: SpreadsheetWorkbook,
+  mapping: SpreadsheetMapping,
+  rows: SpreadsheetDataRow[],
+  translate: TranslateMaterialImportMessage,
+): { rows: SpreadsheetDataRow[]; errors: string[] } {
+  const configSheet = workbook.worksheets.find(
+    (worksheet) =>
+      normalizeHeader(worksheet.name) ===
+      normalizeHeader(LINKED_CODES_CONFIG_SHEET_NAME),
+  );
+  if (!configSheet) return { rows, errors: [] };
+
+  const configRows: string[][] = [];
+  configSheet.eachRow?.({ includeEmpty: false }, (row) => {
+    const values: string[] = [];
+    row.eachCell?.({ includeEmpty: true }, (cell, column) => {
+      values[column - 1] = spreadsheetCellText(cell);
+    });
+    configRows.push(values);
+  });
+  if (configRows.length === 0) return { rows, errors: [] };
+  const requiredHeaders = [
+    'Sheet dữ liệu',
+    'Cột dữ liệu',
+    'Phạm vi lưu',
+    'Nhãn mã liên kết',
+  ].map(normalizeHeader);
+  const configHeaderRowIndex = configRows.findIndex((values) => {
+    const headers = values.map(normalizeHeader);
+    return requiredHeaders.every((header) => headers.includes(header));
+  });
+  if (configHeaderRowIndex < 0) {
+    return {
+      rows,
+      errors: [
+        translate(
+          'project.materials.spreadsheet.errors.linkedCodeConfigMissingColumns',
+        ),
+      ],
+    };
+  }
+
+  const headers = configRows[configHeaderRowIndex]!.map(normalizeHeader);
+  const columnIndex = (name: string) => headers.indexOf(normalizeHeader(name));
+  const worksheetColumn = columnIndex('Sheet dữ liệu');
+  const dataColumn = columnIndex('Cột dữ liệu');
+  const scopeColumn = columnIndex('Phạm vi lưu');
+  const labelColumn = columnIndex('Nhãn mã liên kết');
+  if (
+    [worksheetColumn, dataColumn, scopeColumn, labelColumn].some((i) => i < 0)
+  ) {
+    return {
+      rows,
+      errors: [
+        translate(
+          'project.materials.spreadsheet.errors.linkedCodeConfigMissingColumns',
+        ),
+      ],
+    };
+  }
+
+  const sourceWorksheet = workbook.getWorksheet(mapping.worksheetName);
+  if (!sourceWorksheet) return { rows, errors: [] };
+  const sourceHeaders = new Map<string, number>();
+  sourceWorksheet
+    .getRow(mapping.headerRow)
+    .eachCell?.({ includeEmpty: true }, (cell, column) => {
+      const header = spreadsheetCellText(cell);
+      if (header) sourceHeaders.set(normalizeHeader(header), column);
+    });
+
+  const configs: MaterialImportLinkedCodeConfig[] = [];
+  const errors: string[] = [];
+  for (const values of configRows.slice(configHeaderRowIndex + 1)) {
+    const worksheetName = values[worksheetColumn]?.trim() ?? '';
+    const columnName = values[dataColumn]?.trim() ?? '';
+    const scopeValue = normalizeHeader(values[scopeColumn] ?? '');
+    const label = values[labelColumn]?.trim() ?? '';
+    if (!worksheetName && !columnName && !scopeValue && !label) continue;
+    if (!worksheetName || !columnName || !scopeValue || !label) {
+      errors.push(
+        translate(
+          'project.materials.spreadsheet.errors.linkedCodeConfigIncomplete',
+        ),
+      );
+      continue;
+    }
+    const scope: MaterialImportLinkedCodeScope | null = [
+      'vat tu',
+      'material',
+    ].includes(scopeValue)
+      ? 'material'
+      : ['mau', 'mau vat tu', 'material model', 'model'].includes(scopeValue)
+        ? 'model'
+        : null;
+    if (!scope) {
+      errors.push(
+        translate(
+          'project.materials.spreadsheet.errors.linkedCodeScopeInvalid',
+          { scope: values[scopeColumn] ?? '' },
+        ),
+      );
+      continue;
+    }
+    if (
+      normalizeHeader(worksheetName) !== normalizeHeader(mapping.worksheetName)
+    ) {
+      continue;
+    }
+    if (!sourceHeaders.has(normalizeHeader(columnName))) {
+      errors.push(
+        translate(
+          'project.materials.spreadsheet.errors.linkedCodeColumnMissing',
+          { column: columnName },
+        ),
+      );
+      continue;
+    }
+    configs.push({ worksheetName, columnName, scope, label });
+  }
+
+  const codeColumnByConfig = configs.map((config) => ({
+    ...config,
+    column: sourceHeaders.get(normalizeHeader(config.columnName))!,
+  }));
+  const rowByNumber = new Map(rows.map((row) => [row.rowNumber, row]));
+  const startRow = mapping.dataStartRow;
+  for (
+    let rowNumber = startRow;
+    rowNumber <= sourceWorksheet.rowCount;
+    rowNumber += 1
+  ) {
+    const target = rowByNumber.get(rowNumber);
+    if (!target) continue;
+    const linkedCodes: Record<MaterialImportLinkedCodeScope, LinkedCode[]> = {
+      model: [],
+      material: [],
+    };
+    for (const config of codeColumnByConfig) {
+      const value = spreadsheetCellText(
+        sourceWorksheet.getCell(rowNumber, config.column),
+      );
+      if (value) linkedCodes[config.scope].push({ label: config.label, value });
+    }
+    target.values[LINKED_CODES_MODEL_FIELD] = JSON.stringify(linkedCodes.model);
+    target.values[LINKED_CODES_MATERIAL_FIELD] = JSON.stringify(
+      linkedCodes.material,
+    );
+  }
+  return { rows, errors: Array.from(new Set(errors)) };
 }
 
 export function getMissingMaterialImportFields(
@@ -206,17 +373,29 @@ export function buildMaterialModelImportProposals(
       );
       const rawUnitPrice = valueOf(firstRow, 'material.model.unitPriceDefault');
       const unitPriceDefault = parseLocalizedAmount(rawUnitPrice);
-      const externalCodesText = Array.from(
-        new Set(
-          modelRows
-            .flatMap((row) =>
-              valueOf(row, 'material.model.externalCodes')
-                .split(/\r?\n/)
-                .map((item) => item.trim()),
-            )
-            .filter(Boolean),
+      const linkedCodes = dedupeLinkedCodes([
+        ...modelRows.flatMap((row) => readRowLinkedCodes(row, 'model')),
+        ...modelRows.flatMap((row) =>
+          parseFormattedLinkedCodes(valueOf(row, 'material.model.linkedCodes')),
         ),
-      ).join('\n');
+        ...modelRows.flatMap((row) =>
+          valueOf(row, 'material.model.externalCodes')
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .map((value) => ({ label: 'Mã liên kết', value })),
+        ),
+      ]);
+      const conflictingModelCodes = modelRows.some((row) =>
+        readRowLinkedCodes(row, 'model').some((entry) =>
+          linkedCodes.some(
+            (candidate) =>
+              normalizeHeader(candidate.label) ===
+                normalizeHeader(entry.label) &&
+              normalizeHeader(candidate.value) !== normalizeHeader(entry.value),
+          ),
+        ),
+      );
       const rawSpecifications = consistentValue(
         modelRows,
         'material.model.specifications',
@@ -233,6 +412,14 @@ export function buildMaterialModelImportProposals(
           ? [translate('project.materials.spreadsheet.errors.unitPrice')]
           : []),
         rawSpecifications.error,
+        ...(conflictingModelCodes
+          ? [
+              translate(
+                'project.materials.spreadsheet.errors.modelMetadataConflict',
+                { code },
+              ),
+            ]
+          : []),
       ].filter((error): error is string => Boolean(error));
       const resolvedGroup = groups.find(
         (group) =>
@@ -288,7 +475,7 @@ export function buildMaterialModelImportProposals(
         manufacturer: manufacturer.value,
         unit: unit.value,
         unitPriceDefault,
-        externalCodesText,
+        linkedCodes,
         requiresInspection: false,
         inspectionIntervalValue: 1,
         inspectionIntervalUnit: 'month',
@@ -308,7 +495,8 @@ export function buildMaterialModelImportProposals(
         manufacturer: manufacturer.value,
         unit: unit.value,
         unitPriceDefault,
-        externalCodes: externalCodesText.split(/\r?\n/).filter(Boolean),
+        externalCodes: linkedCodes.map((item) => item.value),
+        linkedCodes,
         requiresInspection: false,
         inspectionIntervalValue: 1,
         inspectionIntervalUnit: 'month',
@@ -349,10 +537,7 @@ export function buildMaterialModelImportProposals(
 
     const codes = [
       proposal.code,
-      ...proposal.formValues.externalCodesText
-        .split(/\r?\n/)
-        .map((code) => code.trim())
-        .filter(Boolean),
+      ...proposal.formValues.linkedCodes.map((item) => item.value),
     ];
     const proposalCodes = new Set<string>();
     const conflict = codes.find((code) => {
@@ -421,9 +606,29 @@ export function mapMaterialSpreadsheetRows(
       translate,
     );
     const serialNumber = rawValues['material.serialNumber']?.trim() ?? '';
+    const itemLinkedCodes = dedupeLinkedCodes([
+      ...readRowLinkedCodes(sourceRow?.row, 'material'),
+      ...parseFormattedLinkedCodes(
+        valueOf(sourceRow?.row, 'material.linkedCodes'),
+      ),
+    ]);
     let error = proposal?.error || quantityResult.error || row.error;
+    if (
+      !error &&
+      new Set(itemLinkedCodes.map((item) => normalizeHeader(item.value)))
+        .size !== itemLinkedCodes.length
+    ) {
+      error = translate(
+        'project.materials.spreadsheet.errors.linkedCodeDuplicate',
+      );
+    }
     if (!error && quantityResult.quantity > 1 && serialNumber) {
       error = translate('project.materials.spreadsheet.errors.serialQuantity');
+    }
+    if (!error && quantityResult.quantity > 1 && itemLinkedCodes.length > 0) {
+      error = translate(
+        'project.materials.spreadsheet.errors.linkedCodeQuantity',
+      );
     }
     if (
       !error &&
@@ -434,15 +639,20 @@ export function mapMaterialSpreadsheetRows(
       });
     }
     if (!error) plannedItemCount += quantityResult.quantity;
+    const materialLinkedCodes = itemLinkedCodes;
     return {
       ...row,
-      values: error ? null : row.values,
+      values:
+        error || !row.values
+          ? null
+          : { ...row.values, linkedCodes: materialLinkedCodes },
       id: `${source?.id ?? 'file'}:${sourceRow?.row.rowNumber ?? row.rowNumber}:${sourceRow?.index ?? index}`,
       sourceId: source?.id ?? '',
       fileName: source?.file.name ?? '',
       rawValues,
       quantity: quantityResult.quantity,
       modelCode,
+      modelLinkedCodes: readRowLinkedCodes(sourceRow?.row, 'model'),
       error,
     };
   });
@@ -739,4 +949,69 @@ function valueOf(
   if (!row) return '';
   const values = 'values' in row ? row.values : row;
   return values[key]?.trim() ?? '';
+}
+
+function readRowLinkedCodes(
+  row: SpreadsheetDataRow | undefined,
+  scope: MaterialImportLinkedCodeScope,
+): LinkedCode[] {
+  const raw = valueOf(
+    row,
+    scope === 'model' ? LINKED_CODES_MODEL_FIELD : LINKED_CODES_MATERIAL_FIELD,
+  );
+  if (!raw) return [];
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    return value.filter(
+      (item): item is LinkedCode =>
+        typeof item?.label === 'string' &&
+        typeof item?.value === 'string' &&
+        Boolean(item.label.trim() && item.value.trim()),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function dedupeLinkedCodes(codes: LinkedCode[]) {
+  const seen = new Set<string>();
+  return codes.filter((code) => {
+    const key = `${normalizeHeader(code.label)}\u0000${normalizeHeader(code.value)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function parseFormattedLinkedCodes(raw: string): LinkedCode[] {
+  return raw
+    .split(/\r?\n/)
+    .map((line) => {
+      const separator = line.indexOf(':');
+      if (separator <= 0) return null;
+      const label = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim();
+      return label && value ? { label, value } : null;
+    })
+    .filter((item): item is LinkedCode => item !== null);
+}
+
+function spreadsheetCellText(cell: { value: unknown; text?: string }) {
+  if (typeof cell.text === 'string' && cell.text.trim())
+    return cell.text.trim();
+  const value = cell.value;
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    if ('text' in value && typeof value.text === 'string')
+      return value.text.trim();
+    if ('result' in value) return String(value.result ?? '').trim();
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText
+        .map((part) => part.text ?? '')
+        .join('')
+        .trim();
+    }
+  }
+  return String(value).trim();
 }
