@@ -99,8 +99,34 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.importStep.upload': 'Nhập tệp',
   'project.materials.spreadsheet.importStep.review': 'Kiểm tra dữ liệu',
   'project.materials.spreadsheet.importStep.report': 'Kết quả nhập',
-  'project.materials.spreadsheet.downloadImportTemplate':
-    'Tải biểu mẫu hệ thống',
+  'project.materials.spreadsheet.downloadImportTemplate': 'Tải biểu mẫu nhập',
+  'project.materials.spreadsheet.importTemplate': 'Biểu mẫu nhập',
+  'project.materials.spreadsheet.importTemplateEmpty': 'Chưa có biểu mẫu nhập',
+  'project.materials.spreadsheet.waitingFilesForCatalogs':
+    'Đang chờ danh mục để đọc {count} tệp đã chọn.',
+  'project.materials.spreadsheet.importGuide.section': 'Phần',
+  'project.materials.spreadsheet.importGuide.detail': 'Hướng dẫn chi tiết',
+  'project.materials.spreadsheet.importGuide.heading1': '1. Mục đích',
+  'project.materials.spreadsheet.importGuide.heading2': '2. Các tab',
+  'project.materials.spreadsheet.importGuide.heading3': '3. Cấu trúc dữ liệu',
+  'project.materials.spreadsheet.importGuide.heading4': '4. Số lượng',
+  'project.materials.spreadsheet.importGuide.heading5': '5. Mã vật tư',
+  'project.materials.spreadsheet.importGuide.heading6': '6. Số sê-ri',
+  'project.materials.spreadsheet.importGuide.heading7': '7. Dòng ví dụ',
+  'project.materials.spreadsheet.importGuide.purpose':
+    'Biểu mẫu này dùng chung cho xuất dữ liệu và nhập vật tư. Khi nhập, phần mềm đọc sheet có các cột dữ liệu vật tư; các tab tra cứu có thể giữ nguyên.',
+  'project.materials.spreadsheet.importGuide.tabs':
+    'Dùng sheet Vật tư để điền dữ liệu. Trường dữ liệu là danh mục mã mapping để tra cứu. Hướng dẫn mô tả cách dùng biểu mẫu. Tab Cấu hình gom nhóm không cần cho nhập và được bỏ khỏi tệp tải về.',
+  'project.materials.spreadsheet.importGuide.layout':
+    'Giữ các tiêu đề và marker mapping cùng hàng như mẫu. Có thể đổi vị trí cột nếu giữ marker. Điền dữ liệu từ dòng đầu tiên bên dưới hàng marker (thường là dòng 3); mỗi dòng là một nhóm vật tư có cùng thông tin.',
+  'project.materials.spreadsheet.importGuide.quantity':
+    'Điền số lượng là số nguyên từ 1 trở lên. Khi có nhiều vật tư cùng mẫu và cùng thông tin, nhập một dòng rồi điền số lượng thay vì lặp lại dòng. Để trống thì phần mềm hiểu là 1.',
+  'project.materials.spreadsheet.importGuide.codes':
+    'Mã vật tư trong dòng là mã gốc và phải duy nhất. Với số lượng lớn hơn 1, phần mềm tự tạo mã lần lượt dạng MÃ-GỐC-001, MÃ-GỐC-002…; hãy đảm bảo các mã này chưa được dùng.',
+  'project.materials.spreadsheet.importGuide.serial':
+    'Mỗi vật tư có số sê-ri riêng nên đặt số lượng bằng 1 cho dòng có số sê-ri. Các trường mẫu, chủ sở hữu và thông tin vật tư khác vẫn nhập theo từng dòng.',
+  'project.materials.spreadsheet.importGuide.example':
+    'Dòng ví dụ có mã VT-MAU-001 và ghi chú “Dữ liệu mẫu”. Nếu giữ nguyên, phần mềm tự bỏ qua dòng này; hãy thay mã và xóa ghi chú nếu muốn dùng làm dữ liệu thật.',
   'project.materials.spreadsheet.downloadingFile': 'Đang tải tệp',
   'project.materials.spreadsheet.nextStep': 'Tiếp theo',
   'project.materials.spreadsheet.backStep': 'Quay lại',
@@ -860,7 +886,35 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.importStep.review': 'Review data',
   'project.materials.spreadsheet.importStep.report': 'Import results',
   'project.materials.spreadsheet.downloadImportTemplate':
-    'Download system template',
+    'Download import template',
+  'project.materials.spreadsheet.importTemplate': 'Import template',
+  'project.materials.spreadsheet.importTemplateEmpty':
+    'No import templates available',
+  'project.materials.spreadsheet.waitingFilesForCatalogs':
+    'Waiting for catalogs to read {count} selected files.',
+  'project.materials.spreadsheet.importGuide.section': 'Section',
+  'project.materials.spreadsheet.importGuide.detail': 'Instructions',
+  'project.materials.spreadsheet.importGuide.heading1': '1. Purpose',
+  'project.materials.spreadsheet.importGuide.heading2': '2. Worksheets',
+  'project.materials.spreadsheet.importGuide.heading3': '3. Data layout',
+  'project.materials.spreadsheet.importGuide.heading4': '4. Quantity',
+  'project.materials.spreadsheet.importGuide.heading5': '5. Material codes',
+  'project.materials.spreadsheet.importGuide.heading6': '6. Serial numbers',
+  'project.materials.spreadsheet.importGuide.heading7': '7. Example row',
+  'project.materials.spreadsheet.importGuide.purpose':
+    'Use this template for both exporting data and importing materials. During import, the app reads the worksheet with material data columns; lookup tabs can stay in the file.',
+  'project.materials.spreadsheet.importGuide.tabs':
+    'Fill in the Materials worksheet. Data fields is a lookup list of mapping keys. Instructions explains how to use the template. The Grouping configuration tab is unnecessary for import and is removed from the downloaded file.',
+  'project.materials.spreadsheet.importGuide.layout':
+    'Keep the headers and mapping markers together as in the template. You can move columns if you keep their markers. Enter data in the first row below the marker row (usually row 3); each row represents materials with the same details.',
+  'project.materials.spreadsheet.importGuide.quantity':
+    'Enter a whole number of 1 or more. If several materials share the same model and details, enter one row and set its quantity instead of repeating the row. A blank quantity is treated as 1.',
+  'project.materials.spreadsheet.importGuide.codes':
+    'The material code in a row is the base code and must be unique. For quantity greater than 1, the app generates codes such as BASE-CODE-001, BASE-CODE-002…; make sure these codes are unused.',
+  'project.materials.spreadsheet.importGuide.serial':
+    'Each material has its own serial number, so set quantity to 1 on rows with a serial number. Enter the model, owner, and other material details once per row.',
+  'project.materials.spreadsheet.importGuide.example':
+    'The example row uses code VT-MAU-001 and note “Dữ liệu mẫu”. The app skips it while unchanged; replace the code and remove the note if you want to use it as real data.',
   'project.materials.spreadsheet.downloadingFile': 'Downloading file',
   'project.materials.spreadsheet.nextStep': 'Next',
   'project.materials.spreadsheet.backStep': 'Back',

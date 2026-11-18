@@ -139,6 +139,15 @@ export function getMissingMaterialImportFields(
   });
 }
 
+export function isMaterialImportExampleRow(row: SpreadsheetDataRow) {
+  return (
+    normalizeHeader(valueOf(row, 'material.code')) ===
+      normalizeHeader('VT-MAU-001') &&
+    normalizeHeader(valueOf(row, 'material.note')) ===
+      normalizeHeader('Dữ liệu mẫu')
+  );
+}
+
 export function buildMaterialModelImportProposals(
   rows: SpreadsheetDataRow[],
   models: MaterialModel[],

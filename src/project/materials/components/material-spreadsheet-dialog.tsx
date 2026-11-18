@@ -165,33 +165,29 @@ export function MaterialSpreadsheetImportDialog({
       onOpenChange={onOpenChange}
       footer={importFooter}
     >
-      <CatalogState
-        loading={catalogsLoading}
-        error={catalogsError}
-        onRetry={() => {
-          void modelsQuery.refetch();
-          void custodiansQuery.refetch();
-          void capitalSourcesQuery.refetch();
-          if (canCreateModels) {
-            void groupsQuery.refetch();
-            void specificationsQuery.refetch();
-          }
-        }}
-      />
-      {!catalogsLoading && !catalogsError ? (
-        open ? (
-          <MaterialSpreadsheetImportPanel
-            open={open}
-            onFooterChange={handleImportFooterChange}
-            fields={fields}
-            models={models}
-            custodians={custodians}
-            groups={groupsQuery.data ?? []}
-            capitalSources={capitalSourcesQuery.data ?? []}
-            specifications={specificationsQuery.data ?? []}
-            canCreateModels={canCreateModels}
-          />
-        ) : null
+      {open ? (
+        <MaterialSpreadsheetImportPanel
+          open={open}
+          onFooterChange={handleImportFooterChange}
+          fields={fields}
+          models={models}
+          custodians={custodians}
+          groups={groupsQuery.data ?? []}
+          capitalSources={capitalSourcesQuery.data ?? []}
+          specifications={specificationsQuery.data ?? []}
+          canCreateModels={canCreateModels}
+          catalogsLoading={catalogsLoading}
+          catalogsError={catalogsError}
+          onRetryCatalogs={() => {
+            void modelsQuery.refetch();
+            void custodiansQuery.refetch();
+            void capitalSourcesQuery.refetch();
+            if (canCreateModels) {
+              void groupsQuery.refetch();
+              void specificationsQuery.refetch();
+            }
+          }}
+        />
       ) : null}
     </MaterialSpreadsheetImportDialogShell>
   );

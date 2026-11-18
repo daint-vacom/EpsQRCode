@@ -11,7 +11,8 @@ import type { MaterialGroup } from '@/project/material-groups/model/material-gro
 import { useCreateMaterialModelsBulkMutation } from '@/project/material-models/hooks/use-material-models';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
 import type { MaterialSpecification } from '@/project/material-specifications/model/material-specification';
-import { downloadSpreadsheetTemplateFile } from '@/project/spreadsheets/api/spreadsheet-templates.api';
+import { loadSpreadsheetTemplate } from '@/project/spreadsheets/api/spreadsheet-templates.api';
+import { useSpreadsheetTemplatesQuery } from '@/project/spreadsheets/hooks/use-spreadsheet-templates';
 import {
   getCoreRowModel,
   getPaginationRowModel,
@@ -44,6 +45,7 @@ import {
   FileUploadContent,
   type FileUploadContentHandle,
 } from '@/components/ui/file-upload/file-upload-content';
+import { OptionSelect } from '@/components/ui/option-select';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
@@ -56,6 +58,11 @@ import {
   StepperTitle,
   StepperTrigger,
 } from '@/components/ui/stepper';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useCreateMaterialsBulkMutation } from '../hooks/use-materials';
 import type { Material } from '../model/material';
 import type { MaterialCapitalSource } from '../model/material-capital-source';
@@ -64,6 +71,7 @@ import {
   findMaterialImportMapping,
   getMaterialImportCodes,
   getMissingMaterialImportFields,
+  isMaterialImportExampleRow,
   mapMaterialSpreadsheetRows,
   toMaterialImportPreviewRows,
   type MaterialSpreadsheetSource,
@@ -72,6 +80,7 @@ import {
   createMaterialImportReport,
   type MaterialImportOutcome,
 } from '../spreadsheet/material-spreadsheet-import-report';
+import { prepareMaterialImportTemplate } from '../spreadsheet/material-spreadsheet-template';
 import { useMaterialSpreadsheetImportPreviewRowColumns } from '../table/material-spreadsheet-import-preview.columns.generated';
 
 type ImportMode = 'existing' | 'create';
@@ -86,6 +95,9 @@ interface MaterialSpreadsheetImportPanelProps {
   capitalSources: MaterialCapitalSource[];
   specifications: MaterialSpecification[];
   canCreateModels: boolean;
+  catalogsLoading: boolean;
+  catalogsError: boolean;
+  onRetryCatalogs: () => void;
 }
 
 interface FileReadProgress {
@@ -110,12 +122,18 @@ export function MaterialSpreadsheetImportPanel({
   capitalSources,
   specifications,
   canCreateModels,
+  catalogsLoading,
+  catalogsError,
+  onRetryCatalogs,
 }: MaterialSpreadsheetImportPanelProps) {
   const intl = useIntl();
   const { hasPermission } = useUser();
+  const templatesQuery = useSpreadsheetTemplatesQuery('materialsImport', open);
+  const templates = templatesQuery.data ?? [];
   const createMutation = useCreateMaterialsBulkMutation();
   const createModelMutation = useCreateMaterialModelsBulkMutation();
   const fileUploadRef = useRef<FileUploadContentHandle>(null);
+  const pendingFilesRef = useRef<File[]>([]);
   const canManageModels =
     canCreateModels && hasPermission('material_catalog:material_model:manage');
   const [step, setStep] = useState(1);
@@ -128,7 +146,9 @@ export function MaterialSpreadsheetImportPanel({
     total: 0,
   });
   const [fileReadStarted, setFileReadStarted] = useState(false);
+  const [waitingForCatalogsCount, setWaitingForCatalogsCount] = useState(0);
   const [templateDownloading, setTemplateDownloading] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateError, setTemplateError] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [importing, setImporting] = useState(false);
@@ -148,12 +168,22 @@ export function MaterialSpreadsheetImportPanel({
     pageIndex: 0,
     pageSize: 20,
   });
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) ??
+    templates[0] ??
+    null;
 
   const translate = useCallback(
     (id: string, values?: Record<string, string>) =>
       intl.formatMessage({ id }, values),
     [intl],
   );
+  const templateOptions = templates.map((template) => ({
+    value: template.id,
+    label: template.isBundled
+      ? `${template.fileName} · ${translate('settings.spreadsheetTemplates.defaultTemplate')}`
+      : template.fileName,
+  }));
 
   useEffect(() => {
     if (open) return;
@@ -164,7 +194,10 @@ export function MaterialSpreadsheetImportPanel({
     setFileReading(false);
     setFileReadProgress({ processed: 0, total: 0 });
     setFileReadStarted(false);
+    pendingFilesRef.current = [];
+    setWaitingForCatalogsCount(0);
     setTemplateDownloading(false);
+    setSelectedTemplateId('');
     setTemplateError('');
     setUploadError('');
     setImporting(false);
@@ -300,92 +333,139 @@ export function MaterialSpreadsheetImportPanel({
     Boolean(outcomes?.some((outcome) => !outcome.success)) ||
     sources.some((source) => source.globalErrors.length > 0);
 
-  const handleReadFiles = async (files: File[]) => {
-    const existingFileKeys = new Set(
-      sources.map((source) => fileKey(source.file)),
-    );
-    const uniqueFiles = files.filter(
-      (file) => !existingFileKeys.has(fileKey(file)),
-    );
-    setUploadError('');
-    setFileReadStarted(true);
-    if (uniqueFiles.length === 0) {
-      setUploadError(
-        translate('project.materials.spreadsheet.duplicateUploadFiles'),
+  const handleReadFiles = useCallback(
+    async (files: File[]) => {
+      const existingFileKeys = new Set(
+        [
+          ...sources.map((source) => source.file),
+          ...pendingFilesRef.current,
+        ].map(fileKey),
       );
-      return;
-    }
+      const uniqueFiles = files.filter(
+        (file) => !existingFileKeys.has(fileKey(file)),
+      );
+      setUploadError('');
+      if (uniqueFiles.length === 0) {
+        setUploadError(
+          translate('project.materials.spreadsheet.duplicateUploadFiles'),
+        );
+        return;
+      }
 
-    setFileReading(true);
-    setFileReadProgress({ processed: 0, total: uniqueFiles.length });
-    const parsedSources: MaterialSpreadsheetSource[] = [];
-    for (const [index, file] of uniqueFiles.entries()) {
-      const source: MaterialSpreadsheetSource = {
-        id: crypto.randomUUID(),
-        file,
-        workbook: null,
-        worksheetName: null,
-        mapping: null,
-        rows: [],
-        globalErrors: [],
-      };
-      try {
-        const workbook = await readXlsxFile(file);
-        const mapping = findMaterialImportMapping(workbook, fields);
-        source.workbook = workbook;
-        source.mapping = mapping;
-        source.worksheetName = mapping?.worksheetName ?? null;
-        if (!mapping) {
-          source.globalErrors.push(
-            translate('project.materials.spreadsheet.templateMappingMissing'),
-          );
-        } else {
-          const missingFields = getMissingMaterialImportFields(
-            mapping,
-            translate,
-          );
-          if (missingFields.length > 0) {
+      if (catalogsLoading || catalogsError) {
+        pendingFilesRef.current = [...pendingFilesRef.current, ...uniqueFiles];
+        setWaitingForCatalogsCount(pendingFilesRef.current.length);
+        return;
+      }
+
+      setFileReading(true);
+      setWaitingForCatalogsCount(0);
+      setFileReadStarted(true);
+      setFileReadProgress({ processed: 0, total: uniqueFiles.length });
+      const parsedSources: MaterialSpreadsheetSource[] = [];
+      for (const [index, file] of uniqueFiles.entries()) {
+        const source: MaterialSpreadsheetSource = {
+          id: crypto.randomUUID(),
+          file,
+          workbook: null,
+          worksheetName: null,
+          mapping: null,
+          rows: [],
+          globalErrors: [],
+        };
+        try {
+          const workbook = await readXlsxFile(file);
+          const mapping = findMaterialImportMapping(workbook, fields);
+          source.workbook = workbook;
+          source.mapping = mapping;
+          source.worksheetName = mapping?.worksheetName ?? null;
+          if (!mapping) {
             source.globalErrors.push(
-              translate('project.materials.spreadsheet.templateMissingFields', {
-                fields: missingFields.join(', '),
-              }),
+              translate('project.materials.spreadsheet.templateMappingMissing'),
             );
-          }
-          const worksheet = workbook.getWorksheet(mapping.worksheetName);
-          if (!worksheet) {
-            source.globalErrors.push(
-              translate('common.spreadsheets.errors.worksheetMissing'),
-            );
-          } else if (missingFields.length === 0) {
-            source.rows = readMappedRows(
-              worksheet,
+          } else {
+            const missingFields = getMissingMaterialImportFields(
               mapping,
-              fields.map((field) => field.key),
+              translate,
             );
-            if (source.rows.length === 0) {
+            if (missingFields.length > 0) {
               source.globalErrors.push(
-                translate('project.materials.spreadsheet.templateNoRows'),
+                translate(
+                  'project.materials.spreadsheet.templateMissingFields',
+                  {
+                    fields: missingFields.join(', '),
+                  },
+                ),
               );
             }
+            const worksheet = workbook.getWorksheet(mapping.worksheetName);
+            if (!worksheet) {
+              source.globalErrors.push(
+                translate('common.spreadsheets.errors.worksheetMissing'),
+              );
+            } else if (missingFields.length === 0) {
+              source.rows = readMappedRows(
+                worksheet,
+                mapping,
+                fields.map((field) => field.key),
+              ).filter((row) => !isMaterialImportExampleRow(row));
+              if (source.rows.length === 0) {
+                source.globalErrors.push(
+                  translate('project.materials.spreadsheet.templateNoRows'),
+                );
+              }
+            }
           }
+        } catch (error) {
+          source.globalErrors.push(getErrorText(error, translate));
         }
-      } catch (error) {
-        source.globalErrors.push(getErrorText(error, translate));
+        parsedSources.push(source);
+        setFileReadProgress({
+          processed: index + 1,
+          total: uniqueFiles.length,
+        });
       }
-      parsedSources.push(source);
-      setFileReadProgress({ processed: index + 1, total: uniqueFiles.length });
-    }
 
-    setSources((current) => [...current, ...parsedSources]);
-    setFileReading(false);
-  };
+      setSources((current) => [...current, ...parsedSources]);
+      setFileReading(false);
+    },
+    [catalogsError, catalogsLoading, fields, sources, translate],
+  );
+
+  useEffect(() => {
+    if (catalogsLoading || catalogsError || fileReading) return;
+    if (pendingFilesRef.current.length === 0) return;
+    const pendingFiles = pendingFilesRef.current;
+    pendingFilesRef.current = [];
+    void handleReadFiles(pendingFiles);
+  }, [catalogsError, catalogsLoading, fileReading, handleReadFiles]);
 
   const handleDownloadTemplate = async () => {
     setTemplateError('');
+    if (!selectedTemplate) return;
     setTemplateDownloading(true);
     try {
-      const result = await downloadSpreadsheetTemplateFile('materialsImport');
-      downloadBlob(result.blob, result.fileName);
+      const template = await loadSpreadsheetTemplate(
+        'materialsImport',
+        selectedTemplate.id,
+      );
+      prepareMaterialImportTemplate(template.workbook, fields, (id) =>
+        translate(id),
+      );
+      const buffer = await template.workbook.xlsx.writeBuffer();
+      const importFileName = template.fileName.match(/xuất/i)
+        ? template.fileName.replace(/xuất/i, 'nhập')
+        : template.fileName.match(/xuat/i)
+          ? template.fileName.replace(/xuat/i, 'nhap')
+          : /nhập|nhap/i.test(template.fileName)
+            ? template.fileName
+            : template.fileName.replace(/\.xlsx$/i, '_nhap.xlsx');
+      downloadBlob(
+        new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        }),
+        importFileName,
+      );
     } catch (error) {
       setTemplateError(getErrorText(error, translate));
     } finally {
@@ -837,26 +917,111 @@ export function MaterialSpreadsheetImportPanel({
         </StepperNav>
 
         <StepperContent value={1} className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {translate('project.materials.spreadsheet.fileHelp')}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="md"
-              loading={templateDownloading}
-              loadingText={translate(
-                'project.materials.spreadsheet.downloadingFile',
+          <div className="flex items-center justify-end gap-2">
+            <OptionSelect
+              id="material-import-template"
+              ariaLabel={translate(
+                'project.materials.spreadsheet.importTemplate',
               )}
-              onClick={() => void handleDownloadTemplate()}
-            >
-              <Download />
-              {translate(
-                'project.materials.spreadsheet.downloadImportTemplate',
-              )}
-            </Button>
+              className="min-w-0 flex-1 sm:max-w-md"
+              options={templateOptions}
+              value={selectedTemplate?.id ?? ''}
+              placeholder={
+                templatesQuery.isPending
+                  ? translate('common.state.loading')
+                  : translate(
+                      'project.materials.spreadsheet.importTemplateEmpty',
+                    )
+              }
+              searchable={false}
+              loading={templatesQuery.isPending}
+              disabled={
+                templatesQuery.isPending ||
+                templatesQuery.isError ||
+                templates.length === 0 ||
+                templateDownloading
+              }
+              onChange={setSelectedTemplateId}
+            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  mode="icon"
+                  size="icon"
+                  aria-label={translate(
+                    'project.materials.spreadsheet.downloadImportTemplate',
+                  )}
+                  aria-busy={templateDownloading}
+                  disabled={
+                    templatesQuery.isPending ||
+                    templatesQuery.isError ||
+                    !selectedTemplate ||
+                    templateDownloading
+                  }
+                  onClick={() => void handleDownloadTemplate()}
+                >
+                  {templateDownloading ? (
+                    <LoaderCircle className="animate-spin" />
+                  ) : (
+                    <Download />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {translate(
+                  'project.materials.spreadsheet.downloadImportTemplate',
+                )}
+              </TooltipContent>
+            </Tooltip>
           </div>
+
+          {templatesQuery.isError ? (
+            <div className="flex items-center gap-2 text-sm" role="alert">
+              <span className="min-w-0 flex-1 text-destructive">
+                {getErrorText(templatesQuery.error, translate)}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void templatesQuery.refetch()}
+              >
+                {translate('common.actions.retry')}
+              </Button>
+            </div>
+          ) : null}
+
+          {catalogsError ? (
+            <div className="flex items-center gap-2 text-sm" role="alert">
+              <span className="min-w-0 flex-1 text-destructive">
+                {translate('project.materials.spreadsheet.catalogError')}
+                {waitingForCatalogsCount > 0
+                  ? ` ${translate('project.materials.spreadsheet.waitingFilesForCatalogs', { count: String(waitingForCatalogsCount) })}`
+                  : ''}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onRetryCatalogs}
+              >
+                {translate('common.actions.retry')}
+              </Button>
+            </div>
+          ) : waitingForCatalogsCount > 0 ? (
+            <div
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+              role="status"
+            >
+              <LoaderCircle className="size-4 animate-spin" />
+              {translate(
+                'project.materials.spreadsheet.waitingFilesForCatalogs',
+                { count: String(waitingForCatalogsCount) },
+              )}
+            </div>
+          ) : null}
 
           {fileReadStarted ? (
             <ProgressBlock
