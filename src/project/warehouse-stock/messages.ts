@@ -8,6 +8,7 @@ export const warehouseStockMessagesVi: Record<string, string> = {
   'warehouseStock.filters.selectReceiptHint':
     'Chọn phiếu nhập để xem vật tư trong kho.',
   'warehouseStock.columns.receipt': 'Phiếu nhập kho',
+  'warehouseStock.grouping.detail': 'Vật tư trong nhóm đã chọn',
   'warehouseStock.empty.list': 'Hiện chưa có vật tư nào trong kho.',
   'warehouseStock.empty.search': 'Không tìm thấy vật tư phù hợp trong kho.',
   'warehouseStock.errors.loadTitle': 'Không tải được vật tư kho',
@@ -27,6 +28,7 @@ export const warehouseStockMessagesEn: Record<string, string> = {
   'warehouseStock.filters.selectReceiptHint':
     'Select a receipt to view its warehouse materials.',
   'warehouseStock.columns.receipt': 'Receipt',
+  'warehouseStock.grouping.detail': 'Materials in the selected group',
   'warehouseStock.empty.list': 'There are no materials in warehouse stock.',
   'warehouseStock.empty.search': 'No matching warehouse materials found.',
   'warehouseStock.errors.loadTitle': 'Unable to load warehouse stock',

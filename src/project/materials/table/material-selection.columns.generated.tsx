@@ -7,9 +7,12 @@
 import { useMemo } from 'react';
 import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { useIntl } from 'react-intl';
-import { Badge } from '@/components/ui/badge';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
 import { MaterialIdentity } from '@/components/material-identity';
+import {
+  MaterialConditionBadge,
+  MaterialStatusBadge,
+} from '../components/material-value-badges';
 import type { Material } from '../model/material';
 
 export const MATERIAL_COLUMN_PINNING: ColumnPinningState = {
@@ -45,28 +48,14 @@ export function useMaterialColumns(): ColumnDef<Material>[] {
         }),
         size: 140,
         enableSorting: false,
-        cell: (row) => (
-          <Badge
-            variant={row.condition === 'damaged' ? 'destructive' : 'success'}
-          >
-            {intl.formatMessage({
-              id: `project.materials.condition.${row.condition}`,
-            })}
-          </Badge>
-        ),
+        cell: (row) => <MaterialConditionBadge value={row.condition} />,
       }),
       col.custom({
         id: 'status',
         header: intl.formatMessage({ id: 'project.materials.fields.status' }),
         size: 150,
         enableSorting: false,
-        cell: (row) => (
-          <Badge variant={row.status === 'loaned' ? 'secondary' : 'outline'}>
-            {intl.formatMessage({
-              id: `project.materials.status.${row.status}`,
-            })}
-          </Badge>
-        ),
+        cell: (row) => <MaterialStatusBadge value={row.status} />,
       }),
     ];
   }, [intl]);

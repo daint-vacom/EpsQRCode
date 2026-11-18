@@ -1,3 +1,4 @@
+import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS } from '@/project/material-models/model/material-model';
 import type { MaterialPublicDisplaySettings } from '@/project/material-models/model/material-model';
 import {
@@ -10,6 +11,7 @@ import type {
   Material,
   MaterialFilterSummary,
   MaterialFormValues,
+  MaterialGroupedListResult,
   MaterialGroupMaterialCounts,
   MaterialHistoryEntry,
   MaterialImage,
@@ -62,6 +64,42 @@ export async function loadMaterials(
               resolveMaterialImages(material, true),
             ),
           ),
+  };
+}
+
+export async function loadGroupedMaterials(
+  filters: MaterialListFilters,
+  signal?: AbortSignal,
+): Promise<MaterialGroupedListResult> {
+  assertSupabaseConfigured();
+  const result = await request<MaterialGroupedListResult>(
+    supabaseApi.post(
+      '/rpc/list_materials_grouped',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+  const modelImageUrls = new Map<string, Promise<string | null>>();
+  return {
+    ...result,
+    items: await Promise.all(
+      result.items.map(async (row) => {
+        let imageUrl = modelImageUrls.get(row.modelId);
+        if (!imageUrl) {
+          imageUrl = row.modelImage?.externalUrl
+            ? Promise.resolve(row.modelImage.externalUrl)
+            : row.modelImage?.storagePath
+              ? createSignedStorageUrl(
+                  MATERIAL_MODEL_IMAGES_BUCKET,
+                  row.modelImage.storagePath,
+                  3600,
+                )
+              : Promise.resolve(null);
+          modelImageUrls.set(row.modelId, imageUrl);
+        }
+        return { ...row, modelImageUrl: await imageUrl };
+      }),
+    ),
   };
 }
 

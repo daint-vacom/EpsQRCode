@@ -5,6 +5,19 @@ Use the table builder for paginated or data-table columns. The registry and comm
 
 ## Workflow
 
+Before writing a spec, search existing tables for columns representing the same business concept.
+Inspect the cell renderer and its established usage. Prefer a reusable domain cell component inside
+a `custom` stub, or a typed column hook/factory when header, sizing, and behavior also match.
+Extract repeated complex cells instead of copying JSX. Generated output follows the same reuse
+rule. Do not replace an existing badge, identity cell, tooltip, or action with plain text merely
+because the new row type differs. Map the canonical read model into the shared renderer's props.
+For grouped rows, render `…` for mixed values and `—` for entirely empty values, then use the
+established renderer for a common value.
+
+Existing examples include `MaterialIdentity` for image/name/code,
+`MaterialConditionBadge` and `MaterialStatusBadge` for material values. Their owning feature
+components are the source of presentation behavior.
+
 1. Ensure the row type exists in the feature model.
 2. Create `<domain>/table/<entity>.table.fixture.ts` exporting a `TableSpec` from
    `@/builders/table`. Set `specPath` to the fixture path.

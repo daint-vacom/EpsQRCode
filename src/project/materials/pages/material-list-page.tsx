@@ -74,6 +74,8 @@ import {
   MaterialFilterRow,
   type MaterialFilterMode,
 } from '../components/material-filter-row';
+import { MaterialGroupedTable } from '../components/material-grouped-table';
+import { MaterialGroupingControls } from '../components/material-grouping-controls';
 import { MaterialHandoverPreflightDialogShell } from '../components/material-handover-preflight-dialog-shell.generated';
 import { MaterialQrCodeDialog } from '../components/material-qr-code-dialog';
 import {
@@ -82,6 +84,7 @@ import {
 } from '../components/material-spreadsheet-dialog';
 import {
   useDeleteMaterialMutation,
+  useGroupedMaterialsQuery,
   useMaterialFilterSummaryQuery,
   useMaterialsQuery,
   useUpdateMaterialAvailabilityMutation,
@@ -89,9 +92,11 @@ import {
 import type {
   Material,
   MaterialCondition,
+  MaterialGroupingConfig,
   MaterialListFilters,
   MaterialOwnerFilterType,
 } from '../model/material';
+import { DEFAULT_MATERIAL_GROUPING_CONFIG } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import {
   MATERIAL_COLUMN_PINNING,
@@ -183,6 +188,17 @@ export function MaterialListPage() {
   const [filterMode, setFilterMode] = useState<MaterialFilterMode>('status');
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [condition, setCondition] = useState<MaterialCondition | undefined>();
+  const [groupingEnabled, setGroupingEnabled] = useState(false);
+  const [groupingConfig, setGroupingConfig] = useState<MaterialGroupingConfig>(
+    DEFAULT_MATERIAL_GROUPING_CONFIG,
+  );
+  const [groupPagination, setGroupPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: DEFAULT_PAGE_SIZE,
+  });
+  const [drillDownGroupKey, setDrillDownGroupKey] = useState<string | null>(
+    null,
+  );
   const [ownerType, setOwnerType] = useState<MaterialOwnerFilterType | ''>('');
   const [ownerDepartmentId, setOwnerDepartmentId] = useState('');
   const [ownerTeamId, setOwnerTeamId] = useState('');
@@ -207,6 +223,25 @@ export function MaterialListPage() {
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
   });
+  const groupedFilterSignature = JSON.stringify({
+    search: search.trim(),
+    groupId,
+    isActive,
+    condition,
+    ownerType,
+    ownerDepartmentId,
+    ownerTeamId,
+    ownerPartyId,
+    employeeId: selectedOwnerEmployee?.id ?? '',
+  });
+  const previousGroupedFilterSignature = useRef(groupedFilterSignature);
+  useEffect(() => {
+    if (previousGroupedFilterSignature.current === groupedFilterSignature)
+      return;
+    previousGroupedFilterSignature.current = groupedFilterSignature;
+    setGroupPagination((current) => ({ ...current, pageIndex: 0 }));
+    setDrillDownGroupKey(null);
+  }, [groupedFilterSignature]);
   const handleSelectGroup = useCallback((nextGroupId: string | null) => {
     setGroupId(nextGroupId ?? '');
     setPagination((current) =>
@@ -259,15 +294,20 @@ export function MaterialListPage() {
       ownerPartyId: ownerPartyId || undefined,
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
+      ...(drillDownGroupKey
+        ? { groupKey: drillDownGroupKey, groupBy: groupingConfig }
+        : {}),
     }),
     [
       condition,
+      drillDownGroupKey,
       groupIds,
       isActive,
       ownerPartyId,
       pagination.pageIndex,
       pagination.pageSize,
       search,
+      groupingConfig,
     ],
   );
   const spreadsheetFilters = useMemo(
@@ -300,7 +340,25 @@ export function MaterialListPage() {
   );
   const query = useMaterialsQuery(
     filters,
-    queryEnabled && !isPermissionsPending,
+    queryEnabled &&
+      !isPermissionsPending &&
+      (!groupingEnabled || Boolean(drillDownGroupKey)),
+  );
+  const groupedQuery = useGroupedMaterialsQuery(
+    {
+      search: search.trim() || undefined,
+      groupIds,
+      isActive,
+      condition,
+      ownerPartyId: ownerPartyId || undefined,
+    },
+    groupingConfig,
+    groupPagination.pageIndex + 1,
+    groupPagination.pageSize,
+    groupingEnabled &&
+      !drillDownGroupKey &&
+      queryEnabled &&
+      !isPermissionsPending,
   );
   const partiesQuery = useCustodiansQuery(
     false,
@@ -701,16 +759,24 @@ export function MaterialListPage() {
           >
             <DataGrid
               table={table}
-              recordCount={total}
+              recordCount={
+                groupingEnabled && !drillDownGroupKey
+                  ? (groupedQuery.data?.total ?? 0)
+                  : total
+              }
               isLoading={
                 isPermissionsPending ||
                 (canView &&
-                  (query.isPending ||
+                  ((groupingEnabled && !drillDownGroupKey
+                    ? groupedQuery.isPending
+                    : query.isPending) ||
                     partiesQuery.isPending ||
                     groupsQuery.isPending))
               }
               isFetching={
-                query.isFetching ||
+                (groupingEnabled && !drillDownGroupKey
+                  ? groupedQuery.isFetching
+                  : query.isFetching) ||
                 partiesQuery.isFetching ||
                 groupsQuery.isFetching
               }
@@ -745,7 +811,10 @@ export function MaterialListPage() {
                   <DataGridHeader
                     variant="stats"
                     recordCountLabel={intl.formatMessage({
-                      id: 'project.materials.list.recordCountLabel',
+                      id:
+                        +groupingEnabled && !drillDownGroupKey
+                          ? 'project.materials.grouping.groups'
+                          : 'project.materials.list.recordCountLabel',
                     })}
                     stats={
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -766,145 +835,223 @@ export function MaterialListPage() {
                             }));
                           }}
                         />
+                        {drillDownGroupKey ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDrillDownGroupKey(null)}
+                          >
+                            {intl.formatMessage({
+                              id: 'project.materials.grouping.backToGroups',
+                            })}
+                          </Button>
+                        ) : (
+                          <MaterialGroupingControls
+                            enabled={groupingEnabled}
+                            onEnabledChange={(enabled) => {
+                              setGroupingEnabled(enabled);
+                              setDrillDownGroupKey(null);
+                              setRowSelection({});
+                              setSelectedMaterials([]);
+                              setGroupPagination((current) => ({
+                                ...current,
+                                pageIndex: 0,
+                              }));
+                            }}
+                            config={groupingConfig}
+                            onApply={(config) => {
+                              setGroupingConfig(config);
+                              setGroupPagination((current) => ({
+                                ...current,
+                                pageIndex: 0,
+                              }));
+                            }}
+                            disabled={!canView || isPermissionsPending}
+                          />
+                        )}
                       </div>
                     }
-                    toolbar={<DataGridHeaderMenu table={table} />}
+                    toolbar={
+                      groupingEnabled && !drillDownGroupKey ? null : (
+                        <DataGridHeaderMenu table={table} />
+                      )
+                    }
                   />
-                  <CardTable className="min-h-0 flex-1">
-                    {!isPermissionsPending && !canView ? (
+                  {groupingEnabled && !drillDownGroupKey ? (
+                    partiesQuery.isError || groupsQuery.isError ? (
                       <ErrorState
                         title={intl.formatMessage({
-                          id: 'project.materials.errors.loadTitle',
-                        })}
-                        description={intl.formatMessage({
-                          id: 'project.materials.errors.authorization',
-                        })}
-                      />
-                    ) : query.isError ||
-                      partiesQuery.isError ||
-                      groupsQuery.isError ? (
-                      <ErrorState
-                        title={intl.formatMessage({
-                          id: query.isError
-                            ? 'project.materials.errors.loadTitle'
-                            : 'project.materials.errors.loadFiltersTitle',
+                          id: 'project.materials.errors.loadFiltersTitle',
                         })}
                         description={getApiErrorMessage(
-                          query.error ??
-                            partiesQuery.error ??
-                            groupsQuery.error,
+                          partiesQuery.error ?? groupsQuery.error,
                         )}
                         onRetry={() => {
-                          void query.refetch();
                           void partiesQuery.refetch();
                           void groupsQuery.refetch();
                         }}
                       />
                     ) : (
-                      <ScrollArea className="h-full">
-                        <DataGridTable />
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
-                    )}
-                  </CardTable>
-                  <CardFooter className="justify-between">
-                    {canView &&
-                    !isPermissionsPending &&
-                    !query.isError &&
-                    !partiesQuery.isError &&
-                    !groupsQuery.isError ? (
-                      <DataGridPagination />
-                    ) : null}
-                  </CardFooter>
+                      <MaterialGroupedTable
+                        groups={groupedQuery.data?.items ?? []}
+                        total={groupedQuery.data?.total ?? 0}
+                        pagination={groupPagination}
+                        setPagination={setGroupPagination}
+                        groupNameById={groupNameById}
+                        onOpenGroup={(groupKey) => {
+                          setDrillDownGroupKey(groupKey);
+                          setPagination((current) => ({
+                            ...current,
+                            pageIndex: 0,
+                          }));
+                        }}
+                        isLoading={groupedQuery.isPending}
+                        error={groupedQuery.isError}
+                        onRetry={() => void groupedQuery.refetch()}
+                      />
+                    )
+                  ) : (
+                    <>
+                      <CardTable className="min-h-0 flex-1">
+                        {!isPermissionsPending && !canView ? (
+                          <ErrorState
+                            title={intl.formatMessage({
+                              id: 'project.materials.errors.loadTitle',
+                            })}
+                            description={intl.formatMessage({
+                              id: 'project.materials.errors.authorization',
+                            })}
+                          />
+                        ) : partiesQuery.isError || groupsQuery.isError ? (
+                          <ErrorState
+                            title={intl.formatMessage({
+                              id: 'project.materials.errors.loadFiltersTitle',
+                            })}
+                            description={getApiErrorMessage(
+                              partiesQuery.error ?? groupsQuery.error,
+                            )}
+                            onRetry={() => {
+                              void partiesQuery.refetch();
+                              void groupsQuery.refetch();
+                            }}
+                          />
+                        ) : query.isError ? (
+                          <ErrorState
+                            title={intl.formatMessage({
+                              id: 'project.materials.errors.loadTitle',
+                            })}
+                            description={getApiErrorMessage(query.error)}
+                            onRetry={() => void query.refetch()}
+                          />
+                        ) : (
+                          <ScrollArea className="h-full">
+                            <DataGridTable />
+                            <ScrollBar orientation="horizontal" />
+                          </ScrollArea>
+                        )}
+                      </CardTable>
+                      <CardFooter className="justify-between">
+                        {canView &&
+                        !isPermissionsPending &&
+                        !query.isError &&
+                        !partiesQuery.isError &&
+                        !groupsQuery.isError ? (
+                          <DataGridPagination />
+                        ) : null}
+                      </CardFooter>
+                    </>
+                  )}
                 </Card>
               </MaterialGroupFilterLayout>
-              <DataGridActionBar
-                onSelectionChange={setSelectedMaterials}
-                selectionLabel={(count) =>
-                  intl.formatMessage(
-                    { id: 'project.materials.bulk.selectedCount' },
-                    { count },
-                  )
-                }
-              >
-                <OptionSelect
-                  value={bulkAction}
-                  onChange={(value) =>
-                    setBulkAction(value as MaterialBulkAction)
+              {!groupingEnabled || drillDownGroupKey ? (
+                <DataGridActionBar
+                  onSelectionChange={setSelectedMaterials}
+                  selectionLabel={(count) =>
+                    intl.formatMessage(
+                      { id: 'project.materials.bulk.selectedCount' },
+                      { count },
+                    )
                   }
-                  options={[
-                    ...(canView
-                      ? [
-                          {
-                            value: 'printQr',
-                            label: intl.formatMessage({
-                              id: 'project.materials.bulk.printQr',
-                            }),
-                          },
-                        ]
-                      : []),
-                    ...(canManage
-                      ? [
-                          {
-                            value: 'handover',
-                            label: intl.formatMessage({
-                              id: 'project.materials.bulk.handover',
-                            }),
-                          },
-                          {
-                            value: 'delete',
-                            label: intl.formatMessage({
-                              id: 'project.materials.bulk.delete',
-                            }),
-                          },
-                        ]
-                      : []),
-                  ]}
-                  placeholder={intl.formatMessage({
-                    id: 'project.materials.bulk.chooseAction',
-                  })}
-                  ariaLabel={intl.formatMessage({
-                    id: 'project.materials.bulk.chooseAction',
-                  })}
-                  searchable={false}
-                  size="md"
-                  className="w-56"
-                  renderOption={(option) => {
-                    const Icon =
-                      option.value === 'printQr'
-                        ? QrCode
-                        : option.value === 'handover'
-                          ? Handshake
-                          : Trash2;
-                    const isDestructive = option.value === 'delete';
-
-                    return (
-                      <span className="flex items-center gap-2">
-                        <Icon
-                          className={`size-4 shrink-0 ${isDestructive ? 'text-destructive' : ''}`}
-                        />
-                        <span
-                          className={isDestructive ? 'text-destructive' : ''}
-                        >
-                          {option.label}
-                        </span>
-                      </span>
-                    );
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="md"
-                  disabled={
-                    !bulkAction ||
-                    (bulkAction === 'delete' && deleteMutation.isPending)
-                  }
-                  onClick={handleApplyBulkAction}
                 >
-                  {intl.formatMessage({ id: 'project.materials.bulk.apply' })}
-                </Button>
-              </DataGridActionBar>
+                  <OptionSelect
+                    value={bulkAction}
+                    onChange={(value) =>
+                      setBulkAction(value as MaterialBulkAction)
+                    }
+                    options={[
+                      ...(canView
+                        ? [
+                            {
+                              value: 'printQr',
+                              label: intl.formatMessage({
+                                id: 'project.materials.bulk.printQr',
+                              }),
+                            },
+                          ]
+                        : []),
+                      ...(canManage
+                        ? [
+                            {
+                              value: 'handover',
+                              label: intl.formatMessage({
+                                id: 'project.materials.bulk.handover',
+                              }),
+                            },
+                            {
+                              value: 'delete',
+                              label: intl.formatMessage({
+                                id: 'project.materials.bulk.delete',
+                              }),
+                            },
+                          ]
+                        : []),
+                    ]}
+                    placeholder={intl.formatMessage({
+                      id: 'project.materials.bulk.chooseAction',
+                    })}
+                    ariaLabel={intl.formatMessage({
+                      id: 'project.materials.bulk.chooseAction',
+                    })}
+                    searchable={false}
+                    size="md"
+                    className="w-56"
+                    renderOption={(option) => {
+                      const Icon =
+                        option.value === 'printQr'
+                          ? QrCode
+                          : option.value === 'handover'
+                            ? Handshake
+                            : Trash2;
+                      const isDestructive = option.value === 'delete';
+
+                      return (
+                        <span className="flex items-center gap-2">
+                          <Icon
+                            className={`size-4 shrink-0 ${isDestructive ? 'text-destructive' : ''}`}
+                          />
+                          <span
+                            className={isDestructive ? 'text-destructive' : ''}
+                          >
+                            {option.label}
+                          </span>
+                        </span>
+                      );
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    disabled={
+                      !bulkAction ||
+                      (bulkAction === 'delete' && deleteMutation.isPending)
+                    }
+                    onClick={handleApplyBulkAction}
+                  >
+                    {intl.formatMessage({ id: 'project.materials.bulk.apply' })}
+                  </Button>
+                </DataGridActionBar>
+              ) : null}
             </DataGrid>
           </Profiler>
         </MaterialGroupFilterLayoutProvider>

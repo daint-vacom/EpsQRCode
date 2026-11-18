@@ -13,6 +13,12 @@ ownership contract; detailed APIs live in [`docs/components/`](./components/).
 
 ## Lookup
 
+For table cells, first search feature tables for the same business concept. Reuse an established
+domain component or column hook before assembling a new renderer from these primitives. Preserve
+the existing identity layout, badge variants, tooltip, and interaction semantics. Extract complex
+cells into their owning feature when they repeat. Grouped rows use the same renderer for common
+values and explicit `…` / `—` for mixed / entirely empty data.
+
 | Need                             | Project API                                                           | Guide                                                      |
 | -------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Button or icon action            | `Button`                                                              | [`components/button.md`](./components/button.md)           |

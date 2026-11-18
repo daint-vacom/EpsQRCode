@@ -1,4 +1,41 @@
 export const materialMessagesVi: Record<string, string> = {
+  'project.materials.grouping.toggle': 'Gom nhóm vật tư',
+  'project.materials.grouping.settings': 'Thiết lập cách gom nhóm',
+  'project.materials.grouping.dialog.title': 'Cách hiển thị số lượng vật tư',
+  'project.materials.grouping.description':
+    'Các vật tư cùng mẫu được tổng hợp thành số lượng.',
+  'project.materials.grouping.model': 'Mẫu vật tư',
+  'project.materials.grouping.owner': 'Đơn vị quản lý',
+  'project.materials.grouping.condition': 'Tình trạng',
+  'project.materials.grouping.quantityQuestion':
+    'Bạn muốn xem số lượng của mỗi mẫu như thế nào?',
+  'project.materials.grouping.byOwner': 'Theo từng đơn vị quản lý',
+  'project.materials.grouping.byOwnerDescription':
+    'Mỗi đơn vị có một dòng riêng cho cùng mẫu vật tư.',
+  'project.materials.grouping.total': 'Tổng số lượng của các đơn vị',
+  'project.materials.grouping.totalDescription':
+    'Cộng số lượng của cùng mẫu vật tư tại các đơn vị đang xem.',
+  'project.materials.grouping.separateCondition':
+    'Hiển thị riêng từng tình trạng',
+  'project.materials.grouping.separateConditionDescription':
+    'Ví dụ, vật tư còn tốt và hỏng hóc sẽ nằm trên các dòng riêng.',
+  'project.materials.grouping.exampleTitle': 'Ví dụ minh họa',
+  'project.materials.grouping.exampleDescription':
+    'Mẫu A có 3 vật tư tại HCM và 2 vật tư tại Hà Nội.',
+  'project.materials.grouping.exampleModel': 'Mẫu A',
+  'project.materials.grouping.exampleOwner.hcm': 'HCM',
+  'project.materials.grouping.exampleOwner.hanoi': 'Hà Nội',
+  'project.materials.grouping.restore': 'Khôi phục mặc định',
+  'project.materials.grouping.cancel': 'Hủy',
+  'project.materials.grouping.apply': 'Áp dụng',
+  'project.materials.grouping.quantity': 'Số lượng',
+  'project.materials.grouping.openDetails': 'Xem vật tư trong nhóm',
+  'project.materials.grouping.backToGroups': 'Quay lại danh sách nhóm',
+  'project.materials.grouping.empty': 'Không có nhóm vật tư phù hợp.',
+  'project.materials.grouping.loadError':
+    'Không tải được danh sách nhóm vật tư.',
+  'project.materials.grouping.groups': 'nhóm',
+  'project.materials.grouping.pagination': '{from}–{to} / {count}',
   'project.materials.select.placeholder': 'Chọn vật tư',
   'project.materials.select.search': 'Tìm theo mã, tên hoặc số sê-ri',
   'project.materials.select.loadError': 'Không tải được danh sách vật tư',
@@ -723,6 +760,42 @@ export const materialMessagesVi: Record<string, string> = {
 };
 
 export const materialMessagesEn: Record<string, string> = {
+  'project.materials.grouping.toggle': 'Group materials',
+  'project.materials.grouping.settings': 'Configure grouping',
+  'project.materials.grouping.dialog.title': 'Material quantity display',
+  'project.materials.grouping.description':
+    'Materials of the same model are summarized as quantities.',
+  'project.materials.grouping.model': 'Material model',
+  'project.materials.grouping.owner': 'Managing entity',
+  'project.materials.grouping.condition': 'Condition',
+  'project.materials.grouping.quantityQuestion':
+    'How would you like to see the quantity of each model?',
+  'project.materials.grouping.byOwner': 'By managing entity',
+  'project.materials.grouping.byOwnerDescription':
+    'Each managing entity has a separate row for the same material model.',
+  'project.materials.grouping.total': 'Total across managing entities',
+  'project.materials.grouping.totalDescription':
+    'Add together quantities of the same model across the entities currently in view.',
+  'project.materials.grouping.separateCondition':
+    'Show each condition separately',
+  'project.materials.grouping.separateConditionDescription':
+    'For example, good and damaged materials appear on separate rows.',
+  'project.materials.grouping.exampleTitle': 'Illustrative example',
+  'project.materials.grouping.exampleDescription':
+    'Model A has 3 materials in HCM and 2 in Hanoi.',
+  'project.materials.grouping.exampleModel': 'Model A',
+  'project.materials.grouping.exampleOwner.hcm': 'HCM',
+  'project.materials.grouping.exampleOwner.hanoi': 'Hanoi',
+  'project.materials.grouping.restore': 'Restore defaults',
+  'project.materials.grouping.cancel': 'Cancel',
+  'project.materials.grouping.apply': 'Apply',
+  'project.materials.grouping.quantity': 'Quantity',
+  'project.materials.grouping.openDetails': 'View materials in group',
+  'project.materials.grouping.backToGroups': 'Back to groups',
+  'project.materials.grouping.empty': 'No matching material groups.',
+  'project.materials.grouping.loadError': 'Could not load material groups.',
+  'project.materials.grouping.groups': 'groups',
+  'project.materials.grouping.pagination': '{from}–{to} / {count}',
   'project.materials.select.placeholder': 'Select a material',
   'project.materials.select.search': 'Search by code, name, or serial number',
   'project.materials.select.loadError': 'Could not load materials',

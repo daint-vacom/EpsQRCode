@@ -9,6 +9,7 @@ import {
   applyMaterialModelSync,
   createMaterialsBulk,
   deleteMaterials,
+  loadGroupedMaterials,
   loadMaterial,
   loadMaterialFilterSummary,
   loadMaterialGroupMaterialCounts,
@@ -24,6 +25,8 @@ import type {
   ApplyMaterialModelSyncInput,
   Material,
   MaterialFilterSummary,
+  MaterialGroupedListResult,
+  MaterialGroupingConfig,
   MaterialGroupMaterialCounts,
   MaterialListFilters,
   MaterialPublicDetail,
@@ -110,6 +113,31 @@ export function useMaterialsQuery(
   return useQuery({
     queryKey: materialKeys.list(filters),
     queryFn: ({ signal }) => loadMaterials(filters, signal),
+    enabled,
+    retry: 0,
+  });
+}
+
+export function useGroupedMaterialsQuery(
+  filters: Omit<
+    MaterialListFilters,
+    'page' | 'pageSize' | 'groupBy' | 'groupPage' | 'groupPageSize'
+  >,
+  config: MaterialGroupingConfig,
+  page: number,
+  pageSize: number,
+  enabled = true,
+) {
+  const { userId } = useUser();
+  const groupedFilters: MaterialListFilters = {
+    ...filters,
+    groupBy: config,
+    groupPage: page,
+    groupPageSize: pageSize,
+  };
+  return useQuery<MaterialGroupedListResult>({
+    queryKey: [...materialKeys.all, 'grouped-list', userId, groupedFilters],
+    queryFn: ({ signal }) => loadGroupedMaterials(groupedFilters, signal),
     enabled,
     retry: 0,
   });

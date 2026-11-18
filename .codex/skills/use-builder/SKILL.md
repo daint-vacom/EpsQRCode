@@ -25,6 +25,8 @@ This is the generic builder gate for all current and future scaffold builders.
 
 ## Rules
 
+- Before defining table columns, search existing feature tables for the same business concept and inspect its renderer. Reuse domain cell components or typed column hooks. Extract repeated complex cells rather than copying JSX. Generated custom stubs must preserve existing image/name/code, badge, tooltip, formatting, and interaction behavior. Grouped rows use the same renderer for common values and explicit mixed/empty displays. Extend the backend read model when required display data is missing.
+
 - Never hand-write output owned by a matching builder or fake generated provenance.
 - Specs own generated structure and serializable config. Change the spec, then regenerate.
 - Never overwrite customized output. Generate to a scratch path and reconcile manually.

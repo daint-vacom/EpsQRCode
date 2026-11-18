@@ -281,6 +281,41 @@ export interface MaterialListFilters {
   pageSize?: number;
   updatedFrom?: string;
   updatedTo?: string;
+  /** Opaque group identity used only by the grouped materials read model. */
+  groupKey?: string;
+  groupBy?: { owner: boolean; condition: boolean };
+  groupPage?: number;
+  groupPageSize?: number;
+}
+
+export interface MaterialGroupingConfig {
+  owner: boolean;
+  condition: boolean;
+}
+export const DEFAULT_MATERIAL_GROUPING_CONFIG: MaterialGroupingConfig = {
+  owner: true,
+  condition: false,
+};
+
+export interface MaterialGroupedRow {
+  groupKey: string;
+  modelId: string;
+  modelName: string;
+  modelCode: string;
+  modelImage: { storagePath: string | null; externalUrl: string | null } | null;
+  modelImageUrl?: string | null;
+  ownerName: string | null;
+  condition: MaterialCondition | null;
+  quantity: number;
+  common: Record<string, string | null>;
+}
+export type MaterialGrouped = MaterialGroupedRow;
+
+export interface MaterialGroupedListResult {
+  items: MaterialGroupedRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface MaterialListResult {

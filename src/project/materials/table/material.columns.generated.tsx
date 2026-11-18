@@ -16,7 +16,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   createColumnHelpers,
@@ -32,6 +31,7 @@ import {
 import { MaterialIdentity } from '@/components/material-identity';
 import { MaterialAvailabilityCell } from '../components/material-availability-cell';
 import { MaterialQrCodeButton } from '../components/material-qr-code-button';
+import { MaterialConditionBadge } from '../components/material-value-badges';
 import type { Material } from '../model/material';
 
 export interface UseMaterialColumnsParams {
@@ -249,15 +249,7 @@ export function useMaterialColumns({
         }),
         size: 120,
         enableSorting: false,
-        cell: (row) => (
-          <Badge
-            variant={row.condition === 'damaged' ? 'destructive' : 'success'}
-          >
-            {intl.formatMessage({
-              id: `project.materials.condition.${row.condition}`,
-            })}
-          </Badge>
-        ),
+        cell: (row) => <MaterialConditionBadge value={row.condition} />,
       }),
       col.actions({
         cellClassName: 'text-right',

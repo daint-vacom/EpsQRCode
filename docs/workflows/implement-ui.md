@@ -22,6 +22,13 @@ Do not open global project docs unless the task exposes an architectural or desi
 
 ## 3. Select Builders
 
+Before selecting column kinds, search existing feature tables for each business concept and inspect
+the established renderer. Reuse its domain cell component or typed column hook. Extract complex
+inline cells when they will be used by another table. Preserve image/name/code identity, badge
+variants, tooltips, formatting, and interactions. A grouped view delegates common values to the
+same renderer and handles mixed/empty values explicitly. Ensure the read model supplies required
+display fields. Include the reused source in the implementation handoff.
+
 1. Read the registry in [`src/builders/README.md`](../../src/builders/README.md).
 2. Select every builder matching the requested surfaces.
 3. Read only the matching guide under [`docs/builders/`](../builders/).

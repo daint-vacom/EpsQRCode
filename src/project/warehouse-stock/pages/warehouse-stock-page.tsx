@@ -13,11 +13,18 @@ import {
   MATERIAL_LABEL_SELECTION_STATE_KEY,
   storeMaterialLabelSelection,
 } from '@/project/material-labels/utils/material-label-print-selection';
+import { MaterialGroupedTable } from '@/project/materials/components/material-grouped-table';
+import { MaterialGroupingControls } from '@/project/materials/components/material-grouping-controls';
 import { MaterialQrCodeDialog } from '@/project/materials/components/material-qr-code-dialog';
-import { useMaterialsQuery } from '@/project/materials/hooks/use-materials';
-import type {
-  Material,
-  MaterialListFilters,
+import {
+  useGroupedMaterialsQuery,
+  useMaterialsQuery,
+} from '@/project/materials/hooks/use-materials';
+import {
+  DEFAULT_MATERIAL_GROUPING_CONFIG,
+  type Material,
+  type MaterialGroupingConfig,
+  type MaterialListFilters,
 } from '@/project/materials/model/material';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import {
@@ -34,12 +41,13 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Boxes } from 'lucide-react';
+import { ArrowLeft, Boxes } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardTable } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/data-grid';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
@@ -83,6 +91,15 @@ export function WarehouseStockPage() {
     useState<MaterialReceiptSelectOption>();
   const [groupId, setGroupId] = useState('');
   const [pageIndex, setPageIndex] = useState(0);
+  const [groupPagination, setGroupPagination] = useState({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+  });
+  const [groupKey, setGroupKey] = useState<string>();
+  const [groupingEnabled, setGroupingEnabled] = useState(false);
+  const [groupingConfig, setGroupingConfig] = useState<MaterialGroupingConfig>(
+    DEFAULT_MATERIAL_GROUPING_CONFIG,
+  );
   const [qrDialogMaterial, setQrDialogMaterial] = useState<Material | null>(
     null,
   );
@@ -107,10 +124,8 @@ export function WarehouseStockPage() {
         : {}),
       ...(search.trim() ? { search: search.trim() } : {}),
       ...(groupIds ? { groupIds } : {}),
-      page: pageIndex + 1,
-      pageSize: PAGE_SIZE,
     }),
-    [filterMode, groupIds, pageIndex, search, selectedReceipt, warehouseId],
+    [filterMode, groupIds, search, selectedReceipt, warehouseId],
   );
   const summaryFilters = useMemo(
     () => ({
@@ -128,7 +143,25 @@ export function WarehouseStockPage() {
     queryEnabled &&
     (filterMode === 'warehouse' ||
       (canViewReceipts && Boolean(selectedReceipt)));
-  const materialsQuery = useMaterialsQuery(materialFilters, stockQueryEnabled);
+  const showGroups = groupingEnabled && groupKey === undefined;
+  const materialsQuery = useMaterialsQuery(
+    {
+      ...materialFilters,
+      page: pageIndex + 1,
+      pageSize: PAGE_SIZE,
+      ...(groupingEnabled && groupKey !== undefined
+        ? { groupBy: groupingConfig, groupKey }
+        : {}),
+    },
+    stockQueryEnabled && !showGroups,
+  );
+  const groupedQuery = useGroupedMaterialsQuery(
+    materialFilters,
+    groupingConfig,
+    groupPagination.pageIndex + 1,
+    groupPagination.pageSize,
+    stockQueryEnabled && showGroups,
+  );
   const stockSummaryQuery = useWarehouseStockSummaryQuery(
     summaryFilters,
     queryEnabled,
@@ -136,7 +169,7 @@ export function WarehouseStockPage() {
   const rawItems = materialsQuery.data?.items ?? EMPTY_MATERIALS;
   const receiptCodesQuery = useWarehouseStockReceiptCodesQuery(
     rawItems.map((material) => material.id),
-    queryEnabled && canViewReceipts,
+    stockQueryEnabled && canViewReceipts && !showGroups,
   );
   const items = useMemo(
     () =>
@@ -251,6 +284,16 @@ export function WarehouseStockPage() {
         ? 'warehouseStock.empty.search'
         : 'warehouseStock.empty.list',
   });
+  const resetPagination = () => {
+    setPageIndex(0);
+    setGroupPagination((pagination) => ({ ...pagination, pageIndex: 0 }));
+    setGroupKey(undefined);
+  };
+  const materialError = showGroups
+    ? null
+    : (materialsQuery.error ?? receiptCodesQuery.error);
+  const catalogError =
+    groupsQuery.error ?? partiesQuery.error ?? stockSummaryQuery.error;
 
   return (
     <MaterialGroupFilterLayoutProvider>
@@ -268,7 +311,7 @@ export function WarehouseStockPage() {
             value={filterMode}
             onValueChange={(value) => {
               setFilterMode(value as 'warehouse' | 'receipt');
-              setPageIndex(0);
+              resetPagination();
             }}
             options={[
               {
@@ -299,7 +342,7 @@ export function WarehouseStockPage() {
               value={warehouseId}
               onValueChange={(value) => {
                 setWarehouseId(value);
-                setPageIndex(0);
+                resetPagination();
               }}
               disabled={!queryEnabled || partiesQuery.isPending}
               options={[
@@ -323,7 +366,7 @@ export function WarehouseStockPage() {
               selectedReceipt={selectedReceipt}
               onSelect={(receipt) => {
                 setSelectedReceipt(receipt);
-                setPageIndex(0);
+                resetPagination();
               }}
               disabled={!queryEnabled || !canViewReceipts}
               ariaLabel={intl.formatMessage({
@@ -339,7 +382,7 @@ export function WarehouseStockPage() {
         </div>
         <DataGrid
           table={table}
-          recordCount={total}
+          recordCount={showGroups ? (groupedQuery.data?.total ?? 0) : total}
           isLoading={
             isPermissionsPending ||
             (queryEnabled &&
@@ -367,7 +410,7 @@ export function WarehouseStockPage() {
               selectedGroupId={groupId || null}
               onSelectGroup={(nextGroupId) => {
                 setGroupId(nextGroupId ?? '');
-                setPageIndex(0);
+                resetPagination();
               }}
               countByNode={groupCountById}
               allCount={stockSummaryQuery.data?.groupTotal ?? 0}
@@ -376,7 +419,9 @@ export function WarehouseStockPage() {
               <DataGridHeader
                 variant="stats"
                 recordCountLabel={intl.formatMessage({
-                  id: 'warehouseStock.page.title',
+                  id: showGroups
+                    ? 'project.materials.grouping.groups'
+                    : 'warehouseStock.page.title',
                 })}
                 stats={
                   <SearchInput
@@ -389,82 +434,135 @@ export function WarehouseStockPage() {
                     value={search}
                     onSearch={(value) => {
                       setSearch(value);
-                      setPageIndex(0);
+                      resetPagination();
                     }}
                     className="w-72 shrink-0"
                   />
                 }
-                toolbar={<DataGridHeaderMenu table={table} />}
+                toolbar={
+                  <>
+                    <MaterialGroupingControls
+                      enabled={groupingEnabled}
+                      config={groupingConfig}
+                      disabled={!stockQueryEnabled}
+                      onEnabledChange={(enabled) => {
+                        setGroupingEnabled(enabled);
+                        resetPagination();
+                      }}
+                      onApply={(config) => {
+                        setGroupingConfig(config);
+                        resetPagination();
+                      }}
+                    />
+                    {!showGroups && <DataGridHeaderMenu table={table} />}
+                  </>
+                }
               />
-              <CardTable className="min-h-0 flex-1">
-                {!isPermissionsPending && !canView ? (
-                  <ErrorState
-                    title={intl.formatMessage({
-                      id: 'project.materials.errors.loadTitle',
-                    })}
-                    description={intl.formatMessage({
-                      id: 'project.materials.errors.authorization',
-                    })}
-                  />
-                ) : filterMode === 'receipt' && !canViewReceipts ? (
-                  <ErrorState
-                    title={intl.formatMessage({
-                      id: 'warehouseStock.errors.receiptsPermissionTitle',
-                    })}
-                    description={intl.formatMessage({
-                      id: 'warehouseStock.errors.receiptsPermission',
-                    })}
-                  />
-                ) : materialsQuery.isError ||
-                  receiptCodesQuery.isError ||
-                  groupsQuery.isError ||
-                  partiesQuery.isError ||
-                  stockSummaryQuery.isError ? (
-                  <ErrorState
-                    title={intl.formatMessage({
-                      id: materialsQuery.isError
-                        ? 'warehouseStock.errors.loadTitle'
-                        : 'project.materials.errors.loadFiltersTitle',
-                    })}
-                    description={getApiErrorMessage(
-                      materialsQuery.error ??
-                        receiptCodesQuery.error ??
-                        groupsQuery.error ??
-                        partiesQuery.error ??
-                        stockSummaryQuery.error,
-                    )}
-                    onRetry={() => {
-                      if (stockQueryEnabled) void materialsQuery.refetch();
-                      void receiptCodesQuery.refetch();
-                      void groupsQuery.refetch();
-                      void partiesQuery.refetch();
-                      void stockSummaryQuery.refetch();
+              {groupingEnabled && groupKey !== undefined && (
+                <div className="flex items-center gap-3 border-b px-4 py-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setGroupKey(undefined);
+                      setPageIndex(0);
                     }}
-                  />
-                ) : (
-                  <ScrollArea className="h-full">
-                    {filterMode === 'receipt' && !selectedReceipt ? (
-                      <div className="flex min-h-32 items-center justify-center px-4 text-sm text-muted-foreground">
-                        {intl.formatMessage({
-                          id: 'warehouseStock.filters.selectReceiptHint',
-                        })}
-                      </div>
-                    ) : (
-                      <DataGridTable />
-                    )}
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                )}
-              </CardTable>
-              <CardFooter className="justify-between">
-                {queryEnabled &&
-                !materialsQuery.isError &&
-                !groupsQuery.isError &&
-                !partiesQuery.isError &&
-                !stockSummaryQuery.isError ? (
-                  <DataGridPagination />
-                ) : null}
-              </CardFooter>
+                  >
+                    <ArrowLeft />
+                    {intl.formatMessage({
+                      id: 'project.materials.grouping.backToGroups',
+                    })}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {intl.formatMessage({
+                      id: 'warehouseStock.grouping.detail',
+                    })}
+                  </span>
+                </div>
+              )}
+              {showGroups && stockQueryEnabled && !catalogError ? (
+                <MaterialGroupedTable
+                  groups={groupedQuery.data?.items ?? []}
+                  total={groupedQuery.data?.total ?? 0}
+                  pagination={groupPagination}
+                  setPagination={setGroupPagination}
+                  groupNameById={groupNameById}
+                  receiptColumnHeader={intl.formatMessage({
+                    id: 'warehouseStock.columns.receipt',
+                  })}
+                  onOpenGroup={(key) => {
+                    setGroupKey(key);
+                    setPageIndex(0);
+                  }}
+                  isLoading={groupedQuery.isPending}
+                  error={groupedQuery.isError}
+                  onRetry={() => void groupedQuery.refetch()}
+                />
+              ) : (
+                <CardTable className="min-h-0 flex-1">
+                  {!isPermissionsPending && !canView ? (
+                    <ErrorState
+                      title={intl.formatMessage({
+                        id: 'project.materials.errors.loadTitle',
+                      })}
+                      description={intl.formatMessage({
+                        id: 'project.materials.errors.authorization',
+                      })}
+                    />
+                  ) : filterMode === 'receipt' && !canViewReceipts ? (
+                    <ErrorState
+                      title={intl.formatMessage({
+                        id: 'warehouseStock.errors.receiptsPermissionTitle',
+                      })}
+                      description={intl.formatMessage({
+                        id: 'warehouseStock.errors.receiptsPermission',
+                      })}
+                    />
+                  ) : materialError || catalogError ? (
+                    <ErrorState
+                      title={intl.formatMessage({
+                        id: materialError
+                          ? 'warehouseStock.errors.loadTitle'
+                          : 'project.materials.errors.loadFiltersTitle',
+                      })}
+                      description={getApiErrorMessage(
+                        materialError ?? catalogError,
+                      )}
+                      onRetry={() => {
+                        if (stockQueryEnabled && !showGroups) {
+                          void materialsQuery.refetch();
+                          if (canViewReceipts && rawItems.length > 0) {
+                            void receiptCodesQuery.refetch();
+                          }
+                        }
+                        void groupsQuery.refetch();
+                        void partiesQuery.refetch();
+                        void stockSummaryQuery.refetch();
+                      }}
+                    />
+                  ) : (
+                    <ScrollArea className="h-full">
+                      {filterMode === 'receipt' && !selectedReceipt ? (
+                        <div className="flex min-h-32 items-center justify-center px-4 text-sm text-muted-foreground">
+                          {intl.formatMessage({
+                            id: 'warehouseStock.filters.selectReceiptHint',
+                          })}
+                        </div>
+                      ) : (
+                        <DataGridTable />
+                      )}
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  )}
+                </CardTable>
+              )}
+              {!showGroups && (
+                <CardFooter className="justify-between">
+                  {queryEnabled && !materialError && !catalogError && (
+                    <DataGridPagination />
+                  )}
+                </CardFooter>
+              )}
             </Card>
           </MaterialGroupFilterLayout>
         </DataGrid>

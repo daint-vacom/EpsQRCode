@@ -1,7 +1,6 @@
 import { Printer } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Material } from '../model/material';
 import {
@@ -12,6 +11,7 @@ import {
 } from '../utils/material-qr';
 import { MaterialQrCode } from './material-qr-code';
 import { MaterialQrCodeDialogShell } from './material-qr-code-dialog-shell.generated';
+import { MaterialAvailabilityBadge } from './material-value-badges';
 
 export function MaterialQrCodeDialog({
   material,
@@ -93,17 +93,7 @@ export function MaterialQrCodeDialog({
           <p className="text-sm font-mono text-muted-foreground">
             {material.code}
           </p>
-          <Badge
-            variant={material.isActive ? 'success' : 'secondary'}
-            appearance="light"
-            size="sm"
-          >
-            {intl.formatMessage({
-              id: material.isActive
-                ? 'project.materialQrTracking.qrDialog.active'
-                : 'project.materialQrTracking.qrDialog.inactive',
-            })}
-          </Badge>
+          <MaterialAvailabilityBadge value={material.isActive} />
         </div>
 
         <div className="space-y-1.5 rounded-xl border border-border bg-muted/60 p-4">
