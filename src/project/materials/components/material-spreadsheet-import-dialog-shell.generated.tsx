@@ -19,25 +19,32 @@ export interface MaterialSpreadsheetImportDialogShellProps {
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
   footer?: ReactNode;
+  fullScreen?: boolean;
 }
 export function MaterialSpreadsheetImportDialogShell({
   open,
   onOpenChange,
   children,
   footer,
+  fullScreen = false,
 }: MaterialSpreadsheetImportDialogShellProps) {
   const intl = useIntl();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-5xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">
+      <DialogContent
+        variant={fullScreen ? 'fullscreen' : undefined}
+        className={`flex flex-col gap-0 overflow-hidden p-0 ${fullScreen ? 'max-w-none' : 'max-w-5xl'}`}
+      >
+        <DialogHeader className="shrink-0 space-y-1.5 px-6 pt-5 pb-2 pe-14 text-start">
           <DialogTitle>
             {intl.formatMessage({
               id: 'project.materials.spreadsheet.importTitle',
             })}
           </DialogTitle>
         </DialogHeader>
-        <DialogBody className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <DialogBody
+          className={`min-h-0 flex-1 px-6 pt-2 pb-5 ${fullScreen ? 'overflow-hidden' : 'overflow-y-auto'}`}
+        >
           {children}
         </DialogBody>
         {footer ? (

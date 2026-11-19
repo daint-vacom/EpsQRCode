@@ -123,12 +123,16 @@ export function MaterialSpreadsheetImportDialog({
   onOpenChange,
 }: MaterialSpreadsheetDialogProps) {
   const [importFooter, setImportFooter] = useState<ReactNode>(null);
+  const [importStep, setImportStep] = useState(1);
   const handleImportFooterChange = useCallback(
     (footer: ReactNode | null) => setImportFooter(footer),
     [],
   );
   useEffect(() => {
-    if (!open) setImportFooter(null);
+    if (!open) {
+      setImportFooter(null);
+      setImportStep(1);
+    }
   }, [open]);
 
   const { hasPermission } = useUser();
@@ -164,11 +168,13 @@ export function MaterialSpreadsheetImportDialog({
       open={open}
       onOpenChange={onOpenChange}
       footer={importFooter}
+      fullScreen={importStep === 2}
     >
       {open ? (
         <MaterialSpreadsheetImportPanel
           open={open}
           onFooterChange={handleImportFooterChange}
+          onStepChange={setImportStep}
           fields={fields}
           models={models}
           custodians={custodians}

@@ -15,7 +15,12 @@ import {
   type SpreadsheetWorkbook,
 } from '@/lib/spreadsheets/xlsx';
 import type { LinkedCode } from '../model/linked-code';
-import type { Material } from '../model/material';
+import {
+  getMaterialGroupingCommonValue,
+  getMaterialGroupingKey,
+  MATERIAL_IMPORT_GROUPING_CONFIG,
+  type Material,
+} from '../model/material';
 import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
   mapMaterialImportRows,
@@ -66,12 +71,21 @@ export interface MaterialSpreadsheetImportPreviewRow {
   description: string;
   serialNumber: string;
   condition: string;
+  materialGroupKey: string;
   specifications: string;
   ownerCode: string;
   ownerName: string;
   note: string;
   isValid: boolean;
   error: string;
+  groupSummary?: MaterialSpreadsheetImportGroupSummary;
+  subRows?: MaterialSpreadsheetImportPreviewRow[];
+}
+
+export interface MaterialSpreadsheetImportGroupSummary {
+  rowCount: number;
+  validRowCount: number;
+  invalidRowCount: number;
 }
 
 export interface MaterialModelImportProposal {
@@ -664,9 +678,9 @@ export function toMaterialImportPreviewRows(
   rows: MappedMaterialImportRow[],
   models: MaterialModel[],
   proposals: MaterialModelImportProposal[],
-  translate: TranslateMaterialImportMessage,
 ): MaterialSpreadsheetImportPreviewRow[] {
   return rows.map((row) => {
+    const isValid = row.values !== null && !row.error;
     const model = models.find(
       (item) => normalizeHeader(item.code) === normalizeHeader(row.modelCode),
     );
@@ -680,9 +694,7 @@ export function toMaterialImportPreviewRows(
       excelRow: row.rowNumber,
       code: row.code
         ? formatMaterialImportCodeRange(row.code, row.quantity)
-        : translate('project.materials.spreadsheet.generatedCodeExample', {
-            modelCode: row.modelCode,
-          }),
+        : '',
       quantity: row.quantity,
       modelCode: row.modelCode,
       modelName: model?.name ?? proposal?.name ?? '',
@@ -694,14 +706,80 @@ export function toMaterialImportPreviewRows(
         '',
       serialNumber: valueOf(row.rawValues, 'material.serialNumber'),
       condition: valueOf(row.rawValues, 'material.condition'),
+      materialGroupKey: JSON.stringify([
+        getMaterialGroupingKey(
+          {
+            id: row.id,
+            modelCode: row.modelCode,
+            ownerCode: valueOf(row.rawValues, 'material.owner.code'),
+            ownerName: valueOf(row.rawValues, 'material.owner.name'),
+            condition: valueOf(row.rawValues, 'material.condition'),
+          },
+          MATERIAL_IMPORT_GROUPING_CONFIG,
+        ),
+        isValid ? 'valid' : 'invalid',
+      ]),
       specifications: valueOf(row.rawValues, 'material.specifications'),
       ownerCode: valueOf(row.rawValues, 'material.owner.code'),
       ownerName: valueOf(row.rawValues, 'material.owner.name'),
       note: valueOf(row.rawValues, 'material.note'),
-      isValid: row.values !== null && !row.error,
+      isValid,
       error: row.error ?? '',
     };
   });
+}
+
+export function groupMaterialImportPreviewRows(
+  rows: MaterialSpreadsheetImportPreviewRow[],
+): MaterialSpreadsheetImportPreviewRow[] {
+  const groups = new Map<string, MaterialSpreadsheetImportPreviewRow[]>();
+  for (const row of rows) {
+    const members = groups.get(row.materialGroupKey) ?? [];
+    members.push(row);
+    groups.set(row.materialGroupKey, members);
+  }
+
+  return Array.from(groups.entries())
+    .map(([materialGroupKey, members]) => {
+      const first = members[0];
+      const validMembers = members.filter((row) => row.isValid);
+      const invalidMembers = members.filter((row) => !row.isValid);
+      const commonValue = (
+        get: (row: MaterialSpreadsheetImportPreviewRow) => string,
+      ) => getMaterialGroupingCommonValue(members.map(get));
+
+      return {
+        ...first,
+        id: `material-group:${materialGroupKey}`,
+        fileName: commonValue((row) => row.fileName),
+        excelRow: null,
+        code: commonValue((row) => row.code),
+        quantity: members.reduce((total, row) => total + row.quantity, 0),
+        modelCode: commonValue((row) => row.modelCode),
+        modelName: commonValue((row) => row.modelName),
+        name: commonValue((row) => row.name),
+        description: commonValue((row) => row.description),
+        serialNumber: commonValue((row) => row.serialNumber),
+        condition: commonValue((row) => row.condition),
+        specifications: commonValue((row) => row.specifications),
+        ownerCode: commonValue((row) => row.ownerCode),
+        ownerName: commonValue((row) => row.ownerName),
+        note: commonValue((row) => row.note),
+        isValid: validMembers.length > 0,
+        error: commonValue((row) => row.error),
+        groupSummary: {
+          rowCount: members.length,
+          validRowCount: validMembers.length,
+          invalidRowCount: invalidMembers.length,
+        },
+        subRows: members,
+      };
+    })
+    .sort((left, right) =>
+      left.modelName.localeCompare(right.modelName, 'vi', {
+        sensitivity: 'base',
+      }),
+    );
 }
 
 export function getMaterialImportCodes(

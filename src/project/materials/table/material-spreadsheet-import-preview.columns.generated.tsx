@@ -5,7 +5,7 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, ColumnPinningState } from '@tanstack/react-table';
 import { BadgeCheck, BadgeX } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNumberFormat } from '@/providers/number-format-provider';
@@ -16,6 +16,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { MaterialSpreadsheetImportPreviewRow } from '../spreadsheet/material-spreadsheet-import';
+
+export const MATERIAL_SPREADSHEET_IMPORT_PREVIEW_ROW_COLUMN_PINNING: ColumnPinningState =
+  {
+    left: ['select', 'excelRow'],
+  };
 
 export function useMaterialSpreadsheetImportPreviewRowColumns(
   showFileName = true,
@@ -29,8 +34,15 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(
       formatCurrency,
       formatPercent,
     });
+    const groupedValidationLabel = (isValid: boolean) =>
+      intl.formatMessage({
+        id: isValid
+          ? 'project.materials.spreadsheet.validLabel'
+          : 'project.materials.spreadsheet.invalidLabel',
+      });
 
     return [
+      col.select(),
       ...(showFileName
         ? [
             col.text({
@@ -57,17 +69,25 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(
                   className="inline-flex cursor-help"
                   tabIndex={0}
                   aria-label={
-                    row.isValid
-                      ? intl.formatMessage({
-                          id: 'project.materials.spreadsheet.validLabel',
-                        })
-                      : row.error ||
-                        intl.formatMessage({
-                          id: 'project.materials.spreadsheet.invalidLabel',
-                        })
+                    row.groupSummary
+                      ? groupedValidationLabel(row.isValid)
+                      : row.isValid
+                        ? intl.formatMessage({
+                            id: 'project.materials.spreadsheet.validLabel',
+                          })
+                        : row.error ||
+                          intl.formatMessage({
+                            id: 'project.materials.spreadsheet.invalidLabel',
+                          })
                   }
                 >
-                  {row.isValid ? (
+                  {row.groupSummary ? (
+                    row.isValid ? (
+                      <BadgeCheck className="size-4 text-[var(--color-success-accent,var(--color-green-600))]" />
+                    ) : (
+                      <BadgeX className="size-4 text-destructive" />
+                    )
+                  ) : row.isValid ? (
                     <BadgeCheck className="size-4 text-[var(--color-success-accent,var(--color-green-600))]" />
                   ) : (
                     <BadgeX className="size-4 text-destructive" />
@@ -75,17 +95,19 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                {row.isValid
-                  ? intl.formatMessage({
-                      id: 'project.materials.spreadsheet.validLabel',
-                    })
-                  : row.error ||
-                    intl.formatMessage({
-                      id: 'project.materials.spreadsheet.invalidLabel',
-                    })}
+                {row.groupSummary
+                  ? groupedValidationLabel(row.isValid)
+                  : row.isValid
+                    ? intl.formatMessage({
+                        id: 'project.materials.spreadsheet.validLabel',
+                      })
+                    : row.error ||
+                      intl.formatMessage({
+                        id: 'project.materials.spreadsheet.invalidLabel',
+                      })}
               </TooltipContent>
             </Tooltip>
-            <span>{row.excelRow ?? '—'}</span>
+            <span>{row.groupSummary?.rowCount ?? row.excelRow ?? '—'}</span>
           </div>
         ),
       }),
@@ -104,14 +126,16 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(
                 : 'text-destructive'
             }
           >
-            {row.isValid
-              ? intl.formatMessage({
-                  id: 'project.materials.spreadsheet.validLabel',
-                })
-              : row.error ||
-                intl.formatMessage({
-                  id: 'project.materials.spreadsheet.invalidLabel',
-                })}
+            {row.groupSummary
+              ? groupedValidationLabel(row.isValid)
+              : row.isValid
+                ? intl.formatMessage({
+                    id: 'project.materials.spreadsheet.validLabel',
+                  })
+                : row.error ||
+                  intl.formatMessage({
+                    id: 'project.materials.spreadsheet.invalidLabel',
+                  })}
           </span>
         ),
       }),

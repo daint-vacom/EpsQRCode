@@ -6,6 +6,7 @@ const spec: TableSpec = {
   specPath:
     'src/project/materials/table/material-spreadsheet-import-preview.table.fixture.ts',
   columns: [
+    { kind: 'select' },
     {
       kind: 'text',
       id: 'fileName',
@@ -21,6 +22,7 @@ const spec: TableSpec = {
       header: 'Dòng Excel',
       headerMessageId: 'project.materials.spreadsheet.row',
       size: 105,
+      pin: 'left',
     },
     {
       kind: 'custom',

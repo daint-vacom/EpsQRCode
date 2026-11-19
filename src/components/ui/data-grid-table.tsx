@@ -38,6 +38,9 @@ const bodyCellSpacingVariants = cva('', {
   },
 });
 
+const dataGridRowBackgroundClasses =
+  'hover:bg-field data-[state=selected]:bg-background';
+
 function getPinningStyles<TData>(column: Column<TData>): CSSProperties {
   const isPinned = column.getIsPinned();
 
@@ -247,7 +250,7 @@ function DataGridTableBodyRowSkeleton({ children }: { children: ReactNode }) {
   return (
     <tr
       className={cn(
-        'hover:bg-field data-[state=selected]:bg-field',
+        dataGridRowBackgroundClasses,
         props.onRowClick && 'cursor-pointer',
         !props.tableLayout?.stripped &&
           props.tableLayout?.rowBorder &&
@@ -340,7 +343,7 @@ function DataGridTableBodyRow<TData>({
       }
       onClick={() => isRowClickable && props.onRowClick?.(row.original)}
       className={cn(
-        'hover:bg-field data-[state=selected]:bg-field',
+        dataGridRowBackgroundClasses,
         isRowClickable && 'cursor-pointer',
         !props.tableLayout?.stripped &&
           props.tableLayout?.rowBorder &&

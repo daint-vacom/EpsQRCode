@@ -4,7 +4,7 @@
 > Dùng cho **mọi danh sách quản lý có phân trang**. Bảng nhỏ không phân trang (top-5) → primitive `Table`.
 
 Diện mạo admin (header sticky nền `bg-muted`, nhãn **chữ thường** xanh lam `text-secondary-foreground`,
-cell `px-6 py-3`, row hover `bg-field`) là **default** — chỉ cần `<DataGrid>`, không truyền
+cell `px-6 py-3`, row hover `bg-field`, selected row nền `bg-background`) là **default** — chỉ cần `<DataGrid>`, không truyền
 `tableLayout`/`tableClassNames` để dựng lại. Đổi look chung = sửa `data-grid-table.tsx` / token.
 
 ---
@@ -13,15 +13,23 @@ cell `px-6 py-3`, row hover `bg-field`) là **default** — chỉ cần `<DataGr
 
 ```tsx
 import { useMemo, useState } from 'react';
-import { type PaginationState, getCoreRowModel, getPaginationRowModel, useReactTable } from '@tanstack/react-table';
-import { DataGrid } from '@/components/ui/data-grid';
-import { DataGridTable } from '@/components/ui/data-grid-table';
-import { DataGridPagination } from '@/components/ui/data-grid-pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  getCoreRowModel,
+  getPaginationRowModel,
+  useReactTable,
+  type PaginationState,
+} from '@tanstack/react-table';
 import { Card, CardFooter, CardTable } from '@/components/ui/card';
+import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridPagination } from '@/components/ui/data-grid-pagination';
+import { DataGridTable } from '@/components/ui/data-grid-table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
-const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
-const columns = useEmployeeColumns();   // xem mục 2
+const [pagination, setPagination] = useState<PaginationState>({
+  pageIndex: 0,
+  pageSize: 10,
+});
+const columns = useEmployeeColumns(); // xem mục 2
 
 const table = useReactTable({
   columns,
@@ -43,7 +51,7 @@ return (
         </ScrollArea>
       </CardTable>
       <CardFooter className="justify-between">
-        <DataGridPagination />   {/* default tiếng Việt — xem mục 3 */}
+        <DataGridPagination /> {/* default tiếng Việt — xem mục 3 */}
       </CardFooter>
     </Card>
   </DataGrid>
@@ -59,11 +67,22 @@ nhất quán, tự nối `lib/date` + `lib/format`. Import từ `@/components/ui
 
 ```tsx
 import { useMemo } from 'react';
-import { createColumnHelpers, type StatusBadgeConfig } from '@/components/ui/data-grid-columns';
+import {
+  createColumnHelpers,
+  type StatusBadgeConfig,
+} from '@/components/ui/data-grid-columns';
 
 const statusConfig: StatusBadgeConfig<EmployeeStatus> = {
-  active: { label: 'Hoạt động', className: 'bg-admin-success-bg text-admin-success-text', dotClassName: 'bg-admin-success-dot' },
-  locked: { label: 'Đã khóa', variant: 'outline', dotClassName: 'bg-admin-neutral-400' },
+  active: {
+    label: 'Hoạt động',
+    className: 'bg-admin-success-bg text-admin-success-text',
+    dotClassName: 'bg-admin-success-dot',
+  },
+  locked: {
+    label: 'Đã khóa',
+    variant: 'outline',
+    dotClassName: 'bg-admin-neutral-400',
+  },
 };
 
 export function useEmployeeColumns() {
@@ -71,10 +90,25 @@ export function useEmployeeColumns() {
     const col = createColumnHelpers<Employee>();
     return [
       col.index(),
-      col.text({ id: 'name', header: 'Họ tên', get: (r) => r.name, tooltipOnTruncate: true }),
+      col.text({
+        id: 'name',
+        header: 'Họ tên',
+        get: (r) => r.name,
+        tooltipOnTruncate: true,
+      }),
       col.currency({ id: 'salary', header: 'Lương', get: (r) => r.salary }),
-      col.date({ id: 'createdAt', header: 'Ngày tạo', get: (r) => r.createdAt, mode: 'relative' }),
-      col.badge({ id: 'status', header: 'Trạng thái', get: (r) => r.status, config: statusConfig }),
+      col.date({
+        id: 'createdAt',
+        header: 'Ngày tạo',
+        get: (r) => r.createdAt,
+        mode: 'relative',
+      }),
+      col.badge({
+        id: 'status',
+        header: 'Trạng thái',
+        get: (r) => r.status,
+        config: statusConfig,
+      }),
       col.actions({ header: 'Thao tác', cell: (r) => <RowActions row={r} /> }),
     ];
   }, []);
@@ -83,18 +117,18 @@ export function useEmployeeColumns() {
 
 Builder (đều trả `ColumnDef<TRow>`, accessor `get: (row) => value`):
 
-| Builder | Dùng cho |
-|---|---|
-| `text({ get, tooltipOnTruncate? })` | chuỗi, truncate + tooltip tùy chọn |
-| `number({ get, options? })` | số, căn phải, qua `formatNumber` |
-| `currency({ get })` | tiền VND qua `formatCurrencyVND` |
-| `percent({ get, fractionDigits? })` | % (input là tỉ lệ, `0.125` → `12,5%`) |
-| `date({ get, mode? })` | `'date' \| 'datetime' \| 'relative'` qua `lib/date` |
-| `badge({ get, config })` | `StatusBadge` theo `StatusBadgeConfig` |
-| `index()` | số thứ tự 1-based (theo trang) |
-| `select()` | checkbox chọn dòng |
-| `actions({ cell })` | cột thao tác (cell căn phải, padding ngang compact) |
-| `custom({ cell })` | cell tùy biến (escape hatch) |
+| Builder                             | Dùng cho                                            |
+| ----------------------------------- | --------------------------------------------------- |
+| `text({ get, tooltipOnTruncate? })` | chuỗi, truncate + tooltip tùy chọn                  |
+| `number({ get, options? })`         | số, căn phải, qua `formatNumber`                    |
+| `currency({ get })`                 | tiền VND qua `formatCurrencyVND`                    |
+| `percent({ get, fractionDigits? })` | % (input là tỉ lệ, `0.125` → `12,5%`)               |
+| `date({ get, mode? })`              | `'date' \| 'datetime' \| 'relative'` qua `lib/date` |
+| `badge({ get, config })`            | `StatusBadge` theo `StatusBadgeConfig`              |
+| `index()`                           | số thứ tự 1-based (theo trang)                      |
+| `select()`                          | checkbox chọn dòng                                  |
+| `actions({ cell })`                 | cột thao tác (cell căn phải, padding ngang compact) |
+| `custom({ cell })`                  | cell tùy biến (escape hatch)                        |
 
 Cột `actions` tự dùng padding ngang `px-2.5` ở mọi mật độ bảng. Khi kết hợp với
 `getDataGridActionsColumnSize(actionCount)`, chiều rộng sẽ khớp nút icon 28px, khoảng cách 4px

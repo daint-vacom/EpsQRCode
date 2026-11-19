@@ -18,9 +18,11 @@ import { loadSpreadsheetTemplate } from '@/project/spreadsheets/api/spreadsheet-
 import { useSpreadsheetTemplatesQuery } from '@/project/spreadsheets/hooks/use-spreadsheet-templates';
 import {
   getCoreRowModel,
+  getExpandedRowModel,
   getPaginationRowModel,
   useReactTable,
   type PaginationState,
+  type RowSelectionState,
 } from '@tanstack/react-table';
 import {
   AlertCircle,
@@ -63,6 +65,7 @@ import {
   StepperTitle,
   StepperTrigger,
 } from '@/components/ui/stepper';
+import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
   TooltipContent,
@@ -76,6 +79,7 @@ import {
   findMaterialImportMapping,
   getMaterialImportCodes,
   getMissingMaterialImportFields,
+  groupMaterialImportPreviewRows,
   isMaterialImportExampleRow,
   mapMaterialSpreadsheetRows,
   readMaterialImportLinkedCodes,
@@ -88,13 +92,17 @@ import {
   type MaterialImportOutcome,
 } from '../spreadsheet/material-spreadsheet-import-report';
 import { prepareMaterialImportTemplate } from '../spreadsheet/material-spreadsheet-template';
-import { useMaterialSpreadsheetImportPreviewRowColumns } from '../table/material-spreadsheet-import-preview.columns.generated';
+import {
+  MATERIAL_SPREADSHEET_IMPORT_PREVIEW_ROW_COLUMN_PINNING,
+  useMaterialSpreadsheetImportPreviewRowColumns,
+} from '../table/material-spreadsheet-import-preview.columns.generated';
 
 type ImportMode = 'existing' | 'create';
 
 interface MaterialSpreadsheetImportPanelProps {
   open: boolean;
   onFooterChange: (footer: ReactNode | null) => void;
+  onStepChange: (step: number) => void;
   fields: SpreadsheetField<Material>[];
   models: MaterialModel[];
   custodians: Custodian[];
@@ -117,6 +125,7 @@ const EMPTY_SOURCES: MaterialSpreadsheetSource[] = [];
 export function MaterialSpreadsheetImportPanel({
   open,
   onFooterChange,
+  onStepChange,
   fields,
   models,
   custodians,
@@ -167,6 +176,8 @@ export function MaterialSpreadsheetImportPanel({
     pageIndex: 0,
     pageSize: 20,
   });
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [groupingEnabled, setGroupingEnabled] = useState(false);
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ??
     templates[0] ??
@@ -204,6 +215,7 @@ export function MaterialSpreadsheetImportPanel({
     setReportDownloading(null);
     setReportError('');
     setPagination({ pageIndex: 0, pageSize: 20 });
+    setGroupingEnabled(false);
   }, [open]);
 
   const sourceRows = useMemo(
@@ -251,14 +263,13 @@ export function MaterialSpreadsheetImportPanel({
       mappedRows,
       models,
       modelProposals,
-      translate,
     );
     return rows.map((row) => ({
       ...row,
       name: row.name || row.modelName,
       ownerName: row.ownerName || row.ownerCode,
     }));
-  }, [mappedRows, modelProposals, models, translate]);
+  }, [mappedRows, modelProposals, models]);
   const rowErrors = mappedRows.filter((row) => Boolean(row.error));
   const globalErrors = useMemo(
     () =>
@@ -290,6 +301,7 @@ export function MaterialSpreadsheetImportPanel({
         description: '',
         serialNumber: '',
         condition: '',
+        materialGroupKey: `invalid:${error.id}`,
         specifications: '',
         ownerCode: '',
         ownerName: '',
@@ -300,25 +312,67 @@ export function MaterialSpreadsheetImportPanel({
     ],
     [globalErrors, previewRows],
   );
+  const groupedPreviewRows = useMemo(
+    () =>
+      groupingEnabled ? groupMaterialImportPreviewRows(previewTableRows) : [],
+    [groupingEnabled, previewTableRows],
+  );
+  const tableRows = groupingEnabled ? groupedPreviewRows : previewTableRows;
   const previewColumns = useMaterialSpreadsheetImportPreviewRowColumns(
     sources.length > 1,
   );
   const previewTable = useReactTable({
-    data: previewTableRows,
+    data: tableRows,
     columns: previewColumns,
-    state: { pagination },
+    getRowId: (row) => row.id,
+    getSubRows: (row) => row.subRows,
+    enableRowSelection: (row) =>
+      row.original.groupSummary
+        ? row.original.groupSummary.validRowCount > 0
+        : row.original.isValid,
+    state: {
+      pagination,
+      rowSelection,
+      columnPinning: MATERIAL_SPREADSHEET_IMPORT_PREVIEW_ROW_COLUMN_PINNING,
+    },
     onPaginationChange: setPagination,
+    onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
+  useEffect(() => {
+    setRowSelection((current) => {
+      const next: RowSelectionState = {};
+      let unchanged = true;
+      for (const row of mappedRows) {
+        if (row.values !== null && !row.error) {
+          const selected = current[row.id] ?? true;
+          next[row.id] = selected;
+          if (current[row.id] !== selected) unchanged = false;
+        }
+      }
+      if (Object.keys(current).length !== Object.keys(next).length) {
+        unchanged = false;
+      }
+      return unchanged ? current : next;
+    });
+  }, [mappedRows]);
+  useEffect(() => onStepChange(step), [onStepChange, step]);
   const validRowCount = mappedRows.filter(
     (row) => row.values !== null && !row.error,
   ).length;
-  const requestedMaterialCount = mappedRows.reduce(
-    (total, row) => total + row.quantity,
-    0,
+  const invalidRowCount = validationErrorCount;
+  const selectedRows = mappedRows.filter(
+    (row) => rowSelection[row.id] === true,
   );
-  const validMaterialCount = mappedRows.reduce(
+  const selectedModelCodes = new Set(
+    selectedRows.map((row) => normalizeModelCode(row.modelCode)),
+  );
+  const selectedModelProposals = modelProposals.filter((proposal) =>
+    selectedModelCodes.has(normalizeModelCode(proposal.code)),
+  );
+  const selectedMaterialCount = selectedRows.reduce(
     (total, row) =>
       row.values !== null && !row.error ? total + row.quantity : total,
     0,
@@ -328,18 +382,13 @@ export function MaterialSpreadsheetImportPanel({
     : [];
   const canCreateAllModels =
     canManageModels &&
-    modelProposals.length > 0 &&
-    modelProposals.every(
+    selectedModelProposals.length > 0 &&
+    selectedModelProposals.every(
       (proposal) => Boolean(proposal.formValues) && !proposal.error,
     );
   const importFailureCount =
     outcomes?.reduce(
       (total, outcome) => total + outcome.quantity - outcome.createdCount,
-      0,
-    ) ?? 0;
-  const importSuccessCount =
-    outcomes?.reduce(
-      (total, outcome) => total + (outcome.createdCount ?? 0),
       0,
     ) ?? 0;
   const importPercent =
@@ -511,13 +560,13 @@ export function MaterialSpreadsheetImportPanel({
   };
 
   const handleImport = async () => {
-    if (mappedRows.length === 0 || importing || outcomes) return;
+    if (selectedRows.length === 0 || importing || outcomes) return;
     setStep(3);
     setHighestStep(3);
     setImporting(true);
     setReportError('');
     const outcomeById = new Map<string, MaterialImportOutcome>();
-    const invalidRows = mappedRows.filter(
+    const invalidRows = selectedRows.filter(
       (row) => row.values === null || Boolean(row.error),
     );
     for (const row of invalidRows) {
@@ -534,7 +583,10 @@ export function MaterialSpreadsheetImportPanel({
           translate('project.materials.spreadsheet.errors.formInvalid'),
       });
     }
-    const totalItemCount = requestedMaterialCount;
+    const totalItemCount = selectedRows.reduce(
+      (total, row) => total + row.quantity,
+      0,
+    );
     let completedCount = invalidRows.reduce(
       (total, row) => total + row.quantity,
       0,
@@ -545,7 +597,16 @@ export function MaterialSpreadsheetImportPanel({
     try {
       if (importMode === 'create') {
         const proposalsToCreate = modelProposals.filter(
-          (proposal) => proposal.formValues && !proposal.error,
+          (proposal) =>
+            proposal.formValues &&
+            !proposal.error &&
+            selectedRows.some(
+              (row) =>
+                row.values !== null &&
+                !row.error &&
+                normalizeModelCode(row.modelCode) ===
+                  normalizeModelCode(proposal.code),
+            ),
         );
         for (let start = 0; start < proposalsToCreate.length; start += 100) {
           const batch = proposalsToCreate.slice(start, start + 100);
@@ -570,7 +631,7 @@ export function MaterialSpreadsheetImportPanel({
                 translate(
                   'project.materials.spreadsheet.errors.modelCreateFailed',
                 );
-              for (const row of mappedRows) {
+              for (const row of selectedRows) {
                 if (
                   normalizeModelCode(row.modelCode) !==
                     normalizeModelCode(proposal.code) ||
@@ -594,7 +655,7 @@ export function MaterialSpreadsheetImportPanel({
           } catch (error) {
             const message = getErrorText(error, translate);
             for (const proposal of batch) {
-              for (const row of mappedRows) {
+              for (const row of selectedRows) {
                 if (
                   normalizeModelCode(row.modelCode) !==
                     normalizeModelCode(proposal.code) ||
@@ -627,7 +688,7 @@ export function MaterialSpreadsheetImportPanel({
         string,
         { id: string; linkedCodes: MaterialModel['linkedCodes'] }
       >();
-      for (const row of mappedRows) {
+      for (const row of selectedRows) {
         if (
           row.values === null ||
           row.error ||
@@ -660,7 +721,7 @@ export function MaterialSpreadsheetImportPanel({
           await updateModelLinkedCodesMutation.mutateAsync(update);
         } catch (error) {
           const message = getErrorText(error, translate);
-          for (const row of mappedRows) {
+          for (const row of selectedRows) {
             if (
               normalizeModelCode(row.modelCode) !== modelCode ||
               row.values === null ||
@@ -683,7 +744,7 @@ export function MaterialSpreadsheetImportPanel({
         }
       }
 
-      const importableRows = mappedRows.filter(
+      const importableRows = selectedRows.filter(
         (row) => row.values !== null && !row.error && !outcomeById.has(row.id),
       );
       const rowsWithResolvedModelIds = importableRows.flatMap((row) => {
@@ -792,7 +853,7 @@ export function MaterialSpreadsheetImportPanel({
         });
       }
 
-      const finalOutcomes = mappedRows.map(
+      const finalOutcomes = selectedRows.map(
         (row) =>
           outcomeById.get(row.id) ?? {
             id: row.id,
@@ -814,7 +875,7 @@ export function MaterialSpreadsheetImportPanel({
       });
     } catch (error) {
       const message = getErrorText(error, translate);
-      const finalOutcomes = mappedRows.map(
+      const finalOutcomes = selectedRows.map(
         (row) =>
           outcomeById.get(row.id) ?? {
             id: row.id,
@@ -862,11 +923,10 @@ export function MaterialSpreadsheetImportPanel({
     setStep(nextStep);
   };
 
-  const progressColor = outcomes
-    ? importFailureCount > 0
+  const progressColor =
+    importFailureCount > 0
       ? 'bg-destructive'
-      : 'bg-success'
-    : undefined;
+      : 'bg-[var(--color-success-accent,var(--color-green-600))]';
 
   const footerActionsRef = useRef<{
     goToStep: (nextStep: number) => void;
@@ -920,9 +980,12 @@ export function MaterialSpreadsheetImportPanel({
             size="md"
             disabled={
               previewRows.length === 0 ||
+              selectedMaterialCount === 0 ||
               importing ||
               outcomes !== null ||
-              (importMode === 'create' && !canCreateAllModels)
+              (importMode === 'create' &&
+                selectedModelProposals.length > 0 &&
+                !canCreateAllModels)
             }
             loading={importing}
             loadingText={translate('project.materials.spreadsheet.importing')}
@@ -930,7 +993,7 @@ export function MaterialSpreadsheetImportPanel({
           >
             <Upload />
             {translate('project.materials.spreadsheet.importNowWithCount', {
-              count: String(validMaterialCount),
+              count: String(selectedMaterialCount),
             })}
           </Button>
         </>
@@ -986,7 +1049,8 @@ export function MaterialSpreadsheetImportPanel({
     sources.length,
     step,
     translate,
-    validMaterialCount,
+    selectedMaterialCount,
+    selectedModelProposals.length,
   ]);
 
   useEffect(() => {
@@ -996,9 +1060,15 @@ export function MaterialSpreadsheetImportPanel({
   useEffect(() => () => onFooterChange(null), [onFooterChange]);
 
   return (
-    <div className="space-y-5">
-      <Stepper value={step} onValueChange={goToStep} className="space-y-4">
-        <StepperNav className="gap-2">
+    <div className={step === 2 ? 'flex h-full min-h-0 flex-col' : 'space-y-5'}>
+      <Stepper
+        value={step}
+        onValueChange={goToStep}
+        className={
+          step === 2 ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-4'
+        }
+      >
+        <StepperNav className="shrink-0 gap-2">
           {[1, 2, 3].map((stepNumber) => (
             <StepperItem
               key={stepNumber}
@@ -1243,58 +1313,96 @@ export function MaterialSpreadsheetImportPanel({
           ) : null}
         </StepperContent>
 
-        <StepperContent value={2} className="space-y-4">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="font-medium">
-              {translate('project.materials.spreadsheet.previewCount', {
-                count: String(previewRows.length),
-              })}
-            </span>
-            <span className="text-success">
-              {translate('project.materials.spreadsheet.validCount', {
-                count: String(validRowCount),
-              })}
-            </span>
-            <span>
-              {translate('project.materials.spreadsheet.quantitySummary', {
-                count: String(validMaterialCount),
-              })}
-            </span>
-            {validationErrorCount > 0 ? (
-              <span className="text-destructive">
-                {translate('project.materials.spreadsheet.errorCount', {
-                  count: String(validationErrorCount),
+        <StepperContent
+          value={2}
+          className={
+            step === 2 ? 'flex min-h-0 flex-1 flex-col gap-3' : 'space-y-4'
+          }
+        >
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span className="font-medium">
+                {translate('project.materials.spreadsheet.previewCount', {
+                  count: String(previewRows.length),
                 })}
               </span>
-            ) : null}
-          </div>
-
-          <DataGrid
-            table={previewTable}
-            recordCount={previewTableRows.length}
-            emptyMessage={translate('project.materials.spreadsheet.noRows')}
-            tableLayout={{
-              dense: true,
-              cellBorder: true,
-              rowBorder: true,
-              width: 'fixed',
-            }}
-          >
-            <div className="max-h-[22rem] overflow-auto rounded-md border border-border">
-              <DataGridTable />
+              <span className="text-[var(--color-success-accent,var(--color-green-600))]">
+                {translate('project.materials.spreadsheet.validCount', {
+                  count: String(validRowCount),
+                })}
+              </span>
+              <span className="text-destructive">
+                {translate('project.materials.spreadsheet.errorCount', {
+                  count: String(invalidRowCount),
+                })}
+              </span>
             </div>
-            {previewTableRows.length > 0 ? (
-              <DataGridPagination
-                sizes={[10, 20, 50]}
-                sizesDescription={translate(
-                  'project.materials.spreadsheet.row',
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <Switch
+                checked={groupingEnabled}
+                onCheckedChange={(checked) => {
+                  setGroupingEnabled(checked);
+                  if (!checked) {
+                    setRowSelection((current) => {
+                      const next: RowSelectionState = {};
+                      for (const row of mappedRows) {
+                        if (
+                          row.values !== null &&
+                          !row.error &&
+                          current[row.id]
+                        ) {
+                          next[row.id] = true;
+                        }
+                      }
+                      return next;
+                    });
+                  }
+                  setPagination((current) => ({ ...current, pageIndex: 0 }));
+                }}
+                aria-label={translate(
+                  'project.materials.spreadsheet.groupByModelToggle',
                 )}
               />
-            ) : null}
-          </DataGrid>
+              <span>
+                {translate('project.materials.spreadsheet.groupByModelToggle')}
+              </span>
+            </label>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col">
+            <DataGrid
+              table={previewTable}
+              recordCount={tableRows.length}
+              emptyMessage={translate('project.materials.spreadsheet.noRows')}
+              tableLayout={{
+                dense: true,
+                cellBorder: true,
+                rowBorder: true,
+                width: 'fixed',
+              }}
+              tableClassNames={{
+                bodyRow: '[&>td]:py-1',
+              }}
+            >
+              <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
+                <DataGridTable />
+              </div>
+              {tableRows.length > 0 ? (
+                <DataGridPagination
+                  sizes={[10, 20, 50]}
+                  className="mt-2 shrink-0 grow-0"
+                  sizesDescription={translate(
+                    groupingEnabled
+                      ? 'project.materials.grouping.groups'
+                      : 'project.materials.spreadsheet.row',
+                  )}
+                />
+              ) : null}
+            </DataGrid>
+          </div>
 
           {modelProposals.length > 0 ? (
-            <section className="space-y-3 rounded-md border border-admin-blue-border bg-admin-blue-light/30 p-3">
+            <section className="shrink-0 space-y-3 rounded-md border border-admin-blue-border bg-admin-blue-light/30 p-3">
               <div className="space-y-1">
                 <h3 className="text-sm font-medium">
                   {translate(
@@ -1324,13 +1432,16 @@ export function MaterialSpreadsheetImportPanel({
                   <RadioGroupItem
                     value="create"
                     className="mt-0.5"
-                    disabled={!canCreateAllModels}
+                    disabled={
+                      !canManageModels ||
+                      (selectedModelProposals.length > 0 && !canCreateAllModels)
+                    }
                   />
                   <span>
                     {translate(
                       'project.materials.spreadsheet.importAndCreateModels',
                       {
-                        count: String(modelProposals.length),
+                        count: String(selectedModelProposals.length),
                       },
                     )}
                   </span>
@@ -1399,12 +1510,7 @@ export function MaterialSpreadsheetImportPanel({
               processed: String(importProgress.processed),
               total: String(importProgress.total),
             })}
-            count={
-              importStage ||
-              (outcomes
-                ? translate('project.materials.spreadsheet.importCompleted')
-                : translate('project.materials.spreadsheet.importing'))
-            }
+            count={importStage}
             value={importPercent}
             loading={importing}
             indicatorClassName={progressColor}
@@ -1415,15 +1521,6 @@ export function MaterialSpreadsheetImportPanel({
               className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
               role="status"
             >
-              <span className="inline-flex items-center gap-1.5 text-success">
-                <CheckCircle2 className="size-4" />
-                {translate(
-                  'project.materials.spreadsheet.createdMaterialsCount',
-                  {
-                    count: String(importSuccessCount),
-                  },
-                )}
-              </span>
               {importFailureCount > 0 ? (
                 <span className="inline-flex items-center gap-1.5 text-destructive">
                   <AlertCircle className="size-4" />
@@ -1511,7 +1608,7 @@ function ProgressBlock({
           indicatorClassName ?? (complete ? 'bg-success' : undefined)
         }
       />
-      <p className="text-xs text-muted-foreground">{count}</p>
+      {count ? <p className="text-xs text-muted-foreground">{count}</p> : null}
     </div>
   );
 }

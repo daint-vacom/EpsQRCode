@@ -300,6 +300,52 @@ export const DEFAULT_MATERIAL_GROUPING_CONFIG: MaterialGroupingConfig = {
   owner: true,
   condition: false,
 };
+export const MATERIAL_IMPORT_GROUPING_CONFIG: MaterialGroupingConfig = {
+  owner: false,
+  condition: false,
+};
+
+export interface MaterialGroupingValue {
+  id: string;
+  modelCode: string;
+  ownerCode?: string | null;
+  ownerName?: string | null;
+  condition?: string | null;
+}
+
+/** Builds a stable grouping identity from the shared material grouping config. */
+export function getMaterialGroupingKey(
+  material: MaterialGroupingValue,
+  config: MaterialGroupingConfig = DEFAULT_MATERIAL_GROUPING_CONFIG,
+): string {
+  const normalize = (value?: string | null) =>
+    value?.trim().toLocaleLowerCase('vi-VN') ?? '';
+
+  return JSON.stringify([
+    normalize(material.modelCode) || `missing-model:${material.id}`,
+    config.owner
+      ? normalize(material.ownerCode) || normalize(material.ownerName)
+      : null,
+    config.condition ? normalize(material.condition) : null,
+  ]);
+}
+
+export function getMaterialGroupingCommonValue(
+  values: Array<string | null | undefined>,
+): string {
+  const completeValues = values
+    .map((value) => value?.trim() ?? '')
+    .filter(Boolean);
+  if (completeValues.length === 0) return '';
+
+  const distinctValues = new Set(
+    completeValues.map((value) => value.toLocaleLowerCase('vi-VN')),
+  );
+  if (distinctValues.size > 1 || completeValues.length !== values.length) {
+    return '…';
+  }
+  return completeValues[0];
+}
 
 export interface MaterialGroupedRow {
   groupKey: string;

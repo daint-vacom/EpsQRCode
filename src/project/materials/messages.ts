@@ -123,8 +123,6 @@ export const materialMessagesVi: Record<string, string> = {
     'Điền số lượng là số nguyên từ 1 trở lên. Khi có nhiều vật tư cùng mẫu và cùng thông tin, nhập một dòng rồi điền số lượng thay vì lặp lại dòng. Để trống thì phần mềm hiểu là 1.',
   'project.materials.spreadsheet.importGuide.codes':
     'Có thể để trống mã vật tư để phần mềm tự sinh theo mã mẫu và bộ đếm, ví dụ MÃ-MẪU-001, MÃ-MẪU-002… Nếu nhập mã gốc, mã phải duy nhất; với số lượng lớn hơn 1, phần mềm tạo lần lượt MÃ-GỐC-001, MÃ-GỐC-002…',
-  'project.materials.spreadsheet.generatedCodeExample':
-    'Tự sinh theo mã mẫu: {modelCode}-001, {modelCode}-002…',
   'project.materials.spreadsheet.importGuide.serial':
     'Mỗi vật tư có số sê-ri riêng nên đặt số lượng bằng 1 cho dòng có số sê-ri. Các trường mẫu, chủ sở hữu và thông tin vật tư khác vẫn nhập theo từng dòng.',
   'project.materials.spreadsheet.importGuide.example':
@@ -160,10 +158,10 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.downloadAllResults': 'Tải file kết quả',
   'project.materials.spreadsheet.downloadErrorResults': 'Tải file kết quả lỗi',
   'project.materials.spreadsheet.importProgress':
-    'Đã xử lý {processed}/{total} vật tư',
-  'project.materials.spreadsheet.importCompleted': 'Đã hoàn tất nhập vật tư.',
+    'Đã nhập {processed}/{total} vật tư',
   'project.materials.spreadsheet.reviewErrors': 'Lỗi dữ liệu',
   'project.materials.spreadsheet.previewFile': 'Tệp Excel',
+  'project.materials.spreadsheet.groupByModelToggle': 'Gom theo mẫu vật tư',
   'project.materials.spreadsheet.previewModelName': 'Tên mẫu',
   'project.materials.spreadsheet.previewMaterialName': 'Tên vật tư',
   'project.materials.spreadsheet.previewSpecifications': 'Thông số kỹ thuật',
@@ -212,14 +210,10 @@ export const materialMessagesVi: Record<string, string> = {
     'Hãy ánh xạ đủ Mã vật tư, Mã mẫu vật tư và Tên chủ sở hữu.',
   'project.materials.spreadsheet.preview': 'Xem trước dữ liệu',
   'project.materials.spreadsheet.previewCount': '{count} dòng dữ liệu',
-  'project.materials.spreadsheet.validCount': '{count} dòng hợp lệ',
-  'project.materials.spreadsheet.quantitySummary':
-    'Số vật tư QR hợp lệ sẽ tạo: {count}',
-  'project.materials.spreadsheet.createdMaterialsCount':
-    'Đã tạo {count} vật tư QR',
+  'project.materials.spreadsheet.validCount': 'Hợp lệ: {count}',
   'project.materials.spreadsheet.failedMaterialsCount':
     '{count} vật tư QR chưa tạo được',
-  'project.materials.spreadsheet.errorCount': '{count} dòng cần sửa',
+  'project.materials.spreadsheet.errorCount': 'Không hợp lệ: {count}',
   'project.materials.spreadsheet.row': 'Dòng',
   'project.materials.spreadsheet.result': 'Kết quả',
   'project.materials.spreadsheet.importNow': 'Nhập',
@@ -944,8 +938,6 @@ export const materialMessagesEn: Record<string, string> = {
     'Enter a whole number of 1 or more. If several materials share the same model and details, enter one row and set its quantity instead of repeating the row. A blank quantity is treated as 1.',
   'project.materials.spreadsheet.importGuide.codes':
     'Leave the material code blank to generate it from the model code and a counter, for example MODEL-CODE-001, MODEL-CODE-002… If you enter a base code, it must be unique; for quantity greater than 1, the app generates BASE-CODE-001, BASE-CODE-002…',
-  'project.materials.spreadsheet.generatedCodeExample':
-    'Generated from model code: {modelCode}-001, {modelCode}-002…',
   'project.materials.spreadsheet.importGuide.serial':
     'Each material has its own serial number, so set quantity to 1 on rows with a serial number. Enter the model, owner, and other material details once per row.',
   'project.materials.spreadsheet.importGuide.example':
@@ -981,11 +973,10 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.downloadAllResults': 'Download result file',
   'project.materials.spreadsheet.downloadErrorResults': 'Download error file',
   'project.materials.spreadsheet.importProgress':
-    'Processed {processed}/{total} materials',
-  'project.materials.spreadsheet.importCompleted':
-    'Material import is complete.',
+    'Imported {processed}/{total} materials',
   'project.materials.spreadsheet.reviewErrors': 'Data errors',
   'project.materials.spreadsheet.previewFile': 'Excel file',
+  'project.materials.spreadsheet.groupByModelToggle': 'Group by material model',
   'project.materials.spreadsheet.previewModelName': 'Model name',
   'project.materials.spreadsheet.previewMaterialName': 'Material name',
   'project.materials.spreadsheet.previewSpecifications': 'Specifications',
@@ -1034,14 +1025,10 @@ export const materialMessagesEn: Record<string, string> = {
     'Map Material code, Material model code, and Owner name before continuing.',
   'project.materials.spreadsheet.preview': 'Data preview',
   'project.materials.spreadsheet.previewCount': '{count} data rows',
-  'project.materials.spreadsheet.validCount': '{count} valid rows',
-  'project.materials.spreadsheet.quantitySummary':
-    'Valid QR materials to create: {count}',
-  'project.materials.spreadsheet.createdMaterialsCount':
-    'Created {count} QR materials',
+  'project.materials.spreadsheet.validCount': 'Valid: {count}',
   'project.materials.spreadsheet.failedMaterialsCount':
     '{count} QR materials could not be created',
-  'project.materials.spreadsheet.errorCount': '{count} rows need attention',
+  'project.materials.spreadsheet.errorCount': 'Invalid: {count}',
   'project.materials.spreadsheet.row': 'Row',
   'project.materials.spreadsheet.result': 'Result',
   'project.materials.spreadsheet.importNow': 'Import',

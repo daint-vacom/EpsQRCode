@@ -335,24 +335,66 @@ export function createColumnHelpers<TRow extends object>(
     select(): ColumnDef<TRow> {
       return {
         id: 'select',
-        header: ({ table }) => (
+        header: ({ table }) => {
+          const pageRows = table
+            .getPaginationRowModel()
+            .rows.filter((row) => row.getCanSelect());
+          const allSelected =
+            pageRows.length > 0 &&
+            pageRows.every(
+              (row) => row.getIsSelected() || row.getIsAllSubRowsSelected(),
+            );
+          const someSelected = pageRows.some(
+            (row) =>
+              row.getIsSelected() ||
+              row.getIsSomeSelected() ||
+              row.getIsAllSubRowsSelected(),
+          );
+
+          return (
+            <Checkbox
+              checked={
+                allSelected ? true : someSelected ? 'indeterminate' : false
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label="Chọn tất cả"
+              size="sm"
+            />
+          );
+        },
+        cell: ({ row, table }) => (
           <Checkbox
             checked={
-              table.getIsAllPageRowsSelected() ||
-              (table.getIsSomePageRowsSelected() && 'indeterminate')
+              row.getIsSelected() || row.getIsAllSubRowsSelected()
+                ? true
+                : row.getIsSomeSelected()
+                  ? 'indeterminate'
+                  : false
             }
-            onCheckedChange={(value) =>
-              table.toggleAllPageRowsSelected(!!value)
-            }
-            aria-label="Chọn tất cả"
-            size="sm"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
             disabled={!row.getCanSelect()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            onCheckedChange={(value) => {
+              const selected = !!value;
+              if (row.subRows.length === 0) {
+                row.toggleSelected(selected);
+                return;
+              }
+
+              table.setRowSelection((current) => {
+                const next = { ...current };
+                for (const leafRow of row.getLeafRows()) {
+                  if (!leafRow.getCanSelect()) continue;
+                  if (selected) next[leafRow.id] = true;
+                  else delete next[leafRow.id];
+                }
+                if (row.getCanSelect()) {
+                  if (selected) next[row.id] = true;
+                  else delete next[row.id];
+                }
+                return next;
+              });
+            }}
             aria-label="Chọn dòng"
             size="sm"
           />
