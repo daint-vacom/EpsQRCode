@@ -24,9 +24,10 @@ import {
 } from '@tanstack/react-table';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   Download,
-  FileSpreadsheet,
   LoaderCircle,
   Upload,
   X,
@@ -48,6 +49,7 @@ import {
   FileUploadContent,
   type FileUploadContentHandle,
 } from '@/components/ui/file-upload/file-upload-content';
+import { FileIcon } from '@/components/ui/files/file-icon';
 import { OptionSelect } from '@/components/ui/option-select';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -78,6 +80,7 @@ import {
   mapMaterialSpreadsheetRows,
   readMaterialImportLinkedCodes,
   toMaterialImportPreviewRows,
+  type MaterialSpreadsheetImportPreviewRow,
   type MaterialSpreadsheetSource,
 } from '../spreadsheet/material-spreadsheet-import';
 import {
@@ -102,11 +105,6 @@ interface MaterialSpreadsheetImportPanelProps {
   catalogsLoading: boolean;
   catalogsError: boolean;
   onRetryCatalogs: () => void;
-}
-
-interface FileReadProgress {
-  processed: number;
-  total: number;
 }
 
 interface MaterialImportProgress {
@@ -139,7 +137,7 @@ export function MaterialSpreadsheetImportPanel({
   const updateModelLinkedCodesMutation =
     useUpdateMaterialModelLinkedCodesMutation();
   const fileUploadRef = useRef<FileUploadContentHandle>(null);
-  const pendingFilesRef = useRef<File[]>([]);
+  const pendingFilesRef = useRef<MaterialSpreadsheetSource[]>([]);
   const canManageModels =
     canCreateModels && hasPermission('material_catalog:material_model:manage');
   const [step, setStep] = useState(1);
@@ -147,11 +145,6 @@ export function MaterialSpreadsheetImportPanel({
   const [importMode, setImportMode] = useState<ImportMode>('existing');
   const [sources, setSources] = useState<MaterialSpreadsheetSource[]>([]);
   const [fileReading, setFileReading] = useState(false);
-  const [fileReadProgress, setFileReadProgress] = useState<FileReadProgress>({
-    processed: 0,
-    total: 0,
-  });
-  const [fileReadStarted, setFileReadStarted] = useState(false);
   const [waitingForCatalogsCount, setWaitingForCatalogsCount] = useState(0);
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -198,8 +191,6 @@ export function MaterialSpreadsheetImportPanel({
     setImportMode('existing');
     setSources(EMPTY_SOURCES);
     setFileReading(false);
-    setFileReadProgress({ processed: 0, total: 0 });
-    setFileReadStarted(false);
     pendingFilesRef.current = [];
     setWaitingForCatalogsCount(0);
     setTemplateDownloading(false);
@@ -260,41 +251,66 @@ export function MaterialSpreadsheetImportPanel({
       mappedRows,
       models,
       modelProposals,
+      translate,
     );
     return rows.map((row) => ({
       ...row,
       name: row.name || row.modelName,
       ownerName: row.ownerName || row.ownerCode,
     }));
-  }, [mappedRows, modelProposals, models]);
-  const previewColumns = useMaterialSpreadsheetImportPreviewRowColumns();
+  }, [mappedRows, modelProposals, models, translate]);
+  const rowErrors = mappedRows.filter((row) => Boolean(row.error));
+  const globalErrors = useMemo(
+    () =>
+      sources.flatMap((source) =>
+        source.globalErrors.map((error, index) => ({
+          id: `${source.id}:global:${index}`,
+          sourceId: source.id,
+          fileName: source.file.name,
+          rowNumber: null as number | null,
+          error,
+        })),
+      ),
+    [sources],
+  );
+  const validationErrorCount = globalErrors.length + rowErrors.length;
+  const previewTableRows = useMemo<MaterialSpreadsheetImportPreviewRow[]>(
+    () => [
+      ...previewRows,
+      ...globalErrors.map((error) => ({
+        id: error.id,
+        sourceId: error.sourceId,
+        fileName: error.fileName,
+        excelRow: error.rowNumber,
+        code: '',
+        quantity: 0,
+        modelCode: '',
+        modelName: '',
+        name: '',
+        description: '',
+        serialNumber: '',
+        condition: '',
+        specifications: '',
+        ownerCode: '',
+        ownerName: '',
+        note: '',
+        isValid: false,
+        error: error.error,
+      })),
+    ],
+    [globalErrors, previewRows],
+  );
+  const previewColumns = useMaterialSpreadsheetImportPreviewRowColumns(
+    sources.length > 1,
+  );
   const previewTable = useReactTable({
-    data: previewRows,
+    data: previewTableRows,
     columns: previewColumns,
     state: { pagination },
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-
-  const rowErrors = mappedRows.filter((row) => Boolean(row.error));
-  const globalErrors = sources.flatMap((source) =>
-    source.globalErrors.map((error, index) => ({
-      id: `${source.id}:global:${index}`,
-      fileName: source.file.name,
-      rowNumber: null as number | null,
-      error,
-    })),
-  );
-  const errorRows = [
-    ...globalErrors,
-    ...rowErrors.map((row) => ({
-      id: row.id,
-      fileName: row.fileName,
-      rowNumber: row.rowNumber,
-      error: row.error ?? '',
-    })),
-  ];
   const validRowCount = mappedRows.filter(
     (row) => row.values !== null && !row.error,
   ).length;
@@ -339,48 +355,13 @@ export function MaterialSpreadsheetImportPanel({
     Boolean(outcomes?.some((outcome) => !outcome.success)) ||
     sources.some((source) => source.globalErrors.length > 0);
 
-  const handleReadFiles = useCallback(
-    async (files: File[]) => {
-      const existingFileKeys = new Set(
-        [
-          ...sources.map((source) => source.file),
-          ...pendingFilesRef.current,
-        ].map(fileKey),
-      );
-      const uniqueFiles = files.filter(
-        (file) => !existingFileKeys.has(fileKey(file)),
-      );
-      setUploadError('');
-      if (uniqueFiles.length === 0) {
-        setUploadError(
-          translate('project.materials.spreadsheet.duplicateUploadFiles'),
-        );
-        return;
-      }
-
-      if (catalogsLoading || catalogsError) {
-        pendingFilesRef.current = [...pendingFilesRef.current, ...uniqueFiles];
-        setWaitingForCatalogsCount(pendingFilesRef.current.length);
-        return;
-      }
-
+  const processFiles = useCallback(
+    async (files: MaterialSpreadsheetSource[]) => {
       setFileReading(true);
       setWaitingForCatalogsCount(0);
-      setFileReadStarted(true);
-      setFileReadProgress({ processed: 0, total: uniqueFiles.length });
-      const parsedSources: MaterialSpreadsheetSource[] = [];
-      for (const [index, file] of uniqueFiles.entries()) {
-        const source: MaterialSpreadsheetSource = {
-          id: crypto.randomUUID(),
-          file,
-          workbook: null,
-          worksheetName: null,
-          mapping: null,
-          rows: [],
-          globalErrors: [],
-        };
+      for (const source of files) {
         try {
-          const workbook = await readXlsxFile(file);
+          const workbook = await readXlsxFile(source.file);
           const mapping = findMaterialImportMapping(workbook, fields);
           source.workbook = workbook;
           source.mapping = mapping;
@@ -434,17 +415,58 @@ export function MaterialSpreadsheetImportPanel({
         } catch (error) {
           source.globalErrors.push(getErrorText(error, translate));
         }
-        parsedSources.push(source);
-        setFileReadProgress({
-          processed: index + 1,
-          total: uniqueFiles.length,
-        });
+        source.status = source.globalErrors.length > 0 ? 'error' : 'success';
+        setSources((current) =>
+          current.map((item) => (item.id === source.id ? { ...source } : item)),
+        );
       }
-
-      setSources((current) => [...current, ...parsedSources]);
       setFileReading(false);
     },
-    [catalogsError, catalogsLoading, fields, sources, translate],
+    [fields, translate],
+  );
+
+  const handleReadFiles = useCallback(
+    async (files: File[]) => {
+      const existingFileKeys = new Set(
+        [
+          ...sources.map((source) => source.file),
+          ...pendingFilesRef.current.map((source) => source.file),
+        ].map(fileKey),
+      );
+      const uniqueFiles = files.filter(
+        (file) => !existingFileKeys.has(fileKey(file)),
+      );
+      setUploadError('');
+      if (uniqueFiles.length === 0) {
+        setUploadError(
+          translate('project.materials.spreadsheet.duplicateUploadFiles'),
+        );
+        return;
+      }
+
+      const newSources: MaterialSpreadsheetSource[] = uniqueFiles.map(
+        (file) => ({
+          id: crypto.randomUUID(),
+          file,
+          status: 'reading',
+          workbook: null,
+          worksheetName: null,
+          mapping: null,
+          rows: [],
+          globalErrors: [],
+        }),
+      );
+      setSources((current) => [...current, ...newSources]);
+
+      if (catalogsLoading || catalogsError) {
+        pendingFilesRef.current = [...pendingFilesRef.current, ...newSources];
+        setWaitingForCatalogsCount(pendingFilesRef.current.length);
+        return;
+      }
+
+      await processFiles(newSources);
+    },
+    [catalogsError, catalogsLoading, processFiles, sources, translate],
   );
 
   useEffect(() => {
@@ -452,8 +474,8 @@ export function MaterialSpreadsheetImportPanel({
     if (pendingFilesRef.current.length === 0) return;
     const pendingFiles = pendingFilesRef.current;
     pendingFilesRef.current = [];
-    void handleReadFiles(pendingFiles);
-  }, [catalogsError, catalogsLoading, fileReading, handleReadFiles]);
+    void processFiles(pendingFiles);
+  }, [catalogsError, catalogsLoading, fileReading, processFiles]);
 
   const handleDownloadTemplate = async () => {
     setTemplateError('');
@@ -706,11 +728,11 @@ export function MaterialSpreadsheetImportPanel({
       );
       const resultStatsByRow = new Map<
         string,
-        { createdCount: number; error: string }
+        { createdCount: number; error: string; generatedCodes: string[] }
       >(
         rowsWithResolvedModelIds.map(({ row }) => [
           row.id,
-          { createdCount: 0, error: '' },
+          { createdCount: 0, error: '', generatedCodes: [] },
         ]),
       );
 
@@ -727,6 +749,9 @@ export function MaterialSpreadsheetImportPanel({
             if (!stats) return;
             if (result?.success) {
               stats.createdCount += 1;
+              if (!row.code && result.code) {
+                stats.generatedCodes.push(result.code);
+              }
             } else if (!stats.error) {
               stats.error =
                 result?.error ||
@@ -755,7 +780,8 @@ export function MaterialSpreadsheetImportPanel({
           id: row.id,
           sourceId: row.sourceId,
           rowNumber: row.rowNumber,
-          code: row.code,
+          code:
+            row.code || summarizeGeneratedCodes(stats?.generatedCodes ?? []),
           success,
           quantity: row.quantity,
           createdCount,
@@ -870,6 +896,7 @@ export function MaterialSpreadsheetImportPanel({
           }}
         >
           {translate('project.materials.spreadsheet.nextStep')}
+          <ArrowRight />
         </Button>
       );
     }
@@ -884,6 +911,7 @@ export function MaterialSpreadsheetImportPanel({
             disabled={importing}
             onClick={() => footerActionsRef.current.goToStep(1)}
           >
+            <ArrowLeft />
             {translate('project.materials.spreadsheet.backStep')}
           </Button>
           <Button
@@ -1098,23 +1126,6 @@ export function MaterialSpreadsheetImportPanel({
             </div>
           ) : null}
 
-          {fileReadStarted ? (
-            <ProgressBlock
-              label={translate('project.materials.spreadsheet.readingFiles')}
-              count={translate('project.materials.spreadsheet.readProgress', {
-                processed: String(fileReadProgress.processed),
-                total: String(fileReadProgress.total),
-              })}
-              value={
-                fileReadProgress.total > 0
-                  ? (fileReadProgress.processed / fileReadProgress.total) * 100
-                  : 0
-              }
-              loading={fileReading}
-              complete={!fileReading && fileReadProgress.total > 0}
-            />
-          ) : null}
-
           <FileUploadContent
             ref={fileUploadRef}
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -1122,6 +1133,13 @@ export function MaterialSpreadsheetImportPanel({
             disabled={fileReading || outcomes !== null}
             isUploading={fileReading}
             showUploadButton={false}
+            autoUpload
+            dragActiveLabel={translate(
+              'project.materials.spreadsheet.dropFilesImmediately',
+            )}
+            dragHint={translate(
+              'project.materials.spreadsheet.dropFilesImmediatelyHint',
+            )}
             onUpload={handleReadFiles}
             onUploadError={(error) =>
               setUploadError(getErrorText(error, translate))
@@ -1157,7 +1175,13 @@ export function MaterialSpreadsheetImportPanel({
                   key={source.id}
                   className="flex items-center gap-2 px-3 py-2 text-sm"
                 >
-                  <FileSpreadsheet className="size-4 shrink-0 text-success" />
+                  <FileIcon
+                    fileType={source.file.type}
+                    fileName={source.file.name}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-4 shrink-0"
+                  />
                   <span
                     className="min-w-0 flex-1 truncate"
                     title={source.file.name}
@@ -1165,24 +1189,41 @@ export function MaterialSpreadsheetImportPanel({
                     {source.file.name}
                   </span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {translate('project.materials.spreadsheet.fileRowsCount', {
-                      count: String(source.rows.length),
-                    })}
+                    {source.status === 'reading'
+                      ? translate('project.materials.spreadsheet.readingFiles')
+                      : translate(
+                          'project.materials.spreadsheet.fileRowsCount',
+                          {
+                            count: String(source.rows.length),
+                          },
+                        )}
                   </span>
-                  {source.globalErrors.length > 0 ? (
+                  {source.status === 'reading' ? (
+                    <LoaderCircle
+                      className="size-4 shrink-0 animate-spin text-primary"
+                      aria-label={translate(
+                        'project.materials.spreadsheet.readingFiles',
+                      )}
+                    />
+                  ) : source.status === 'error' ? (
                     <AlertCircle
                       className="size-4 shrink-0 text-destructive"
-                      aria-label={source.globalErrors[0]}
+                      aria-label={source.globalErrors[0] ?? ''}
                     />
                   ) : (
-                    <CheckCircle2 className="size-4 shrink-0 text-success" />
+                    <CheckCircle2
+                      className="size-4 shrink-0 text-[var(--color-success-accent,var(--color-green-600))]"
+                      aria-label={translate(
+                        'project.materials.spreadsheet.fileReadSuccess',
+                      )}
+                    />
                   )}
                   <Button
                     type="button"
                     variant="ghost"
                     mode="icon"
                     size="sm"
-                    disabled={fileReading}
+                    disabled={fileReading || waitingForCatalogsCount > 0}
                     aria-label={`${translate('project.materials.spreadsheet.removeFile')} ${source.file.name}`}
                     onClick={() =>
                       setSources((current) =>
@@ -1219,10 +1260,10 @@ export function MaterialSpreadsheetImportPanel({
                 count: String(validMaterialCount),
               })}
             </span>
-            {errorRows.length > 0 ? (
+            {validationErrorCount > 0 ? (
               <span className="text-destructive">
                 {translate('project.materials.spreadsheet.errorCount', {
-                  count: String(errorRows.length),
+                  count: String(validationErrorCount),
                 })}
               </span>
             ) : null}
@@ -1230,7 +1271,7 @@ export function MaterialSpreadsheetImportPanel({
 
           <DataGrid
             table={previewTable}
-            recordCount={previewRows.length}
+            recordCount={previewTableRows.length}
             emptyMessage={translate('project.materials.spreadsheet.noRows')}
             tableLayout={{
               dense: true,
@@ -1242,7 +1283,7 @@ export function MaterialSpreadsheetImportPanel({
             <div className="max-h-[22rem] overflow-auto rounded-md border border-border">
               <DataGridTable />
             </div>
-            {previewRows.length > 0 ? (
+            {previewTableRows.length > 0 ? (
               <DataGridPagination
                 sizes={[10, 20, 50]}
                 sizesDescription={translate(
@@ -1251,53 +1292,6 @@ export function MaterialSpreadsheetImportPanel({
               />
             ) : null}
           </DataGrid>
-
-          {errorRows.length > 0 ? (
-            <section
-              className="space-y-2"
-              aria-labelledby="material-import-errors"
-            >
-              <h3 id="material-import-errors" className="text-sm font-medium">
-                {translate('project.materials.spreadsheet.reviewErrors')}
-              </h3>
-              <div className="max-h-40 overflow-auto rounded-md border border-border">
-                <table className="w-full min-w-[38rem] text-left text-xs">
-                  <thead className="sticky top-0 z-10 bg-muted">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">
-                        {translate('project.materials.spreadsheet.previewFile')}
-                      </th>
-                      <th className="w-24 px-3 py-2 font-medium">
-                        {translate('project.materials.spreadsheet.row')}
-                      </th>
-                      <th className="px-3 py-2 font-medium">
-                        {translate('project.materials.spreadsheet.result')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {errorRows.map((error) => (
-                      <tr
-                        key={error.id}
-                        className="border-t border-border align-top"
-                      >
-                        <td
-                          className="max-w-56 truncate px-3 py-2"
-                          title={error.fileName}
-                        >
-                          {error.fileName}
-                        </td>
-                        <td className="px-3 py-2">{error.rowNumber ?? '—'}</td>
-                        <td className="px-3 py-2 text-destructive">
-                          {error.error}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ) : null}
 
           {modelProposals.length > 0 ? (
             <section className="space-y-3 rounded-md border border-admin-blue-border bg-admin-blue-light/30 p-3">
@@ -1536,6 +1530,12 @@ function ErrorMessage({ children }: { children: string }) {
 
 function fileKey(file: File) {
   return `${file.name}-${file.size}-${file.lastModified}`;
+}
+
+function summarizeGeneratedCodes(codes: string[]) {
+  if (codes.length === 0) return '';
+  if (codes.length === 1) return codes[0];
+  return `${codes[0]} … ${codes[codes.length - 1]}`;
 }
 
 function normalizeModelCode(value: string) {

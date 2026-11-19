@@ -8,6 +8,7 @@
  * bypassed builder.
  */
 import { useState, type KeyboardEvent } from 'react';
+import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import { MaterialModelSelect } from '@/project/material-models/components/material-model-select';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +52,7 @@ const conditionOptions = [
 
 export const materialDefaultValues: MaterialFormSchemaValues = {
   code: '',
+  codeMode: 'auto',
   modelId: '',
   serialNumber: '',
   linkedCodes: [],
@@ -118,6 +120,10 @@ export function MaterialForm({
   capitalSourceIdOptions,
 }: MaterialFormProps) {
   const intl = useIntl();
+  const codeMode = form.watch('codeMode');
+  const selectedModel = models.find(
+    (model) => model.id === form.watch('modelId'),
+  );
   const fields = (
     <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-12">
       {!hideCode ? (
@@ -134,10 +140,29 @@ export function MaterialForm({
                 {intl.formatMessage({
                   id: 'project.materials.fields.code',
                 })}
-                <span className="text-destructive"> *</span>
+                {codeMode === 'manual' && (
+                  <span className="text-destructive"> *</span>
+                )}
               </FormLabel>
               <FormControl>
-                <Input variant="md" {...field} readOnly={mode === 'edit'} />
+                <CodeInputField
+                  variant="md"
+                  {...field}
+                  mode={mode}
+                  codeMode={codeMode}
+                  pattern={
+                    selectedModel ? `${selectedModel.code}-001` : 'MÃ-MẪU-001'
+                  }
+                  resetKey={selectedModel?.id}
+                  showCodeModeSelector={mode === 'create'}
+                  onCodeModeChange={(nextCodeMode) => {
+                    form.setValue('codeMode', nextCodeMode, {
+                      shouldDirty: true,
+                    });
+                    form.setValue('code', '');
+                    form.clearErrors('code');
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -10,9 +10,16 @@ import { BadgeCheck, BadgeX } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNumberFormat } from '@/providers/number-format-provider';
 import { createColumnHelpers } from '@/components/ui/data-grid-columns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { MaterialSpreadsheetImportPreviewRow } from '../spreadsheet/material-spreadsheet-import';
 
-export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<MaterialSpreadsheetImportPreviewRow>[] {
+export function useMaterialSpreadsheetImportPreviewRowColumns(
+  showFileName = true,
+): ColumnDef<MaterialSpreadsheetImportPreviewRow>[] {
   const intl = useIntl();
   const { formatNumber, formatCurrency, formatPercent } = useNumberFormat();
 
@@ -24,21 +31,89 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<Mater
     });
 
     return [
-      col.text({
-        id: 'fileName',
-        header: intl.formatMessage({
-          id: 'project.materials.spreadsheet.previewFile',
-        }),
-        get: (row) => row.fileName,
-        size: 150,
-        enableSorting: false,
-      }),
-      col.text({
+      ...(showFileName
+        ? [
+            col.text({
+              id: 'fileName',
+              header: intl.formatMessage({
+                id: 'project.materials.spreadsheet.previewFile',
+              }),
+              get: (row) => row.fileName,
+              size: 150,
+              enableSorting: false,
+            }),
+          ]
+        : []),
+      col.custom({
         id: 'excelRow',
         header: intl.formatMessage({ id: 'project.materials.spreadsheet.row' }),
-        get: (row) => row.excelRow,
-        size: 88,
+        size: 105,
         enableSorting: false,
+        cell: (row) => (
+          <div className="inline-flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-flex cursor-help"
+                  tabIndex={0}
+                  aria-label={
+                    row.isValid
+                      ? intl.formatMessage({
+                          id: 'project.materials.spreadsheet.validLabel',
+                        })
+                      : row.error ||
+                        intl.formatMessage({
+                          id: 'project.materials.spreadsheet.invalidLabel',
+                        })
+                  }
+                >
+                  {row.isValid ? (
+                    <BadgeCheck className="size-4 text-[var(--color-success-accent,var(--color-green-600))]" />
+                  ) : (
+                    <BadgeX className="size-4 text-destructive" />
+                  )}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {row.isValid
+                  ? intl.formatMessage({
+                      id: 'project.materials.spreadsheet.validLabel',
+                    })
+                  : row.error ||
+                    intl.formatMessage({
+                      id: 'project.materials.spreadsheet.invalidLabel',
+                    })}
+              </TooltipContent>
+            </Tooltip>
+            <span>{row.excelRow ?? '—'}</span>
+          </div>
+        ),
+      }),
+      col.custom({
+        id: 'validation',
+        header: intl.formatMessage({
+          id: 'project.materials.spreadsheet.validation',
+        }),
+        size: 260,
+        enableSorting: false,
+        cell: (row) => (
+          <span
+            className={
+              row.isValid
+                ? 'text-[var(--color-success-accent,var(--color-green-600))]'
+                : 'text-destructive'
+            }
+          >
+            {row.isValid
+              ? intl.formatMessage({
+                  id: 'project.materials.spreadsheet.validLabel',
+                })
+              : row.error ||
+                intl.formatMessage({
+                  id: 'project.materials.spreadsheet.invalidLabel',
+                })}
+          </span>
+        ),
       }),
       col.text({
         id: 'code',
@@ -148,37 +223,6 @@ export function useMaterialSpreadsheetImportPreviewRowColumns(): ColumnDef<Mater
         size: 180,
         enableSorting: false,
       }),
-      col.custom({
-        id: 'validation',
-        header: intl.formatMessage({
-          id: 'project.materials.spreadsheet.validation',
-        }),
-        size: 135,
-        enableSorting: false,
-        cell: (row) => (
-          <span
-            className={
-              row.isValid
-                ? 'inline-flex items-center gap-1.5 text-success'
-                : 'inline-flex items-center gap-1.5 text-destructive'
-            }
-            title={row.error || undefined}
-          >
-            {row.isValid ? (
-              <BadgeCheck className="size-4 shrink-0" />
-            ) : (
-              <BadgeX className="size-4 shrink-0" />
-            )}
-            <span>
-              {intl.formatMessage({
-                id: row.isValid
-                  ? 'project.materials.spreadsheet.validLabel'
-                  : 'project.materials.spreadsheet.invalidLabel',
-              })}
-            </span>
-          </span>
-        ),
-      }),
     ];
-  }, [formatCurrency, formatNumber, formatPercent, intl]);
+  }, [formatCurrency, formatNumber, formatPercent, intl, showFileName]);
 }

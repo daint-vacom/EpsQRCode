@@ -8,7 +8,8 @@ const ownerSnapshotString = () =>
 
 export const materialFormSchema = z
   .object({
-    code: z.string().trim().min(1, 'Vui lòng nhập mã vật tư.'),
+    code: z.string().trim(),
+    codeMode: z.enum(['auto', 'manual']),
     modelId: z.string().uuid('Vui lòng chọn mẫu vật tư.'),
     nameOverride: z.string().trim(),
     descriptionOverride: z.string().trim(),
@@ -70,6 +71,13 @@ export const materialFormSchema = z
       safetyInspectionChecklistSchema.optional(),
   })
   .superRefine((values, context) => {
+    if (values.codeMode === 'manual' && !values.code) {
+      context.addIssue({
+        code: 'custom',
+        path: ['code'],
+        message: formatMessage('validation.required'),
+      });
+    }
     if (!values.modelId)
       context.addIssue({
         code: 'custom',

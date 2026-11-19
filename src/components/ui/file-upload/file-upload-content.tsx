@@ -66,6 +66,9 @@ export interface FileUploadContentProps {
   onUploadError?: (error: unknown) => void;
   children?: ReactNode;
   showUploadButton?: boolean;
+  autoUpload?: boolean;
+  dragActiveLabel?: string;
+  dragHint?: string;
 }
 
 export interface FileUploadContentHandle {
@@ -87,6 +90,9 @@ export const FileUploadContent = forwardRef<
     onUploadError,
     children,
     showUploadButton = true,
+    autoUpload = false,
+    dragActiveLabel = 'Thả tệp để thêm vào danh sách chờ',
+    dragHint = 'Chưa upload cho đến khi bạn xác nhận',
   },
   ref,
 ) {
@@ -121,9 +127,22 @@ export const FileUploadContent = forwardRef<
       }
 
       setError(null);
+      if (autoUpload) {
+        void onUpload(uniqueFiles).catch((uploadError) => {
+          onUploadError?.(uploadError);
+        });
+        return;
+      }
       setPendingFiles((current) => [...current, ...uniqueFiles]);
     },
-    [isDisabled, maxFileSize, pendingFiles],
+    [
+      autoUpload,
+      isDisabled,
+      maxFileSize,
+      onUpload,
+      onUploadError,
+      pendingFiles,
+    ],
   );
 
   const handleDrop = useCallback(
@@ -264,11 +283,9 @@ export const FileUploadContent = forwardRef<
           <div className="rounded-xl border-2 border-dashed border-primary bg-background/95 px-8 py-6 text-center shadow-lg">
             <Upload className="mx-auto size-8 text-primary" />
             <p className="mt-2 text-sm font-semibold text-foreground">
-              Thả tệp để thêm vào danh sách chờ
+              {dragActiveLabel}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Chưa upload cho đến khi bạn xác nhận
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{dragHint}</p>
           </div>
         </div>
       ) : null}

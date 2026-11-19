@@ -17,7 +17,6 @@ const spec: FormSpec = {
       width: 'full',
       layout: 'horizontal',
       labelWidth: 'md',
-      required: true,
     },
     {
       kind: 'combobox',

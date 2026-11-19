@@ -460,14 +460,7 @@ export function mapMaterialImportRows(
   return rows.map((row) => {
     const code = valueOf(row, 'material.code');
     const normalizedCode = code.toLocaleLowerCase();
-    if (!code)
-      return {
-        rowNumber: row.rowNumber,
-        code,
-        values: null,
-        error: translate('project.materials.spreadsheet.errors.missingCode'),
-      };
-    if (usedCodes.has(normalizedCode)) {
+    if (code && usedCodes.has(normalizedCode)) {
       return {
         rowNumber: row.rowNumber,
         code,
@@ -475,7 +468,7 @@ export function mapMaterialImportRows(
         error: translate('project.materials.spreadsheet.errors.duplicateCode'),
       };
     }
-    usedCodes.add(normalizedCode);
+    if (code) usedCodes.add(normalizedCode);
 
     const modelCode = valueOf(row, 'material.model.code').toLocaleLowerCase();
     const model = models.find(
@@ -721,6 +714,7 @@ export function mapMaterialImportRows(
     const pendingModel = model.id.startsWith('pending:');
     const candidate = {
       code,
+      codeMode: code ? 'manual' : 'auto',
       // New models use a temporary non-UUID ID in the preview. Validate the
       // rest of the material form against a UUID, then restore the temporary
       // ID so the import flow can resolve it after creating the model.
@@ -758,12 +752,14 @@ export function mapMaterialImportRows(
         error: translate('project.materials.spreadsheet.errors.formInvalid'),
       };
     }
+    const { codeMode: _codeMode, ...materialValues } = parsed.data;
+    void _codeMode;
     return {
       rowNumber: row.rowNumber,
       code,
       values: pendingModel
-        ? { ...parsed.data, modelId: model.id }
-        : parsed.data,
+        ? { ...materialValues, modelId: model.id }
+        : materialValues,
       error: null,
     };
   });

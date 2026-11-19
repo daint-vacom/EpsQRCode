@@ -23,7 +23,6 @@ import {
 } from './material-spreadsheet';
 
 export const MATERIAL_IMPORT_REQUIRED_FIELD_KEYS = [
-  'material.code',
   'material.model.code',
   'material.owner.name',
 ] as const;
@@ -46,6 +45,7 @@ interface MaterialImportLinkedCodeConfig {
 export interface MaterialSpreadsheetSource {
   id: string;
   file: File;
+  status: 'reading' | 'success' | 'error';
   workbook: SpreadsheetWorkbook | null;
   worksheetName: string | null;
   mapping: SpreadsheetMapping | null;
@@ -57,7 +57,7 @@ export interface MaterialSpreadsheetImportPreviewRow {
   id: string;
   sourceId: string;
   fileName: string;
-  excelRow: number;
+  excelRow: number | null;
   code: string;
   quantity: number;
   modelCode: string;
@@ -664,6 +664,7 @@ export function toMaterialImportPreviewRows(
   rows: MappedMaterialImportRow[],
   models: MaterialModel[],
   proposals: MaterialModelImportProposal[],
+  translate: TranslateMaterialImportMessage,
 ): MaterialSpreadsheetImportPreviewRow[] {
   return rows.map((row) => {
     const model = models.find(
@@ -677,7 +678,11 @@ export function toMaterialImportPreviewRows(
       sourceId: row.sourceId,
       fileName: row.fileName,
       excelRow: row.rowNumber,
-      code: formatMaterialImportCodeRange(row.code, row.quantity),
+      code: row.code
+        ? formatMaterialImportCodeRange(row.code, row.quantity)
+        : translate('project.materials.spreadsheet.generatedCodeExample', {
+            modelCode: row.modelCode,
+          }),
       quantity: row.quantity,
       modelCode: row.modelCode,
       modelName: model?.name ?? proposal?.name ?? '',
@@ -703,6 +708,7 @@ export function getMaterialImportCodes(
   code: string,
   quantity: number,
 ): string[] {
+  if (!code.trim()) return Array.from({ length: quantity }, () => '');
   if (quantity <= 1) return [code];
   const suffixLength = Math.max(3, String(quantity).length);
   return Array.from(
@@ -723,7 +729,7 @@ function markGeneratedCodeCollisions(
   const rowByCode = new Map<string, string>();
   const collidingRows = new Set<string>();
   for (const row of rows) {
-    if (!row.values || row.error) continue;
+    if (!row.values || row.error || !row.code.trim()) continue;
     for (const code of getMaterialImportCodes(row.code, row.quantity)) {
       const key = normalizeHeader(code);
       const previousRowId = rowByCode.get(key);

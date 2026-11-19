@@ -15,12 +15,19 @@ const spec: TableSpec = {
       size: 150,
     },
     {
-      kind: 'text',
+      kind: 'custom',
       id: 'excelRow',
       field: 'excelRow',
       header: 'Dòng Excel',
       headerMessageId: 'project.materials.spreadsheet.row',
-      size: 88,
+      size: 105,
+    },
+    {
+      kind: 'custom',
+      id: 'validation',
+      header: 'Kiểm tra',
+      headerMessageId: 'project.materials.spreadsheet.validation',
+      size: 260,
     },
     {
       kind: 'text',
@@ -117,13 +124,6 @@ const spec: TableSpec = {
       header: 'Ghi chú',
       headerMessageId: 'project.materials.spreadsheet.fields.note',
       size: 180,
-    },
-    {
-      kind: 'custom',
-      id: 'validation',
-      header: 'Kiểm tra',
-      headerMessageId: 'project.materials.spreadsheet.validation',
-      size: 135,
     },
   ],
 };

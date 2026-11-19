@@ -122,7 +122,9 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.importGuide.quantity':
     'Điền số lượng là số nguyên từ 1 trở lên. Khi có nhiều vật tư cùng mẫu và cùng thông tin, nhập một dòng rồi điền số lượng thay vì lặp lại dòng. Để trống thì phần mềm hiểu là 1.',
   'project.materials.spreadsheet.importGuide.codes':
-    'Mã vật tư trong dòng là mã gốc và phải duy nhất. Với số lượng lớn hơn 1, phần mềm tự tạo mã lần lượt dạng MÃ-GỐC-001, MÃ-GỐC-002…; hãy đảm bảo các mã này chưa được dùng.',
+    'Có thể để trống mã vật tư để phần mềm tự sinh theo mã mẫu và bộ đếm, ví dụ MÃ-MẪU-001, MÃ-MẪU-002… Nếu nhập mã gốc, mã phải duy nhất; với số lượng lớn hơn 1, phần mềm tạo lần lượt MÃ-GỐC-001, MÃ-GỐC-002…',
+  'project.materials.spreadsheet.generatedCodeExample':
+    'Tự sinh theo mã mẫu: {modelCode}-001, {modelCode}-002…',
   'project.materials.spreadsheet.importGuide.serial':
     'Mỗi vật tư có số sê-ri riêng nên đặt số lượng bằng 1 cho dòng có số sê-ri. Các trường mẫu, chủ sở hữu và thông tin vật tư khác vẫn nhập theo từng dòng.',
   'project.materials.spreadsheet.importGuide.example':
@@ -132,6 +134,11 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.spreadsheet.backStep': 'Quay lại',
   'project.materials.spreadsheet.readFiles': 'Đọc tệp Excel',
   'project.materials.spreadsheet.readingFiles': 'Đang đọc tệp',
+  'project.materials.spreadsheet.fileReadSuccess': 'Đọc tệp thành công',
+  'project.materials.spreadsheet.dropFilesImmediately':
+    'Thả tệp Excel để bắt đầu đọc',
+  'project.materials.spreadsheet.dropFilesImmediatelyHint':
+    'Tệp sẽ được xử lý ngay sau khi thêm.',
   'project.materials.spreadsheet.readProgress':
     'Đã đọc {processed}/{total} tệp',
   'project.materials.spreadsheet.fileRowsCount': '{count} dòng',
@@ -734,6 +741,8 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.sections.printedQrLabel': 'Nhãn QR vật tư đã in',
   'project.materials.form.chooseModelHint':
     'Chọn mẫu vật tư để xem thông tin được lưu khi tạo.',
+  'project.materials.form.autoCodeHint':
+    'Có thể để trống để tự sinh theo mã mẫu và bộ đếm. Ví dụ: {example}',
   'project.materials.form.publicDisplay.title': 'Thông tin hiển thị công khai',
   'project.materials.form.publicDisplay.basicInfo':
     'Công khai thông tin vật tư',
@@ -934,7 +943,9 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.importGuide.quantity':
     'Enter a whole number of 1 or more. If several materials share the same model and details, enter one row and set its quantity instead of repeating the row. A blank quantity is treated as 1.',
   'project.materials.spreadsheet.importGuide.codes':
-    'The material code in a row is the base code and must be unique. For quantity greater than 1, the app generates codes such as BASE-CODE-001, BASE-CODE-002…; make sure these codes are unused.',
+    'Leave the material code blank to generate it from the model code and a counter, for example MODEL-CODE-001, MODEL-CODE-002… If you enter a base code, it must be unique; for quantity greater than 1, the app generates BASE-CODE-001, BASE-CODE-002…',
+  'project.materials.spreadsheet.generatedCodeExample':
+    'Generated from model code: {modelCode}-001, {modelCode}-002…',
   'project.materials.spreadsheet.importGuide.serial':
     'Each material has its own serial number, so set quantity to 1 on rows with a serial number. Enter the model, owner, and other material details once per row.',
   'project.materials.spreadsheet.importGuide.example':
@@ -944,6 +955,11 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.spreadsheet.backStep': 'Back',
   'project.materials.spreadsheet.readFiles': 'Read Excel files',
   'project.materials.spreadsheet.readingFiles': 'Reading files',
+  'project.materials.spreadsheet.fileReadSuccess': 'File read successfully',
+  'project.materials.spreadsheet.dropFilesImmediately':
+    'Drop Excel files to start reading',
+  'project.materials.spreadsheet.dropFilesImmediatelyHint':
+    'Files are processed as soon as they are added.',
   'project.materials.spreadsheet.readProgress':
     'Read {processed}/{total} files',
   'project.materials.spreadsheet.fileRowsCount': '{count} rows',
@@ -1549,6 +1565,8 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.sections.printedQrLabel': 'Printed material QR label',
   'project.materials.form.chooseModelHint':
     'Choose a material model to preview information captured when the material is created.',
+  'project.materials.form.autoCodeHint':
+    'Leave blank to generate the code from the model code and a counter. Example: {example}',
   'project.materials.form.publicDisplay.title': 'Publicly visible information',
   'project.materials.form.publicDisplay.basicInfo':
     'Make material information public',

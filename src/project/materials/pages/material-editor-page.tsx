@@ -354,8 +354,10 @@ export function MaterialEditorPage() {
     const selectedModel = modelsQuery.data?.find(
       (model) => model.id === values.modelId,
     );
+    const { codeMode, ...formValues } = values;
     const payload: MaterialFormValues = {
-      ...values,
+      ...formValues,
+      code: isEdit || codeMode === 'manual' ? values.code.trim() : '',
       hiddenSpecificationIds,
       nameOverride:
         values.nameOverride.trim() === selectedModel?.name.trim()
@@ -721,6 +723,7 @@ function mapMaterialToForm(material: Material): MaterialFormSchemaValues {
   const inspectionSettings = getMaterialInspectionSettings(material);
   return {
     code: material.code,
+    codeMode: 'manual',
     modelId: material.modelId,
     nameOverride: material.nameOverride ?? '',
     descriptionOverride: material.descriptionOverride ?? '',
