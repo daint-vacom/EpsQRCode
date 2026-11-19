@@ -72,6 +72,7 @@ export interface MaterialSpreadsheetImportPreviewRow {
   serialNumber: string;
   condition: string;
   materialGroupKey: string;
+  materialGroupId: string | null;
   specifications: string;
   ownerCode: string;
   ownerName: string;
@@ -719,6 +720,11 @@ export function toMaterialImportPreviewRows(
         ),
         isValid ? 'valid' : 'invalid',
       ]),
+      materialGroupId:
+        model?.groupId ??
+        proposal?.formValues?.groupId ??
+        proposal?.previewModel?.groupId ??
+        null,
       specifications: valueOf(row.rawValues, 'material.specifications'),
       ownerCode: valueOf(row.rawValues, 'material.owner.code'),
       ownerName: valueOf(row.rawValues, 'material.owner.name'),

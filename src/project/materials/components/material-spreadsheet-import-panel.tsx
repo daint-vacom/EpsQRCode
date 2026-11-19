@@ -7,7 +7,9 @@ import {
   type ReactNode,
 } from 'react';
 import type { Custodian } from '@/project/custodians/model/custodian';
+import { MaterialGroupFilterTree } from '@/project/material-groups/components/material-group-filter-tree';
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
+import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
 import {
   useCreateMaterialModelsBulkMutation,
   useUpdateMaterialModelLinkedCodesMutation,
@@ -44,6 +46,7 @@ import {
 } from '@/lib/spreadsheets/xlsx';
 import { useUser } from '@/providers/user-provider';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { DataGrid } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
@@ -112,6 +115,9 @@ interface MaterialSpreadsheetImportPanelProps {
   canCreateModels: boolean;
   catalogsLoading: boolean;
   catalogsError: boolean;
+  groupTreeLoading: boolean;
+  groupTreeError: boolean;
+  onRetryGroups: () => void;
   onRetryCatalogs: () => void;
 }
 
@@ -135,6 +141,9 @@ export function MaterialSpreadsheetImportPanel({
   canCreateModels,
   catalogsLoading,
   catalogsError,
+  groupTreeLoading,
+  groupTreeError,
+  onRetryGroups,
   onRetryCatalogs,
 }: MaterialSpreadsheetImportPanelProps) {
   const intl = useIntl();
@@ -178,6 +187,9 @@ export function MaterialSpreadsheetImportPanel({
   });
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [groupingEnabled, setGroupingEnabled] = useState(false);
+  const [selectedImportGroupId, setSelectedImportGroupId] = useState<
+    string | null
+  >(null);
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ??
     templates[0] ??
@@ -216,6 +228,7 @@ export function MaterialSpreadsheetImportPanel({
     setReportError('');
     setPagination({ pageIndex: 0, pageSize: 20 });
     setGroupingEnabled(false);
+    setSelectedImportGroupId(null);
   }, [open]);
 
   const sourceRows = useMemo(
@@ -302,6 +315,7 @@ export function MaterialSpreadsheetImportPanel({
         serialNumber: '',
         condition: '',
         materialGroupKey: `invalid:${error.id}`,
+        materialGroupId: null,
         specifications: '',
         ownerCode: '',
         ownerName: '',
@@ -312,12 +326,73 @@ export function MaterialSpreadsheetImportPanel({
     ],
     [globalErrors, previewRows],
   );
+  const importGroupCounts = useMemo(() => {
+    const directCounts = new Map<string, number>();
+    for (const row of previewRows) {
+      if (!row.materialGroupId) continue;
+      directCounts.set(
+        row.materialGroupId,
+        (directCounts.get(row.materialGroupId) ?? 0) + row.quantity,
+      );
+    }
+
+    const groupsById = new Map(groups.map((group) => [group.id, group]));
+    const visibleGroupIds = new Set<string>();
+    const countByNode = new Map<string, number>();
+    for (const [groupId, count] of directCounts) {
+      visibleGroupIds.add(groupId);
+      countByNode.set(groupId, count);
+      const visited = new Set<string>([groupId]);
+      let parentId = groupsById.get(groupId)?.parentId ?? null;
+      while (parentId && !visited.has(parentId)) {
+        visited.add(parentId);
+        visibleGroupIds.add(parentId);
+        countByNode.set(parentId, (countByNode.get(parentId) ?? 0) + count);
+        parentId = groupsById.get(parentId)?.parentId ?? null;
+      }
+    }
+
+    return {
+      groups: groups.filter((group) => visibleGroupIds.has(group.id)),
+      countByNode,
+      allCount: [...directCounts.values()].reduce(
+        (sum, count) => sum + count,
+        0,
+      ),
+    };
+  }, [groups, previewRows]);
+  const filteredPreviewTableRows = useMemo(() => {
+    if (!selectedImportGroupId) return previewTableRows;
+    const descendantIds = getMaterialGroupDescendantIds(
+      importGroupCounts.groups,
+      selectedImportGroupId,
+    );
+    return previewTableRows.filter(
+      (row) =>
+        row.materialGroupId !== null && descendantIds.has(row.materialGroupId),
+    );
+  }, [importGroupCounts.groups, previewTableRows, selectedImportGroupId]);
   const groupedPreviewRows = useMemo(
     () =>
-      groupingEnabled ? groupMaterialImportPreviewRows(previewTableRows) : [],
-    [groupingEnabled, previewTableRows],
+      groupingEnabled
+        ? groupMaterialImportPreviewRows(filteredPreviewTableRows)
+        : [],
+    [filteredPreviewTableRows, groupingEnabled],
   );
-  const tableRows = groupingEnabled ? groupedPreviewRows : previewTableRows;
+  const tableRows = groupingEnabled
+    ? groupedPreviewRows
+    : filteredPreviewTableRows;
+  useEffect(() => {
+    if (
+      selectedImportGroupId &&
+      !importGroupCounts.groups.some(
+        (group) => group.id === selectedImportGroupId,
+      )
+    ) {
+      setSelectedImportGroupId(null);
+      setPagination((current) => ({ ...current, pageIndex: 0 }));
+    }
+  }, [importGroupCounts.groups, selectedImportGroupId]);
   const previewColumns = useMaterialSpreadsheetImportPreviewRowColumns(
     sources.length > 1,
   );
@@ -1369,36 +1444,90 @@ export function MaterialSpreadsheetImportPanel({
             </label>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <DataGrid
-              table={previewTable}
-              recordCount={tableRows.length}
-              emptyMessage={translate('project.materials.spreadsheet.noRows')}
-              tableLayout={{
-                dense: true,
-                cellBorder: true,
-                rowBorder: true,
-                width: 'fixed',
-              }}
-              tableClassNames={{
-                bodyRow: '[&>td]:py-1',
-              }}
-            >
-              <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
-                <DataGridTable />
-              </div>
-              {tableRows.length > 0 ? (
-                <DataGridPagination
-                  sizes={[10, 20, 50]}
-                  className="mt-2 shrink-0 grow-0"
-                  sizesDescription={translate(
-                    groupingEnabled
-                      ? 'project.materials.grouping.groups'
-                      : 'project.materials.spreadsheet.row',
-                  )}
+          <div className="flex min-h-0 flex-1 flex-col gap-3 xl:flex-row">
+            <Card className="h-56 min-h-0 w-full shrink-0 overflow-hidden xl:h-full xl:w-72">
+              {groupTreeLoading ? (
+                <div
+                  className="flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"
+                  role="status"
+                >
+                  <LoaderCircle className="size-4 animate-spin" />
+                  {translate('project.materials.spreadsheet.loadingCatalog')}
+                </div>
+              ) : groupTreeError ? (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-3 text-center">
+                  <p className="text-sm text-destructive">
+                    {translate('project.materials.spreadsheet.catalogError')}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={onRetryGroups}
+                  >
+                    {translate('common.actions.retry')}
+                  </Button>
+                </div>
+              ) : (
+                <MaterialGroupFilterTree
+                  groups={importGroupCounts.groups}
+                  selectedGroupId={selectedImportGroupId}
+                  onSelectGroup={(groupId) => {
+                    setSelectedImportGroupId(groupId);
+                    setPagination((current) => ({ ...current, pageIndex: 0 }));
+                  }}
+                  countByNode={importGroupCounts.countByNode}
+                  allCount={importGroupCounts.allCount}
+                  className="h-full"
                 />
-              ) : null}
-            </DataGrid>
+              )}
+            </Card>
+
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <DataGrid
+                table={previewTable}
+                recordCount={tableRows.length}
+                emptyMessage={translate('project.materials.spreadsheet.noRows')}
+                tableLayout={{
+                  dense: true,
+                  cellBorder: true,
+                  rowBorder: true,
+                  width: 'fixed',
+                }}
+                tableClassNames={{
+                  bodyRow: '[&>td]:py-1',
+                }}
+              >
+                <div
+                  className="min-h-0 flex-1 overflow-auto rounded-md border border-border"
+                  onWheel={(event) => {
+                    if (!groupingEnabled || !event.shiftKey) return;
+
+                    const container = event.currentTarget;
+                    if (container.scrollWidth <= container.clientWidth) return;
+
+                    const horizontalDelta = event.deltaX || event.deltaY;
+                    if (horizontalDelta === 0) return;
+
+                    event.preventDefault();
+                    container.scrollLeft += horizontalDelta;
+                  }}
+                >
+                  <DataGridTable />
+                </div>
+                {tableRows.length > 0 ? (
+                  <DataGridPagination
+                    sizes={[10, 20, 50]}
+                    className="mt-2 shrink-0 grow-0"
+                    sizesDescription={translate(
+                      groupingEnabled
+                        ? 'project.materials.grouping.groups'
+                        : 'project.materials.spreadsheet.row',
+                    )}
+                  />
+                ) : null}
+              </DataGrid>
+            </div>
           </div>
 
           {modelProposals.length > 0 ? (

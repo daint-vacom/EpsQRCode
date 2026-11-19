@@ -139,7 +139,7 @@ export function MaterialSpreadsheetImportDialog({
   const canCreateModels = hasPermission(
     'material_catalog:material_model:manage',
   );
-  const groupsQuery = useMaterialGroupsQuery(open && canCreateModels);
+  const groupsQuery = useMaterialGroupsQuery(open);
   const {
     fields,
     models,
@@ -184,12 +184,14 @@ export function MaterialSpreadsheetImportDialog({
           canCreateModels={canCreateModels}
           catalogsLoading={catalogsLoading}
           catalogsError={catalogsError}
+          groupTreeLoading={groupsQuery.isPending}
+          groupTreeError={groupsQuery.isError}
+          onRetryGroups={() => void groupsQuery.refetch()}
           onRetryCatalogs={() => {
             void modelsQuery.refetch();
             void custodiansQuery.refetch();
             void capitalSourcesQuery.refetch();
             if (canCreateModels) {
-              void groupsQuery.refetch();
               void specificationsQuery.refetch();
             }
           }}
