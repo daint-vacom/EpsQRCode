@@ -70,7 +70,6 @@ import { DataConfigurationPage } from '@/project/pages/data-configuration-page';
 import { RolePermissionsPage } from '@/project/pages/role-permissions-page';
 import { ProjectSettingsPage } from '@/project/pages/settings-page';
 import { TagsPage } from '@/project/pages/tags-page';
-import { MaterialReceiptDetailPage } from '@/project/receipts/pages/material-receipt-detail-page';
 import { MaterialReceiptEditorPage } from '@/project/receipts/pages/material-receipt-editor-page';
 import { MaterialReceiptsPage } from '@/project/receipts/pages/material-receipts-page';
 import { ReportsPage } from '@/project/reports/pages/reports-page';
@@ -385,7 +384,7 @@ export function AppRoutingSetup() {
           />
           <Route
             path={ROUTES.PROJECT.RECEIPT_DETAIL}
-            element={<MaterialReceiptDetailPage />}
+            element={<MaterialReceiptEditorPage />}
           />
         </Route>
       </Route>

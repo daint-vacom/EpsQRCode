@@ -12,6 +12,7 @@ import type {
   MaterialReceiptAdjustmentPreview,
   MaterialReceiptFilterSummary,
   MaterialReceiptHistoryEntry,
+  MaterialReceiptInlineUpdatePreview,
   MaterialReceiptItemsResult,
   MaterialReceiptLineInput,
   MaterialReceiptListFilters,
@@ -582,6 +583,46 @@ export async function applyMaterialReceiptAdjustment(input: {
       p_preview_token: input.previewToken,
       p_lines: input.lines,
       p_reason: input.reason,
+      p_cancel_handover_ids: input.cancelHandoverIds,
+    }),
+  );
+}
+
+export async function previewMaterialReceiptInlineUpdate(input: {
+  id: string;
+  expectedVersion: number;
+  warehouseId: string;
+  lines: MaterialReceiptLineInput[];
+}) {
+  assertSupabaseConfigured();
+  return request<MaterialReceiptInlineUpdatePreview>(
+    supabaseApi.post('/rpc/preview_material_receipt_inline_update', {
+      p_id: input.id,
+      p_expected_version: input.expectedVersion,
+      p_warehouse_id: input.warehouseId,
+      p_lines: input.lines,
+    }),
+  );
+}
+
+export async function applyMaterialReceiptInlineUpdate(input: {
+  id: string;
+  expectedVersion: number;
+  previewToken: string;
+  warehouseId: string;
+  note: string;
+  lines: MaterialReceiptLineInput[];
+  cancelHandoverIds: string[];
+}) {
+  assertSupabaseConfigured();
+  return request<string>(
+    supabaseApi.post('/rpc/apply_material_receipt_inline_update', {
+      p_id: input.id,
+      p_expected_version: input.expectedVersion,
+      p_preview_token: input.previewToken,
+      p_warehouse_id: input.warehouseId,
+      p_note: input.note,
+      p_lines: input.lines,
       p_cancel_handover_ids: input.cancelHandoverIds,
     }),
   );

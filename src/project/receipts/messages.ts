@@ -62,6 +62,7 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.dialogs.completeTitle': 'Hoàn tất phiếu nhập',
   'receipts.dialogs.reopenTitle': 'Mở lại phiếu nhập',
   'receipts.dialogs.adjustmentTitle': 'Xác nhận hiệu chỉnh danh sách vật tư',
+  'receipts.dialogs.inlineUpdateTitle': 'Kiểm tra thay đổi phiếu nhập',
   'receipts.dialogs.receivingPartyTitle': 'Chọn đơn vị nhận',
   'receipts.dialogs.receivingPartyDescription':
     'Chọn đơn vị nhận cho dòng vật tư. Để trống nếu vật tư ở lại kho.',
@@ -69,6 +70,15 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.tabs.allocation': 'Phân bổ vật tư',
   'receipts.tabs.details': 'Chi tiết phiếu',
   'receipts.tabs.handovers': 'Bàn giao vật tư',
+  'receipts.handover.steps.items': 'Nhập danh sách vật tư',
+  'receipts.handover.steps.materialCount': '{count} vật tư',
+  'receipts.handover.steps.allocation': 'Phân bổ vật tư',
+  'receipts.handover.steps.allocationProgress': 'Đã phân bổ {percent}%',
+  'receipts.handover.steps.saveAndContinue': 'Lưu và tiếp tục',
+  'receipts.handover.steps.confirmTitle': 'Lưu phiếu nhập?',
+  'receipts.handover.steps.confirmDescription':
+    'Phiếu nhập sẽ được lưu trước khi chuyển sang bước phân bổ. Bạn vẫn có thể quay lại để chỉnh sửa.',
+  'receipts.handover.steps.confirmSave': 'Lưu phiếu và tiếp tục',
   'receipts.items.columns.material': 'Vật tư',
   'receipts.items.columns.model': 'Mẫu',
   'receipts.items.columns.serialNumber': 'Số sê-ri',
@@ -144,6 +154,15 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.adjustment.confirmHandover': 'Tôi xác nhận hủy phiếu này.',
   'receipts.adjustment.reload':
     'Dữ liệu đã thay đổi. Hãy tải lại phiếu và xem trước hiệu chỉnh lần nữa.',
+  'receipts.inlineUpdate.apply': 'Lưu thay đổi phiếu nhập',
+  'receipts.inlineUpdate.checking': 'Đang kiểm tra thay đổi phiếu nhập',
+  'receipts.inlineUpdate.saving': 'Đang lưu thay đổi phiếu nhập',
+  'receipts.inlineUpdate.warehouseChanged':
+    'Đổi kho sẽ chuyển các vật tư còn hợp lệ sang kho mới và tạo lại các phân bổ liên quan.',
+  'receipts.inlineUpdate.blockedDescription':
+    'Không thể lưu khi vật tư bị chỉnh sửa hoặc xóa đã thuộc phiếu bàn giao hoàn tất. Hãy giữ nguyên các vật tư bị chặn rồi thử lại.',
+  'receipts.inlineUpdate.pendingWarning':
+    'Các phiếu bàn giao chưa hoàn tất bị ảnh hưởng sẽ được hủy và tạo lại theo danh sách mới sau khi bạn xác nhận.',
   'receipts.confirm.completeWarning':
     'Có {count} vật tư đang chờ đơn vị nhận xác nhận. Hoàn tất sẽ dừng tạo bàn giao mới; các phiếu đã gửi vẫn có thể được xác nhận hoặc hủy. Vật tư chưa phân bổ vẫn nằm trong kho.',
   'receipts.confirm.reopenReason': 'Nhập lý do mở lại phiếu đã hoàn tất.',
@@ -158,6 +177,8 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.toasts.reopened': 'Đã mở lại phiếu nhập.',
   'receipts.toasts.cancelled': 'Đã hủy phiếu nhập.',
   'receipts.toasts.adjusted': 'Đã áp dụng hiệu chỉnh phiếu nhập.',
+  'receipts.toasts.inlineUpdated':
+    'Đã lưu thay đổi phiếu nhập và đồng bộ phân bổ.',
   'receipts.toasts.representativeUpdated':
     'Đã lưu vật tư đại diện và đồng bộ vật tư chưa bàn giao hoàn tất.',
   'receipts.search.label': 'Tìm theo mã phiếu hoặc kho',
@@ -252,6 +273,7 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.dialogs.completeTitle': 'Complete receipt',
   'receipts.dialogs.reopenTitle': 'Reopen receipt',
   'receipts.dialogs.adjustmentTitle': 'Confirm receipt item adjustment',
+  'receipts.dialogs.inlineUpdateTitle': 'Review receipt changes',
   'receipts.dialogs.receivingPartyTitle': 'Choose receiving unit',
   'receipts.dialogs.receivingPartyDescription':
     'Choose a receiving unit for this material line. Leave it blank to keep the material in the warehouse.',
@@ -259,6 +281,15 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.tabs.allocation': 'Material allocation',
   'receipts.tabs.details': 'Receipt details',
   'receipts.tabs.handovers': 'Material handovers',
+  'receipts.handover.steps.items': 'Enter material list',
+  'receipts.handover.steps.materialCount': '{count} materials',
+  'receipts.handover.steps.allocation': 'Allocate materials',
+  'receipts.handover.steps.allocationProgress': '{percent}% allocated',
+  'receipts.handover.steps.saveAndContinue': 'Save and continue',
+  'receipts.handover.steps.confirmTitle': 'Save the receipt?',
+  'receipts.handover.steps.confirmDescription':
+    'The receipt will be saved before moving to allocation. You can return and edit it later.',
+  'receipts.handover.steps.confirmSave': 'Save receipt and continue',
   'receipts.items.columns.material': 'Material',
   'receipts.items.columns.model': 'Model',
   'receipts.items.columns.serialNumber': 'Serial number',
@@ -336,6 +367,15 @@ export const receiptMessagesEn: Record<string, string> = {
     'I confirm this handover should be cancelled.',
   'receipts.adjustment.reload':
     'Data changed. Reload the receipt and preview the adjustment again.',
+  'receipts.inlineUpdate.apply': 'Save receipt changes',
+  'receipts.inlineUpdate.checking': 'Checking receipt changes',
+  'receipts.inlineUpdate.saving': 'Saving receipt changes',
+  'receipts.inlineUpdate.warehouseChanged':
+    'Changing the warehouse moves eligible materials to the new warehouse and rebuilds related allocations.',
+  'receipts.inlineUpdate.blockedDescription':
+    'Changes cannot be saved when an edited or removed material belongs to a completed handover. Keep blocked materials unchanged and try again.',
+  'receipts.inlineUpdate.pendingWarning':
+    'Affected unfinished handovers will be cancelled and recreated from the updated list after you confirm.',
   'receipts.confirm.completeWarning':
     '{count} materials are waiting for receiving-unit confirmation. Completing stops new handovers; sent handovers can still be confirmed or cancelled. Unallocated materials remain in the warehouse.',
   'receipts.confirm.reopenReason':
@@ -352,6 +392,7 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.toasts.reopened': 'Receipt reopened.',
   'receipts.toasts.cancelled': 'Receipt cancelled.',
   'receipts.toasts.adjusted': 'Receipt adjustment applied.',
+  'receipts.toasts.inlineUpdated': 'Receipt changes and allocations saved.',
   'receipts.toasts.representativeUpdated':
     'Representative material saved and linked materials updated.',
   'receipts.search.label': 'Search by receipt code or warehouse',

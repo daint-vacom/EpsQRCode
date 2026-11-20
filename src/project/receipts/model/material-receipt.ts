@@ -329,6 +329,12 @@ export interface MaterialReceiptAdjustmentPreview {
   }>;
 }
 
+export interface MaterialReceiptInlineUpdatePreview extends MaterialReceiptAdjustmentPreview {
+  basePreviewToken: string;
+  warehouseId: string;
+  warehouseChanged: boolean;
+}
+
 export const MATERIAL_RECEIPT_PERMISSION_CODES = {
   view: 'materials:receipt:view',
   manage: 'materials:receipt:manage',

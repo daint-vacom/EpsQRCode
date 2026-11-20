@@ -4,6 +4,7 @@ import { useUser } from '@/providers/user-provider';
 import {
   actOnMaterialReceipt,
   applyMaterialReceiptAdjustment,
+  applyMaterialReceiptInlineUpdate,
   importMaterialReceiptFromExcel,
   loadMaterialReceipt,
   loadMaterialReceiptFilterSummary,
@@ -12,6 +13,7 @@ import {
   loadMaterialReceiptRecipientOptions,
   loadMaterialReceipts,
   previewMaterialReceiptAdjustment,
+  previewMaterialReceiptInlineUpdate,
   saveMaterialReceipt,
   saveMaterialReceiptRepresentative,
 } from '../api/material-receipts.api';
@@ -175,4 +177,12 @@ export function useMaterialReceiptAdjustmentPreviewMutation() {
 
 export function useApplyMaterialReceiptAdjustmentMutation() {
   return useReceiptMutation(applyMaterialReceiptAdjustment);
+}
+
+export function useMaterialReceiptInlineUpdatePreviewMutation() {
+  return useMutation({ mutationFn: previewMaterialReceiptInlineUpdate });
+}
+
+export function useApplyMaterialReceiptInlineUpdateMutation() {
+  return useReceiptMutation(applyMaterialReceiptInlineUpdate);
 }

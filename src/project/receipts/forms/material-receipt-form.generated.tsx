@@ -101,6 +101,8 @@ interface MaterialReceiptHeaderFormProps {
   onSubmit: (values: MaterialReceiptFormValues) => void;
   id?: string;
   warehouses: readonly Warehouse[];
+  readOnly?: boolean;
+  warehouseName?: string;
 }
 
 export function MaterialReceiptHeaderForm({
@@ -108,6 +110,8 @@ export function MaterialReceiptHeaderForm({
   onSubmit,
   id = 'materialReceipt-form',
   warehouses,
+  readOnly = false,
+  warehouseName,
 }: MaterialReceiptHeaderFormProps) {
   const intl = useIntl();
   return (
@@ -128,12 +132,18 @@ export function MaterialReceiptHeaderForm({
                   <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  <WarehouseSelect
-                    sourceMode="options"
-                    warehouses={warehouses}
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
+                  {readOnly ? (
+                    <span className="text-sm text-foreground">
+                      {warehouseName || '—'}
+                    </span>
+                  ) : (
+                    <WarehouseSelect
+                      sourceMode="options"
+                      warehouses={warehouses}
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -154,7 +164,7 @@ export function MaterialReceiptHeaderForm({
                   {intl.formatMessage({ id: 'receipts.fields.note' })}
                 </FormLabel>
                 <FormControl>
-                  <Textarea rows={3} {...field} />
+                  <Textarea rows={3} readOnly={readOnly} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

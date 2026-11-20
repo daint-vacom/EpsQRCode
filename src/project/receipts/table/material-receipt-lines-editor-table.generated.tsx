@@ -64,6 +64,7 @@ interface MaterialReceiptLinesEditorTableProps {
   materialNameByClientId: ReadonlyMap<string, string>;
   receivingParties: readonly Custodian[];
   receivingPartySelectionDisabled: boolean;
+  readOnly?: boolean;
   onCopySelected?: (rows: MaterialReceiptFormLine[]) => void;
   onEditMaterial: (index: number) => void;
   onEditReceivingParty: (clientId: string) => void;
@@ -77,6 +78,7 @@ export function MaterialReceiptLinesEditorTable({
   materialNameByClientId,
   receivingParties,
   receivingPartySelectionDisabled,
+  readOnly = false,
   onCopySelected,
   onEditMaterial,
   onEditReceivingParty,
@@ -277,42 +279,46 @@ export function MaterialReceiptLinesEditorTable({
             <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
               {toolbarContent}
 
-              <Button
-                type="button"
-                variant="primary"
-                onClick={() => setIsModelSelectionOpen(true)}
-              >
-                <ListPlus />
-                {intl.formatMessage({ id: 'receipts.actions.chooseModels' })}
-              </Button>
+              {!readOnly ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => setIsModelSelectionOpen(true)}
+                >
+                  <ListPlus />
+                  {intl.formatMessage({ id: 'receipts.actions.chooseModels' })}
+                </Button>
+              ) : null}
             </div>
           </div>
           <ScrollArea
             type="always"
-            className="min-w-0 min-h-[360px] min-h-0 flex-1"
+            className="min-h-0 min-w-0 flex-1"
             viewportClassName="h-full min-w-0 overflow-y-auto"
           >
             <div className="min-w-[1600px]">
               <table className="w-full caption-bottom text-foreground text-sm">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
-                      <div className="flex justify-center">
-                        <Checkbox
-                          aria-label="Chọn tất cả dòng"
-                          checked={
-                            fields.length > 0 &&
-                            (selectedRowIds.length === fields.length ||
-                              (selectedRowIds.length > 0 && 'indeterminate'))
-                          }
-                          disabled={fields.length === 0}
-                          size="sm"
-                          onCheckedChange={(checked) =>
-                            handleSelectAllRows(!!checked)
-                          }
-                        />
-                      </div>
-                    </TableHead>
+                    {!readOnly ? (
+                      <TableHead className="sticky top-0 z-20 w-12 min-w-12 max-w-12 bg-muted px-2 py-2 text-center align-middle">
+                        <div className="flex justify-center">
+                          <Checkbox
+                            aria-label="Chọn tất cả dòng"
+                            checked={
+                              fields.length > 0 &&
+                              (selectedRowIds.length === fields.length ||
+                                (selectedRowIds.length > 0 && 'indeterminate'))
+                            }
+                            disabled={fields.length === 0}
+                            size="sm"
+                            onCheckedChange={(checked) =>
+                              handleSelectAllRows(!!checked)
+                            }
+                          />
+                        </div>
+                      </TableHead>
+                    ) : null}
                     <TableHead className="sticky top-0 z-20 bg-muted min-w-[280px]">
                       {intl.formatMessage({ id: 'receipts.fields.material' })}
                     </TableHead>
@@ -337,13 +343,18 @@ export function MaterialReceiptLinesEditorTable({
                     <TableHead className="sticky top-0 z-20 bg-muted min-w-[240px]">
                       {intl.formatMessage({ id: 'receipts.fields.note' })}
                     </TableHead>
-                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-48 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                    {!readOnly ? (
+                      <TableHead className="sticky top-0 right-0 z-30 bg-muted w-48 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                    ) : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fields.length === 0 ? (
                     <TableRow hoverable={false}>
-                      <TableCell colSpan={8} className="h-28 text-center">
+                      <TableCell
+                        colSpan={readOnly ? 6 : 8}
+                        className="h-28 text-center"
+                      >
                         <span className="text-muted-foreground">
                           {intl.formatMessage({ id: 'receipts.emptyLines' })}
                         </span>
@@ -358,18 +369,22 @@ export function MaterialReceiptLinesEditorTable({
                       );
                       return (
                         <TableRow key={field.fieldId} hoverable={false}>
-                          <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
-                            <div className="flex justify-center">
-                              <Checkbox
-                                aria-label={`Chọn dòng ${index + 1}`}
-                                checked={selectedRowIds.includes(field.fieldId)}
-                                size="sm"
-                                onCheckedChange={(checked) =>
-                                  handleSelectRow(field.fieldId, !!checked)
-                                }
-                              />
-                            </div>
-                          </TableCell>
+                          {!readOnly ? (
+                            <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
+                              <div className="flex justify-center">
+                                <Checkbox
+                                  aria-label={`Chọn dòng ${index + 1}`}
+                                  checked={selectedRowIds.includes(
+                                    field.fieldId,
+                                  )}
+                                  size="sm"
+                                  onCheckedChange={(checked) =>
+                                    handleSelectRow(field.fieldId, !!checked)
+                                  }
+                                />
+                              </div>
+                            </TableCell>
+                          ) : null}
                           <TableCell className="px-2 py-2 align-middle">
                             <span className="font-medium text-foreground">
                               {materialNameByClientId.get(
@@ -411,6 +426,7 @@ export function MaterialReceiptLinesEditorTable({
                                           type="number"
                                           value={inputField.value}
                                           variant="md"
+                                          readOnly={readOnly}
                                           onBlur={inputField.onBlur}
                                           onChange={(event) =>
                                             inputField.onChange(
@@ -449,6 +465,7 @@ export function MaterialReceiptLinesEditorTable({
                                       type="number"
                                       value={inputField.value}
                                       variant="md"
+                                      readOnly={readOnly}
                                       onBlur={inputField.onBlur}
                                       onChange={(event) =>
                                         inputField.onChange(
@@ -475,30 +492,14 @@ export function MaterialReceiptLinesEditorTable({
                                   value={inputField.value}
                                   onChange={inputField.onChange}
                                   size="md"
+                                  disabled={readOnly}
                                 />
                               )}
                             />
                           </TableCell>
                           <TableCell className="px-2 py-2 align-middle">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto min-h-8 w-full justify-between gap-2 px-2 py-1 text-start font-normal"
-                              aria-label={`${intl.formatMessage({ id: 'receipts.handover.recipient' })}: ${receivingParty?.name ?? intl.formatMessage({ id: 'receipts.fields.receivingPartyPlaceholder' })}`}
-                              disabled={receivingPartySelectionDisabled}
-                              onClick={() => {
-                                if (!row?.clientId) return;
-                                onEditReceivingParty(row.clientId);
-                              }}
-                            >
-                              <span
-                                className={
-                                  row?.receivingPartyId
-                                    ? 'min-w-0 truncate text-foreground'
-                                    : 'min-w-0 truncate text-muted-foreground'
-                                }
-                              >
+                            {readOnly ? (
+                              <span className="text-sm text-foreground">
                                 {receivingParty?.name ??
                                   (row?.receivingPartyId
                                     ? '—'
@@ -506,11 +507,39 @@ export function MaterialReceiptLinesEditorTable({
                                         id: 'receipts.fields.receivingPartyPlaceholder',
                                       }))}
                               </span>
-                              <ChevronDown
-                                className="size-4 shrink-0 text-muted-foreground"
-                                aria-hidden="true"
-                              />
-                            </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto min-h-8 w-full justify-between gap-2 px-2 py-1 text-start font-normal"
+                                aria-label={`${intl.formatMessage({ id: 'receipts.handover.recipient' })}: ${receivingParty?.name ?? intl.formatMessage({ id: 'receipts.fields.receivingPartyPlaceholder' })}`}
+                                disabled={receivingPartySelectionDisabled}
+                                onClick={() => {
+                                  if (!row?.clientId) return;
+                                  onEditReceivingParty(row.clientId);
+                                }}
+                              >
+                                <span
+                                  className={
+                                    row?.receivingPartyId
+                                      ? 'min-w-0 truncate text-foreground'
+                                      : 'min-w-0 truncate text-muted-foreground'
+                                  }
+                                >
+                                  {receivingParty?.name ??
+                                    (row?.receivingPartyId
+                                      ? '—'
+                                      : intl.formatMessage({
+                                          id: 'receipts.fields.receivingPartyPlaceholder',
+                                        }))}
+                                </span>
+                                <ChevronDown
+                                  className="size-4 shrink-0 text-muted-foreground"
+                                  aria-hidden="true"
+                                />
+                              </Button>
+                            )}
                           </TableCell>
                           <TableCell className="px-2 py-2">
                             <Controller
@@ -535,53 +564,56 @@ export function MaterialReceiptLinesEditorTable({
                                     );
                                   }}
                                   variant="md"
+                                  readOnly={readOnly}
                                 />
                               )}
                             />
                           </TableCell>
-                          <TableCell className="sticky right-0 z-10 bg-card px-1 py-2 align-middle shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                aria-label={`Sửa vật tư dòng ${index + 1}`}
-                                title={intl.formatMessage({
-                                  id: 'receipts.actions.editMaterial',
-                                })}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={!row?.modelId}
-                                onClick={() => onEditMaterial(index)}
-                              >
-                                <Pencil className="size-3.5" />
-                                {intl.formatMessage({
-                                  id: 'receipts.actions.editMaterial',
-                                })}
-                              </Button>
-                              <Button
-                                aria-label={`Nhân bản dòng ${index + 1}`}
-                                title="Nhân bản"
-                                type="button"
-                                variant="ghost"
-                                mode="icon"
-                                size="sm"
-                                onClick={() => handleDuplicateRow(index)}
-                              >
-                                <Copy />
-                              </Button>
-                              <Button
-                                aria-label={`Xóa dòng ${index + 1}`}
-                                title="Xóa"
-                                type="button"
-                                variant="destructive"
-                                appearance="ghost"
-                                mode="icon"
-                                size="sm"
-                                onClick={() => handleDeleteRow(index)}
-                              >
-                                <Trash2 />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          {!readOnly ? (
+                            <TableCell className="sticky right-0 z-10 bg-card px-1 py-2 align-middle shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  aria-label={`Sửa vật tư dòng ${index + 1}`}
+                                  title={intl.formatMessage({
+                                    id: 'receipts.actions.editMaterial',
+                                  })}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!row?.modelId}
+                                  onClick={() => onEditMaterial(index)}
+                                >
+                                  <Pencil className="size-3.5" />
+                                  {intl.formatMessage({
+                                    id: 'receipts.actions.editMaterial',
+                                  })}
+                                </Button>
+                                <Button
+                                  aria-label={`Nhân bản dòng ${index + 1}`}
+                                  title="Nhân bản"
+                                  type="button"
+                                  variant="ghost"
+                                  mode="icon"
+                                  size="sm"
+                                  onClick={() => handleDuplicateRow(index)}
+                                >
+                                  <Copy />
+                                </Button>
+                                <Button
+                                  aria-label={`Xóa dòng ${index + 1}`}
+                                  title="Xóa"
+                                  type="button"
+                                  variant="destructive"
+                                  appearance="ghost"
+                                  mode="icon"
+                                  size="sm"
+                                  onClick={() => handleDeleteRow(index)}
+                                >
+                                  <Trash2 />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          ) : null}
                         </TableRow>
                       );
                     })
@@ -602,7 +634,7 @@ export function MaterialReceiptLinesEditorTable({
           ) : null}
         </div>
 
-        {selectedIndexes.length > 0 && (
+        {!readOnly && selectedIndexes.length > 0 && (
           <SelectionActionBar
             ariaLabel={intl.formatMessage({
               id: 'editorTable.selection.toolbar',
@@ -734,11 +766,13 @@ export function MaterialReceiptLinesEditorTable({
             }
           />
         )}
-        <MaterialModelSelectionDialog
-          open={isModelSelectionOpen}
-          onOpenChange={setIsModelSelectionOpen}
-          onConfirm={handleModelsConfirm}
-        />
+        {!readOnly ? (
+          <MaterialModelSelectionDialog
+            open={isModelSelectionOpen}
+            onOpenChange={setIsModelSelectionOpen}
+            onConfirm={handleModelsConfirm}
+          />
+        ) : null}
       </>
     </DataGridProvider>
   );

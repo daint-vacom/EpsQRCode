@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import type { Custodian } from '@/project/custodians/model/custodian';
+import { useHandoversQuery } from '@/project/handover/hooks/use-handovers';
+import {
+  HANDOVER_DOCUMENT_COLUMN_PINNING,
+  useHandoverDocumentColumns,
+} from '@/project/handover/table/handover.columns.generated';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import {
@@ -10,7 +16,9 @@ import {
 import { MaterialSpreadsheetImportDialog } from '@/project/materials/components/material-spreadsheet-dialog';
 import type { MaterialSpreadsheetImportDraftRow } from '@/project/materials/spreadsheet/material-spreadsheet-import';
 import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
-import { ClipboardPlus, Save, Upload } from 'lucide-react';
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import type { PaginationState } from '@tanstack/react-table';
+import { ClipboardPlus, LoaderCircle, Save, Upload } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import type { IntlShape } from 'react-intl';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -18,11 +26,24 @@ import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTable,
+  CardTitle,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DataGrid } from '@/components/ui/data-grid';
+import { DataGridPagination } from '@/components/ui/data-grid-pagination';
+import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -31,6 +52,17 @@ import {
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import type { SelectOption } from '@/components/ui/option-select';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  Stepper,
+  StepperContent,
+  StepperIndicator,
+  StepperItem,
+  StepperNav,
+  StepperSeparator,
+  StepperTitle,
+  StepperTrigger,
+} from '@/components/ui/stepper';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MaterialReceiptLineMaterialDrawer } from '../components/material-receipt-line-material-drawer';
 import { MaterialReceiptRecipientDialog } from '../components/material-receipt-recipient-dialog';
@@ -41,8 +73,10 @@ import {
 } from '../forms/material-receipt-form.generated';
 import {
   useApplyMaterialReceiptAdjustmentMutation,
+  useApplyMaterialReceiptInlineUpdateMutation,
   useImportMaterialReceiptFromExcelMutation,
   useMaterialReceiptAdjustmentPreviewMutation,
+  useMaterialReceiptInlineUpdatePreviewMutation,
   useMaterialReceiptQuery,
   useMaterialReceiptRecipientOptionsQuery,
   useSaveMaterialReceiptMutation,
@@ -50,6 +84,7 @@ import {
 import type {
   MaterialReceiptAdjustmentPreview,
   MaterialReceiptFormValues,
+  MaterialReceiptInlineUpdatePreview,
   MaterialReceiptLineInput,
   MaterialReceiptRepresentativeInput,
 } from '../model/material-receipt';
@@ -99,15 +134,18 @@ export function MaterialReceiptEditorPage() {
   const intl = useIntl();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isAdjustment = searchParams.get('adjust') === '1';
   const { userId, hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
+  const canView = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
+  const canRead = canView || canManage;
   const form = useMaterialReceiptForm();
+  const hasUnsavedChanges = form.formState.isDirty;
   const query = useMaterialReceiptQuery(
     id,
-    Boolean(id) && (isPermissionsPending || canManage),
+    Boolean(id) && (isPermissionsPending || canRead),
   );
   const warehousesQuery = useWarehousesQuery(
     false,
@@ -118,14 +156,29 @@ export function MaterialReceiptEditorPage() {
     selectedWarehouseId || null,
     !isPermissionsPending && canManage,
   );
-  const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canManage);
+  const custodianDirectoryQuery = useCustodiansQuery(
+    true,
+    isPermissionsPending || canRead,
+  );
+  const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canRead);
   const saveMutation = useSaveMaterialReceiptMutation();
   const excelImportMutation = useImportMaterialReceiptFromExcelMutation();
   const previewMutation = useMaterialReceiptAdjustmentPreviewMutation();
   const applyMutation = useApplyMaterialReceiptAdjustmentMutation();
+  const inlinePreviewMutation = useMaterialReceiptInlineUpdatePreviewMutation();
+  const inlineApplyMutation = useApplyMaterialReceiptInlineUpdateMutation();
   const [adjustmentReason, setAdjustmentReason] = useState('');
-  const [preview, setPreview] =
-    useState<MaterialReceiptAdjustmentPreview | null>(null);
+  const [activeStep, setActiveStep] = useState(
+    searchParams.get('step') === '2' ? 2 : 1,
+  );
+  const [confirmStepOpen, setConfirmStepOpen] = useState(false);
+  const [handoverPagination, setHandoverPagination] = useState<PaginationState>(
+    { pageIndex: 0, pageSize: 20 },
+  );
+  const [preview, setPreview] = useState<
+    MaterialReceiptAdjustmentPreview | MaterialReceiptInlineUpdatePreview | null
+  >(null);
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [previewLines, setPreviewLines] = useState<MaterialReceiptLineInput[]>(
     [],
   );
@@ -152,25 +205,63 @@ export function MaterialReceiptEditorPage() {
   >(() => new Set());
   const loadedId = useRef('');
   const receipt = query.data;
+  const readOnly = Boolean(
+    !canManage ||
+    (receipt &&
+      !isAdjustment &&
+      receipt.status !== 'draft' &&
+      receipt.status !== 'handover'),
+  );
+  const handoversQuery = useHandoversQuery(
+    {
+      receiptId: id || undefined,
+      page: handoverPagination.pageIndex + 1,
+      pageSize: handoverPagination.pageSize,
+    },
+    Boolean(id) && activeStep === 2 && canRead,
+  );
+  const handovers = handoversQuery.data?.items ?? [];
+  const noOpViewHandover = useCallback(() => {}, []);
+  const handoverColumns = useHandoverDocumentColumns({
+    onView: noOpViewHandover,
+  });
+  const handoversTable = useReactTable({
+    data: handovers,
+    columns: handoverColumns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    pageCount: Math.ceil(
+      (handoversQuery.data?.total ?? 0) / handoverPagination.pageSize,
+    ),
+    state: {
+      columnPinning: HANDOVER_DOCUMENT_COLUMN_PINNING,
+      columnVisibility: { actions: false },
+      pagination: handoverPagination,
+    },
+    onPaginationChange: setHandoverPagination,
+  });
   const warehouses = warehousesQuery.data ?? [];
   const custodians = useMemo<Custodian[]>(
     () =>
-      (recipientOptionsQuery.data ?? []).map((party) => ({
-        ...party,
-        sourceType: null,
-        sourceId: null,
-        canRepresent: false,
-        canManageMaterial: false,
-        canManageHandover: false,
-        accountUserId: null,
-        accountUserIds: [],
-        representativeUserId: null,
-        representativeDisplayName: null,
-        isActive: true,
-        createdAt: '',
-        updatedAt: '',
-      })),
-    [recipientOptionsQuery.data],
+      recipientOptionsQuery.data
+        ? recipientOptionsQuery.data.map((party) => ({
+            ...party,
+            sourceType: null,
+            sourceId: null,
+            canRepresent: false,
+            canManageMaterial: false,
+            canManageHandover: false,
+            accountUserId: null,
+            accountUserIds: [],
+            representativeUserId: null,
+            representativeDisplayName: null,
+            isActive: true,
+            createdAt: '',
+            updatedAt: '',
+          }))
+        : (custodianDirectoryQuery.data ?? []),
+    [custodianDirectoryQuery.data, recipientOptionsQuery.data],
   );
   const eligibleReceivingParties = useMemo(
     () => custodians.filter((party) => party.isActive),
@@ -221,24 +312,42 @@ export function MaterialReceiptEditorPage() {
     saveMutation.isPending ||
     excelImportMutation.isPending ||
     previewMutation.isPending ||
-    applyMutation.isPending;
-  const hasExcelImportDraftLines = form
-    .watch('lines')
-    .some((line) => Boolean(excelImportLines[line.clientId]));
+    applyMutation.isPending ||
+    inlinePreviewMutation.isPending ||
+    inlineApplyMutation.isPending;
+  const previewPending =
+    previewMutation.isPending || inlinePreviewMutation.isPending;
+  const previewDialogProcessing =
+    previewPending || (inlineApplyMutation.isPending && preview === null);
   const watchedLines = form.watch('lines');
+  const totalMaterialCount = watchedLines.reduce(
+    (total, line) => total + Math.max(0, Number(line.quantity) || 0),
+    0,
+  );
+  const allocationPercent = receipt?.totalItems
+    ? Math.min(
+        100,
+        Math.floor(
+          ((receipt.receivedItems + receipt.pendingAllocationItems) /
+            receipt.totalItems) *
+            100,
+        ),
+      )
+    : 0;
+  const allocationBadgeVariant =
+    allocationPercent === 0
+      ? 'destructive'
+      : allocationPercent === 100
+        ? 'success'
+        : 'warning';
   const activeReceivingLine = watchedLines.find(
     (line) => line.clientId === activeReceivingLineClientId,
   );
   const pageReady =
     !isPermissionsPending && (!id || (!query.isPending && Boolean(receipt)));
   const navigateBack = useCallback(
-    () =>
-      navigate(
-        id
-          ? ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', id)
-          : ROUTES.PROJECT.RECEIPTS,
-      ),
-    [id, navigate],
+    () => navigate(ROUTES.PROJECT.RECEIPTS),
+    [navigate],
   );
   const handleImportToReceipt = useCallback(
     (rows: MaterialSpreadsheetImportDraftRow[]) => {
@@ -340,8 +449,125 @@ export function MaterialReceiptEditorPage() {
     loadedId.current = receipt.id;
   }, [form, receipt]);
 
-  const onSubmit = (values: MaterialReceiptFormValues) => {
+  useEffect(() => {
+    if (
+      !receipt ||
+      isAdjustment ||
+      searchParams.has('step') ||
+      receipt.status !== 'handover'
+    ) {
+      return;
+    }
+    setActiveStep(2);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set('step', '2');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [isAdjustment, receipt, searchParams, setSearchParams]);
+
+  const applyInlineUpdate = (
+    result: MaterialReceiptInlineUpdatePreview,
+    lines: MaterialReceiptLineInput[],
+  ) => {
+    if (!receipt) return;
+    inlineApplyMutation.mutate(
+      {
+        id: receipt.id,
+        expectedVersion: receipt.version,
+        previewToken: result.previewToken,
+        warehouseId: result.warehouseId,
+        note: form.getValues('note'),
+        lines,
+        cancelHandoverIds: result.affectedHandovers.map(
+          (handover) => handover.id,
+        ),
+      },
+      {
+        onSuccess: async () => {
+          const refreshedReceipt = await query.refetch();
+          if (
+            refreshedReceipt.data &&
+            refreshedReceipt.data.version > receipt.version
+          ) {
+            form.reset(mapMaterialReceiptToFormValues(refreshedReceipt.data));
+            setRepresentatives(
+              Object.fromEntries(
+                refreshedReceipt.data.lines.flatMap((line) =>
+                  line.representative
+                    ? [
+                        [
+                          line.id,
+                          {
+                            materialValues: line.representative.materialValues,
+                            images: line.representative.images,
+                            publicDisplaySettings:
+                              line.representative.publicDisplaySettings,
+                            publicSpecificationSettings:
+                              line.representative.publicSpecificationSettings,
+                          },
+                        ],
+                      ]
+                    : [],
+                ),
+              ),
+            );
+          } else if (refreshedReceipt.isError) {
+            toast.error(getApiErrorMessage(refreshedReceipt.error));
+          }
+          toast.success(
+            intl.formatMessage({ id: 'receipts.toasts.inlineUpdated' }),
+          );
+          setPreview(null);
+          setPreviewDialogOpen(false);
+          setConfirmStepOpen(false);
+          setActiveStep(2);
+          setSearchParams(
+            (current) => {
+              const next = new URLSearchParams(current);
+              next.set('step', '2');
+              return next;
+            },
+            { replace: true },
+          );
+        },
+        onError: (error) => {
+          setPreview(result);
+          toast.error(getApiErrorMessage(error));
+        },
+      },
+    );
+  };
+
+  const onSubmit = (
+    values: MaterialReceiptFormValues,
+    afterStepConfirmation = false,
+  ) => {
     if (!canManage) return;
+    if (!isAdjustment && receipt?.status === 'handover' && !hasUnsavedChanges) {
+      setConfirmStepOpen(false);
+      setActiveStep(2);
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set('step', '2');
+          return next;
+        },
+        { replace: true },
+      );
+      return;
+    }
+    if (
+      !isAdjustment &&
+      !afterStepConfirmation &&
+      receipt?.status !== 'handover'
+    ) {
+      setConfirmStepOpen(true);
+      return;
+    }
     const selectedWarehouse = warehouses.find(
       (warehouse) => warehouse.id === values.warehouseId,
     );
@@ -369,10 +595,41 @@ export function MaterialReceiptEditorPage() {
     );
     const lines = toMaterialReceiptLineInputs(
       values,
-      isAdjustment,
-      false,
+      isAdjustment || receipt?.status === 'handover',
+      receipt?.status === 'handover',
       representativesForReceipt,
     );
+    if (!isAdjustment && receipt?.status === 'handover') {
+      setPreview(null);
+      setPreviewDialogOpen(true);
+      inlinePreviewMutation.mutate(
+        {
+          id: receipt.id,
+          expectedVersion: receipt.version,
+          warehouseId: values.warehouseId,
+          lines,
+        },
+        {
+          onSuccess: (result) => {
+            setPreviewLines(lines);
+            setConfirmedHandoverIds(new Set());
+            if (
+              result.affectedHandovers.length === 0 &&
+              result.blockedItems.length === 0
+            ) {
+              applyInlineUpdate(result, lines);
+            } else {
+              setPreview(result);
+            }
+          },
+          onError: (error) => {
+            setPreviewDialogOpen(false);
+            toast.error(getApiErrorMessage(error));
+          },
+        },
+      );
+      return;
+    }
     if (isAdjustment) {
       if (!adjustmentReason.trim()) {
         toast.error(
@@ -381,6 +638,8 @@ export function MaterialReceiptEditorPage() {
         return;
       }
       if (!receipt) return;
+      setPreview(null);
+      setPreviewDialogOpen(true);
       previewMutation.mutate(
         { id: receipt.id, expectedVersion: receipt.version, lines },
         {
@@ -389,7 +648,10 @@ export function MaterialReceiptEditorPage() {
             setPreviewLines(lines);
             setConfirmedHandoverIds(new Set());
           },
-          onError: (error) => toast.error(getApiErrorMessage(error)),
+          onError: (error) => {
+            setPreviewDialogOpen(false);
+            toast.error(getApiErrorMessage(error));
+          },
         },
       );
       return;
@@ -454,7 +716,11 @@ export function MaterialReceiptEditorPage() {
             toast.success(
               intl.formatMessage({ id: 'receipts.toasts.importedFromExcel' }),
             );
-            navigate(ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', savedId));
+            setActiveStep(2);
+            navigate(
+              `${ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', savedId)}?step=2`,
+              { replace: true },
+            );
           },
           onError: (error) =>
             toast.error(getExcelImportErrorMessage(error, intl)),
@@ -486,7 +752,23 @@ export function MaterialReceiptEditorPage() {
                 : 'receipts.toasts.created',
             }),
           );
-          navigate(ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', savedId));
+          setConfirmStepOpen(false);
+          setActiveStep(2);
+          if (id) {
+            setSearchParams(
+              (current) => {
+                const next = new URLSearchParams(current);
+                next.set('step', '2');
+                return next;
+              },
+              { replace: true },
+            );
+          } else {
+            navigate(
+              `${ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', savedId)}?step=2`,
+              { replace: true },
+            );
+          }
         },
         onError: (error) => toast.error(getApiErrorMessage(error)),
       },
@@ -502,46 +784,46 @@ export function MaterialReceiptEditorPage() {
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'receipts.actions.back' }),
       onBack: navigateBack,
-      actions: (
-        <div className="flex flex-wrap gap-2">
-          {canManage ? (
-            <Button
-              type="submit"
-              form="materialReceipt-form"
-              variant="primary"
-              size="md"
-              loading={saveBusy}
-              loadingText={intl.formatMessage({
-                id: isAdjustment
-                  ? 'receipts.actions.previewAdjustment'
-                  : hasExcelImportDraftLines
-                    ? 'receipts.actions.recordExcelReceipt'
-                    : 'receipts.actions.saveDraft',
-              })}
-              disabled={isAdjustment && !adjustmentReason.trim()}
-            >
-              <Save className="size-4" />
-              {intl.formatMessage({
-                id: isAdjustment
-                  ? 'receipts.actions.previewAdjustment'
-                  : hasExcelImportDraftLines
-                    ? 'receipts.actions.recordExcelReceipt'
-                    : 'receipts.actions.saveDraft',
-              })}
-            </Button>
-          ) : null}
-        </div>
-      ),
+      actions:
+        isAdjustment || activeStep === 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {!readOnly ? (
+              <Button
+                type="submit"
+                form="materialReceipt-form"
+                variant="primary"
+                size="md"
+                loading={
+                  saveMutation.isPending || excelImportMutation.isPending
+                }
+                loadingText={intl.formatMessage({
+                  id: isAdjustment
+                    ? 'receipts.actions.previewAdjustment'
+                    : 'receipts.handover.steps.saveAndContinue',
+                })}
+                disabled={isAdjustment && !adjustmentReason.trim()}
+              >
+                <Save className="size-4" />
+                {intl.formatMessage({
+                  id: isAdjustment
+                    ? 'receipts.actions.previewAdjustment'
+                    : 'receipts.handover.steps.saveAndContinue',
+                })}
+              </Button>
+            ) : null}
+          </div>
+        ) : null,
     }),
     [
       adjustmentReason,
-      canManage,
+      readOnly,
       intl,
       isAdjustment,
       navigateBack,
       receipt?.code,
-      saveBusy,
-      hasExcelImportDraftLines,
+      saveMutation.isPending,
+      excelImportMutation.isPending,
+      activeStep,
     ],
   );
   useDetailEntryLayoutHeader(header);
@@ -553,7 +835,7 @@ export function MaterialReceiptEditorPage() {
       </div>
     );
   }
-  if (!canManage) {
+  if (!canRead) {
     return (
       <div className="p-4">
         <ErrorState
@@ -583,18 +865,6 @@ export function MaterialReceiptEditorPage() {
   }
   if (!pageReady)
     return <div className="h-full min-h-0 animate-pulse bg-muted" />;
-  if (receipt && !isAdjustment && receipt.status !== 'draft') {
-    return (
-      <div className="p-4">
-        <ErrorState
-          title={intl.formatMessage({ id: 'receipts.errors.editDraftOnly' })}
-          description={intl.formatMessage({
-            id: 'receipts.errors.editDraftOnly',
-          })}
-        />
-      </div>
-    );
-  }
   if (receipt && isAdjustment && receipt.status !== 'handover') {
     return (
       <div className="p-4">
@@ -617,8 +887,34 @@ export function MaterialReceiptEditorPage() {
     (model) => model.id === selectedDrawerFormLine?.modelId,
   );
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 lg:p-5">
+  const receiptDetailsCard = (
+    <Card className="shrink-0">
+      <CardHeader>
+        <CardTitle>
+          {intl.formatMessage({ id: 'receipts.tabs.details' })}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {warehousesQuery.isError ? (
+          <ErrorState
+            title={intl.formatMessage({ id: 'warehouses.errors.loadTitle' })}
+            description={getApiErrorMessage(warehousesQuery.error)}
+            onRetry={() => void warehousesQuery.refetch()}
+          />
+        ) : null}
+        <MaterialReceiptHeaderForm
+          form={form}
+          onSubmit={(values) => onSubmit(values)}
+          warehouses={warehouses}
+          readOnly={readOnly}
+          warehouseName={receipt?.warehouse.name}
+        />
+      </CardContent>
+    </Card>
+  );
+
+  const editorContent = (
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-4">
       {isAdjustment ? (
         <div className="grid gap-3 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-center">
           <label
@@ -636,28 +932,7 @@ export function MaterialReceiptEditorPage() {
           />
         </div>
       ) : null}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {intl.formatMessage({ id: 'receipts.tabs.details' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {warehousesQuery.isError ? (
-            <ErrorState
-              title={intl.formatMessage({ id: 'warehouses.errors.loadTitle' })}
-              description={getApiErrorMessage(warehousesQuery.error)}
-              onRetry={() => void warehousesQuery.refetch()}
-            />
-          ) : null}
-          <MaterialReceiptHeaderForm
-            form={form}
-            onSubmit={(values) => onSubmit(values)}
-            warehouses={warehouses}
-          />
-        </CardContent>
-      </Card>
-      <Card className="min-h-[26rem] min-w-0 flex-1 overflow-hidden">
+      <Card className="min-h-0 min-w-0 flex-1 overflow-hidden">
         <MaterialReceiptLinesEditorTable
           form={form}
           createLine={createLine}
@@ -665,10 +940,11 @@ export function MaterialReceiptEditorPage() {
           materialNameByClientId={materialNameByClientId}
           receivingParties={custodians}
           receivingPartySelectionDisabled={
-            isAdjustment || !canManage || !selectedWarehouseId || saveBusy
+            isAdjustment || readOnly || !selectedWarehouseId || saveBusy
           }
+          readOnly={readOnly}
           toolbarContent={
-            !id && !isAdjustment ? (
+            !id && !isAdjustment && !readOnly ? (
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
@@ -741,7 +1017,7 @@ export function MaterialReceiptEditorPage() {
               }
             : null
         }
-        readOnly={isAdjustment}
+        readOnly={isAdjustment || readOnly}
         isSaving={saveBusy}
         onSave={(representative) => {
           if (activeMaterialLine === null) return;
@@ -815,155 +1091,376 @@ export function MaterialReceiptEditorPage() {
         }}
       />
       <Dialog
-        open={preview !== null}
-        onOpenChange={(open) =>
-          !open && !applyMutation.isPending && setPreview(null)
-        }
+        open={previewDialogOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setPreviewDialogOpen(true);
+          } else if (!saveBusy) {
+            setPreview(null);
+            setPreviewDialogOpen(false);
+          }
+        }}
       >
-        <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[88vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 space-y-1.5 px-6 py-5 pe-14 text-start">
             <DialogTitle>
-              {intl.formatMessage({ id: 'receipts.dialogs.adjustmentTitle' })}
+              {intl.formatMessage({
+                id:
+                  receipt?.status === 'handover' && !isAdjustment
+                    ? 'receipts.dialogs.inlineUpdateTitle'
+                    : 'receipts.dialogs.adjustmentTitle',
+              })}
             </DialogTitle>
           </DialogHeader>
-          {preview ? (
-            <div className="space-y-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Summary
-                  label={intl.formatMessage({
-                    id: 'receipts.adjustment.addCount',
-                  })}
-                  value={String(preview.addCount)}
-                />
-                <Summary
-                  label={intl.formatMessage({
-                    id: 'receipts.adjustment.removeCount',
-                  })}
-                  value={String(preview.removeCount)}
-                />
-              </div>
-              <section>
-                <h3 className="text-sm font-semibold">
-                  {intl.formatMessage({
-                    id: 'receipts.adjustment.affectedHandovers',
-                  })}
-                </h3>
-                {preview.affectedHandovers.length ? (
-                  <div className="mt-2 space-y-2">
-                    {preview.affectedHandovers.map((handover) => (
-                      <label
-                        key={handover.id}
-                        className="flex items-start gap-3 rounded-md border border-border p-3 text-sm"
-                      >
-                        <Checkbox
-                          checked={confirmedHandoverIds.has(handover.id)}
-                          onCheckedChange={(checked) =>
-                            setConfirmedHandoverIds((current) => {
-                              const next = new Set(current);
-                              if (checked === true) next.add(handover.id);
-                              else next.delete(handover.id);
-                              return next;
-                            })
-                          }
-                        />
-                        <span>
-                          {handover.code} ·{' '}
-                          {intl.formatMessage({
-                            id: `project.handover.status.${handover.status}`,
-                          })}
-                          <span className="mt-1 block text-xs text-muted-foreground">
-                            {intl.formatMessage({
-                              id: 'receipts.adjustment.confirmHandover',
-                            })}
-                          </span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm text-muted-foreground">
+          <DialogBody className="min-h-0 overflow-y-auto px-6 pb-5">
+            {preview ? (
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Summary
+                    label={intl.formatMessage({
+                      id: 'receipts.adjustment.addCount',
+                    })}
+                    value={String(preview.addCount)}
+                  />
+                  <Summary
+                    label={intl.formatMessage({
+                      id: 'receipts.adjustment.removeCount',
+                    })}
+                    value={String(preview.removeCount)}
+                  />
+                </div>
+                {'warehouseChanged' in preview && preview.warehouseChanged ? (
+                  <p className="text-sm text-muted-foreground">
                     {intl.formatMessage({
-                      id: 'receipts.adjustment.keepHandovers',
+                      id: 'receipts.inlineUpdate.warehouseChanged',
                     })}
                   </p>
-                )}
-              </section>
-              {preview.blockedItems.length ? (
+                ) : null}
                 <section>
-                  <h3 className="text-sm font-semibold text-destructive">
+                  <h3 className="text-sm font-semibold">
                     {intl.formatMessage({
-                      id: 'receipts.adjustment.blockedItems',
+                      id: 'receipts.adjustment.affectedHandovers',
                     })}
                   </h3>
-                  <ul className="mt-2 space-y-1 text-sm">
-                    {preview.blockedItems.map((item) => (
-                      <li key={item.receiptItemId}>
-                        {item.code} · {item.reason}
-                      </li>
-                    ))}
-                  </ul>
+                  {preview.affectedHandovers.length > 0 &&
+                  receipt?.status === 'handover' &&
+                  !isAdjustment ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {intl.formatMessage({
+                        id: 'receipts.inlineUpdate.pendingWarning',
+                      })}
+                    </p>
+                  ) : null}
+                  {preview.affectedHandovers.length ? (
+                    <div className="mt-2 space-y-2">
+                      {preview.affectedHandovers.map((handover) => (
+                        <label
+                          key={handover.id}
+                          className="flex items-start gap-3 rounded-md border border-border p-3 text-sm"
+                        >
+                          <Checkbox
+                            checked={confirmedHandoverIds.has(handover.id)}
+                            onCheckedChange={(checked) =>
+                              setConfirmedHandoverIds((current) => {
+                                const next = new Set(current);
+                                if (checked === true) next.add(handover.id);
+                                else next.delete(handover.id);
+                                return next;
+                              })
+                            }
+                          />
+                          <span>
+                            {handover.code} ·{' '}
+                            {intl.formatMessage({
+                              id: `project.handover.status.${handover.status}`,
+                            })}
+                            <span className="mt-1 block text-xs text-muted-foreground">
+                              {intl.formatMessage({
+                                id: 'receipts.adjustment.confirmHandover',
+                              })}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {intl.formatMessage({
+                        id: 'receipts.adjustment.keepHandovers',
+                      })}
+                    </p>
+                  )}
                 </section>
-              ) : null}
-              <p className="text-sm text-muted-foreground">
-                {intl.formatMessage({ id: 'receipts.adjustment.reload' })}
-              </p>
-            </div>
-          ) : null}
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPreview(null)}
-            >
-              {intl.formatMessage({ id: 'common.actions.cancel' })}
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              loading={applyMutation.isPending}
-              loadingText={intl.formatMessage({
-                id: 'receipts.actions.applyAdjustment',
-              })}
-              disabled={
-                !preview ||
-                preview.blockedItems.length > 0 ||
-                confirmedHandoverIds.size !== preview.affectedHandovers.length
-              }
-              onClick={() => {
-                if (!receipt || !preview) return;
-                applyMutation.mutate(
-                  {
-                    id: receipt.id,
-                    expectedVersion: receipt.version,
-                    previewToken: preview.previewToken,
-                    lines: previewLines,
-                    reason: adjustmentReason.trim(),
-                    cancelHandoverIds: preview.affectedHandovers.map(
-                      (handover) => handover.id,
-                    ),
-                  },
-                  {
-                    onSuccess: () => {
-                      toast.success(
-                        intl.formatMessage({ id: 'receipts.toasts.adjusted' }),
-                      );
-                      navigate(
-                        ROUTES.PROJECT.RECEIPT_DETAIL.replace(
-                          ':id',
-                          receipt.id,
-                        ),
-                      );
+                {preview.blockedItems.length ? (
+                  <section>
+                    <h3 className="text-sm font-semibold text-destructive">
+                      {intl.formatMessage({
+                        id: 'receipts.adjustment.blockedItems',
+                      })}
+                    </h3>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {preview.blockedItems.map((item) => (
+                        <li key={item.receiptItemId}>
+                          {item.code} · {item.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+                {preview.blockedItems.length ? (
+                  <p className="text-sm text-destructive">
+                    {intl.formatMessage({
+                      id: 'receipts.inlineUpdate.blockedDescription',
+                    })}
+                  </p>
+                ) : null}
+              </div>
+            ) : previewDialogProcessing ? (
+              <div
+                className="flex min-h-28 items-center justify-center gap-3 text-sm text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <LoaderCircle className="size-5 animate-spin" />
+                {intl.formatMessage({
+                  id:
+                    previewPending || applyMutation.isPending
+                      ? 'receipts.inlineUpdate.checking'
+                      : 'receipts.inlineUpdate.saving',
+                })}
+              </div>
+            ) : null}
+          </DialogBody>
+          {!previewDialogProcessing ? (
+            <DialogFooter className="shrink-0 px-6 py-4">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={saveBusy}
+                onClick={() => {
+                  setPreview(null);
+                  setPreviewDialogOpen(false);
+                }}
+              >
+                {intl.formatMessage({ id: 'common.actions.cancel' })}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                loading={
+                  applyMutation.isPending || inlineApplyMutation.isPending
+                }
+                loadingText={intl.formatMessage({
+                  id:
+                    receipt?.status === 'handover' && !isAdjustment
+                      ? 'receipts.inlineUpdate.apply'
+                      : 'receipts.actions.applyAdjustment',
+                })}
+                disabled={
+                  !preview ||
+                  saveBusy ||
+                  preview.blockedItems.length > 0 ||
+                  confirmedHandoverIds.size !== preview.affectedHandovers.length
+                }
+                onClick={() => {
+                  if (!receipt || !preview) return;
+                  if (receipt.status === 'handover' && !isAdjustment) {
+                    if (!('warehouseId' in preview)) return;
+                    applyInlineUpdate(preview, previewLines);
+                    return;
+                  }
+                  applyMutation.mutate(
+                    {
+                      id: receipt.id,
+                      expectedVersion: receipt.version,
+                      previewToken: preview.previewToken,
+                      lines: previewLines,
+                      reason: adjustmentReason.trim(),
+                      cancelHandoverIds: preview.affectedHandovers.map(
+                        (handover) => handover.id,
+                      ),
                     },
-                    onError: (error) => toast.error(getApiErrorMessage(error)),
-                  },
-                );
-              }}
-            >
-              {intl.formatMessage({ id: 'receipts.actions.applyAdjustment' })}
-            </Button>
-          </DialogFooter>
+                    {
+                      onSuccess: () => {
+                        toast.success(
+                          intl.formatMessage({
+                            id: 'receipts.toasts.adjusted',
+                          }),
+                        );
+                        navigate(
+                          ROUTES.PROJECT.RECEIPT_DETAIL.replace(
+                            ':id',
+                            receipt.id,
+                          ),
+                        );
+                      },
+                      onError: (error) =>
+                        toast.error(getApiErrorMessage(error)),
+                    },
+                  );
+                }}
+              >
+                {intl.formatMessage({
+                  id:
+                    receipt?.status === 'handover' && !isAdjustment
+                      ? 'receipts.inlineUpdate.apply'
+                      : 'receipts.actions.applyAdjustment',
+                })}
+              </Button>
+            </DialogFooter>
+          ) : null}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+
+  const confirmSaveAndContinue = () => {
+    void form.handleSubmit((values) => onSubmit(values, true))();
+  };
+
+  return (
+    <div className="flex min-h-full flex-col gap-4 p-4 lg:p-5">
+      {receiptDetailsCard}
+      {isAdjustment ? (
+        editorContent
+      ) : (
+        <Stepper
+          value={activeStep}
+          variant="success"
+          onValueChange={(step) => {
+            if (step === 1) {
+              setActiveStep(1);
+              setSearchParams(
+                (current) => {
+                  const next = new URLSearchParams(current);
+                  next.set('step', '1');
+                  return next;
+                },
+                { replace: true },
+              );
+            } else if (step === 2 && activeStep !== 2) {
+              if (readOnly) {
+                setActiveStep(2);
+                setSearchParams(
+                  (current) => {
+                    const next = new URLSearchParams(current);
+                    next.set('step', '2');
+                    return next;
+                  },
+                  { replace: true },
+                );
+              } else {
+                if (receipt?.status === 'handover') {
+                  confirmSaveAndContinue();
+                } else {
+                  setConfirmStepOpen(true);
+                }
+              }
+            }
+          }}
+          className="flex h-[calc(100dvh-5rem)] flex-none flex-col gap-4"
+        >
+          <StepperNav className="shrink-0 justify-center py-4">
+            <StepperItem step={1} fill={false}>
+              <StepperTrigger>
+                <StepperIndicator className="data-[state=inactive]:bg-border data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:ring-offset-background">
+                  1
+                </StepperIndicator>
+                <StepperTitle>
+                  {intl.formatMessage({
+                    id: 'receipts.handover.steps.items',
+                  })}
+                </StepperTitle>
+                <Badge variant="primary" size="md">
+                  {intl.formatMessage(
+                    { id: 'receipts.handover.steps.materialCount' },
+                    { count: totalMaterialCount },
+                  )}
+                </Badge>
+              </StepperTrigger>
+              <StepperSeparator
+                className={`mx-4 my-0 h-0 w-12 flex-none border-t border-dashed ${activeStep === 2 ? 'border-[var(--color-success-accent,var(--color-green-600))]' : 'border-border'} bg-transparent`}
+              />
+            </StepperItem>
+            <StepperItem step={2} fill={false}>
+              <StepperTrigger>
+                <StepperIndicator className="data-[state=inactive]:bg-border data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:ring-offset-background">
+                  2
+                </StepperIndicator>
+                <StepperTitle>
+                  {intl.formatMessage({
+                    id: 'receipts.handover.steps.allocation',
+                  })}
+                </StepperTitle>
+                <Badge variant={allocationBadgeVariant} size="md">
+                  {intl.formatMessage(
+                    { id: 'receipts.handover.steps.allocationProgress' },
+                    { percent: allocationPercent },
+                  )}
+                </Badge>
+              </StepperTrigger>
+            </StepperItem>
+          </StepperNav>
+          <StepperContent value={1} className="flex min-h-0 flex-1 flex-col">
+            {editorContent}
+          </StepperContent>
+          <StepperContent value={2} className="flex min-h-0 flex-1 flex-col">
+            <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+              <CardHeader>
+                <CardTitle>
+                  {intl.formatMessage({ id: 'receipts.tabs.handovers' })}
+                </CardTitle>
+              </CardHeader>
+              <DataGrid
+                table={handoversTable}
+                recordCount={handoversQuery.data?.total ?? 0}
+                isLoading={handoversQuery.isPending}
+                isFetching={handoversQuery.isFetching}
+                emptyMessage={intl.formatMessage({
+                  id: 'receipts.empty.handovers',
+                })}
+              >
+                <CardTable className="min-h-0 flex-1">
+                  {handoversQuery.isError ? (
+                    <ErrorState
+                      title={intl.formatMessage({
+                        id: 'receipts.errors.loadHandoversTitle',
+                      })}
+                      description={getApiErrorMessage(handoversQuery.error)}
+                      onRetry={() => void handoversQuery.refetch()}
+                    />
+                  ) : (
+                    <ScrollArea className="h-full">
+                      <DataGridTable />
+                      <ScrollBar orientation="horizontal" />
+                    </ScrollArea>
+                  )}
+                </CardTable>
+                <CardFooter className="justify-between">
+                  {!handoversQuery.isError ? <DataGridPagination /> : null}
+                </CardFooter>
+              </DataGrid>
+            </Card>
+          </StepperContent>
+        </Stepper>
+      )}
+      <ConfirmDialog
+        open={confirmStepOpen}
+        onOpenChange={setConfirmStepOpen}
+        title={intl.formatMessage({
+          id: 'receipts.handover.steps.confirmTitle',
+        })}
+        description={intl.formatMessage({
+          id: 'receipts.handover.steps.confirmDescription',
+        })}
+        confirmLabel={intl.formatMessage({
+          id: 'receipts.handover.steps.confirmSave',
+        })}
+        cancelLabel={intl.formatMessage({ id: 'common.actions.cancel' })}
+        isConfirming={saveBusy}
+        closeOnConfirm={false}
+        onConfirm={confirmSaveAndContinue}
+      />
     </div>
   );
 }

@@ -1,0 +1,35 @@
+create or replace function public.list_handovers(p_filters jsonb default '{}'::jsonb)
+returns jsonb language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_page int := greatest(coalesce((p_filters->>'page')::int, 1), 1);
+  v_size int := least(greatest(coalesce((p_filters->>'pageSize')::int, 20), 1), 100);
+begin
+  if auth.uid() is null or not public.has_permission('materials:handover:view') then
+    raise exception 'Permission denied to view handovers' using errcode = '42501';
+  end if;
+  return (
+    with filtered as (
+      select handover.id, handover.created_at
+      from public.material_handovers handover
+      where public.can_view_handover(handover.id)
+        and (nullif(p_filters->>'search', '') is null or handover.code ilike '%' || btrim(p_filters->>'search') || '%')
+        and (nullif(p_filters->>'status', '') is null or handover.status = p_filters->>'status')
+        and (nullif(p_filters->>'type', '') is null or handover.type = p_filters->>'type')
+        and (nullif(p_filters->>'senderPartyId', '') is null or handover.sender_party_id = (p_filters->>'senderPartyId')::uuid)
+        and (nullif(p_filters->>'recipientPartyId', '') is null or handover.recipient_party_id = (p_filters->>'recipientPartyId')::uuid)
+        and (nullif(p_filters->>'receiptId', '') is null or handover.receipt_id = (p_filters->>'receiptId')::uuid)
+        and (nullif(p_filters->>'materialId', '') is null or exists (
+          select 1 from public.material_handover_items item
+          where item.handover_id = handover.id and item.material_id = (p_filters->>'materialId')::uuid
+        ))
+        and (nullif(p_filters->>'dateFrom', '') is null or handover.created_at >= (p_filters->>'dateFrom')::date)
+        and (nullif(p_filters->>'dateTo', '') is null or handover.created_at < (p_filters->>'dateTo')::date + 1)
+    )
+    select jsonb_build_object(
+      'items', coalesce((select jsonb_agg(private.scoped_handover_json(page.id) order by page.created_at desc, page.id)
+        from (select * from filtered order by created_at desc, id offset (v_page - 1) * v_size limit v_size) page), '[]'::jsonb),
+      'total', (select count(*) from filtered), 'page', v_page, 'pageSize', v_size
+    )
+  );
+end;
+$$;
