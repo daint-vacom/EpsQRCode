@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
+import type { Custodian } from '@/project/custodians/model/custodian';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import type { MaterialGroup } from '@/project/material-groups/model/material-group';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
@@ -20,6 +21,7 @@ import {
   getMaterialSpreadsheetExportFields,
   getMaterialSpreadsheetFields,
 } from '../spreadsheet/material-spreadsheet';
+import type { MaterialSpreadsheetImportDraftRow } from '../spreadsheet/material-spreadsheet-import';
 import { MaterialSpreadsheetExportDialogShell } from './material-spreadsheet-export-dialog-shell.generated';
 import {
   MaterialSpreadsheetExportPanel,
@@ -33,6 +35,14 @@ interface MaterialSpreadsheetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface MaterialSpreadsheetImportDialogProps extends MaterialSpreadsheetDialogProps {
+  onImportToDraft?: (rows: MaterialSpreadsheetImportDraftRow[]) => void;
+  receiptRecipientOptions?: Custodian[];
+  receiptRecipientOptionsLoading?: boolean;
+  receiptRecipientOptionsError?: boolean;
+  onRetryReceiptRecipientOptions?: () => void;
+}
+
 interface MaterialSpreadsheetExportDialogProps extends MaterialSpreadsheetDialogProps {
   filters: Omit<MaterialListFilters, 'page' | 'pageSize'>;
 }
@@ -40,15 +50,19 @@ interface MaterialSpreadsheetExportDialogProps extends MaterialSpreadsheetDialog
 function useMaterialSpreadsheetOptions(
   enabled: boolean,
   groups: MaterialGroup[] = [],
+  custodiansOverride?: Custodian[],
 ) {
   const intl = useIntl();
   const modelsQuery = useMaterialModelsQuery(enabled);
-  const custodiansQuery = useCustodiansQuery(false, enabled);
+  const custodiansQuery = useCustodiansQuery(
+    false,
+    enabled && !custodiansOverride,
+  );
   const capitalSourcesQuery = useMaterialCapitalSourcesQuery(enabled);
   const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);
   const custodians = useMemo(
-    () => custodiansQuery.data ?? [],
-    [custodiansQuery.data],
+    () => custodiansOverride ?? custodiansQuery.data ?? [],
+    [custodiansOverride, custodiansQuery.data],
   );
   const fields = useMemo(
     () =>
@@ -121,12 +135,25 @@ function CatalogState({
 export function MaterialSpreadsheetImportDialog({
   open,
   onOpenChange,
-}: MaterialSpreadsheetDialogProps) {
+  onImportToDraft,
+  receiptRecipientOptions,
+  receiptRecipientOptionsLoading,
+  receiptRecipientOptionsError,
+  onRetryReceiptRecipientOptions,
+}: MaterialSpreadsheetImportDialogProps) {
   const [importFooter, setImportFooter] = useState<ReactNode>(null);
   const [importStep, setImportStep] = useState(1);
   const handleImportFooterChange = useCallback(
     (footer: ReactNode | null) => setImportFooter(footer),
     [],
+  );
+  const handleImportToDraft = useCallback(
+    (rows: MaterialSpreadsheetImportDraftRow[]) => {
+      if (!onImportToDraft) return;
+      onImportToDraft(rows);
+      onOpenChange(false);
+    },
+    [onImportToDraft, onOpenChange],
   );
   useEffect(() => {
     if (!open) {
@@ -147,19 +174,27 @@ export function MaterialSpreadsheetImportDialog({
     modelsQuery,
     custodiansQuery,
     capitalSourcesQuery,
-  } = useMaterialSpreadsheetOptions(open, groupsQuery.data ?? []);
+  } = useMaterialSpreadsheetOptions(
+    open,
+    groupsQuery.data ?? [],
+    onImportToDraft ? (receiptRecipientOptions ?? []) : undefined,
+  );
   const specificationsQuery = useMaterialSpecificationsQuery(
     open && canCreateModels,
   );
   const catalogsLoading =
     modelsQuery.isPending ||
-    custodiansQuery.isPending ||
+    (onImportToDraft
+      ? Boolean(receiptRecipientOptionsLoading)
+      : custodiansQuery.isPending) ||
     capitalSourcesQuery.isPending ||
     (canCreateModels &&
       (groupsQuery.isPending || specificationsQuery.isPending));
   const catalogsError =
     modelsQuery.isError ||
-    custodiansQuery.isError ||
+    (onImportToDraft
+      ? Boolean(receiptRecipientOptionsError)
+      : custodiansQuery.isError) ||
     capitalSourcesQuery.isError ||
     (canCreateModels && (groupsQuery.isError || specificationsQuery.isError));
 
@@ -173,6 +208,7 @@ export function MaterialSpreadsheetImportDialog({
       {open ? (
         <MaterialSpreadsheetImportPanel
           open={open}
+          onImportToDraft={onImportToDraft ? handleImportToDraft : undefined}
           onFooterChange={handleImportFooterChange}
           onStepChange={setImportStep}
           fields={fields}
@@ -189,7 +225,8 @@ export function MaterialSpreadsheetImportDialog({
           onRetryGroups={() => void groupsQuery.refetch()}
           onRetryCatalogs={() => {
             void modelsQuery.refetch();
-            void custodiansQuery.refetch();
+            if (onImportToDraft) onRetryReceiptRecipientOptions?.();
+            else void custodiansQuery.refetch();
             void capitalSourcesQuery.refetch();
             if (canCreateModels) {
               void specificationsQuery.refetch();

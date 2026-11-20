@@ -1,3 +1,5 @@
+import { materialDashboardKeys } from '@/project/dashboard/hooks/use-material-dashboard';
+import { warehouseStockKeys } from '@/project/warehouse-stock/hooks/use-warehouse-stock';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
@@ -145,6 +147,8 @@ export function useWarehouseHandoverActionMutation() {
     onSuccess: (_result, input) => {
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
+      queryClient.invalidateQueries({ queryKey: warehouseStockKeys.all });
+      queryClient.invalidateQueries({ queryKey: materialDashboardKeys.all });
       queryClient.invalidateQueries({
         queryKey: handoverKeys.detail(input.id),
       });

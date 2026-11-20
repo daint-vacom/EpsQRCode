@@ -1,7 +1,9 @@
 import { MATERIAL_IMAGES_BUCKET } from '@/project/materials/api/materials.api';
 import {
   createSignedStorageUrl,
+  getStorageItem,
   removeStorageObjects,
+  setStorageItem,
   uploadStorageObject,
 } from '@/lib/storage';
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
@@ -14,6 +16,7 @@ import type {
   MaterialReceiptLineInput,
   MaterialReceiptListFilters,
   MaterialReceiptListResult,
+  MaterialReceiptRecipientOption,
   MaterialReceiptRepresentativeInput,
   MaterialReceiptSelectResult,
 } from '../model/material-receipt';
@@ -50,6 +53,20 @@ export async function loadMaterialReceiptOptions(
     supabaseApi.post(
       '/rpc/list_incomplete_material_receipt_options',
       { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialReceiptRecipientOptions(
+  warehouseId: string | null,
+  signal?: AbortSignal,
+): Promise<MaterialReceiptRecipientOption[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_material_receipt_recipient_options',
+      { p_warehouse_id: warehouseId },
       { signal },
     ),
   );
@@ -210,6 +227,190 @@ export async function saveMaterialReceipt(
     }
   }
   return savedId;
+}
+
+type MaterialReceiptExcelLineInput = MaterialReceiptLineInput & {
+  receivingPartyId: string | null;
+  items: Array<
+    MaterialReceiptLineInput['items'][number] & {
+      code?: string;
+      linkedCodes: Array<{ label: string; value: string }>;
+    }
+  >;
+};
+
+export interface MaterialReceiptExcelImportValues {
+  warehouseId: string;
+  note: string;
+  lines: MaterialReceiptExcelLineInput[];
+}
+
+const inMemoryReceiptImportRequestIds = new Map<string, string>();
+
+function toHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer), (value) =>
+    value.toString(16).padStart(2, '0'),
+  ).join('');
+}
+
+function isStorageObjectAlreadyPresent(error: unknown) {
+  if (typeof error !== 'object' || error === null || !('response' in error)) {
+    return false;
+  }
+  const response = (error as { response?: { status?: number } }).response;
+  return response?.status === 409;
+}
+
+async function materialReceiptImportFingerprint(
+  values: MaterialReceiptExcelImportValues,
+) {
+  const lines = await Promise.all(
+    values.lines.map(async (line) => ({
+      ...line,
+      representative: line.representative
+        ? {
+            ...line.representative,
+            images: await Promise.all(
+              line.representative.images.map(async (image) => ({
+                id: image.id,
+                fileName: image.file?.name ?? null,
+                fileType: image.file?.type ?? null,
+                storageBucket: image.storageBucket ?? null,
+                storagePath: image.storagePath ?? null,
+                externalUrl: image.externalUrl ?? null,
+                sortOrder: image.sortOrder,
+                isCover: image.isCover,
+                fileHash: image.file
+                  ? toHex(
+                      await crypto.subtle.digest(
+                        'SHA-256',
+                        await image.file.arrayBuffer(),
+                      ),
+                    )
+                  : null,
+              })),
+            ),
+          }
+        : undefined,
+    })),
+  );
+  const bytes = new TextEncoder().encode(
+    JSON.stringify({
+      warehouseId: values.warehouseId,
+      note: values.note,
+      lines,
+    }),
+  );
+  return toHex(await crypto.subtle.digest('SHA-256', bytes));
+}
+
+/** Saves an Excel receipt and its pending allocations in one idempotent RPC. */
+export async function importMaterialReceiptFromExcel(
+  actorUserId: string,
+  values: MaterialReceiptExcelImportValues,
+) {
+  assertSupabaseConfigured();
+  const fingerprint = await materialReceiptImportFingerprint(values);
+  const requestStorageKey = `material-receipt-excel-request:${actorUserId}:${fingerprint}`;
+  let requestId =
+    getStorageItem<string>(requestStorageKey) ??
+    inMemoryReceiptImportRequestIds.get(requestStorageKey);
+  if (!requestId) {
+    requestId = crypto.randomUUID();
+    inMemoryReceiptImportRequestIds.set(requestStorageKey, requestId);
+    setStorageItem(requestStorageKey, requestId);
+  }
+
+  const uploadedPaths: string[] = [];
+  const lines = await Promise.all(
+    values.lines.map(async (line, lineIndex) => {
+      const representative = line.representative;
+      if (!representative) return line;
+      const images = await Promise.all(
+        representative.images.map(async (image, imageIndex) => {
+          let storageBucket = image.storageBucket ?? null;
+          let storagePath = image.storagePath ?? null;
+          let externalUrl = image.externalUrl ?? null;
+          if (image.file) {
+            const safeName =
+              image.file.name.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(-100) ||
+              'image';
+            storageBucket = MATERIAL_IMAGES_BUCKET;
+            storagePath = `parties/${values.warehouseId}/objects/receipt-imports/${actorUserId}/${requestId}/line${lineIndex}-image${imageIndex}-${safeName}`;
+            externalUrl = null;
+            try {
+              await uploadStorageObject({
+                bucket: storageBucket,
+                path: storagePath,
+                file: image.file,
+              });
+            } catch (error) {
+              // A previous attempt with this content/request key may already
+              // have staged the file. The deterministic path binds that object
+              // to the same fingerprint, so a storage 409 is safe to reuse.
+              if (!isStorageObjectAlreadyPresent(error)) throw error;
+            }
+            uploadedPaths.push(storagePath);
+          }
+          return {
+            ...(image.id ? { id: image.id } : {}),
+            storageBucket,
+            storagePath,
+            externalUrl: storagePath ? null : externalUrl,
+            sortOrder: imageIndex,
+            isCover: image.isCover,
+          };
+        }),
+      );
+      return {
+        ...line,
+        representative: { ...representative, images },
+      };
+    }),
+  );
+
+  try {
+    const receiptId = await request<string>(
+      supabaseApi.post('/rpc/import_material_receipt_from_excel', {
+        p_request_id: requestId,
+        p_values: { ...values, lines },
+      }),
+    );
+    try {
+      globalThis.localStorage.removeItem(requestStorageKey);
+    } catch {
+      // The RPC result is authoritative if browser storage is unavailable.
+    }
+    inMemoryReceiptImportRequestIds.delete(requestStorageKey);
+    return receiptId;
+  } catch (error) {
+    const response =
+      typeof error === 'object' && error !== null && 'response' in error
+        ? (error as { response?: { status?: number } }).response
+        : undefined;
+    const isDefinitiveClientFailure = Boolean(
+      response?.status &&
+      response.status >= 400 &&
+      response.status < 500 &&
+      ![408, 425, 429].includes(response.status),
+    );
+    if (isDefinitiveClientFailure) {
+      try {
+        globalThis.localStorage.removeItem(requestStorageKey);
+      } catch {
+        // Best effort; a subsequent retry still reuses the server request key.
+      }
+      inMemoryReceiptImportRequestIds.delete(requestStorageKey);
+      if (uploadedPaths.length) {
+        await removeStorageObjects(MATERIAL_IMAGES_BUCKET, uploadedPaths).catch(
+          () => undefined,
+        );
+      }
+    }
+    // Preserve the request key and staged paths for network/5xx retries. A
+    // retry with the same content reuses both and cannot create a second receipt.
+    throw error;
+  }
 }
 
 export async function saveMaterialReceiptRepresentative(input: {

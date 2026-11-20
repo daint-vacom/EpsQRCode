@@ -5,25 +5,24 @@
  */
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import type { Custodian } from '@/project/custodians/model/custodian';
 import type { MaterialModel } from '@/project/material-models/model/material-model';
+import { MaterialConditionSelect } from '@/project/materials/components/material-condition-select';
 import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { Copy, ListPlus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, Copy, ListPlus, Pencil, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
-import { AutocompleteInput } from '@/components/ui/autocomplete-input';
-import type { AutocompleteOption } from '@/components/ui/autocomplete-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataGridProvider } from '@/components/ui/data-grid';
 import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { Input } from '@/components/ui/input';
-import { OptionSelect } from '@/components/ui/option-select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -58,27 +57,16 @@ const materialNameCollator = new Intl.Collator('vi', {
   numeric: true,
 });
 
-function conditionOptions(
-  intl: ReturnType<typeof useIntl>,
-): AutocompleteOption[] {
-  return [
-    {
-      value: 'good',
-      label: intl.formatMessage({ id: 'project.handover.condition.good' }),
-    },
-    {
-      value: 'damaged',
-      label: intl.formatMessage({ id: 'project.handover.condition.damaged' }),
-    },
-  ];
-}
-
 interface MaterialReceiptLinesEditorTableProps {
   form: UseFormReturn<MaterialReceiptFormValues>;
   createLine: () => MaterialReceiptFormLine;
   modelById: ReadonlyMap<string, MaterialReceiptModelIdentity>;
+  materialNameByClientId: ReadonlyMap<string, string>;
+  receivingParties: readonly Custodian[];
+  receivingPartySelectionDisabled: boolean;
   onCopySelected?: (rows: MaterialReceiptFormLine[]) => void;
   onEditMaterial: (index: number) => void;
+  onEditReceivingParty: (clientId: string) => void;
   toolbarContent?: ReactNode;
 }
 
@@ -86,8 +74,12 @@ export function MaterialReceiptLinesEditorTable({
   form,
   createLine,
   modelById,
+  materialNameByClientId,
+  receivingParties,
+  receivingPartySelectionDisabled,
   onCopySelected,
   onEditMaterial,
+  onEditReceivingParty,
   toolbarContent,
 }: MaterialReceiptLinesEditorTableProps) {
   const { fields, append, insert, remove } = useFieldArray({
@@ -149,8 +141,7 @@ export function MaterialReceiptLinesEditorTable({
     {
       name: 'condition',
       label: 'Tình trạng',
-      kind: 'autocomplete',
-      options: conditionOptions(intl),
+      kind: 'condition',
     },
     { name: 'note', label: 'Ghi chú', kind: 'text' },
   ] as const;
@@ -301,7 +292,7 @@ export function MaterialReceiptLinesEditorTable({
             className="min-w-0 min-h-[360px] min-h-0 flex-1"
             viewportClassName="h-full min-w-0 overflow-y-auto"
           >
-            <div className="min-w-[1120px]">
+            <div className="min-w-[1600px]">
               <table className="w-full caption-bottom text-foreground text-sm">
                 <TableHeader>
                   <TableRow>
@@ -322,28 +313,37 @@ export function MaterialReceiptLinesEditorTable({
                         />
                       </div>
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[360px]">
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[280px]">
                       {intl.formatMessage({ id: 'receipts.fields.material' })}
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-muted w-28">
-                      Thông số
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[280px]">
+                      {intl.formatMessage({
+                        id: 'receipts.modelSelection.model',
+                      })}
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted w-36 text-right">
                       Số lượng
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted w-40">
-                      Tình trạng
+                      {intl.formatMessage({
+                        id: 'project.materials.fields.condition',
+                      })}
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-muted min-w-[220px]">
+                      {intl.formatMessage({
+                        id: 'receipts.handover.recipient',
+                      })}
                     </TableHead>
                     <TableHead className="sticky top-0 z-20 bg-muted min-w-[240px]">
                       {intl.formatMessage({ id: 'receipts.fields.note' })}
                     </TableHead>
-                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-14 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-48 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {fields.length === 0 ? (
                     <TableRow hoverable={false}>
-                      <TableCell colSpan={7} className="h-28 text-center">
+                      <TableCell colSpan={8} className="h-28 text-center">
                         <span className="text-muted-foreground">
                           {intl.formatMessage({ id: 'receipts.emptyLines' })}
                         </span>
@@ -353,6 +353,9 @@ export function MaterialReceiptLinesEditorTable({
                     visibleRows.map(({ field, formIndex, row }) => {
                       const index = formIndex;
                       const errors = form.formState.errors.lines?.[index];
+                      const receivingParty = receivingParties.find(
+                        (party) => party.id === row?.receivingPartyId,
+                      );
                       return (
                         <TableRow key={field.fieldId} hoverable={false}>
                           <TableCell className="w-12 min-w-12 max-w-12 px-2 py-2 text-center align-middle">
@@ -368,24 +371,19 @@ export function MaterialReceiptLinesEditorTable({
                             </div>
                           </TableCell>
                           <TableCell className="px-2 py-2 align-middle">
+                            <span className="font-medium text-foreground">
+                              {materialNameByClientId.get(
+                                row?.clientId ?? '',
+                              ) ||
+                                modelById.get(row?.modelId ?? '')?.name ||
+                                '—'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-2 py-2 align-middle">
                             <MaterialReceiptModelCell
                               line={row}
                               model={modelById.get(row?.modelId ?? '')}
                             />
-                          </TableCell>
-                          <TableCell className="px-2 py-2 align-middle">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={!row?.modelId}
-                              onClick={() => onEditMaterial(index)}
-                            >
-                              <Pencil className="size-3.5" />
-                              {intl.formatMessage({
-                                id: 'receipts.actions.editMaterial',
-                              })}
-                            </Button>
                           </TableCell>
                           <TableCell className="px-2 py-2">
                             <Controller
@@ -471,48 +469,48 @@ export function MaterialReceiptLinesEditorTable({
                             <Controller
                               control={form.control}
                               name={`lines.${index}.condition`}
-                              render={({ field: inputField }) => {
-                                const conditionWarning = undefined;
-                                const conditionMessage =
-                                  errors?.condition?.message ??
-                                  conditionWarning;
-
-                                return conditionMessage ? (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="block w-full">
-                                        <AutocompleteInput
-                                          value={inputField.value}
-                                          onChange={inputField.onChange}
-                                          options={conditionOptions(intl)}
-                                          emptyMessage="Không có dữ liệu phù hợp"
-                                          onBlur={inputField.onBlur}
-                                        />
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                      variant={
-                                        errors?.condition
-                                          ? 'destructive'
-                                          : 'warning'
-                                      }
-                                    >
-                                      {conditionMessage}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                ) : (
-                                  <span className="block w-full">
-                                    <AutocompleteInput
-                                      value={inputField.value}
-                                      onChange={inputField.onChange}
-                                      options={conditionOptions(intl)}
-                                      emptyMessage="Không có dữ liệu phù hợp"
-                                      onBlur={inputField.onBlur}
-                                    />
-                                  </span>
-                                );
-                              }}
+                              render={({ field: inputField }) => (
+                                <MaterialConditionSelect
+                                  ariaLabel={`${intl.formatMessage({ id: 'project.materials.fields.condition' })} dòng ${index + 1}`}
+                                  value={inputField.value}
+                                  onChange={inputField.onChange}
+                                  size="md"
+                                />
+                              )}
                             />
+                          </TableCell>
+                          <TableCell className="px-2 py-2 align-middle">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto min-h-8 w-full justify-between gap-2 px-2 py-1 text-start font-normal"
+                              aria-label={`${intl.formatMessage({ id: 'receipts.handover.recipient' })}: ${receivingParty?.name ?? intl.formatMessage({ id: 'receipts.fields.receivingPartyPlaceholder' })}`}
+                              disabled={receivingPartySelectionDisabled}
+                              onClick={() => {
+                                if (!row?.clientId) return;
+                                onEditReceivingParty(row.clientId);
+                              }}
+                            >
+                              <span
+                                className={
+                                  row?.receivingPartyId
+                                    ? 'min-w-0 truncate text-foreground'
+                                    : 'min-w-0 truncate text-muted-foreground'
+                                }
+                              >
+                                {receivingParty?.name ??
+                                  (row?.receivingPartyId
+                                    ? '—'
+                                    : intl.formatMessage({
+                                        id: 'receipts.fields.receivingPartyPlaceholder',
+                                      }))}
+                              </span>
+                              <ChevronDown
+                                className="size-4 shrink-0 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            </Button>
                           </TableCell>
                           <TableCell className="px-2 py-2">
                             <Controller
@@ -541,8 +539,24 @@ export function MaterialReceiptLinesEditorTable({
                               )}
                             />
                           </TableCell>
-                          <TableCell className="sticky right-0 z-10 bg-card px-3 py-2 align-middle shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                          <TableCell className="sticky right-0 z-10 bg-card px-1 py-2 align-middle shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
                             <div className="flex justify-end gap-1">
+                              <Button
+                                aria-label={`Sửa vật tư dòng ${index + 1}`}
+                                title={intl.formatMessage({
+                                  id: 'receipts.actions.editMaterial',
+                                })}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={!row?.modelId}
+                                onClick={() => onEditMaterial(index)}
+                              >
+                                <Pencil className="size-3.5" />
+                                {intl.formatMessage({
+                                  id: 'receipts.actions.editMaterial',
+                                })}
+                              </Button>
                               <Button
                                 aria-label={`Nhân bản dòng ${index + 1}`}
                                 title="Nhân bản"
@@ -654,7 +668,12 @@ export function MaterialReceiptLinesEditorTable({
               id: 'editorTable.selection.apply',
             })}
             onApply={handleSelectionAction}
-            applyDisabled={selectedIndexes.length === 0}
+            applyDisabled={
+              selectedIndexes.length === 0 ||
+              (selectionAction === 'edit' &&
+                bulkField === 'condition' &&
+                !bulkValue)
+            }
             onClear={
               selectedIndexes.length > 0
                 ? () => setSelectedRowIds([])
@@ -684,14 +703,11 @@ export function MaterialReceiptLinesEditorTable({
                       ))}
                     </SelectContent>
                   </Select>
-                  {activeBulkField?.kind === 'autocomplete' ? (
-                    <OptionSelect
-                      value={bulkValue}
-                      onChange={setBulkValue}
-                      options={activeBulkField.options}
-                      placeholder="Chọn giá trị"
+                  {activeBulkField?.kind === 'condition' ? (
+                    <MaterialConditionSelect
                       ariaLabel="Giá trị áp dụng hàng loạt"
-                      searchable={false}
+                      value={bulkValue as 'good' | 'damaged' | ''}
+                      onChange={setBulkValue}
                       size="md"
                       className="w-48"
                     />

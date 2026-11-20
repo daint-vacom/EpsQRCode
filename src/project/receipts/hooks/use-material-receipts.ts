@@ -1,18 +1,25 @@
+import { warehouseStockKeys } from '@/project/warehouse-stock/hooks/use-warehouse-stock';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
   actOnMaterialReceipt,
   applyMaterialReceiptAdjustment,
+  importMaterialReceiptFromExcel,
   loadMaterialReceipt,
   loadMaterialReceiptFilterSummary,
   loadMaterialReceiptHistory,
   loadMaterialReceiptItems,
+  loadMaterialReceiptRecipientOptions,
   loadMaterialReceipts,
   previewMaterialReceiptAdjustment,
   saveMaterialReceipt,
   saveMaterialReceiptRepresentative,
 } from '../api/material-receipts.api';
-import type { MaterialReceiptListFilters } from '../model/material-receipt';
+import type { MaterialReceiptExcelImportValues } from '../api/material-receipts.api';
+import type {
+  MaterialReceiptListFilters,
+  MaterialReceiptRecipientOption,
+} from '../model/material-receipt';
 
 export const materialReceiptKeys = {
   all: ['project', 'material-receipts'] as const,
@@ -24,6 +31,8 @@ export const materialReceiptKeys = {
     filters: { search?: string; warehouseId?: string },
   ) => [...materialReceiptKeys.all, 'filter-summary', userId, filters] as const,
   detail: (id: string) => [...materialReceiptKeys.all, 'detail', id] as const,
+  recipientOptions: (warehouseId: string | null) =>
+    [...materialReceiptKeys.all, 'recipient-options', warehouseId] as const,
   history: (id: string) => [...materialReceiptKeys.all, 'history', id] as const,
 };
 
@@ -63,6 +72,20 @@ export function useMaterialReceiptQuery(id: string, enabled = true) {
   });
 }
 
+export function useMaterialReceiptRecipientOptionsQuery(
+  warehouseId: string | null,
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery<MaterialReceiptRecipientOption[]>({
+    queryKey: [...materialReceiptKeys.recipientOptions(warehouseId), userId],
+    queryFn: ({ signal }) =>
+      loadMaterialReceiptRecipientOptions(warehouseId, signal),
+    enabled,
+    retry: 0,
+  });
+}
+
 export function useMaterialReceiptHistoryQuery(id: string, enabled = true) {
   return useQuery({
     queryKey: materialReceiptKeys.history(id),
@@ -95,6 +118,7 @@ function useReceiptMutation<TInput, TOutput>(
       queryClient.invalidateQueries({ queryKey: materialReceiptKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({ queryKey: ['project', 'handovers'] });
+      queryClient.invalidateQueries({ queryKey: warehouseStockKeys.all });
       const id = (input as { id?: string }).id;
       if (id) {
         queryClient.invalidateQueries({
@@ -114,6 +138,15 @@ export function useSaveMaterialReceiptMutation() {
       id: string | null;
       values: Parameters<typeof saveMaterialReceipt>[1];
     }) => saveMaterialReceipt(input.id, input.values),
+  );
+}
+
+export function useImportMaterialReceiptFromExcelMutation() {
+  return useReceiptMutation(
+    (input: {
+      actorUserId: string;
+      values: MaterialReceiptExcelImportValues;
+    }) => importMaterialReceiptFromExcel(input.actorUserId, input.values),
   );
 }
 

@@ -14,6 +14,10 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.actions.linkedHandover': 'Lập phiếu bàn giao',
   'receipts.actions.linkedRequest': 'Đăng ký nhận vật tư',
   'receipts.actions.saveDraft': 'Lưu bản nháp',
+  'receipts.actions.importExcel': 'Nhập từ Excel',
+  'receipts.actions.addMaterialsFromExcel': 'Thêm {count} vật tư vào phiếu',
+  'receipts.actions.recordExcelReceipt': 'Ghi nhận nhập kho',
+  'receipts.actions.pendingCount': 'Vật tư chờ nhận',
   'receipts.actions.chooseModels': 'Chọn mẫu VT',
   'receipts.actions.previewAdjustment': 'Xem trước hiệu chỉnh',
   'receipts.actions.applyAdjustment': 'Xác nhận hiệu chỉnh',
@@ -37,6 +41,9 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.fields.received': 'Đã nhận',
   'receipts.fields.total': 'Tổng số vật tư',
   'receipts.fields.externalCode': 'Mã liên kết ngoài',
+  'receipts.fields.receivingPartyOrWarehouse':
+    'Đơn vị nhận (để trống nếu giữ tại kho)',
+  'receipts.fields.receivingPartyPlaceholder': 'Giữ tại kho',
   'receipts.fields.unitCondition': 'Tình trạng lúc nhập',
   'receipts.fields.unitNote': 'Ghi chú vật tư',
   'receipts.modelSelection.model': 'Mẫu vật tư',
@@ -55,6 +62,9 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.dialogs.completeTitle': 'Hoàn tất phiếu nhập',
   'receipts.dialogs.reopenTitle': 'Mở lại phiếu nhập',
   'receipts.dialogs.adjustmentTitle': 'Xác nhận hiệu chỉnh danh sách vật tư',
+  'receipts.dialogs.receivingPartyTitle': 'Chọn đơn vị nhận',
+  'receipts.dialogs.receivingPartyDescription':
+    'Chọn đơn vị nhận cho dòng vật tư. Để trống nếu vật tư ở lại kho.',
   'receipts.tabs.items': 'Danh sách vật tư',
   'receipts.tabs.allocation': 'Phân bổ vật tư',
   'receipts.tabs.details': 'Chi tiết phiếu',
@@ -101,6 +111,9 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.errors.loadItemsTitle': 'Không tải được danh sách vật tư đã nhập',
   'receipts.errors.loadHandoversTitle':
     'Không tải được phiếu bàn giao liên kết',
+  'receipts.errors.loadRecipients': 'Không tải được danh sách đơn vị nhận',
+  'receipts.errors.invalidReceivingParty':
+    'Đơn vị nhận ở dòng {line} không hợp lệ hoặc đã ngừng hoạt động.',
   'receipts.errors.permission': 'Bạn không có quyền xem phiếu nhập vật tư.',
   'receipts.errors.editDraftOnly':
     'Chỉ có thể sửa danh sách khi phiếu còn ở trạng thái nháp.',
@@ -109,6 +122,16 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.errors.damagedMaterialNote':
     'Vui lòng nhập ghi chú chung khi có vật tư hỏng.',
   'receipts.errors.adjustmentReason': 'Vui lòng nhập lý do hiệu chỉnh.',
+  'receipts.errors.excelInvalidRecipient':
+    'Dòng {line}: đơn vị nhận không hợp lệ hoặc đã ngừng hoạt động.',
+  'receipts.errors.excelInactiveAllocation':
+    'Vật tư đã ngừng sử dụng ở dòng {line} chỉ có thể nhập kho.',
+  'receipts.errors.excelDuplicateCode':
+    'Dòng {line}: mã vật tư “{code}” đã được sử dụng trong danh mục hoặc tệp nhập.',
+  'receipts.errors.excelRequestChanged':
+    'Nội dung nhập đã thay đổi sau lần thử trước. Vui lòng gửi lại nội dung hiện tại.',
+  'receipts.errors.excelDuplicateCodeUnknown':
+    'Mã chính bị trùng trong danh mục vật tư. Hãy kiểm tra lại mã trong tệp Excel.',
   'receipts.errors.blockedAdjustment':
     'Một số vật tư đã có giao dịch hoặc không còn thuộc kho nên không thể loại khỏi phiếu.',
   'receipts.errors.confirmAffected':
@@ -122,11 +145,13 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.adjustment.reload':
     'Dữ liệu đã thay đổi. Hãy tải lại phiếu và xem trước hiệu chỉnh lần nữa.',
   'receipts.confirm.completeWarning':
-    'Có thể hoàn tất khi mọi phiếu bàn giao liên kết đã được xử lý. Vật tư chưa phân bổ vẫn nằm trong kho.',
+    'Có {count} vật tư đang chờ đơn vị nhận xác nhận. Hoàn tất sẽ dừng tạo bàn giao mới; các phiếu đã gửi vẫn có thể được xác nhận hoặc hủy. Vật tư chưa phân bổ vẫn nằm trong kho.',
   'receipts.confirm.reopenReason': 'Nhập lý do mở lại phiếu đã hoàn tất.',
   'receipts.confirm.cancelReason': 'Nhập lý do hủy phiếu nháp.',
   'receipts.toasts.created': 'Đã tạo bản nháp phiếu nhập.',
   'receipts.toasts.updated': 'Đã lưu bản nháp phiếu nhập.',
+  'receipts.toasts.importedFromExcel':
+    'Đã ghi nhận nhập kho và tạo các phiếu bàn giao chờ xác nhận.',
   'receipts.toasts.confirmed':
     'Đã tạo vật tư và chuyển phiếu sang trạng thái bàn giao.',
   'receipts.toasts.completed': 'Đã hoàn tất phiếu nhập.',
@@ -179,6 +204,10 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.actions.linkedHandover': 'Create handover',
   'receipts.actions.linkedRequest': 'Request materials',
   'receipts.actions.saveDraft': 'Save draft',
+  'receipts.actions.importExcel': 'Import from Excel',
+  'receipts.actions.addMaterialsFromExcel': 'Add {count} materials to receipt',
+  'receipts.actions.recordExcelReceipt': 'Record warehouse receipt',
+  'receipts.actions.pendingCount': 'Waiting for receipt',
   'receipts.actions.chooseModels': 'Choose models',
   'receipts.actions.previewAdjustment': 'Preview adjustment',
   'receipts.actions.applyAdjustment': 'Apply adjustment',
@@ -202,6 +231,9 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.fields.received': 'Received',
   'receipts.fields.total': 'Total materials',
   'receipts.fields.externalCode': 'External linked code',
+  'receipts.fields.receivingPartyOrWarehouse':
+    'Receiving unit (leave blank to keep in warehouse)',
+  'receipts.fields.receivingPartyPlaceholder': 'Keep in warehouse',
   'receipts.fields.unitCondition': 'Condition at receipt',
   'receipts.fields.unitNote': 'Material note',
   'receipts.modelSelection.model': 'Material model',
@@ -220,6 +252,9 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.dialogs.completeTitle': 'Complete receipt',
   'receipts.dialogs.reopenTitle': 'Reopen receipt',
   'receipts.dialogs.adjustmentTitle': 'Confirm receipt item adjustment',
+  'receipts.dialogs.receivingPartyTitle': 'Choose receiving unit',
+  'receipts.dialogs.receivingPartyDescription':
+    'Choose a receiving unit for this material line. Leave it blank to keep the material in the warehouse.',
   'receipts.tabs.items': 'Material list',
   'receipts.tabs.allocation': 'Material allocation',
   'receipts.tabs.details': 'Receipt details',
@@ -266,6 +301,9 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.errors.loadDetailTitle': 'Could not load receipt',
   'receipts.errors.loadItemsTitle': 'Could not load received materials',
   'receipts.errors.loadHandoversTitle': 'Could not load linked handovers',
+  'receipts.errors.loadRecipients': 'Could not load receiving units',
+  'receipts.errors.invalidReceivingParty':
+    'The receiving unit on line {line} is invalid or inactive.',
   'receipts.errors.permission':
     'You do not have permission to view material receipts.',
   'receipts.errors.editDraftOnly':
@@ -275,6 +313,16 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.errors.damagedMaterialNote':
     'Enter a general note when the receipt contains damaged materials.',
   'receipts.errors.adjustmentReason': 'Enter a reason for the adjustment.',
+  'receipts.errors.excelInvalidRecipient':
+    'Row {line}: the receiving unit is invalid or inactive.',
+  'receipts.errors.excelInactiveAllocation':
+    'Inactive material on row {line} can only be received into stock.',
+  'receipts.errors.excelDuplicateCode':
+    'Row {line}: material code “{code}” is already used in the catalog or import file.',
+  'receipts.errors.excelRequestChanged':
+    'The import content changed after the previous attempt. Submit the current content again.',
+  'receipts.errors.excelDuplicateCodeUnknown':
+    'A primary material code is already used in the catalog. Review the codes in the Excel file.',
   'receipts.errors.blockedAdjustment':
     'Some materials have transactions or are no longer owned by this warehouse and cannot be removed.',
   'receipts.errors.confirmAffected':
@@ -289,13 +337,15 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.adjustment.reload':
     'Data changed. Reload the receipt and preview the adjustment again.',
   'receipts.confirm.completeWarning':
-    'The receipt can be completed after all linked handovers are resolved. Unallocated materials remain in the warehouse.',
+    '{count} materials are waiting for receiving-unit confirmation. Completing stops new handovers; sent handovers can still be confirmed or cancelled. Unallocated materials remain in the warehouse.',
   'receipts.confirm.reopenReason':
     'Enter a reason for reopening this completed receipt.',
   'receipts.confirm.cancelReason':
     'Enter a reason for cancelling this draft receipt.',
   'receipts.toasts.created': 'Receipt draft created.',
   'receipts.toasts.updated': 'Receipt draft saved.',
+  'receipts.toasts.importedFromExcel':
+    'Warehouse receipt recorded and pending handovers created.',
   'receipts.toasts.confirmed':
     'Materials created and receipt moved to handover.',
   'receipts.toasts.completed': 'Receipt completed.',

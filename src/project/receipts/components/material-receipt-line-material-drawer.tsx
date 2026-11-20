@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
@@ -19,6 +20,7 @@ import {
   MaterialForm,
   useMaterialForm,
 } from '@/project/materials/forms/material-form.generated';
+import { materialFormSchema } from '@/project/materials/forms/material-form.schema';
 import type { MaterialFormSchemaValues } from '@/project/materials/forms/material-form.schema';
 import { useMaterialCapitalSourcesQuery } from '@/project/materials/hooks/use-material-capital-sources';
 import type {
@@ -31,7 +33,9 @@ import {
   MaterialSafetyChecklistSection,
 } from '@/project/materials/pages/material-editor-page';
 import { ClipboardCheck, Eye, Info, SlidersHorizontal } from 'lucide-react';
+import type { FieldPath } from 'react-hook-form';
 import { useIntl } from 'react-intl';
+import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,7 +73,7 @@ interface MaterialReceiptLineMaterialDrawerProps {
   onSave: (
     representative: MaterialReceiptRepresentativeInput,
     reason: string,
-  ) => void;
+  ) => void | boolean | Promise<void | boolean>;
   isSaving?: boolean;
 }
 export function MaterialReceiptLineMaterialDrawer({
@@ -151,11 +155,13 @@ export function MaterialReceiptLineMaterialDrawer({
     };
     const baseValues: MaterialFormSchemaValues = {
       code: 'REPRESENTATIVE',
+      codeMode: 'auto',
       modelId: model.id,
       nameOverride: '',
       descriptionOverride: '',
       unit: model.unit,
       serialNumber: '',
+      linkedCodes: [],
       placedIntoServiceDate: '',
       capitalSourceId: '',
       unitPriceOverride: null,
@@ -209,10 +215,10 @@ export function MaterialReceiptLineMaterialDrawer({
     setReason('');
   }, [form, model, open, representative, warehouse, warehouseId]);
 
-  const handleSave = form.handleSubmit((values) => {
+  const submitValues = async (values: MaterialFormSchemaValues) => {
     if (readOnly || (requiresReason && !reason.trim())) return;
     if (images.length && !images.some((image) => image.isCover)) return;
-    onSave(
+    const saveResult = await onSave(
       {
         materialValues: {
           ...values,
@@ -237,7 +243,50 @@ export function MaterialReceiptLineMaterialDrawer({
       },
       reason.trim(),
     );
-  });
+    if (saveResult !== false) onOpenChange(false);
+  };
+
+  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const currentValues = form.getValues();
+    const validation = materialFormSchema.safeParse({
+      ...currentValues,
+      codeMode: currentValues.codeMode ?? 'auto',
+      linkedCodes: currentValues.linkedCodes ?? [],
+      ...(warehouseId
+        ? {}
+        : {
+            ownerPartyId: '',
+            ownerSnapshot: {
+              ...currentValues.ownerSnapshot,
+              kind: 'other' as const,
+              name: currentValues.ownerSnapshot?.name || 'Kho chưa chọn',
+            },
+          }),
+    });
+    form.clearErrors();
+    if (!validation.success) {
+      const firstError = validation.error.issues[0]?.message;
+      if (firstError) toast.error(firstError);
+      for (const issue of validation.error.issues) {
+        if (issue.path.length === 0) continue;
+        form.setError(
+          issue.path.join('.') as FieldPath<MaterialFormSchemaValues>,
+          {
+            type: 'manual',
+            message: issue.message,
+          },
+        );
+      }
+      return;
+    }
+
+    void submitValues({
+      ...validation.data,
+      ownerPartyId: currentValues.ownerPartyId,
+      ownerSnapshot: currentValues.ownerSnapshot,
+    });
+  };
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">

@@ -87,6 +87,7 @@ import {
   mapMaterialSpreadsheetRows,
   readMaterialImportLinkedCodes,
   toMaterialImportPreviewRows,
+  type MaterialSpreadsheetImportDraftRow,
   type MaterialSpreadsheetImportPreviewRow,
   type MaterialSpreadsheetSource,
 } from '../spreadsheet/material-spreadsheet-import';
@@ -104,6 +105,7 @@ type ImportMode = 'existing' | 'create';
 
 interface MaterialSpreadsheetImportPanelProps {
   open: boolean;
+  onImportToDraft?: (rows: MaterialSpreadsheetImportDraftRow[]) => void;
   onFooterChange: (footer: ReactNode | null) => void;
   onStepChange: (step: number) => void;
   fields: SpreadsheetField<Material>[];
@@ -130,6 +132,7 @@ const EMPTY_SOURCES: MaterialSpreadsheetSource[] = [];
 
 export function MaterialSpreadsheetImportPanel({
   open,
+  onImportToDraft,
   onFooterChange,
   onStepChange,
   fields,
@@ -247,8 +250,8 @@ export function MaterialSpreadsheetImportPanel({
     [groups, models, sourceRows, specifications, translate],
   );
   const activeProposals = useMemo(
-    () => (importMode === 'create' ? modelProposals : []),
-    [importMode, modelProposals],
+    () => (importMode === 'create' && !onImportToDraft ? modelProposals : []),
+    [importMode, modelProposals, onImportToDraft],
   );
   const mappedRows = useMemo(
     () =>
@@ -260,6 +263,7 @@ export function MaterialSpreadsheetImportPanel({
         translate,
         activeProposals,
         capitalSources,
+        onImportToDraft ? 'receipt' : 'catalog',
       ),
     [
       activeProposals,
@@ -267,6 +271,7 @@ export function MaterialSpreadsheetImportPanel({
       custodians,
       fields,
       models,
+      onImportToDraft,
       sources,
       translate,
     ],
@@ -276,13 +281,14 @@ export function MaterialSpreadsheetImportPanel({
       mappedRows,
       models,
       modelProposals,
+      onImportToDraft ? 'receipt' : 'catalog',
     );
     return rows.map((row) => ({
       ...row,
       name: row.name || row.modelName,
       ownerName: row.ownerName || row.ownerCode,
     }));
-  }, [mappedRows, modelProposals, models]);
+  }, [mappedRows, modelProposals, models, onImportToDraft]);
   const rowErrors = mappedRows.filter((row) => Boolean(row.error));
   const globalErrors = useMemo(
     () =>
@@ -974,6 +980,23 @@ export function MaterialSpreadsheetImportPanel({
     }
   };
 
+  const handleImportToDraft = useCallback(() => {
+    if (!onImportToDraft || selectedRows.length === 0) return;
+    onImportToDraft(
+      selectedRows.flatMap((row) =>
+        row.values && !row.error
+          ? [
+              {
+                values: row.values,
+                quantity: row.quantity,
+                rowNumber: row.rowNumber,
+              },
+            ]
+          : [],
+      ),
+    );
+  }, [onImportToDraft, selectedRows]);
+
   const handleDownloadReport = async (onlyErrors: boolean) => {
     if (!outcomes) return;
     setReportError('');
@@ -1006,15 +1029,18 @@ export function MaterialSpreadsheetImportPanel({
   const footerActionsRef = useRef<{
     goToStep: (nextStep: number) => void;
     import: () => void;
+    importToDraft: () => void;
     downloadReport: (onlyErrors: boolean) => void;
   }>({
     goToStep: () => {},
     import: () => {},
+    importToDraft: () => {},
     downloadReport: () => {},
   });
   footerActionsRef.current = {
     goToStep,
     import: () => void handleImport(),
+    importToDraft: handleImportToDraft,
     downloadReport: (onlyErrors) => void handleDownloadReport(onlyErrors),
   };
   const footer = useMemo<ReactNode>(() => {
@@ -1037,6 +1063,34 @@ export function MaterialSpreadsheetImportPanel({
     }
 
     if (step === 2) {
+      if (onImportToDraft) {
+        return (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              disabled={importing}
+              onClick={() => footerActionsRef.current.goToStep(1)}
+            >
+              <ArrowLeft />
+              {translate('project.materials.spreadsheet.backStep')}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              disabled={selectedMaterialCount === 0 || importing}
+              onClick={() => footerActionsRef.current.importToDraft()}
+            >
+              <Upload />
+              {translate('receipts.actions.addMaterialsFromExcel', {
+                count: String(selectedMaterialCount),
+              })}
+            </Button>
+          </>
+        );
+      }
       return (
         <>
           <Button
@@ -1124,6 +1178,7 @@ export function MaterialSpreadsheetImportPanel({
     sources.length,
     step,
     translate,
+    onImportToDraft,
     selectedMaterialCount,
     selectedModelProposals.length,
   ]);
@@ -1544,45 +1599,58 @@ export function MaterialSpreadsheetImportPanel({
                   )}
                 </p>
               </div>
-              <RadioGroup
-                value={importMode}
-                onValueChange={(value) => setImportMode(value as ImportMode)}
-                className="gap-2"
-              >
-                <label className="flex cursor-pointer items-start gap-2 text-sm">
-                  <RadioGroupItem value="existing" className="mt-0.5" />
-                  <span>
-                    {translate(
-                      'project.materials.spreadsheet.importOnlyExistingModels',
-                    )}
-                  </span>
-                </label>
-                <label className="flex cursor-pointer items-start gap-2 text-sm">
-                  <RadioGroupItem
-                    value="create"
-                    className="mt-0.5"
-                    disabled={
-                      !canManageModels ||
-                      (selectedModelProposals.length > 0 && !canCreateAllModels)
-                    }
-                  />
-                  <span>
-                    {translate(
-                      'project.materials.spreadsheet.importAndCreateModels',
-                      {
-                        count: String(selectedModelProposals.length),
-                      },
-                    )}
-                  </span>
-                </label>
-              </RadioGroup>
-              {!canManageModels ? (
+              {onImportToDraft ? (
                 <p className="text-xs text-muted-foreground">
                   {translate(
-                    'project.materials.spreadsheet.createModelsPermission',
+                    'project.materials.spreadsheet.importOnlyExistingModels',
                   )}
                 </p>
-              ) : null}
+              ) : (
+                <>
+                  <RadioGroup
+                    value={importMode}
+                    onValueChange={(value) =>
+                      setImportMode(value as ImportMode)
+                    }
+                    className="gap-2"
+                  >
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <RadioGroupItem value="existing" className="mt-0.5" />
+                      <span>
+                        {translate(
+                          'project.materials.spreadsheet.importOnlyExistingModels',
+                        )}
+                      </span>
+                    </label>
+                    <label className="flex cursor-pointer items-start gap-2 text-sm">
+                      <RadioGroupItem
+                        value="create"
+                        className="mt-0.5"
+                        disabled={
+                          !canManageModels ||
+                          (selectedModelProposals.length > 0 &&
+                            !canCreateAllModels)
+                        }
+                      />
+                      <span>
+                        {translate(
+                          'project.materials.spreadsheet.importAndCreateModels',
+                          {
+                            count: String(selectedModelProposals.length),
+                          },
+                        )}
+                      </span>
+                    </label>
+                  </RadioGroup>
+                  {!canManageModels ? (
+                    <p className="text-xs text-muted-foreground">
+                      {translate(
+                        'project.materials.spreadsheet.createModelsPermission',
+                      )}
+                    </p>
+                  ) : null}
+                </>
+              )}
               {proposalErrors.length > 0 ? (
                 <ul className="list-disc space-y-1 ps-5 text-xs text-destructive">
                   {proposalErrors.map((proposal) => (
@@ -1724,7 +1792,9 @@ function ProgressBlock({
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="inline-flex items-center gap-2 font-medium">
           {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
-          {complete ? <CheckCircle2 className="size-4 text-success" /> : null}
+          {complete ? (
+            <CheckCircle2 className="size-4 text-admin-success-text" />
+          ) : null}
           {label}
         </span>
         <span className="shrink-0 text-muted-foreground">
@@ -1734,7 +1804,7 @@ function ProgressBlock({
       <Progress
         value={value}
         indicatorClassName={
-          indicatorClassName ?? (complete ? 'bg-success' : undefined)
+          indicatorClassName ?? (complete ? 'bg-admin-success-dot' : undefined)
         }
       />
       {count ? <p className="text-xs text-muted-foreground">{count}</p> : null}

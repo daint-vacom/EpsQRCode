@@ -10,7 +10,7 @@ const spec: EditorTableSpec = {
   createRowProp: 'createLine',
   specPath:
     'src/project/receipts/table/material-receipt-line.editor-table.fixture.ts',
-  tableMinWidthClass: 'min-w-[1120px]',
+  tableMinWidthClass: 'min-w-[1600px]',
   viewport: { mode: 'remaining' },
   toolbar: {
     title: 'Vật tư đã nhập',
@@ -24,7 +24,7 @@ const spec: EditorTableSpec = {
   pagination: { pageSize: 10, sizes: [10, 25, 50] },
   actions: {
     enabled: true,
-    widthClass: 'w-14',
+    widthClass: 'w-48',
     duplicate: true,
     insert: false,
     delete: true,
@@ -32,15 +32,15 @@ const spec: EditorTableSpec = {
   columns: [
     {
       kind: 'custom',
-      id: 'model',
+      id: 'material',
       header: 'Vật tư',
-      widthClass: 'min-w-[360px]',
+      widthClass: 'min-w-[280px]',
     },
     {
       kind: 'custom',
-      id: 'editMaterial',
-      header: 'Thông số',
-      widthClass: 'w-28',
+      id: 'model',
+      header: 'Mẫu vật tư',
+      widthClass: 'min-w-[280px]',
     },
     {
       kind: 'number',
@@ -53,24 +53,18 @@ const spec: EditorTableSpec = {
       bulkEdit: true,
     },
     {
-      kind: 'autocomplete',
-      name: 'condition',
+      kind: 'custom',
+      id: 'condition',
       header: 'Tình trạng',
-      ariaLabel: 'Tình trạng',
-      options: [
-        {
-          value: 'good',
-          label: 'Tốt',
-          labelMessageId: 'project.handover.condition.good',
-        },
-        {
-          value: 'damaged',
-          label: 'Hỏng',
-          labelMessageId: 'project.handover.condition.damaged',
-        },
-      ],
-      bulkEdit: true,
+      headerMessageId: 'project.materials.fields.condition',
       widthClass: 'w-40',
+    },
+    {
+      kind: 'custom',
+      id: 'receivingParty',
+      header: 'Đơn vị nhận',
+      headerMessageId: 'receipts.handover.recipient',
+      widthClass: 'min-w-[220px]',
     },
     {
       kind: 'text',

@@ -21,6 +21,7 @@ import {
   MATERIAL_IMPORT_GROUPING_CONFIG,
   type Material,
 } from '../model/material';
+import type { MaterialFormValues } from '../model/material';
 import type { MaterialCapitalSource } from '../model/material-capital-source';
 import {
   mapMaterialImportRows,
@@ -111,6 +112,12 @@ export interface MappedMaterialImportRow extends MaterialImportRow {
   modelCode: string;
   modelLinkedCodes: LinkedCode[];
   error: string | null;
+}
+
+export interface MaterialSpreadsheetImportDraftRow {
+  values: MaterialFormValues;
+  quantity: number;
+  rowNumber: number;
 }
 
 export type TranslateMaterialImportMessage = (
@@ -588,6 +595,7 @@ export function mapMaterialSpreadsheetRows(
   translate: TranslateMaterialImportMessage,
   modelProposals: MaterialModelImportProposal[] = [],
   capitalSources: MaterialCapitalSource[] = [],
+  allocationMode: 'catalog' | 'receipt' = 'catalog',
 ): MappedMaterialImportRow[] {
   const sourceRows = sources.flatMap((source) =>
     source.rows.map((row, index) => ({ source, row, index })),
@@ -605,6 +613,7 @@ export function mapMaterialSpreadsheetRows(
     fields,
     translate,
     capitalSources,
+    allocationMode,
   );
 
   let plannedItemCount = 0;
@@ -672,13 +681,18 @@ export function mapMaterialSpreadsheetRows(
     };
   });
 
-  return markGeneratedCodeCollisions(mappedRows, translate);
+  return markGeneratedCodeCollisions(
+    mappedRows,
+    translate,
+    allocationMode === 'catalog',
+  );
 }
 
 export function toMaterialImportPreviewRows(
   rows: MappedMaterialImportRow[],
   models: MaterialModel[],
   proposals: MaterialModelImportProposal[],
+  allocationMode: 'catalog' | 'receipt' = 'catalog',
 ): MaterialSpreadsheetImportPreviewRow[] {
   return rows.map((row) => {
     const isValid = row.values !== null && !row.error;
@@ -693,9 +707,10 @@ export function toMaterialImportPreviewRows(
       sourceId: row.sourceId,
       fileName: row.fileName,
       excelRow: row.rowNumber,
-      code: row.code
-        ? formatMaterialImportCodeRange(row.code, row.quantity)
-        : '',
+      code:
+        allocationMode === 'catalog' && row.code
+          ? formatMaterialImportCodeRange(row.code, row.quantity)
+          : row.code,
       quantity: row.quantity,
       modelCode: row.modelCode,
       modelName: model?.name ?? proposal?.name ?? '',
@@ -809,12 +824,16 @@ function formatMaterialImportCodeRange(code: string, quantity: number) {
 function markGeneratedCodeCollisions(
   rows: MappedMaterialImportRow[],
   translate: TranslateMaterialImportMessage,
+  includeGeneratedCodes: boolean,
 ) {
   const rowByCode = new Map<string, string>();
   const collidingRows = new Set<string>();
   for (const row of rows) {
     if (!row.values || row.error || !row.code.trim()) continue;
-    for (const code of getMaterialImportCodes(row.code, row.quantity)) {
+    const codes = includeGeneratedCodes
+      ? getMaterialImportCodes(row.code, row.quantity)
+      : [row.code];
+    for (const code of codes) {
       const key = normalizeHeader(code);
       const previousRowId = rowByCode.get(key);
       if (previousRowId) {

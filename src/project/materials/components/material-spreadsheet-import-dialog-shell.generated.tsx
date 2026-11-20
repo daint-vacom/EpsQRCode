@@ -32,6 +32,7 @@ export function MaterialSpreadsheetImportDialogShell({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        aria-describedby={undefined}
         variant={fullScreen ? 'fullscreen' : undefined}
         className={`flex flex-col gap-0 overflow-hidden p-0 ${fullScreen ? 'max-w-none' : 'max-w-5xl'}`}
       >

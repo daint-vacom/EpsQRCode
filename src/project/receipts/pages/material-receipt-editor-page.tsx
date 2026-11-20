@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import type { Custodian } from '@/project/custodians/model/custodian';
+import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
+import {
+  DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+  mapPublicSpecificationSettings,
+} from '@/project/material-models/model/material-model';
+import { MaterialSpreadsheetImportDialog } from '@/project/materials/components/material-spreadsheet-dialog';
+import type { MaterialSpreadsheetImportDraftRow } from '@/project/materials/spreadsheet/material-spreadsheet-import';
 import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
-import { ClipboardPlus, Save } from 'lucide-react';
+import { ClipboardPlus, Save, Upload } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import type { IntlShape } from 'react-intl';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -21,8 +30,10 @@ import {
 } from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
+import type { SelectOption } from '@/components/ui/option-select';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MaterialReceiptLineMaterialDrawer } from '../components/material-receipt-line-material-drawer';
+import { MaterialReceiptRecipientDialog } from '../components/material-receipt-recipient-dialog';
 import {
   mapMaterialReceiptToFormValues,
   MaterialReceiptHeaderForm,
@@ -30,8 +41,10 @@ import {
 } from '../forms/material-receipt-form.generated';
 import {
   useApplyMaterialReceiptAdjustmentMutation,
+  useImportMaterialReceiptFromExcelMutation,
   useMaterialReceiptAdjustmentPreviewMutation,
   useMaterialReceiptQuery,
+  useMaterialReceiptRecipientOptionsQuery,
   useSaveMaterialReceiptMutation,
 } from '../hooks/use-material-receipts';
 import type {
@@ -47,15 +60,51 @@ import {
 } from '../model/material-receipt';
 import { MaterialReceiptLinesEditorTable } from '../table/material-receipt-lines-editor-table.generated';
 
+function getExcelImportErrorMessage(error: unknown, intl: IntlShape) {
+  const message = getApiErrorMessage(error);
+  const line = message.match(/Line\s+(\d+)/i)?.[1];
+  if (/invalid or inactive receiving unit/i.test(message) && line) {
+    return intl.formatMessage(
+      { id: 'receipts.errors.excelInvalidRecipient' },
+      { line },
+    );
+  }
+  if (/is inactive and cannot be allocated/i.test(message) && line) {
+    return intl.formatMessage(
+      { id: 'receipts.errors.excelInactiveAllocation' },
+      { line },
+    );
+  }
+  const duplicate = message.match(
+    /Line\s+(\d+)\s+(?:repeats internal code |internal code )(.+?)(?: in this file| already exists in the materials catalog)/i,
+  );
+  if (duplicate) {
+    return intl.formatMessage(
+      { id: 'receipts.errors.excelDuplicateCode' },
+      { line: duplicate[1], code: duplicate[2] },
+    );
+  }
+  if (/duplicate key value/i.test(message)) {
+    return intl.formatMessage({
+      id: 'receipts.errors.excelDuplicateCodeUnknown',
+    });
+  }
+  if (/request ID was already used with different content/i.test(message)) {
+    return intl.formatMessage({ id: 'receipts.errors.excelRequestChanged' });
+  }
+  return message;
+}
+
 export function MaterialReceiptEditorPage() {
   const intl = useIntl();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const isAdjustment = searchParams.get('adjust') === '1';
-  const { hasPermission } = useUser();
+  const { userId, hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canManage = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
+  const form = useMaterialReceiptForm();
   const query = useMaterialReceiptQuery(
     id,
     Boolean(id) && (isPermissionsPending || canManage),
@@ -64,11 +113,16 @@ export function MaterialReceiptEditorPage() {
     false,
     isPermissionsPending || canManage,
   );
+  const selectedWarehouseId = form.watch('warehouseId');
+  const recipientOptionsQuery = useMaterialReceiptRecipientOptionsQuery(
+    selectedWarehouseId || null,
+    !isPermissionsPending && canManage,
+  );
   const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canManage);
   const saveMutation = useSaveMaterialReceiptMutation();
+  const excelImportMutation = useImportMaterialReceiptFromExcelMutation();
   const previewMutation = useMaterialReceiptAdjustmentPreviewMutation();
   const applyMutation = useApplyMaterialReceiptAdjustmentMutation();
-  const form = useMaterialReceiptForm();
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [preview, setPreview] =
     useState<MaterialReceiptAdjustmentPreview | null>(null);
@@ -78,6 +132,18 @@ export function MaterialReceiptEditorPage() {
   const [activeMaterialLine, setActiveMaterialLine] = useState<number | null>(
     null,
   );
+  const [isMaterialImportOpen, setIsMaterialImportOpen] = useState(false);
+  const [activeReceivingLineClientId, setActiveReceivingLineClientId] =
+    useState<string | null>(null);
+  const [excelImportLines, setExcelImportLines] = useState<
+    Record<
+      string,
+      {
+        code: string;
+        linkedCodes: Array<{ label: string; value: string }>;
+      }
+    >
+  >({});
   const [representatives, setRepresentatives] = useState<
     Record<string, MaterialReceiptRepresentativeInput>
   >({});
@@ -87,6 +153,39 @@ export function MaterialReceiptEditorPage() {
   const loadedId = useRef('');
   const receipt = query.data;
   const warehouses = warehousesQuery.data ?? [];
+  const custodians = useMemo<Custodian[]>(
+    () =>
+      (recipientOptionsQuery.data ?? []).map((party) => ({
+        ...party,
+        sourceType: null,
+        sourceId: null,
+        canRepresent: false,
+        canManageMaterial: false,
+        canManageHandover: false,
+        accountUserId: null,
+        accountUserIds: [],
+        representativeUserId: null,
+        representativeDisplayName: null,
+        isActive: true,
+        createdAt: '',
+        updatedAt: '',
+      })),
+    [recipientOptionsQuery.data],
+  );
+  const eligibleReceivingParties = useMemo(
+    () => custodians.filter((party) => party.isActive),
+    [custodians],
+  );
+  const receivingPartyOptions = useMemo<SelectOption<Custodian>[]>(
+    () =>
+      eligibleReceivingParties.map((party) => ({
+        value: party.id,
+        label: party.name,
+        searchableText: `${party.name} ${party.code}`,
+        data: party,
+      })),
+    [eligibleReceivingParties],
+  );
   const modelById = useMemo(() => {
     const models = new Map<
       string,
@@ -108,10 +207,28 @@ export function MaterialReceiptEditorPage() {
     }
     return models;
   }, [modelsQuery.data, receipt?.lines]);
+  const materialNameByClientId = useMemo(
+    () =>
+      new Map(
+        Object.entries(representatives).map(([clientId, representative]) => [
+          clientId,
+          representative.materialValues.nameOverride.trim(),
+        ]),
+      ),
+    [representatives],
+  );
   const saveBusy =
     saveMutation.isPending ||
+    excelImportMutation.isPending ||
     previewMutation.isPending ||
     applyMutation.isPending;
+  const hasExcelImportDraftLines = form
+    .watch('lines')
+    .some((line) => Boolean(excelImportLines[line.clientId]));
+  const watchedLines = form.watch('lines');
+  const activeReceivingLine = watchedLines.find(
+    (line) => line.clientId === activeReceivingLineClientId,
+  );
   const pageReady =
     !isPermissionsPending && (!id || (!query.isPending && Boolean(receipt)));
   const navigateBack = useCallback(
@@ -122,6 +239,78 @@ export function MaterialReceiptEditorPage() {
           : ROUTES.PROJECT.RECEIPTS,
       ),
     [id, navigate],
+  );
+  const handleImportToReceipt = useCallback(
+    (rows: MaterialSpreadsheetImportDraftRow[]) => {
+      const importedLines = rows.map(({ values, quantity }) => {
+        const line = {
+          ...createMaterialReceiptLine(),
+          modelId: values.modelId,
+          quantity,
+          receivingPartyId:
+            values.ownerPartyId === form.getValues('warehouseId')
+              ? null
+              : values.ownerPartyId || null,
+          condition: values.condition,
+          note: values.note,
+          specificationOverrides: values.specificationOverrides,
+          specificationOverrideLabels: values.specificationOverrideLabels ?? {},
+          items: Array.from({ length: quantity }, () => ({
+            serialNumber: quantity === 1 ? values.serialNumber : '',
+            condition: values.condition,
+            conditionNote: '',
+            note: quantity === 1 ? values.note : '',
+          })),
+        };
+        const model = modelsQuery.data?.find(({ id }) => id === values.modelId);
+        return {
+          line,
+          representative: {
+            materialValues: { ...values },
+            images: (model?.images ?? []).map((image) => ({
+              ...image,
+              storageBucket: MATERIAL_MODEL_IMAGES_BUCKET,
+            })),
+            publicDisplaySettings:
+              model?.publicDisplaySettings ??
+              DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
+            publicSpecificationSettings: mapPublicSpecificationSettings(
+              model?.specifications ?? [],
+            ),
+          } satisfies MaterialReceiptRepresentativeInput,
+        };
+      });
+      setRepresentatives((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          importedLines.map(({ line, representative }) => [
+            line.clientId,
+            representative,
+          ]),
+        ),
+      }));
+      setExcelImportLines((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          importedLines.map(({ line }, index) => {
+            const values = rows[index].values;
+            return [
+              line.clientId,
+              {
+                code: values.code.trim(),
+                linkedCodes: values.linkedCodes,
+              },
+            ];
+          }),
+        ),
+      }));
+      form.setValue(
+        'lines',
+        [...form.getValues('lines'), ...importedLines.map(({ line }) => line)],
+        { shouldDirty: true, shouldValidate: true },
+      );
+    },
+    [form, modelsQuery.data],
   );
 
   useEffect(() => {
@@ -153,11 +342,36 @@ export function MaterialReceiptEditorPage() {
 
   const onSubmit = (values: MaterialReceiptFormValues) => {
     if (!canManage) return;
+    const selectedWarehouse = warehouses.find(
+      (warehouse) => warehouse.id === values.warehouseId,
+    );
+    const representativesForReceipt = Object.fromEntries(
+      Object.entries(representatives).map(([clientId, representative]) => [
+        clientId,
+        selectedWarehouse
+          ? {
+              ...representative,
+              materialValues: {
+                ...representative.materialValues,
+                ownerPartyId: selectedWarehouse.id,
+                ownerSnapshot: {
+                  kind: 'warehouse' as const,
+                  code: selectedWarehouse.code,
+                  name: selectedWarehouse.name,
+                  representativeName: '',
+                  phone: '',
+                  email: '',
+                },
+              },
+            }
+          : representative,
+      ]),
+    );
     const lines = toMaterialReceiptLineInputs(
       values,
       isAdjustment,
       false,
-      representatives,
+      representativesForReceipt,
     );
     if (isAdjustment) {
       if (!adjustmentReason.trim()) {
@@ -180,6 +394,74 @@ export function MaterialReceiptEditorPage() {
       );
       return;
     }
+    const excelLines = lines.map((line, index) => {
+      const importData = excelImportLines[values.lines[index]?.clientId ?? ''];
+      return {
+        ...line,
+        receivingPartyId:
+          line.receivingPartyId === values.warehouseId
+            ? null
+            : line.receivingPartyId,
+        items: line.items.map((item, itemIndex) => ({
+          ...item,
+          ...(itemIndex === 0 && importData?.code
+            ? { code: importData.code }
+            : {}),
+          linkedCodes: itemIndex === 0 ? (importData?.linkedCodes ?? []) : [],
+        })),
+      };
+    });
+    const hasExcelImportLines = values.lines.some((line) =>
+      Boolean(excelImportLines[line.clientId]),
+    );
+    const eligibleReceiverIds = new Set(
+      eligibleReceivingParties.map((party) => party.id),
+    );
+    const invalidReceiverIndex = values.lines.findIndex((line) => {
+      const receivingPartyId =
+        line.receivingPartyId === values.warehouseId
+          ? null
+          : line.receivingPartyId;
+      return Boolean(
+        receivingPartyId && !eligibleReceiverIds.has(receivingPartyId),
+      );
+    });
+    if (
+      !recipientOptionsQuery.isPending &&
+      !recipientOptionsQuery.isError &&
+      invalidReceiverIndex >= 0
+    ) {
+      toast.error(
+        intl.formatMessage(
+          { id: 'receipts.errors.invalidReceivingParty' },
+          { line: invalidReceiverIndex + 1 },
+        ),
+      );
+      return;
+    }
+    if (hasExcelImportLines) {
+      excelImportMutation.mutate(
+        {
+          actorUserId: userId ?? '',
+          values: {
+            warehouseId: values.warehouseId,
+            note: values.note,
+            lines: excelLines,
+          },
+        },
+        {
+          onSuccess: (savedId) => {
+            toast.success(
+              intl.formatMessage({ id: 'receipts.toasts.importedFromExcel' }),
+            );
+            navigate(ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', savedId));
+          },
+          onError: (error) =>
+            toast.error(getExcelImportErrorMessage(error, intl)),
+        },
+      );
+      return;
+    }
     saveMutation.mutate(
       {
         id: id || null,
@@ -191,7 +473,7 @@ export function MaterialReceiptEditorPage() {
             values,
             false,
             false,
-            representatives,
+            representativesForReceipt,
           ),
         },
       },
@@ -232,7 +514,9 @@ export function MaterialReceiptEditorPage() {
               loadingText={intl.formatMessage({
                 id: isAdjustment
                   ? 'receipts.actions.previewAdjustment'
-                  : 'receipts.actions.saveDraft',
+                  : hasExcelImportDraftLines
+                    ? 'receipts.actions.recordExcelReceipt'
+                    : 'receipts.actions.saveDraft',
               })}
               disabled={isAdjustment && !adjustmentReason.trim()}
             >
@@ -240,7 +524,9 @@ export function MaterialReceiptEditorPage() {
               {intl.formatMessage({
                 id: isAdjustment
                   ? 'receipts.actions.previewAdjustment'
-                  : 'receipts.actions.saveDraft',
+                  : hasExcelImportDraftLines
+                    ? 'receipts.actions.recordExcelReceipt'
+                    : 'receipts.actions.saveDraft',
               })}
             </Button>
           ) : null}
@@ -255,6 +541,7 @@ export function MaterialReceiptEditorPage() {
       navigateBack,
       receipt?.code,
       saveBusy,
+      hasExcelImportDraftLines,
     ],
   );
   useDetailEntryLayoutHeader(header);
@@ -375,7 +662,28 @@ export function MaterialReceiptEditorPage() {
           form={form}
           createLine={createLine}
           modelById={modelById}
+          materialNameByClientId={materialNameByClientId}
+          receivingParties={custodians}
+          receivingPartySelectionDisabled={
+            isAdjustment || !canManage || !selectedWarehouseId || saveBusy
+          }
+          toolbarContent={
+            !id && !isAdjustment ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="md"
+                  onClick={() => setIsMaterialImportOpen(true)}
+                >
+                  <Upload className="size-4" />
+                  {intl.formatMessage({ id: 'receipts.actions.importExcel' })}
+                </Button>
+              </div>
+            ) : null
+          }
           onEditMaterial={setActiveMaterialLine}
+          onEditReceivingParty={setActiveReceivingLineClientId}
           onCopySelected={(rows) => {
             const entries = rows.map((line) => {
               const copy = {
@@ -443,6 +751,18 @@ export function MaterialReceiptEditorPage() {
             ...current,
             [line.clientId]: representative,
           }));
+          setExcelImportLines((current) =>
+            current[line.clientId]
+              ? {
+                  ...current,
+                  [line.clientId]: {
+                    ...current[line.clientId],
+                    code: representative.materialValues.code.trim(),
+                    linkedCodes: representative.materialValues.linkedCodes,
+                  },
+                }
+              : current,
+          );
           form.setValue(
             `lines.${activeMaterialLine}.specificationOverrides`,
             representative.materialValues.specificationOverrides,
@@ -454,6 +774,44 @@ export function MaterialReceiptEditorPage() {
             { shouldDirty: true, shouldValidate: true },
           );
           setActiveMaterialLine(null);
+        }}
+      />
+      <MaterialSpreadsheetImportDialog
+        open={isMaterialImportOpen}
+        onOpenChange={setIsMaterialImportOpen}
+        onImportToDraft={handleImportToReceipt}
+        receiptRecipientOptions={custodians}
+        receiptRecipientOptionsLoading={recipientOptionsQuery.isFetching}
+        receiptRecipientOptionsError={recipientOptionsQuery.isError}
+        onRetryReceiptRecipientOptions={() =>
+          void recipientOptionsQuery.refetch()
+        }
+      />
+      <MaterialReceiptRecipientDialog
+        open={Boolean(activeReceivingLine)}
+        onOpenChange={(open) => !open && setActiveReceivingLineClientId(null)}
+        value={activeReceivingLine?.receivingPartyId ?? ''}
+        options={receivingPartyOptions}
+        loading={recipientOptionsQuery.isFetching}
+        error={
+          recipientOptionsQuery.isError
+            ? getApiErrorMessage(recipientOptionsQuery.error)
+            : undefined
+        }
+        onRetry={() => void recipientOptionsQuery.refetch()}
+        disabled={saveBusy}
+        onChange={(receivingPartyId) => {
+          if (!activeReceivingLineClientId) return;
+          const lineIndex = watchedLines.findIndex(
+            (line) => line.clientId === activeReceivingLineClientId,
+          );
+          if (lineIndex < 0) return;
+          form.setValue(
+            `lines.${lineIndex}.receivingPartyId`,
+            receivingPartyId || null,
+            { shouldDirty: true, shouldValidate: true },
+          );
+          setActiveReceivingLineClientId(null);
         }}
       />
       <Dialog

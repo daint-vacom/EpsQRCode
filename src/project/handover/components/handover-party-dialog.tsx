@@ -31,9 +31,11 @@ type SideFieldNames = {
   PartyPhone: 'senderPartyPhone' | 'recipientPartyPhone';
   PartyEmail: 'senderPartyEmail' | 'recipientPartyEmail';
   RepresentativeName:
-    'senderRepresentativeName' | 'recipientRepresentativeName';
+    | 'senderRepresentativeName'
+    | 'recipientRepresentativeName';
   RepresentativeUserId:
-    'senderRepresentativeUserId' | 'recipientRepresentativeUserId';
+    | 'senderRepresentativeUserId'
+    | 'recipientRepresentativeUserId';
   PartyScopePartyId: 'senderPartyScopePartyId' | 'recipientPartyScopePartyId';
 };
 
@@ -76,6 +78,11 @@ interface HandoverPartyDialogProps {
   side: Side;
   form: UseFormReturn<HandoverFormValues>;
   parties: Custodian[];
+  selectionOnly?: boolean;
+  initialPartyId?: string;
+  allowedKinds?: readonly HandoverPartyKind[];
+  onSelectPartyId?: (partyId: string) => void;
+  disabled?: boolean;
 }
 
 function fieldName<K extends keyof SideFieldNames>(
@@ -126,6 +133,11 @@ export function HandoverPartyDialog({
   side,
   form,
   parties,
+  selectionOnly = false,
+  initialPartyId,
+  allowedKinds = ['eps', 'external', 'warehouse', 'other'],
+  onSelectPartyId,
+  disabled = false,
 }: HandoverPartyDialogProps) {
   const intl = useIntl();
   const { userId } = useUser();
@@ -250,9 +262,11 @@ export function HandoverPartyDialog({
     }
     if (didInitializeRef.current) return;
     didInitializeRef.current = true;
-    const partyId = form.getValues(`${prefix}PartyId`);
+    const partyId = initialPartyId ?? form.getValues(`${prefix}PartyId`);
     const party = allParties.find((item) => item.id === partyId);
-    const kind = form.getValues(`${prefix}PartyKind`);
+    const kind = selectionOnly
+      ? snapshotToKind(party)
+      : form.getValues(`${prefix}PartyKind`);
     const type = party?.type;
     const personParent =
       type === 'person'
@@ -296,9 +310,18 @@ export function HandoverPartyDialog({
       phone: form.getValues(`${prefix}PartyPhone`) ?? party?.phone ?? '',
       email: form.getValues(`${prefix}PartyEmail`) ?? party?.email ?? '',
     });
-  }, [allParties, dialogForm, form, open, prefix]);
+  }, [
+    allParties,
+    dialogForm,
+    form,
+    initialPartyId,
+    open,
+    prefix,
+    selectionOnly,
+  ]);
 
   const setKind = (kind: HandoverPartyKind) => {
+    if (!allowedKinds.includes(kind) || disabled) return;
     const current = dialogForm.getValues();
     if (current.kind === kind) return;
     const senderScopePartyId = form.getValues('senderPartyScopePartyId');
@@ -339,6 +362,12 @@ export function HandoverPartyDialog({
             : values.kind === 'eps' && values.departmentId
               ? values.departmentId
               : values.partyId;
+    if (selectionOnly) {
+      if (!partyId) return;
+      onSelectPartyId?.(partyId);
+      onOpenChange(false);
+      return;
+    }
     const id = fieldName(side, 'PartyId');
     const kindName = fieldName(side, 'PartyKind');
     const codeName = fieldName(side, 'PartyCode');
@@ -378,26 +407,28 @@ export function HandoverPartyDialog({
       value: party.id,
       label: `${party.name} · ${party.code}`,
     }));
-  const isInvalid =
-    !dialogForm.watch('name').trim() ||
-    (dialogForm.watch('kind') === 'eps' && !dialogForm.watch('departmentId')) ||
-    ((dialogForm.watch('kind') === 'external' ||
-      dialogForm.watch('kind') === 'warehouse') &&
-      !dialogForm.watch('partyId')) ||
-    (dialogForm.watch('kind') === 'other' &&
-      side === 'sender' &&
-      !dialogForm.watch('scopePartyId')) ||
-    Boolean(
-      dialogForm.watch('email') &&
-      !/^\S+@\S+\.\S+$/.test(dialogForm.watch('email')),
-    );
+  const isInvalid = selectionOnly
+    ? disabled || !dialogForm.watch('partyId')
+    : !dialogForm.watch('name').trim() ||
+      (dialogForm.watch('kind') === 'eps' &&
+        !dialogForm.watch('departmentId')) ||
+      ((dialogForm.watch('kind') === 'external' ||
+        dialogForm.watch('kind') === 'warehouse') &&
+        !dialogForm.watch('partyId')) ||
+      (dialogForm.watch('kind') === 'other' &&
+        side === 'sender' &&
+        !dialogForm.watch('scopePartyId')) ||
+      Boolean(
+        dialogForm.watch('email') &&
+        !/^\S+@\S+\.\S+$/.test(dialogForm.watch('email')),
+      );
 
   return (
     <HandoverPartyDialogShell
       open={open}
       onOpenChange={onOpenChange}
       onSave={() => void save()}
-      isInvalid={isInvalid}
+      isInvalid={isInvalid || disabled}
     >
       <Form {...dialogForm}>
         <div className="space-y-5">
@@ -417,25 +448,23 @@ export function HandoverPartyDialog({
                     onValueChange={(value) =>
                       setKind(value as HandoverPartyKind)
                     }
-                    className="grid gap-2 sm:grid-cols-4"
+                    className={`grid gap-2 ${allowedKinds.length === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-4'}`}
                   >
-                    {(['eps', 'external', 'warehouse', 'other'] as const).map(
-                      (kind) => (
-                        <label
-                          key={kind}
-                          htmlFor={`${side}-party-kind-${kind}`}
-                          className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
-                        >
-                          <RadioGroupItem
-                            id={`${side}-party-kind-${kind}`}
-                            value={kind}
-                          />
-                          {intl.formatMessage({
-                            id: `project.handover.partyDialog.kind.${kind}`,
-                          })}
-                        </label>
-                      ),
-                    )}
+                    {allowedKinds.map((kind) => (
+                      <label
+                        key={kind}
+                        htmlFor={`${side}-party-kind-${kind}`}
+                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                      >
+                        <RadioGroupItem
+                          id={`${side}-party-kind-${kind}`}
+                          value={kind}
+                        />
+                        {intl.formatMessage({
+                          id: `project.handover.partyDialog.kind.${kind}`,
+                        })}
+                      </label>
+                    ))}
                   </RadioGroup>
                 </FormControl>
               </FormItem>
@@ -703,119 +732,128 @@ export function HandoverPartyDialog({
             />
           ) : null}
 
-          <FormField
-            control={dialogForm.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem layout="horizontal" labelWidth="md">
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.code',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  {partyKind === 'other' ? (
-                    <Input {...field} />
-                  ) : (
-                    <div className="flex min-h-9 items-center text-sm text-foreground">
-                      {field.value || '—'}
-                    </div>
-                  )}
-                </FormControl>
-              </FormItem>
-            )}
-          />
+          {!selectionOnly ? (
+            <>
+              <FormField
+                control={dialogForm.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.custodians.fields.code',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      {partyKind === 'other' ? (
+                        <Input {...field} />
+                      ) : (
+                        <div className="flex min-h-9 items-center text-sm text-foreground">
+                          {field.value || '—'}
+                        </div>
+                      )}
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={dialogForm.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem layout="horizontal" labelWidth="md">
-                <FormLabel>
+              <FormField
+                control={dialogForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.custodians.fields.name',
+                      })}
+                      <span className="text-destructive"> *</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={dialogForm.control}
+                name="representativeName"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.fields.representative',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <AutocompleteInput
+                        value={field.value}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          dialogForm.setValue('representativeUserId', null);
+                        }}
+                        options={representativeOptions}
+                        onOptionSelect={(option) => {
+                          const party = allParties.find(
+                            (item) =>
+                              item.id === dialogForm.getValues('partyId') &&
+                              (item.representativeDisplayName ===
+                                option.value ||
+                                item.representativeName === option.value),
+                          );
+                          dialogForm.setValue(
+                            'representativeUserId',
+                            party?.representativeUserId ?? null,
+                          );
+                        }}
+                        emptyMessage={intl.formatMessage({
+                          id: 'project.handover.partyDialog.noSuggestions',
+                        })}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={dialogForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.fields.phone',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={dialogForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem layout="horizontal" labelWidth="md">
+                    <FormLabel>
+                      {intl.formatMessage({
+                        id: 'project.handover.fields.email',
+                      })}
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="email" {...field} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              {dialogForm.watch('email') &&
+              !/^\S+@\S+\.\S+$/.test(dialogForm.watch('email')) ? (
+                <p className="text-xs text-destructive" role="alert">
                   {intl.formatMessage({
-                    id: 'project.handover.custodians.fields.name',
+                    id: 'project.handover.partyDialog.invalidEmail',
                   })}
-                  <span className="text-destructive"> *</span>
-                </FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={dialogForm.control}
-            name="representativeName"
-            render={({ field }) => (
-              <FormItem layout="horizontal" labelWidth="md">
-                <FormLabel>
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.representative',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <AutocompleteInput
-                    value={field.value}
-                    onChange={(value) => {
-                      field.onChange(value);
-                      dialogForm.setValue('representativeUserId', null);
-                    }}
-                    options={representativeOptions}
-                    onOptionSelect={(option) => {
-                      const party = allParties.find(
-                        (item) =>
-                          item.id === dialogForm.getValues('partyId') &&
-                          (item.representativeDisplayName === option.value ||
-                            item.representativeName === option.value),
-                      );
-                      dialogForm.setValue(
-                        'representativeUserId',
-                        party?.representativeUserId ?? null,
-                      );
-                    }}
-                    emptyMessage={intl.formatMessage({
-                      id: 'project.handover.partyDialog.noSuggestions',
-                    })}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={dialogForm.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem layout="horizontal" labelWidth="md">
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.handover.fields.phone' })}
-                </FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={dialogForm.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem layout="horizontal" labelWidth="md">
-                <FormLabel>
-                  {intl.formatMessage({ id: 'project.handover.fields.email' })}
-                </FormLabel>
-                <FormControl>
-                  <Input type="email" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          {dialogForm.watch('email') &&
-          !/^\S+@\S+\.\S+$/.test(dialogForm.watch('email')) ? (
-            <p className="text-xs text-destructive" role="alert">
-              {intl.formatMessage({
-                id: 'project.handover.partyDialog.invalidEmail',
-              })}
-            </p>
+                </p>
+              ) : null}
+            </>
           ) : null}
         </div>
       </Form>

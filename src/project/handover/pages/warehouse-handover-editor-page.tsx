@@ -129,6 +129,7 @@ export function WarehouseHandoverEditorPage() {
   const materialFilters = useMemo(
     () => ({
       ownerPartyId: selectedWarehouseId || undefined,
+      ownerKind: 'warehouse' as const,
       status: 'available' as const,
       isActive: true,
       ...(receiptId ? { receiptId } : {}),

@@ -425,30 +425,29 @@ export function MaterialReceiptDetailPage() {
     }
   };
 
-  const saveRepresentative = (
+  const saveRepresentative = async (
     representative: MaterialReceiptRepresentativeInput,
     reasonText: string,
   ) => {
-    if (!receipt || !activeMaterialLine) return;
-    saveRepresentativeMutation.mutate(
-      {
+    if (!receipt || !activeMaterialLine) return false;
+    try {
+      await saveRepresentativeMutation.mutateAsync({
         receiptId: receipt.id,
         lineId: activeMaterialLine.id,
         expectedVersion: receipt.version,
         warehouseId: receipt.warehouseId,
         representative,
         reason: reasonText,
-      },
-      {
-        onSuccess: () => {
-          toast.success(
-            intl.formatMessage({ id: 'receipts.toasts.representativeUpdated' }),
-          );
-          setActiveMaterialLine(null);
-        },
-        onError: (error) => toast.error(getApiErrorMessage(error)),
-      },
-    );
+      });
+      toast.success(
+        intl.formatMessage({ id: 'receipts.toasts.representativeUpdated' }),
+      );
+      setActiveMaterialLine(null);
+      return true;
+    } catch (error) {
+      toast.error(getApiErrorMessage(error));
+      return false;
+    }
   };
 
   const applyAdjustment = () => {
@@ -734,7 +733,7 @@ export function MaterialReceiptDetailPage() {
           {intl.formatMessage({ id: 'receipts.tabs.details' })}
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <CardContent className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
         <Info
           label={intl.formatMessage({ id: 'receipts.fields.createdAt' })}
           value={new Date(receipt.createdAt).toLocaleString('vi-VN')}
@@ -746,6 +745,10 @@ export function MaterialReceiptDetailPage() {
         <Info
           label={intl.formatMessage({ id: 'receipts.fields.progress' })}
           value={`${receipt.receivedItems} / ${receipt.totalItems} (${receipt.totalItems ? Math.floor((receipt.receivedItems / receipt.totalItems) * 100) : 0}%)`}
+        />
+        <Info
+          label={intl.formatMessage({ id: 'receipts.actions.pendingCount' })}
+          value={String(receipt.pendingAllocationItems)}
         />
         <Info
           label={intl.formatMessage({ id: 'receipts.fields.note' })}
@@ -1170,7 +1173,10 @@ export function MaterialReceiptDetailPage() {
           </DialogHeader>
           {actionDialog === 'complete' ? (
             <p className="text-sm text-muted-foreground">
-              {intl.formatMessage({ id: 'receipts.confirm.completeWarning' })}
+              {intl.formatMessage(
+                { id: 'receipts.confirm.completeWarning' },
+                { count: receipt.pendingAllocationItems },
+              )}
             </p>
           ) : null}
           {actionDialog === 'cancel' || actionDialog === 'reopen' ? (
@@ -1199,6 +1205,7 @@ export function MaterialReceiptDetailPage() {
             <Button
               type="button"
               variant="outline"
+              disabled={actionMutation.isPending}
               onClick={() => setActionDialog(null)}
             >
               {intl.formatMessage({ id: 'common.actions.cancel' })}

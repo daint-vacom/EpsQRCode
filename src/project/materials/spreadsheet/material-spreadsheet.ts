@@ -455,6 +455,7 @@ export function mapMaterialImportRows(
   fields: SpreadsheetField<Material>[],
   translate: TranslateMaterialSpreadsheetMessage,
   capitalSources: MaterialCapitalSource[] = [],
+  allocationMode: 'catalog' | 'receipt' = 'catalog',
 ): MaterialImportRow[] {
   const usedCodes = new Set<string>();
   return rows.map((row) => {
@@ -513,7 +514,72 @@ export function mapMaterialImportRows(
     }
     let ownerPartyId = '';
     let ownerSnapshot: MaterialFormValues['ownerSnapshot'];
-    if (importedOwnerKind === 'other') {
+    if (allocationMode === 'receipt') {
+      if (!ownerCode && !ownerName) {
+        ownerSnapshot = {
+          kind: 'other',
+          code: '',
+          name: translate(
+            'project.materials.spreadsheet.receiptWarehouseOwner',
+          ),
+          representativeName: '',
+          phone: '',
+          email: '',
+        };
+      } else {
+        const ownerMatches = custodians.filter(
+          (item) =>
+            item.isActive &&
+            (ownerCode
+              ? normalizeHeader(item.code) === normalizeHeader(ownerCode)
+              : normalizeHeader(item.name) === normalizeHeader(ownerName)),
+        );
+        const owner = ownerMatches.length === 1 ? ownerMatches[0] : undefined;
+        if (!owner) {
+          return {
+            rowNumber: row.rowNumber,
+            code,
+            values: null,
+            error: translate(
+              'project.materials.spreadsheet.errors.ownerNotFound',
+            ),
+          };
+        }
+        if (owner.type === 'warehouse') {
+          ownerSnapshot = {
+            kind: 'other',
+            code: '',
+            name: translate(
+              'project.materials.spreadsheet.receiptWarehouseOwner',
+            ),
+            representativeName: '',
+            phone: '',
+            email: '',
+          };
+        } else {
+          const inferredKind = owner.type === 'external' ? 'external' : 'eps';
+          if (importedOwnerKind && importedOwnerKind !== inferredKind) {
+            return {
+              rowNumber: row.rowNumber,
+              code,
+              values: null,
+              error: translate(
+                'project.materials.spreadsheet.errors.ownerNotFound',
+              ),
+            };
+          }
+          ownerPartyId = owner.id;
+          ownerSnapshot = {
+            kind: inferredKind,
+            code: owner.code,
+            name: owner.name,
+            representativeName: owner.representativeName ?? '',
+            phone: owner.phone ?? '',
+            email: owner.email ?? '',
+          };
+        }
+      }
+    } else if (importedOwnerKind === 'other') {
       const scopeCode = normalizeHeader(
         valueOf(row, 'material.owner.scope.code'),
       );

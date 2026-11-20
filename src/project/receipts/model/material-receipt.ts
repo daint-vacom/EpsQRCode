@@ -23,6 +23,15 @@ export interface MaterialReceiptWarehouseSnapshot {
   type: 'warehouse';
 }
 
+export interface MaterialReceiptRecipientOption {
+  id: string;
+  type: 'department' | 'team' | 'person' | 'external' | 'other';
+  code: string;
+  name: string;
+  parentId: string | null;
+  isActive: true;
+}
+
 export interface MaterialReceiptItem {
   id: string;
   materialId: string | null;
@@ -66,6 +75,7 @@ export interface MaterialReceiptLine {
   externalCode: string | null;
   quantity: number;
   sortOrder: number;
+  receivingPartyId: string | null;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
   representative?: MaterialReceiptRepresentative | null;
@@ -89,6 +99,8 @@ export interface MaterialReceipt {
   updatedAt: string;
   totalItems: number;
   receivedItems: number;
+  pendingAllocationItems: number;
+  allocationsClosed: boolean;
   lines: MaterialReceiptLine[];
 }
 
@@ -108,6 +120,7 @@ export interface MaterialReceiptLineInput {
   externalCode: string;
   quantity: number;
   sortOrder: number;
+  receivingPartyId: string | null;
   specificationOverrides: Record<string, string[]>;
   specificationOverrideLabels: Record<string, string[]>;
   representative?: MaterialReceiptRepresentativeInput;
@@ -125,6 +138,7 @@ export interface MaterialReceiptFormLine {
   lineId: string;
   modelId: string;
   quantity: number;
+  receivingPartyId: string | null;
   condition: MaterialCondition;
   note: string;
   conditionNote: string;
@@ -152,6 +166,7 @@ export const materialReceiptFormSchema = z
           lineId: z.string(),
           modelId: z.string(),
           quantity: z.number().int().min(1).max(10000),
+          receivingPartyId: z.string().uuid().nullable().default(null),
           condition: z.enum(['good', 'damaged']),
           note: z.string(),
           conditionNote: z.string(),
@@ -325,6 +340,7 @@ export function createMaterialReceiptLine(): MaterialReceiptFormLine {
     lineId: '',
     modelId: '',
     quantity: 1,
+    receivingPartyId: null,
     condition: 'good',
     note: '',
     conditionNote: '',
@@ -349,6 +365,7 @@ export function toMaterialReceiptLineInputs(
       modelId: line.modelId || null,
       externalCode: '',
       quantity: line.quantity,
+      receivingPartyId: line.receivingPartyId,
       sortOrder,
       specificationOverrides: line.specificationOverrides,
       specificationOverrideLabels: line.specificationOverrideLabels,
