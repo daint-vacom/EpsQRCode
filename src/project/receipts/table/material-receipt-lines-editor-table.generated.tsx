@@ -62,6 +62,7 @@ interface MaterialReceiptLinesEditorTableProps {
   createLine: () => MaterialReceiptFormLine;
   modelById: ReadonlyMap<string, MaterialReceiptModelIdentity>;
   materialNameByClientId: ReadonlyMap<string, string>;
+  filterGroupIds?: ReadonlySet<string> | null;
   receivingParties: readonly Custodian[];
   receivingPartySelectionDisabled: boolean;
   readOnly?: boolean;
@@ -76,6 +77,7 @@ export function MaterialReceiptLinesEditorTable({
   createLine,
   modelById,
   materialNameByClientId,
+  filterGroupIds = null,
   receivingParties,
   receivingPartySelectionDisabled,
   readOnly = false,
@@ -184,7 +186,9 @@ export function MaterialReceiptLinesEditorTable({
   };
 
   const handleSelectAllRows = (checked: boolean) => {
-    setSelectedRowIds(checked ? fields.map((field) => field.fieldId) : []);
+    setSelectedRowIds(
+      checked ? sortedRows.map(({ field }) => field.fieldId) : [],
+    );
   };
 
   const handleSelectRow = (rowId: string, checked: boolean) => {
@@ -227,6 +231,11 @@ export function MaterialReceiptLinesEditorTable({
           formIndex,
           row: watchedRows?.[formIndex],
         }))
+        .filter(({ row }) => {
+          if (!filterGroupIds) return true;
+          const groupId = modelById.get(row?.modelId ?? '')?.groupId;
+          return Boolean(groupId && filterGroupIds.has(groupId));
+        })
         .sort((left, right) => {
           const leftName = modelById.get(left.row?.modelId ?? '')?.name ?? '';
           const rightName = modelById.get(right.row?.modelId ?? '')?.name ?? '';
@@ -235,10 +244,10 @@ export function MaterialReceiptLinesEditorTable({
             left.formIndex - right.formIndex
           );
         }),
-    [fields, modelById, watchedRows],
+    [fields, filterGroupIds, modelById, watchedRows],
   );
   const paginationTable = useReactTable({
-    data: fields,
+    data: sortedRows.map(({ field }) => field),
     columns: [],
     autoResetPageIndex: false,
     getCoreRowModel: getCoreRowModel(),
@@ -255,16 +264,23 @@ export function MaterialReceiptLinesEditorTable({
     setPagination((current) => {
       const lastPageIndex = Math.max(
         0,
-        Math.ceil(fields.length / current.pageSize) - 1,
+        Math.ceil(sortedRows.length / current.pageSize) - 1,
       );
       return current.pageIndex > lastPageIndex
         ? { ...current, pageIndex: lastPageIndex }
         : current;
     });
-  }, [fields.length]);
+  }, [sortedRows.length]);
+
+  useEffect(() => {
+    setSelectedRowIds([]);
+    setPagination((current) =>
+      current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+    );
+  }, [filterGroupIds]);
 
   return (
-    <DataGridProvider table={paginationTable} recordCount={fields.length}>
+    <DataGridProvider table={paginationTable} recordCount={sortedRows.length}>
       <>
         <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
           <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
@@ -272,7 +288,7 @@ export function MaterialReceiptLinesEditorTable({
               <h2 className="whitespace-nowrap text-sm font-semibold text-foreground">
                 {intl.formatMessage(
                   { id: 'receipts.fields.itemsHeaderCount' },
-                  { count: fields.length },
+                  { count: sortedRows.length },
                 )}
               </h2>
             </div>
@@ -306,11 +322,11 @@ export function MaterialReceiptLinesEditorTable({
                           <Checkbox
                             aria-label="Chọn tất cả dòng"
                             checked={
-                              fields.length > 0 &&
-                              (selectedRowIds.length === fields.length ||
+                              sortedRows.length > 0 &&
+                              (selectedRowIds.length === sortedRows.length ||
                                 (selectedRowIds.length > 0 && 'indeterminate'))
                             }
-                            disabled={fields.length === 0}
+                            disabled={sortedRows.length === 0}
                             size="sm"
                             onCheckedChange={(checked) =>
                               handleSelectAllRows(!!checked)
@@ -821,5 +837,6 @@ function MaterialReceiptModelCell({
 interface MaterialReceiptModelIdentity {
   name: string;
   code: string;
+  groupId?: string | null;
   imageUrl?: string | null;
 }

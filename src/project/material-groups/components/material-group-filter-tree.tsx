@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import type { MaterialGroup } from '../model/material-group';
 import { buildMaterialGroupTree } from '../model/material-group-tree';
+import type { MaterialGroupTreeNode } from '../model/material-group-tree';
 import {
   debugMaterialGroupTree,
   isMaterialGroupTreeDebugEnabled,
@@ -103,6 +104,7 @@ export interface MaterialGroupFilterTreeProps {
   countByNode?: Map<string, number>;
   allCount?: number;
   countLabelId?: string;
+  hideEmptyGroups?: boolean;
   className?: string;
 }
 
@@ -227,6 +229,7 @@ export function MaterialGroupFilterTree({
   countByNode: countByNodeOverride,
   allCount: allCountOverride,
   countLabelId: countLabelIdOverride,
+  hideEmptyGroups = false,
   className,
 }: MaterialGroupFilterTreeProps) {
   const nodes = useMemo(() => buildMaterialGroupTree([...groups]), [groups]);
@@ -242,11 +245,25 @@ export function MaterialGroupFilterTree({
     () => countByNodeOverride ?? new Map(Object.entries(counts?.counts ?? {})),
     [countByNodeOverride, counts?.counts],
   );
+  const visibleNodes = useMemo(() => {
+    if (!hideEmptyGroups) return nodes;
+    const keepNonEmptyGroups = (
+      currentNodes: readonly MaterialGroupTreeNode[],
+    ): MaterialGroupTreeNode[] =>
+      currentNodes.flatMap((node) => {
+        const children = keepNonEmptyGroups(node.children);
+        if ((countByNode.get(node.id) ?? 0) <= 0 && children.length === 0) {
+          return [];
+        }
+        return [{ ...node, children }];
+      });
+    return keepNonEmptyGroups(nodes);
+  }, [countByNode, hideEmptyGroups, nodes]);
 
   return (
     <MaterialGroupTreePanel
       className={className}
-      nodes={nodes}
+      nodes={visibleNodes}
       selectedId={selectedGroupId}
       countByNode={countByNode}
       countLabelId={

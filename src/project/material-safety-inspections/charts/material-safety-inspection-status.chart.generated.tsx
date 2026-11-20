@@ -31,7 +31,7 @@ export function MaterialSafetyInspectionStatusChart({
     value: { label: countLabel, color: 'var(--admin-red-primary)' },
   } satisfies ChartConfig;
   const chartData = isEmpty
-    ? [{ name: '', value: 1, fill: 'var(--admin-neutral-400)' }]
+    ? [{ name: '', value: 1, fill: 'var(--admin-chart-empty)' }]
     : data;
 
   return (

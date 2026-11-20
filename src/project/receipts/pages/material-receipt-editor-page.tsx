@@ -7,6 +7,9 @@ import {
   HANDOVER_DOCUMENT_COLUMN_PINNING,
   useHandoverDocumentColumns,
 } from '@/project/handover/table/handover.columns.generated';
+import { MaterialGroupFilterSidebar } from '@/project/material-groups/components/material-group-filter-tree';
+import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
+import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { useMaterialModelsQuery } from '@/project/material-models/hooks/use-material-models';
 import {
@@ -24,6 +27,7 @@ import type { IntlShape } from 'react-intl';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { toAbsoluteUrl } from '@/lib/helpers';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +57,7 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Stepper,
   StepperContent,
@@ -64,6 +69,7 @@ import {
   StepperTrigger,
 } from '@/components/ui/stepper';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
+import { MaterialReceiptAllocationChart } from '../charts/receipt-allocation.chart.generated';
 import { MaterialReceiptLineMaterialDrawer } from '../components/material-receipt-line-material-drawer';
 import { MaterialReceiptRecipientDialog } from '../components/material-receipt-recipient-dialog';
 import {
@@ -94,6 +100,18 @@ import {
   toMaterialReceiptLineInputs,
 } from '../model/material-receipt';
 import { MaterialReceiptLinesEditorTable } from '../table/material-receipt-lines-editor-table.generated';
+
+function getAllocationChartColor(id: string, index: number) {
+  let hash = 2166136261;
+  for (const character of id) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  }
+  const seed = hash >>> 0;
+  const hue = (seed + index * 137.508) % 360;
+  const saturation = 60 + ((seed >>> 8) % 16);
+  const lightness = 42 + ((seed >>> 16) % 9);
+  return `hsl(${hue.toFixed(0)} ${saturation}% ${lightness}%)`;
+}
 
 function getExcelImportErrorMessage(error: unknown, intl: IntlShape) {
   const message = getApiErrorMessage(error);
@@ -161,6 +179,9 @@ export function MaterialReceiptEditorPage() {
     isPermissionsPending || canRead,
   );
   const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canRead);
+  const materialGroupsQuery = useMaterialGroupsQuery(
+    isPermissionsPending || canRead,
+  );
   const saveMutation = useSaveMaterialReceiptMutation();
   const excelImportMutation = useImportMaterialReceiptFromExcelMutation();
   const previewMutation = useMaterialReceiptAdjustmentPreviewMutation();
@@ -188,6 +209,7 @@ export function MaterialReceiptEditorPage() {
   const [isMaterialImportOpen, setIsMaterialImportOpen] = useState(false);
   const [activeReceivingLineClientId, setActiveReceivingLineClientId] =
     useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [excelImportLines, setExcelImportLines] = useState<
     Record<
       string,
@@ -221,9 +243,13 @@ export function MaterialReceiptEditorPage() {
     Boolean(id) && activeStep === 2 && canRead,
   );
   const handovers = handoversQuery.data?.items ?? [];
-  const noOpViewHandover = useCallback(() => {}, []);
+  const onViewHandover = useCallback((handover: (typeof handovers)[number]) => {
+    const path = ROUTES.PROJECT.HANDOVER_DETAIL.replace(':id', handover.id);
+    window.open(toAbsoluteUrl(path), '_blank', 'noopener,noreferrer');
+  }, []);
   const handoverColumns = useHandoverDocumentColumns({
-    onView: noOpViewHandover,
+    onView: onViewHandover,
+    showViewLabel: true,
   });
   const handoversTable = useReactTable({
     data: handovers,
@@ -236,7 +262,7 @@ export function MaterialReceiptEditorPage() {
     ),
     state: {
       columnPinning: HANDOVER_DOCUMENT_COLUMN_PINNING,
-      columnVisibility: { actions: false },
+      columnVisibility: { type: false },
       pagination: handoverPagination,
     },
     onPaginationChange: setHandoverPagination,
@@ -280,19 +306,26 @@ export function MaterialReceiptEditorPage() {
   const modelById = useMemo(() => {
     const models = new Map<
       string,
-      { name: string; code: string; imageUrl?: string | null }
+      {
+        name: string;
+        code: string;
+        groupId?: string | null;
+        imageUrl?: string | null;
+      }
     >();
     for (const line of receipt?.lines ?? []) {
       if (!line.modelId) continue;
       models.set(line.modelId, {
         name: line.model.name,
         code: line.model.code ?? '',
+        groupId: line.model.groupId,
       });
     }
     for (const model of modelsQuery.data ?? []) {
       models.set(model.id, {
         name: model.name,
         code: model.code,
+        groupId: model.groupId,
         imageUrl: model.imageUrl,
       });
     }
@@ -308,6 +341,37 @@ export function MaterialReceiptEditorPage() {
       ),
     [representatives],
   );
+  const watchedLines = form.watch('lines');
+  const selectedGroupIds = useMemo(
+    () =>
+      selectedGroupId
+        ? getMaterialGroupDescendantIds(
+            materialGroupsQuery.data ?? [],
+            selectedGroupId,
+          )
+        : null,
+    [materialGroupsQuery.data, selectedGroupId],
+  );
+  const receiptMaterialCountsByGroup = useMemo(() => {
+    const groupsById = new Map(
+      (materialGroupsQuery.data ?? []).map((group) => [group.id, group]),
+    );
+    const counts = new Map<string, number>();
+    for (const line of watchedLines) {
+      const groupId = modelById.get(line.modelId)?.groupId;
+      const quantity = Math.max(0, Number(line.quantity) || 0);
+      if (!groupId || quantity === 0) continue;
+
+      const visited = new Set<string>();
+      let group = groupsById.get(groupId);
+      while (group && !visited.has(group.id)) {
+        visited.add(group.id);
+        counts.set(group.id, (counts.get(group.id) ?? 0) + quantity);
+        group = group.parentId ? groupsById.get(group.parentId) : undefined;
+      }
+    }
+    return counts;
+  }, [materialGroupsQuery.data, modelById, watchedLines]);
   const saveBusy =
     saveMutation.isPending ||
     excelImportMutation.isPending ||
@@ -319,11 +383,64 @@ export function MaterialReceiptEditorPage() {
     previewMutation.isPending || inlinePreviewMutation.isPending;
   const previewDialogProcessing =
     previewPending || (inlineApplyMutation.isPending && preview === null);
-  const watchedLines = form.watch('lines');
   const totalMaterialCount = watchedLines.reduce(
     (total, line) => total + Math.max(0, Number(line.quantity) || 0),
     0,
   );
+  const allocationChartData = useMemo(() => {
+    const quantityByReceivingParty = new Map<string, number>();
+    for (const line of watchedLines) {
+      const quantity = Math.max(0, Number(line.quantity) || 0);
+      if (!line.receivingPartyId || quantity === 0) continue;
+      quantityByReceivingParty.set(
+        line.receivingPartyId,
+        (quantityByReceivingParty.get(line.receivingPartyId) ?? 0) + quantity,
+      );
+    }
+
+    const partiesById = new Map(custodians.map((party) => [party.id, party]));
+    const partyPoints = [...quantityByReceivingParty.entries()]
+      .map(([id, value]) => ({
+        id,
+        name:
+          partiesById.get(id)?.name ??
+          intl.formatMessage({
+            id: 'receipts.allocation.unknownReceivingParty',
+          }),
+        value,
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name, 'vi'))
+      .map((point, index) => ({
+        name: point.name,
+        value: point.value,
+        fill: getAllocationChartColor(point.id, index),
+      }));
+    const allocatedCount = partyPoints.reduce(
+      (total, point) => total + point.value,
+      0,
+    );
+    const unallocatedCount = Math.max(0, totalMaterialCount - allocatedCount);
+    if (unallocatedCount > 0) {
+      partyPoints.push({
+        name: intl.formatMessage({ id: 'receipts.allocation.unallocated' }),
+        value: unallocatedCount,
+        fill: 'var(--admin-chart-empty)',
+      });
+    }
+    return {
+      points: partyPoints,
+      allocatedCount,
+      objectCount: quantityByReceivingParty.size,
+    };
+  }, [custodians, intl, totalMaterialCount, watchedLines]);
+  const chartAllocationPercent = totalMaterialCount
+    ? Math.min(
+        100,
+        Math.floor(
+          (allocationChartData.allocatedCount / totalMaterialCount) * 100,
+        ),
+      )
+    : 0;
   const allocationPercent = receipt?.totalItems
     ? Math.min(
         100,
@@ -701,7 +818,7 @@ export function MaterialReceiptEditorPage() {
       );
       return;
     }
-    if (hasExcelImportLines) {
+    if (hasExcelImportLines && !id) {
       excelImportMutation.mutate(
         {
           actorUserId: userId ?? '',
@@ -888,7 +1005,7 @@ export function MaterialReceiptEditorPage() {
   );
 
   const receiptDetailsCard = (
-    <Card className="shrink-0">
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle>
           {intl.formatMessage({ id: 'receipts.tabs.details' })}
@@ -913,6 +1030,73 @@ export function MaterialReceiptEditorPage() {
     </Card>
   );
 
+  const receiptAllocationCard = (
+    <Card className="min-w-0 overflow-hidden">
+      <CardHeader className="flex-row items-center justify-between gap-3">
+        <CardTitle>
+          {intl.formatMessage({ id: 'receipts.allocation.summaryTitle' })}
+        </CardTitle>
+        <Badge variant="secondary" appearance="light" size="md">
+          {intl.formatMessage(
+            { id: 'receipts.allocation.objectCount' },
+            { count: allocationChartData.objectCount },
+          )}
+        </Badge>
+      </CardHeader>
+      <CardContent className="grid min-h-[15rem] items-center gap-4 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(150px,0.9fr)]">
+        <div className="relative mx-auto w-full max-w-56">
+          <MaterialReceiptAllocationChart
+            data={allocationChartData.points}
+            isEmpty={totalMaterialCount === 0}
+          />
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="text-metric font-semibold tabular-nums text-foreground">
+              {intl.formatNumber(chartAllocationPercent)}%
+            </span>
+            <span className="max-w-24 text-xs text-muted-foreground">
+              {intl.formatMessage({ id: 'receipts.columns.progress' })}
+            </span>
+          </div>
+        </div>
+        <div className="divide-y divide-border">
+          {allocationChartData.points.map((point, index) => (
+            <div
+              key={`${point.name}-${index}`}
+              className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 text-sm"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-foreground">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: point.fill }}
+                  aria-hidden="true"
+                />
+                <span className="truncate">{point.name}</span>
+              </span>
+              <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                {intl.formatMessage(
+                  { id: 'receipts.handover.steps.materialCount' },
+                  { count: point.value },
+                )}
+              </span>
+            </div>
+          ))}
+          {allocationChartData.points.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {intl.formatMessage({ id: 'receipts.allocation.empty' })}
+            </p>
+          ) : null}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const receiptOverview = (
+    <div className="grid min-w-0 shrink-0 gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(20rem,1fr)]">
+      {receiptDetailsCard}
+      {receiptAllocationCard}
+    </div>
+  );
+
   const editorContent = (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-4">
       {isAdjustment ? (
@@ -932,72 +1116,108 @@ export function MaterialReceiptEditorPage() {
           />
         </div>
       ) : null}
-      <Card className="min-h-0 min-w-0 flex-1 overflow-hidden">
-        <MaterialReceiptLinesEditorTable
-          form={form}
-          createLine={createLine}
-          modelById={modelById}
-          materialNameByClientId={materialNameByClientId}
-          receivingParties={custodians}
-          receivingPartySelectionDisabled={
-            isAdjustment || readOnly || !selectedWarehouseId || saveBusy
-          }
-          readOnly={readOnly}
-          toolbarContent={
-            !id && !isAdjustment && !readOnly ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={() => setIsMaterialImportOpen(true)}
-                >
-                  <Upload className="size-4" />
-                  {intl.formatMessage({ id: 'receipts.actions.importExcel' })}
-                </Button>
-              </div>
-            ) : null
-          }
-          onEditMaterial={setActiveMaterialLine}
-          onEditReceivingParty={setActiveReceivingLineClientId}
-          onCopySelected={(rows) => {
-            const entries = rows.map((line) => {
-              const copy = {
-                ...line,
-                clientId: crypto.randomUUID(),
-                lineId: '',
-                items: Array.from({ length: line.quantity }, (_, index) => {
-                  const source = line.items[index];
-                  const condition = source?.condition ?? line.condition;
-                  return {
-                    serialNumber: '',
-                    condition,
-                    conditionNote:
-                      condition === 'damaged'
-                        ? (source?.conditionNote ?? line.conditionNote)
-                        : '',
-                    note: '',
-                  };
-                }),
-              };
-              return { source: line, copy };
-            });
-            const copies = entries.map(({ copy }) => copy);
-            setRepresentatives((current) => {
-              const next = { ...current };
-              for (const { source, copy } of entries) {
-                const representative = current[source.clientId];
-                if (representative) next[copy.clientId] = representative;
-              }
-              return next;
-            });
-            form.setValue('lines', [...form.getValues('lines'), ...copies], {
-              shouldDirty: true,
-              shouldValidate: true,
-            });
-          }}
-        />
-      </Card>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 xl:flex-row">
+        {materialGroupsQuery.isError ? (
+          <Card className="h-72 min-h-0 w-full overflow-hidden xl:h-full xl:w-72 xl:shrink-0">
+            <CardContent className="p-4">
+              <ErrorState
+                title={intl.formatMessage({
+                  id: 'materialGroups.errors.loadTitle',
+                })}
+                description={getApiErrorMessage(materialGroupsQuery.error)}
+                onRetry={() => void materialGroupsQuery.refetch()}
+              />
+            </CardContent>
+          </Card>
+        ) : materialGroupsQuery.isPending ? (
+          <Card className="h-72 min-h-0 w-full overflow-hidden xl:h-full xl:w-72 xl:shrink-0">
+            <CardContent className="space-y-3 p-4">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-4/5" />
+              <Skeleton className="h-8 w-3/4" />
+            </CardContent>
+          </Card>
+        ) : (
+          <MaterialGroupFilterSidebar
+            id="material-receipt-group-filter-tree"
+            isOpen
+            groups={materialGroupsQuery.data ?? []}
+            selectedGroupId={selectedGroupId}
+            onSelectGroup={setSelectedGroupId}
+            countByNode={receiptMaterialCountsByGroup}
+            allCount={totalMaterialCount}
+            hideEmptyGroups
+          />
+        )}
+        <Card className="min-h-0 min-w-0 flex-1 overflow-hidden">
+          <MaterialReceiptLinesEditorTable
+            form={form}
+            createLine={createLine}
+            modelById={modelById}
+            materialNameByClientId={materialNameByClientId}
+            filterGroupIds={selectedGroupIds}
+            receivingParties={custodians}
+            receivingPartySelectionDisabled={
+              isAdjustment || readOnly || !selectedWarehouseId || saveBusy
+            }
+            readOnly={readOnly}
+            toolbarContent={
+              !isAdjustment && !readOnly ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="md"
+                    disabled={saveBusy}
+                    onClick={() => setIsMaterialImportOpen(true)}
+                  >
+                    <Upload className="size-4" />
+                    {intl.formatMessage({ id: 'receipts.actions.importExcel' })}
+                  </Button>
+                </div>
+              ) : null
+            }
+            onEditMaterial={setActiveMaterialLine}
+            onEditReceivingParty={setActiveReceivingLineClientId}
+            onCopySelected={(rows) => {
+              const entries = rows.map((line) => {
+                const copy = {
+                  ...line,
+                  clientId: crypto.randomUUID(),
+                  lineId: '',
+                  items: Array.from({ length: line.quantity }, (_, index) => {
+                    const source = line.items[index];
+                    const condition = source?.condition ?? line.condition;
+                    return {
+                      serialNumber: '',
+                      condition,
+                      conditionNote:
+                        condition === 'damaged'
+                          ? (source?.conditionNote ?? line.conditionNote)
+                          : '',
+                      note: '',
+                    };
+                  }),
+                };
+                return { source: line, copy };
+              });
+              const copies = entries.map(({ copy }) => copy);
+              setRepresentatives((current) => {
+                const next = { ...current };
+                for (const { source, copy } of entries) {
+                  const representative = current[source.clientId];
+                  if (representative) next[copy.clientId] = representative;
+                }
+                return next;
+              });
+              form.setValue('lines', [...form.getValues('lines'), ...copies], {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+          />
+        </Card>
+      </div>
       <MaterialReceiptLineMaterialDrawer
         open={activeMaterialLine !== null}
         onOpenChange={(open) => !open && setActiveMaterialLine(null)}
@@ -1320,7 +1540,7 @@ export function MaterialReceiptEditorPage() {
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4 lg:p-5">
-      {receiptDetailsCard}
+      {receiptOverview}
       {isAdjustment ? (
         editorContent
       ) : (

@@ -42,6 +42,8 @@ const tooltipVariants = cva(
         light:
           'border border-border bg-background text-foreground shadow-md shadow-black/5',
         dark: 'dark:border dark:border-border bg-zinc-950 text-white dark:bg-zinc-300 dark:text-black shadow-md shadow-black/5',
+        success:
+          'border border-[var(--color-success-accent,var(--color-green-500))] bg-[var(--color-success-accent,var(--color-green-500))] text-[var(--color-success-foreground,var(--color-white))] shadow-md shadow-black/5',
         destructive:
           'border border-destructive bg-destructive text-destructive-foreground shadow-md shadow-destructive/20',
         warning:

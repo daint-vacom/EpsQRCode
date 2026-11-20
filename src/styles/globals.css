@@ -44,6 +44,7 @@
   --admin-neutral-100: #e0e1e5;
   --admin-neutral-50: #ebecee;
   --admin-neutral-bg: #f4f4f6;
+  --admin-chart-empty: var(--admin-neutral-200);
   --admin-surface: #ffffff;
   --admin-surface-alt: #fafafb;
   --admin-shell-deep: #181c24;

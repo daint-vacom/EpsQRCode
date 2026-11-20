@@ -82,6 +82,12 @@ export interface MaterialReceiptLine {
   items: MaterialReceiptItem[];
 }
 
+export interface MaterialReceiptAllocationChartPoint {
+  name: string;
+  value: number;
+  fill?: string;
+}
+
 export interface MaterialReceipt {
   id: string;
   code: string;

@@ -74,6 +74,11 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.handover.steps.materialCount': '{count} vật tư',
   'receipts.handover.steps.allocation': 'Phân bổ vật tư',
   'receipts.handover.steps.allocationProgress': 'Đã phân bổ {percent}%',
+  'receipts.allocation.summaryTitle': 'Tình hình phân bổ',
+  'receipts.allocation.objectCount': '{count} đối tượng',
+  'receipts.allocation.unallocated': 'Chưa phân bổ',
+  'receipts.allocation.unknownReceivingParty': 'Đơn vị nhận khác',
+  'receipts.allocation.empty': 'Chưa có vật tư để phân bổ.',
   'receipts.handover.steps.saveAndContinue': 'Lưu và tiếp tục',
   'receipts.handover.steps.confirmTitle': 'Lưu phiếu nhập?',
   'receipts.handover.steps.confirmDescription':
@@ -285,6 +290,11 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.handover.steps.materialCount': '{count} materials',
   'receipts.handover.steps.allocation': 'Allocate materials',
   'receipts.handover.steps.allocationProgress': '{percent}% allocated',
+  'receipts.allocation.summaryTitle': 'Allocation summary',
+  'receipts.allocation.objectCount': '{count} recipients',
+  'receipts.allocation.unallocated': 'Unallocated',
+  'receipts.allocation.unknownReceivingParty': 'Other receiving unit',
+  'receipts.allocation.empty': 'There are no materials to allocate.',
   'receipts.handover.steps.saveAndContinue': 'Save and continue',
   'receipts.handover.steps.confirmTitle': 'Save the receipt?',
   'receipts.handover.steps.confirmDescription':

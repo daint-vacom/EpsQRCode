@@ -29,6 +29,7 @@ import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '@/lib/errors';
+import { toAbsoluteUrl } from '@/lib/helpers';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
 import { Badge } from '@/components/ui/badge';
@@ -193,18 +194,17 @@ export function MaterialReceiptDetailPage() {
     line.items.some((item) => item.status === 'active'),
   );
   const handovers = handoversResult?.items ?? [];
-  const onViewHandover = useCallback(
-    (handover: (typeof handovers)[number]) => {
-      navigate(ROUTES.PROJECT.HANDOVER_DETAIL.replace(':id', handover.id));
-    },
-    [navigate],
-  );
+  const onViewHandover = useCallback((handover: (typeof handovers)[number]) => {
+    const path = ROUTES.PROJECT.HANDOVER_DETAIL.replace(':id', handover.id);
+    window.open(toAbsoluteUrl(path), '_blank', 'noopener,noreferrer');
+  }, []);
   const itemColumns = useMaterialReceiptLineColumns({
     canEdit: canEditReceiptLines,
     onEditMaterial: setActiveMaterialLine,
   });
   const handoverColumns = useHandoverDocumentColumns({
     onView: onViewHandover,
+    showViewLabel: true,
   });
   const itemsTable = useReactTable({
     data: receiptItems,
@@ -234,6 +234,7 @@ export function MaterialReceiptDetailPage() {
     pageCount: Math.ceil((handoversResult?.total ?? 0) / handoverPageSize),
     state: {
       columnPinning: HANDOVER_DOCUMENT_COLUMN_PINNING,
+      columnVisibility: { type: false },
       pagination: { pageIndex: handoverPageIndex, pageSize: handoverPageSize },
     },
     onPaginationChange: (updater) => {

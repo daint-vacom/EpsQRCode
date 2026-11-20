@@ -150,7 +150,7 @@ export function MaterialsRequiringSafetyInspectionPage() {
           id: 'project.materials.safetyInspection.queue.chart.notInspected',
         }),
         value: (summary?.due ?? 0) + (summary?.upcoming ?? 0),
-        fill: isEmpty ? 'var(--admin-neutral-400)' : 'var(--admin-red-primary)',
+        fill: isEmpty ? 'var(--admin-chart-empty)' : 'var(--admin-red-primary)',
       },
       {
         name: intl.formatMessage({
@@ -158,7 +158,7 @@ export function MaterialsRequiringSafetyInspectionPage() {
         }),
         value: summary?.inProgress ?? 0,
         fill: isEmpty
-          ? 'var(--admin-neutral-400)'
+          ? 'var(--admin-chart-empty)'
           : 'var(--admin-amber-primary)',
       },
     ];
