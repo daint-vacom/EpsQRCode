@@ -15,7 +15,8 @@ interface HandoverPartyCardProps {
   side: 'sender' | 'recipient';
   form: UseFormReturn<HandoverFormValues>;
   parties: Custodian[];
-  disabled?: boolean;
+  readOnly?: boolean;
+  statusBadge?: ReactNode;
   notice?: ReactNode;
 }
 
@@ -51,7 +52,8 @@ export function HandoverPartyCard({
   side,
   form,
   parties,
-  disabled = false,
+  readOnly = false,
+  statusBadge,
   notice,
 }: HandoverPartyCardProps) {
   const intl = useIntl();
@@ -99,19 +101,21 @@ export function HandoverPartyCard({
     <>
       <Card className={`flex min-w-0 flex-col ${tone.card}`}>
         <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-2 px-4 py-2.5">
-          <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-semibold">
-            <Building2
-              className={`size-5 shrink-0 ${tone.icon}`}
-              aria-hidden="true"
-            />
-            <span className="truncate">{title}</span>
-          </CardTitle>
-          {hasParty ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+              <Building2
+                className={`size-5 shrink-0 ${tone.icon}`}
+                aria-hidden="true"
+              />
+              <span className="truncate">{title}</span>
+            </CardTitle>
+            {statusBadge}
+          </div>
+          {hasParty && !readOnly ? (
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              disabled={disabled}
               onClick={() => setDialogOpen(true)}
               aria-label={intl.formatMessage({
                 id: 'project.handover.actions.editParty',
@@ -190,17 +194,18 @@ export function HandoverPartyCard({
                     : 'project.handover.empty.selectRecipient',
               })}
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() => setDialogOpen(true)}
-            >
-              {intl.formatMessage({
-                id: 'project.handover.actions.selectParty',
-              })}
-            </Button>
+            {!readOnly ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDialogOpen(true)}
+              >
+                {intl.formatMessage({
+                  id: 'project.handover.actions.selectParty',
+                })}
+              </Button>
+            ) : null}
             {notice}
             {partyError ? (
               <p className="text-xs text-destructive" role="alert">
@@ -210,13 +215,15 @@ export function HandoverPartyCard({
           </CardContent>
         )}
       </Card>
-      <HandoverPartyDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        side={side}
-        form={form}
-        parties={parties}
-      />
+      {!readOnly ? (
+        <HandoverPartyDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          side={side}
+          form={form}
+          parties={parties}
+        />
+      ) : null}
     </>
   );
 }

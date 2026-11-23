@@ -35,7 +35,10 @@ export function DetailEntryLayout() {
   );
 }
 
-export function useDetailEntryLayoutHeader(header: DetailEntryHeaderConfig) {
+export function useDetailEntryLayoutHeader(
+  header: DetailEntryHeaderConfig,
+  enabled = true,
+) {
   const setHeader = useContext(DetailEntryHeaderContext);
 
   if (!setHeader) {
@@ -45,7 +48,8 @@ export function useDetailEntryLayoutHeader(header: DetailEntryHeaderConfig) {
   }
 
   useEffect(() => {
+    if (!enabled) return;
     setHeader(header);
     return () => setHeader(DEFAULT_HEADER);
-  }, [header, setHeader]);
+  }, [enabled, header, setHeader]);
 }

@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { MaterialIdentity } from '@/components/material-identity';
-import type { HandoverItemInput } from '../model/handover';
+import type { HandoverItem, HandoverItemInput } from '../model/handover';
 import type { HandoverFormValues } from '../model/handover-form-schema';
 
 interface HandoverItemsEditorTableProps {
@@ -44,6 +44,8 @@ interface HandoverItemsEditorTableProps {
   allowReservedByHandoverId?: string;
   fillHeight?: boolean;
   toolbarContent?: ReactNode;
+  readOnly?: boolean;
+  readOnlyItems?: HandoverItem[];
 }
 
 export function HandoverItemsEditorTable({
@@ -54,6 +56,8 @@ export function HandoverItemsEditorTable({
   allowReservedByHandoverId,
   fillHeight = false,
   toolbarContent,
+  readOnly = false,
+  readOnlyItems = [],
 }: HandoverItemsEditorTableProps) {
   const intl = useIntl();
   const { fields, append, remove } = useFieldArray({
@@ -100,6 +104,9 @@ export function HandoverItemsEditorTable({
       material.id,
       material,
     ]),
+  );
+  const snapshotById = new Map(
+    readOnlyItems.map((item) => [item.materialId, item]),
   );
 
   const handleDeleteRow = (index: number) => {
@@ -179,14 +186,16 @@ export function HandoverItemsEditorTable({
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {toolbarContent}
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setIsMaterialDialogOpen(true)}
-            >
-              <ListPlus />
-              {intl.formatMessage({ id: 'project.handover.actions.addItem' })}
-            </Button>
+            {!readOnly ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={() => setIsMaterialDialogOpen(true)}
+              >
+                <ListPlus />
+                {intl.formatMessage({ id: 'project.handover.actions.addItem' })}
+              </Button>
+            ) : null}
           </div>
         </div>
         <div
@@ -212,13 +221,18 @@ export function HandoverItemsEditorTable({
                   <TableHead className="sticky top-0 z-20 bg-muted min-w-72">
                     {intl.formatMessage({ id: 'project.handover.fields.note' })}
                   </TableHead>
-                  <TableHead className="sticky top-0 right-0 z-30 bg-muted w-12 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                  {!readOnly ? (
+                    <TableHead className="sticky top-0 right-0 z-30 bg-muted w-12 text-right shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.45)]"></TableHead>
+                  ) : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {fields.length === 0 ? (
                   <TableRow hoverable={false}>
-                    <TableCell colSpan={5} className="h-28 text-center">
+                    <TableCell
+                      colSpan={readOnly ? 4 : 5}
+                      className="h-28 text-center"
+                    >
                       <div className="flex flex-col items-center gap-3">
                         <span className="text-muted-foreground">
                           {intl.formatMessage({
@@ -232,8 +246,12 @@ export function HandoverItemsEditorTable({
                   visibleFields.map((field, pageOffset) => {
                     const index = pageStartIndex + pageOffset;
                     const row = watchedRows[index] as
-                      HandoverItemInput | undefined;
+                      | HandoverItemInput
+                      | undefined;
                     const material = materialById.get(row?.materialId ?? '');
+                    const materialSnapshot = snapshotById.get(
+                      row?.materialId ?? '',
+                    );
                     const rowErrors = form.formState.errors.items?.[index];
 
                     return (
@@ -255,6 +273,15 @@ export function HandoverItemsEditorTable({
                                     ?.url
                                 }
                               />
+                            ) : materialSnapshot ? (
+                              <div className="min-w-0">
+                                <span className="font-medium">
+                                  {materialSnapshot.materialCode}
+                                </span>
+                                <span className="block truncate text-xs text-muted-foreground">
+                                  {materialSnapshot.materialName}
+                                </span>
+                              </div>
                             ) : null}
                             {rowErrors?.materialId?.message ? (
                               <p className="mt-1 text-xs text-destructive">
@@ -267,27 +294,35 @@ export function HandoverItemsEditorTable({
                           <Controller
                             control={form.control}
                             name={`items.${index}.condition`}
-                            render={({ field: inputField }) => (
-                              <OptionSelect
-                                value={inputField.value}
-                                onChange={inputField.onChange}
-                                options={[
-                                  {
-                                    value: 'good',
-                                    label: intl.formatMessage({
-                                      id: 'project.handover.condition.good',
-                                    }),
-                                  },
-                                  {
-                                    value: 'damaged',
-                                    label: intl.formatMessage({
-                                      id: 'project.handover.condition.damaged',
-                                    }),
-                                  },
-                                ]}
-                                searchable={false}
-                              />
-                            )}
+                            render={({ field: inputField }) =>
+                              readOnly ? (
+                                <span>
+                                  {intl.formatMessage({
+                                    id: `project.handover.condition.${inputField.value}`,
+                                  })}
+                                </span>
+                              ) : (
+                                <OptionSelect
+                                  value={inputField.value}
+                                  onChange={inputField.onChange}
+                                  options={[
+                                    {
+                                      value: 'good',
+                                      label: intl.formatMessage({
+                                        id: 'project.handover.condition.good',
+                                      }),
+                                    },
+                                    {
+                                      value: 'damaged',
+                                      label: intl.formatMessage({
+                                        id: 'project.handover.condition.damaged',
+                                      }),
+                                    },
+                                  ]}
+                                  searchable={false}
+                                />
+                              )
+                            }
                           />
                         </TableCell>
                         <TableCell className="px-2 py-2 align-middle">
@@ -306,6 +341,7 @@ export function HandoverItemsEditorTable({
                                     id: 'project.handover.fields.note',
                                   })} ${index + 1}`}
                                   aria-invalid={Boolean(rowErrors?.note)}
+                                  readOnly={readOnly}
                                 />
                                 {rowErrors?.note?.message ? (
                                   <p className="text-xs text-destructive">
@@ -316,23 +352,25 @@ export function HandoverItemsEditorTable({
                             )}
                           />
                         </TableCell>
-                        <TableCell className="sticky right-0 z-10 align-middle bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              aria-label={intl.formatMessage({
-                                id: 'project.handover.labels.removeMaterial',
-                              })}
-                              type="button"
-                              variant="destructive"
-                              appearance="ghost"
-                              mode="icon"
-                              size="sm"
-                              onClick={() => handleDeleteRow(index)}
-                            >
-                              <Trash2 />
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {!readOnly ? (
+                          <TableCell className="sticky right-0 z-10 align-middle bg-card px-3 py-2 shadow-[-8px_0_12px_-12px_rgba(15,23,42,0.35)]">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                aria-label={intl.formatMessage({
+                                  id: 'project.handover.labels.removeMaterial',
+                                })}
+                                type="button"
+                                variant="destructive"
+                                appearance="ghost"
+                                mode="icon"
+                                size="sm"
+                                onClick={() => handleDeleteRow(index)}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        ) : null}
                       </TableRow>
                     );
                   })
@@ -356,18 +394,20 @@ export function HandoverItemsEditorTable({
           </div>
         ) : null}
       </div>
-      <MaterialSelectionDialog
-        open={isMaterialDialogOpen}
-        onOpenChange={setIsMaterialDialogOpen}
-        title={intl.formatMessage({
-          id: 'project.handover.materialSelection.title',
-        })}
-        filters={materialFilters}
-        initialSearch={initialMaterialSearch}
-        allowReservedByHandoverId={allowReservedByHandoverId}
-        selectedMaterialIds={selectedMaterialIds}
-        onConfirm={handleMaterialConfirm}
-      />
+      {!readOnly ? (
+        <MaterialSelectionDialog
+          open={isMaterialDialogOpen}
+          onOpenChange={setIsMaterialDialogOpen}
+          title={intl.formatMessage({
+            id: 'project.handover.materialSelection.title',
+          })}
+          filters={materialFilters}
+          initialSearch={initialMaterialSearch}
+          allowReservedByHandoverId={allowReservedByHandoverId}
+          selectedMaterialIds={selectedMaterialIds}
+          onConfirm={handleMaterialConfirm}
+        />
+      ) : null}
     </DataGridProvider>
   );
 }

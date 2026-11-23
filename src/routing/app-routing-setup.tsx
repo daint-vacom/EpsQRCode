@@ -46,7 +46,6 @@ import { ExternalOrganizationsPage } from '@/project/accounts/pages/external-org
 import { EpsOrganizationsPage } from '@/project/custodians/pages/eps-organizations-page';
 import { ProjectDashboardPage } from '@/project/dashboard/pages/project-dashboard-page';
 import { FileManagerPage } from '@/project/files/pages/file-manager-page';
-import { HandoverDetailPage } from '@/project/handover/pages/handover-detail-page';
 import { HandoverEditorPage } from '@/project/handover/pages/handover-editor-page';
 import { HandoversPage } from '@/project/handover/pages/handovers-page';
 import { WarehouseHandoverEditorPage } from '@/project/handover/pages/warehouse-handover-editor-page';
@@ -348,7 +347,7 @@ export function AppRoutingSetup() {
           />
           <Route
             path={ROUTES.PROJECT.HANDOVER_DETAIL}
-            element={<HandoverDetailPage />}
+            element={<HandoverEditorPage />}
           />
           <Route
             path={ROUTES.PROJECT.MATERIAL_CREATE}

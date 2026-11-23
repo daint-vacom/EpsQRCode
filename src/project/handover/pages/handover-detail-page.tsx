@@ -1,9 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { RefObject } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { loadFileStorageReference } from '@/project/files/api/file-manager.api';
 import { MATERIAL_RECEIPT_PERMISSION_CODES } from '@/project/receipts/model/material-receipt';
 import { Boxes, CircleCheck, Pencil, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -24,6 +26,16 @@ import {
 } from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
 import { OptionSelect } from '@/components/ui/option-select';
+import {
+  Stepper,
+  StepperContent,
+  StepperIndicator,
+  StepperItem,
+  StepperNav,
+  StepperSeparator,
+  StepperTitle,
+  StepperTrigger,
+} from '@/components/ui/stepper';
 import { Textarea } from '@/components/ui/textarea';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { HandoverDetailLayout } from '../detail/handover-detail-layout.generated';
@@ -45,7 +57,13 @@ type ReasonAction = 'reject' | 'cancel';
 type PageAction = HandoverAction | 'approve';
 const EMPTY_ITEMS: HandoverDocument['items'] = [];
 
-export function HandoverDetailPage() {
+export function HandoverDetailPage({
+  actionsOnly = false,
+  approvalActionsTargetRef,
+}: {
+  actionsOnly?: boolean;
+  approvalActionsTargetRef?: RefObject<HTMLDivElement | null>;
+}) {
   const intl = useIntl();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
@@ -78,6 +96,9 @@ export function HandoverDetailPage() {
   const [reason, setReason] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [offlineConfirmOpen, setOfflineConfirmOpen] = useState(false);
+  const [approvalActionsTarget, setApprovalActionsTarget] =
+    useState<HTMLDivElement | null>(null);
+  const [activeStep, setActiveStep] = useState(1);
   const [receiverConditions, setReceiverConditions] = useState<
     HandoverItemInput[]
   >([]);
@@ -111,6 +132,23 @@ export function HandoverDetailPage() {
       document.recipientParty.isHandoverCustom),
   );
   const isHandoverCreator = Boolean(userId && document?.createdBy === userId);
+  const senderSigned = Boolean(
+    document &&
+    (document.status === 'pending' ||
+      document.status === 'completed' ||
+      document.status === 'rejected' ||
+      (document.status === 'awaiting_warehouse_approval' &&
+        document.mode !== 'warehouse_request')),
+  );
+  const recipientSigned = Boolean(
+    document &&
+    ((document.status === 'completed' &&
+      (document.mode !== 'standard' || document.recipientHasQrAccount)) ||
+      (document.mode === 'warehouse_request' &&
+        ['awaiting_warehouse_approval', 'pending', 'rejected'].includes(
+          document.status,
+        ))),
+  );
   const canEditOrSend = Boolean(
     canManage &&
     document?.status === 'draft' &&
@@ -315,7 +353,7 @@ export function HandoverDetailPage() {
               </Button>
             </>
           ) : null}
-          {canReject ? (
+          {!actionsOnly && canReject ? (
             <Button
               type="button"
               variant="secondary"
@@ -328,7 +366,7 @@ export function HandoverDetailPage() {
               {intl.formatMessage({ id: 'project.handover.actions.reject' })}
             </Button>
           ) : null}
-          {canConfirm ? (
+          {!actionsOnly && canConfirm ? (
             <>
               <Button
                 type="button"
@@ -411,6 +449,7 @@ export function HandoverDetailPage() {
     [
       canCancel,
       canEditOrSend,
+      actionsOnly,
       canConfirm,
       canReject,
       canManage,
@@ -426,6 +465,60 @@ export function HandoverDetailPage() {
       runAction,
     ],
   );
+  const approvalActions = useMemo(
+    () =>
+      canReject || canConfirm ? (
+        <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+          {canReject ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => {
+                setReasonAction('reject');
+                setReason('');
+              }}
+            >
+              {intl.formatMessage({ id: 'project.handover.actions.reject' })}
+            </Button>
+          ) : null}
+          {canConfirm ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setReceiverConditions(
+                  items.map((item) => ({
+                    materialId: item.materialId,
+                    condition: item.condition,
+                    note: item.note ?? '',
+                  })),
+                );
+                setReceiverOutcomes(
+                  Object.fromEntries(
+                    items.map((item) => [
+                      item.materialId,
+                      item.receiverOutcome !== 'not_received',
+                    ]),
+                  ),
+                );
+                setConfirmOpen(true);
+              }}
+            >
+              <CircleCheck className="size-4" />
+              {intl.formatMessage({ id: 'project.handover.actions.confirm' })}
+            </Button>
+          ) : null}
+        </div>
+      ) : null,
+    [canConfirm, canReject, intl, items],
+  );
+  useEffect(() => {
+    if (actionsOnly && approvalActionsTargetRef) {
+      setApprovalActionsTarget(approvalActionsTargetRef.current);
+    }
+  }, [actionsOnly, approvalActionsTargetRef]);
   const header = useMemo(
     () => ({
       title: document?.code ?? 'Chi tiết phiếu bàn giao',
@@ -693,202 +786,331 @@ export function HandoverDetailPage() {
   );
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto">
-      <HandoverDetailLayout
-        profile={profile}
-        information={information}
-        itemsContent={itemsContent}
-        historyContent={historyContent}
-      />
-      <Dialog
-        open={reasonAction !== null}
-        onOpenChange={(open) =>
-          !open && !isActionPending && setReasonAction(null)
+    <>
+      <div
+        className={
+          actionsOnly ? 'hidden' : 'h-full min-h-0 overflow-y-auto p-4 lg:p-5'
         }
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {intl.formatMessage({
-                id:
-                  reasonAction === 'reject'
-                    ? 'project.handover.dialogs.rejectTitle'
-                    : 'project.handover.dialogs.cancelTitle',
-              })}
-            </DialogTitle>
-          </DialogHeader>
-          <Textarea
-            aria-label={intl.formatMessage({
-              id: 'project.handover.fields.reason',
-            })}
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            rows={4}
-          />
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setReasonAction(null)}
-            >
-              Đóng
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              loading={isActionPending}
-              loadingText={intl.formatMessage({
-                id: 'project.handover.labels.processing',
-              })}
-              disabled={!reason.trim()}
-              onClick={() =>
-                reasonAction && void runAction(reasonAction, reason.trim())
-              }
-            >
-              {reasonAction === 'reject'
-                ? intl.formatMessage({ id: 'project.handover.actions.reject' })
-                : intl.formatMessage({ id: 'project.handover.actions.cancel' })}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={confirmOpen}
-        onOpenChange={(open) =>
-          !open && !isActionPending && setConfirmOpen(false)
-        }
-      >
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>
-              {intl.formatMessage({
-                id: 'project.handover.dialogs.confirmTitle',
-              })}
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Xác nhận tình trạng của từng vật tư trước khi hoàn tất phiếu{' '}
-            {document.code}.
-          </p>
-          <div className="max-h-[55vh] space-y-3 overflow-y-auto">
-            {receiverConditions.map((condition, index) => {
-              const item = items.find(
-                (row) => row.materialId === condition.materialId,
-              );
-              return (
-                <div
-                  key={condition.materialId}
-                  className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] sm:items-center"
-                >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {item?.materialCode} · {item?.materialName}
-                    </p>
-                    {isWarehouseHandover ? (
-                      <label className="mt-2 flex items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={
-                            receiverOutcomes[condition.materialId] ?? true
-                          }
-                          onCheckedChange={(checked) =>
-                            setReceiverOutcomes((current) => ({
-                              ...current,
-                              [condition.materialId]: checked === true,
-                            }))
-                          }
-                        />
+        <Stepper
+          value={activeStep}
+          onValueChange={(step) => setActiveStep(step === 2 ? 2 : 1)}
+          className="flex min-h-full flex-col gap-4"
+        >
+          <StepperNav className="shrink-0 justify-center py-4">
+            <StepperItem step={1} fill={false}>
+              <StepperTrigger>
+                <StepperIndicator className="data-[state=inactive]:bg-border data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:ring-offset-background">
+                  1
+                </StepperIndicator>
+                <StepperTitle>
+                  {intl.formatMessage({ id: 'project.handover.steps.items' })}
+                </StepperTitle>
+              </StepperTrigger>
+              <StepperSeparator
+                className={`mx-4 my-0 h-0 w-12 flex-none border-t border-dashed ${activeStep === 2 ? 'border-primary' : 'border-border'} bg-transparent`}
+              />
+            </StepperItem>
+            <StepperItem step={2} fill={false}>
+              <StepperTrigger>
+                <StepperIndicator className="data-[state=inactive]:bg-border data-[state=active]:ring-2 data-[state=active]:ring-primary data-[state=active]:ring-offset-2 data-[state=active]:ring-offset-background">
+                  2
+                </StepperIndicator>
+                <StepperTitle>
+                  {intl.formatMessage({
+                    id: 'project.handover.steps.confirmation',
+                  })}
+                </StepperTitle>
+              </StepperTrigger>
+            </StepperItem>
+          </StepperNav>
+          <StepperContent value={1} className="flex min-h-0 flex-1 flex-col">
+            <HandoverDetailLayout
+              profile={profile}
+              information={information}
+              itemsContent={itemsContent}
+              historyContent={historyContent}
+            />
+          </StepperContent>
+          <StepperContent value={2} className="flex min-h-0 flex-1 flex-col">
+            <Card className="mx-auto w-full max-w-5xl">
+              <CardHeader>
+                <CardTitle>
+                  {intl.formatMessage({
+                    id: 'project.handover.steps.confirmation',
+                  })}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({
+                    id: 'project.handover.steps.confirmationDescription',
+                  })}
+                </p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {(
+                    [
+                      {
+                        side: 'sender',
+                        party: document.senderParty,
+                        representative: document.senderRepresentative,
+                      },
+                      {
+                        side: 'recipient',
+                        party: document.recipientParty,
+                        representative: document.recipientRepresentative,
+                      },
+                    ] as const
+                  ).map(({ side, party, representative }) => (
+                    <div
+                      key={side}
+                      className="rounded-lg border border-border p-4"
+                    >
+                      <p className="text-sm font-medium">
                         {intl.formatMessage({
-                          id: 'project.handover.fields.itemReceived',
+                          id: `project.handover.fields.${side}`,
                         })}
-                      </label>
-                    ) : null}
-                  </div>
-                  <OptionSelect
-                    disabled={
-                      isWarehouseHandover &&
-                      !receiverOutcomes[condition.materialId]
-                    }
-                    value={condition.condition}
-                    onChange={(value) =>
-                      setReceiverConditions((current) =>
-                        current.map((entry) =>
-                          entry.materialId === condition.materialId
-                            ? {
-                                ...entry,
-                                condition:
-                                  value as HandoverItemInput['condition'],
-                              }
-                            : entry,
-                        ),
-                      )
-                    }
-                    options={[
-                      { value: 'good', label: 'Tốt' },
-                      { value: 'damaged', label: 'Hỏng' },
-                    ]}
-                    searchable={false}
-                  />
-                  <Textarea
-                    disabled={
-                      isWarehouseHandover &&
-                      !receiverOutcomes[condition.materialId]
-                    }
-                    rows={1}
-                    aria-label={`${intl.formatMessage({ id: 'project.handover.fields.note' })} ${index + 1}`}
-                    value={condition.note}
-                    onChange={(event) =>
-                      setReceiverConditions((current) =>
-                        current.map((entry) =>
-                          entry.materialId === condition.materialId
-                            ? { ...entry, note: event.target.value }
-                            : entry,
-                        ),
-                      )
-                    }
-                  />
+                      </p>
+                      <p className="mt-2 text-sm">{party.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.representative',
+                        })}
+                        : {representative?.displayName ?? '—'}
+                      </p>
+                      <p className="mt-4 border-t border-dashed border-border pt-3 text-sm">
+                        {intl.formatMessage({
+                          id: (
+                            side === 'sender' ? senderSigned : recipientSigned
+                          )
+                            ? 'project.handover.table.signed'
+                            : 'project.handover.table.pending',
+                        })}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setConfirmOpen(false)}
-            >
-              Đóng
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              loading={isActionPending}
-              loadingText={intl.formatMessage({
-                id: 'project.handover.labels.confirming',
+                <div className="flex items-center justify-between border-t border-border pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    {intl.formatMessage(
+                      { id: 'project.handover.steps.materialCount' },
+                      { count: items.length },
+                    )}
+                  </p>
+                  {canConfirm ? (
+                    <Button
+                      type="button"
+                      variant="primary"
+                      size="md"
+                      onClick={() => setConfirmOpen(true)}
+                    >
+                      {intl.formatMessage({
+                        id: 'project.handover.actions.confirm',
+                      })}
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          </StepperContent>
+        </Stepper>
+        <Dialog
+          open={reasonAction !== null}
+          onOpenChange={(open) =>
+            !open && !isActionPending && setReasonAction(null)
+          }
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {intl.formatMessage({
+                  id:
+                    reasonAction === 'reject'
+                      ? 'project.handover.dialogs.rejectTitle'
+                      : 'project.handover.dialogs.cancelTitle',
+                })}
+              </DialogTitle>
+            </DialogHeader>
+            <Textarea
+              aria-label={intl.formatMessage({
+                id: 'project.handover.fields.reason',
               })}
-              onClick={() => void runAction('confirm')}
-            >
-              {intl.formatMessage({ id: 'project.handover.actions.confirm' })}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <ConfirmDialog
-        open={offlineConfirmOpen}
-        onOpenChange={setOfflineConfirmOpen}
-        title={intl.formatMessage({
-          id: 'project.handover.dialogs.completeOfflineTitle',
-        })}
-        description={intl.formatMessage(
-          { id: 'project.handover.dialogs.completeOfflineDescription' },
-          { code: document.code },
-        )}
-        confirmLabel={intl.formatMessage({
-          id: 'project.handover.actions.completeOffline',
-        })}
-        isConfirming={offlineMutation.isPending}
-        onConfirm={() => void completeOffline()}
-      />
-    </div>
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              rows={4}
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setReasonAction(null)}
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                loading={isActionPending}
+                loadingText={intl.formatMessage({
+                  id: 'project.handover.labels.processing',
+                })}
+                disabled={!reason.trim()}
+                onClick={() =>
+                  reasonAction && void runAction(reasonAction, reason.trim())
+                }
+              >
+                {reasonAction === 'reject'
+                  ? intl.formatMessage({
+                      id: 'project.handover.actions.reject',
+                    })
+                  : intl.formatMessage({
+                      id: 'project.handover.actions.cancel',
+                    })}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog
+          open={confirmOpen}
+          onOpenChange={(open) =>
+            !open && !isActionPending && setConfirmOpen(false)
+          }
+        >
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>
+                {intl.formatMessage({
+                  id: 'project.handover.dialogs.confirmTitle',
+                })}
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Xác nhận tình trạng của từng vật tư trước khi hoàn tất phiếu{' '}
+              {document.code}.
+            </p>
+            <div className="max-h-[55vh] space-y-3 overflow-y-auto">
+              {receiverConditions.map((condition, index) => {
+                const item = items.find(
+                  (row) => row.materialId === condition.materialId,
+                );
+                return (
+                  <div
+                    key={condition.materialId}
+                    className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] sm:items-center"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {item?.materialCode} · {item?.materialName}
+                      </p>
+                      {isWarehouseHandover ? (
+                        <label className="mt-2 flex items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={
+                              receiverOutcomes[condition.materialId] ?? true
+                            }
+                            onCheckedChange={(checked) =>
+                              setReceiverOutcomes((current) => ({
+                                ...current,
+                                [condition.materialId]: checked === true,
+                              }))
+                            }
+                          />
+                          {intl.formatMessage({
+                            id: 'project.handover.fields.itemReceived',
+                          })}
+                        </label>
+                      ) : null}
+                    </div>
+                    <OptionSelect
+                      disabled={
+                        isWarehouseHandover &&
+                        !receiverOutcomes[condition.materialId]
+                      }
+                      value={condition.condition}
+                      onChange={(value) =>
+                        setReceiverConditions((current) =>
+                          current.map((entry) =>
+                            entry.materialId === condition.materialId
+                              ? {
+                                  ...entry,
+                                  condition:
+                                    value as HandoverItemInput['condition'],
+                                }
+                              : entry,
+                          ),
+                        )
+                      }
+                      options={[
+                        { value: 'good', label: 'Tốt' },
+                        { value: 'damaged', label: 'Hỏng' },
+                      ]}
+                      searchable={false}
+                    />
+                    <Textarea
+                      disabled={
+                        isWarehouseHandover &&
+                        !receiverOutcomes[condition.materialId]
+                      }
+                      rows={1}
+                      aria-label={`${intl.formatMessage({ id: 'project.handover.fields.note' })} ${index + 1}`}
+                      value={condition.note}
+                      onChange={(event) =>
+                        setReceiverConditions((current) =>
+                          current.map((entry) =>
+                            entry.materialId === condition.materialId
+                              ? { ...entry, note: event.target.value }
+                              : entry,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setConfirmOpen(false)}
+              >
+                Đóng
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                loading={isActionPending}
+                loadingText={intl.formatMessage({
+                  id: 'project.handover.labels.confirming',
+                })}
+                onClick={() => void runAction('confirm')}
+              >
+                {intl.formatMessage({ id: 'project.handover.actions.confirm' })}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <ConfirmDialog
+          open={offlineConfirmOpen}
+          onOpenChange={setOfflineConfirmOpen}
+          title={intl.formatMessage({
+            id: 'project.handover.dialogs.completeOfflineTitle',
+          })}
+          description={intl.formatMessage(
+            { id: 'project.handover.dialogs.completeOfflineDescription' },
+            { code: document.code },
+          )}
+          confirmLabel={intl.formatMessage({
+            id: 'project.handover.actions.completeOffline',
+          })}
+          isConfirming={offlineMutation.isPending}
+          onConfirm={() => void completeOffline()}
+        />
+      </div>
+      {actionsOnly && approvalActionsTarget
+        ? createPortal(approvalActions, approvalActionsTarget)
+        : null}
+    </>
   );
 }
 

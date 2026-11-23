@@ -139,6 +139,7 @@ export function DatePickerInput({
   valueMode = 'date',
   onChange,
   onBlur,
+  readOnly = false,
   variant,
   dateInputWidth = 'auto',
   placeholder = DATE_INPUT_FORMAT,
@@ -288,7 +289,10 @@ export function DatePickerInput({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover
+      open={!readOnly && isOpen}
+      onOpenChange={(open) => !readOnly && setIsOpen(open)}
+    >
       <PopoverAnchor asChild>
         <div
           className={cn(
@@ -306,25 +310,31 @@ export function DatePickerInput({
               placeholder={placeholder}
               value={dateText}
               variant={variant}
+              readOnly={readOnly}
               className={cn('pe-9', className)}
               onBlur={handleBlur}
               onChange={handleTextChange}
             />
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                aria-label={calendarLabel}
-                className={cn(
-                  'absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
-                  !selectedDate && 'text-muted-foreground',
-                )}
-              >
-                <CalendarDays className="size-4" />
-              </button>
-            </PopoverTrigger>
+            {!readOnly ? (
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={calendarLabel}
+                  className={cn(
+                    'absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
+                    !selectedDate && 'text-muted-foreground',
+                  )}
+                >
+                  <CalendarDays className="size-4" />
+                </button>
+              </PopoverTrigger>
+            ) : null}
           </div>
           {showTime ? (
-            <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+            <Popover
+              open={!readOnly && isTimeOpen}
+              onOpenChange={(open) => !readOnly && setIsTimeOpen(open)}
+            >
               <div className="relative min-w-0">
                 <Input
                   type="text"
@@ -334,21 +344,24 @@ export function DatePickerInput({
                   placeholder={TIME_INPUT_FORMAT}
                   variant={variant}
                   value={timeText}
+                  readOnly={readOnly}
                   aria-label={timeLabel ?? 'Giờ'}
                   aria-invalid={props['aria-invalid']}
                   className="pe-8 text-center tabular-nums"
                   onChange={handleTimeChange}
                   onBlur={handleTimeBlur}
                 />
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Chọn giờ"
-                    className="absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                  >
-                    <Clock3 className="size-3.5" />
-                  </button>
-                </PopoverTrigger>
+                {!readOnly ? (
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Chọn giờ"
+                      className="absolute inset-y-px end-px inline-flex w-8 items-center justify-center rounded-e-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                    >
+                      <Clock3 className="size-3.5" />
+                    </button>
+                  </PopoverTrigger>
+                ) : null}
               </div>
               <PopoverContent className="w-52 p-2" align="end" sideOffset={6}>
                 <div className="mb-2 flex items-center gap-1">
