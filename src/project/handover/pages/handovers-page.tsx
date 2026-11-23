@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { ClipboardList, PackagePlus, Plus } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '@/lib/errors';
@@ -114,36 +114,6 @@ export function HandoversPage() {
         actions={
           canManage ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() =>
-                  navigate(
-                    `${ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}?mode=warehouse_request`,
-                  )
-                }
-              >
-                <PackagePlus />
-                {intl.formatMessage({
-                  id: 'project.handover.actions.requestFromWarehouse',
-                })}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="md"
-                onClick={() =>
-                  navigate(
-                    `${ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}?mode=warehouse_allocation`,
-                  )
-                }
-              >
-                <PackagePlus />
-                {intl.formatMessage({
-                  id: 'project.handover.actions.createFromWarehouse',
-                })}
-              </Button>
               <Button
                 type="button"
                 variant="primary"

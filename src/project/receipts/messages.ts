@@ -12,7 +12,7 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.actions.cancel': 'Hủy phiếu nhập',
   'receipts.actions.adjust': 'Hiệu chỉnh vật tư',
   'receipts.actions.linkedHandover': 'Lập phiếu bàn giao',
-  'receipts.actions.linkedRequest': 'Đăng ký nhận vật tư',
+  'receipts.actions.linkedRequest': 'Đăng ký nhận',
   'receipts.actions.saveDraft': 'Lưu bản nháp',
   'receipts.actions.importExcel': 'Nhập từ Excel',
   'receipts.actions.addMaterialsFromExcel': 'Thêm {count} vật tư vào phiếu',
@@ -29,6 +29,8 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.fields.status': 'Trạng thái',
   'receipts.fields.warehouse': 'Kho nhận',
   'receipts.fields.note': 'Ghi chú',
+  'receipts.fields.requestRegistrationScope': 'Đối tượng được đăng ký nhận',
+  'receipts.fields.requestRegistrationParties': 'Đơn vị EPS được phép đăng ký',
   'receipts.fields.material': 'Vật tư',
   'receipts.fields.reason': 'Lý do',
   'receipts.fields.createdAt': 'Ngày tạo',
@@ -212,6 +214,10 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.handover.noRecipient': 'Chọn đơn vị nhận đang hoạt động.',
   'receipts.handover.loadError': 'Không tải được dữ liệu lập phiếu bàn giao',
   'receipts.handover.stockTitle': 'Vật tư có thể bàn giao',
+  'receipts.requestRegistration.all': 'Tất cả đơn vị EPS',
+  'receipts.requestRegistration.selected': 'Chỉ đơn vị EPS được chọn',
+  'receipts.requestRegistration.listDescription':
+    'Các phiếu nhập vật tư mà đơn vị của bạn được phép đăng ký nhận.',
 };
 
 export const receiptMessagesEn: Record<string, string> = {
@@ -228,7 +234,7 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.actions.cancel': 'Cancel receipt',
   'receipts.actions.adjust': 'Adjust receipt items',
   'receipts.actions.linkedHandover': 'Create handover',
-  'receipts.actions.linkedRequest': 'Request materials',
+  'receipts.actions.linkedRequest': 'Register to receive',
   'receipts.actions.saveDraft': 'Save draft',
   'receipts.actions.importExcel': 'Import from Excel',
   'receipts.actions.addMaterialsFromExcel': 'Add {count} materials to receipt',
@@ -245,6 +251,8 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.fields.status': 'Status',
   'receipts.fields.warehouse': 'Receiving warehouse',
   'receipts.fields.note': 'Note',
+  'receipts.fields.requestRegistrationScope': 'Who can register to receive',
+  'receipts.fields.requestRegistrationParties': 'EPS units allowed to request',
   'receipts.fields.material': 'Material',
   'receipts.fields.reason': 'Reason',
   'receipts.fields.createdAt': 'Created',
@@ -431,4 +439,8 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.handover.noRecipient': 'Select an active receiving unit.',
   'receipts.handover.loadError': 'Could not load warehouse handover data',
   'receipts.handover.stockTitle': 'Available materials to hand over',
+  'receipts.requestRegistration.all': 'All EPS units',
+  'receipts.requestRegistration.selected': 'Selected EPS units only',
+  'receipts.requestRegistration.listDescription':
+    'Material receipts that your unit is allowed to register to receive.',
 };

@@ -178,11 +178,15 @@ export function HandoverPartyDialog({
   const teams = allParties.filter(
     (party) =>
       party.type === 'team' &&
+      party.sourceType === 'eps_team' &&
       party.parentId === selectedDepartmentId &&
       partyCanBeSender(party),
   );
   const departments = allParties.filter(
-    (party) => party.type === 'department' && partyCanBeSender(party),
+    (party) =>
+      party.type === 'department' &&
+      party.sourceType === 'eps_department' &&
+      partyCanBeSender(party),
   );
   const externalParties = allParties.filter(
     (party) =>

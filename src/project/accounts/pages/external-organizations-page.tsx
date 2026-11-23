@@ -52,11 +52,7 @@ export function ExternalOrganizationsPage() {
   const queryClient = useQueryClient();
   const { hasPermission, userId } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView =
-    hasPermission(ACCOUNT_PERMISSION_CODES.externalView) ||
-    hasPermission(ACCOUNT_PERMISSION_CODES.externalManage) ||
-    hasPermission(ACCOUNT_PERMISSION_CODES.view) ||
-    hasPermission(ACCOUNT_PERMISSION_CODES.manage);
+  const canView = true;
   const canManage = hasPermission(ACCOUNT_PERMISSION_CODES.externalManage);
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('');

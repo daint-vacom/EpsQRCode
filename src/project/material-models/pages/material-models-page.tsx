@@ -65,7 +65,7 @@ export function MaterialModelsPage() {
   const navigate = useNavigate();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.view);
+  const canView = true;
   const canManage = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.manage);
   const query = useMaterialModelsQuery(isPermissionsPending || canView);
   const groupsQuery = useMaterialGroupsQuery(isPermissionsPending || canView);

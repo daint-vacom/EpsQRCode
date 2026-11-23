@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ROUTES } from '@/constants/routes';
+import { HANDOVER_PERMISSION_CODES } from '@/project/handover/model/handover-permissions';
 import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import { WarehouseSelect } from '@/project/warehouses/components/warehouse-select';
@@ -22,6 +23,7 @@ import { SearchInput } from '@/components/ui/inputs/search-input';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
+  useAvailableMaterialReceiptRequestsQuery,
   useMaterialReceiptFilterSummaryQuery,
   useMaterialReceiptsQuery,
 } from '../hooks/use-material-receipts';
@@ -39,6 +41,14 @@ export function MaterialReceiptsPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
+  const canRequestWarehouseMaterials = hasPermission(
+    HANDOVER_PERMISSION_CODES.manage,
+  );
+  const requestableOnly =
+    !isPermissionsPending &&
+    !canView &&
+    !canManage &&
+    canRequestWarehouseMaterials;
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MaterialReceiptStatus | ''>('');
   const [warehouseId, setWarehouseId] = useState('');
@@ -55,14 +65,19 @@ export function MaterialReceiptsPage() {
       page: pageIndex + 1,
       pageSize,
     },
-    isPermissionsPending || canView || canManage,
+    !requestableOnly && (isPermissionsPending || canView || canManage),
+  );
+  const requestableQuery = useAvailableMaterialReceiptRequestsQuery(
+    { search, page: pageIndex + 1, pageSize },
+    requestableOnly,
   );
   const summaryQuery = useMaterialReceiptFilterSummaryQuery(
     { search: search.trim(), warehouseId: warehouseId || undefined },
     !isPermissionsPending && (canView || canManage),
   );
   const summary = summaryQuery.data;
-  const result = query.data;
+  const activeQuery = requestableOnly ? requestableQuery : query;
+  const result = requestableOnly ? requestableQuery.data : query.data;
   const items = result?.items ?? [];
   const onView = useCallback(
     (receipt: (typeof items)[number]) => {
@@ -123,92 +138,102 @@ export function MaterialReceiptsPage() {
           ) : null
         }
       />
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <ProjectFilterModeSwitcher
-          value={filterMode}
-          onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'warehouse');
-            setStatus('');
-            setWarehouseId('');
-            setPageIndex(0);
-          }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'warehouse',
-              label: intl.formatMessage({
-                id: 'project.management.filters.warehouse',
-              }),
-            },
-          ]}
-          className="shrink-0"
-          disabled={isPermissionsPending || (!canView && !canManage)}
-        />
-        <span
-          className="hidden h-5 w-px bg-border sm:block"
-          aria-hidden="true"
-        />
-
-        {filterMode === 'status' ? (
-          <FilterCountChips
-            ariaLabel={intl.formatMessage({
-              id: 'project.management.filters.status',
-            })}
-            value={status}
+      {requestableOnly ? (
+        <p className="text-sm text-muted-foreground">
+          {intl.formatMessage({
+            id: 'receipts.requestRegistration.listDescription',
+          })}
+        </p>
+      ) : null}
+      {!requestableOnly ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <ProjectFilterModeSwitcher
+            value={filterMode}
             onValueChange={(value) => {
-              setStatus(value as MaterialReceiptStatus | '');
+              setFilterMode(value as 'status' | 'warehouse');
+              setStatus('');
+              setWarehouseId('');
               setPageIndex(0);
             }}
-            disabled={isPermissionsPending || (!canView && !canManage)}
             options={[
               {
-                value: '',
+                value: 'status',
                 label: intl.formatMessage({
-                  id: 'project.management.filters.all',
+                  id: 'project.management.filters.status',
                 }),
-                count: summary?.total,
               },
-              ...(['draft', 'handover', 'completed', 'cancelled'] as const).map(
-                (value) => ({
+              {
+                value: 'warehouse',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.warehouse',
+                }),
+              },
+            ]}
+            className="shrink-0"
+            disabled={isPermissionsPending || (!canView && !canManage)}
+          />
+          <span
+            className="hidden h-5 w-px bg-border sm:block"
+            aria-hidden="true"
+          />
+
+          {!requestableOnly && filterMode === 'status' ? (
+            <FilterCountChips
+              ariaLabel={intl.formatMessage({
+                id: 'project.management.filters.status',
+              })}
+              value={status}
+              onValueChange={(value) => {
+                setStatus(value as MaterialReceiptStatus | '');
+                setPageIndex(0);
+              }}
+              disabled={isPermissionsPending || (!canView && !canManage)}
+              options={[
+                {
+                  value: '',
+                  label: intl.formatMessage({
+                    id: 'project.management.filters.all',
+                  }),
+                  count: summary?.total,
+                },
+                ...(
+                  ['draft', 'handover', 'completed', 'cancelled'] as const
+                ).map((value) => ({
                   value,
                   label: intl.formatMessage({
                     id: `receipts.status.${value}`,
                   }),
                   count: summary?.[value],
-                }),
-              ),
-            ]}
-          />
-        ) : null}
-        {filterMode === 'warehouse' ? (
-          <WarehouseSelect
-            aria-label={intl.formatMessage({
-              id: 'project.management.filters.warehouse',
-            })}
-            value={warehouseId}
-            onChange={(value) => {
-              setWarehouseId(value);
-              setPageIndex(0);
-            }}
-            canDeselect
-            disabled={isPermissionsPending || (!canView && !canManage)}
-            searchable
-            className="w-64 shrink-0"
-          />
-        ) : null}
-      </div>
+                })),
+              ]}
+            />
+          ) : null}
+          {!requestableOnly && filterMode === 'warehouse' ? (
+            <WarehouseSelect
+              aria-label={intl.formatMessage({
+                id: 'project.management.filters.warehouse',
+              })}
+              value={warehouseId}
+              onChange={(value) => {
+                setWarehouseId(value);
+                setPageIndex(0);
+              }}
+              canDeselect
+              disabled={isPermissionsPending || (!canView && !canManage)}
+              searchable
+              className="w-64 shrink-0"
+            />
+          ) : null}
+        </div>
+      ) : null}
       <DataGrid
         table={table}
         recordCount={result?.total ?? 0}
         isLoading={
-          isPermissionsPending || ((canView || canManage) && query.isPending)
+          isPermissionsPending ||
+          ((canView || canManage || requestableOnly) && activeQuery.isPending)
         }
-        isFetching={query.isFetching}
+        isFetching={activeQuery.isFetching}
         emptyMessage={emptyMessage}
       >
         <Card className="min-h-[32rem] min-w-0 flex-1 overflow-hidden">
@@ -238,18 +263,21 @@ export function MaterialReceiptsPage() {
             toolbar={<DataGridHeaderMenu table={table} />}
           />
           <CardTable className="min-h-0 flex-1">
-            {!isPermissionsPending && !canView && !canManage ? (
+            {!isPermissionsPending &&
+            !canView &&
+            !canManage &&
+            !canRequestWarehouseMaterials ? (
               <ErrorState
                 title={intl.formatMessage({ id: 'receipts.errors.permission' })}
                 description={intl.formatMessage({
                   id: 'receipts.errors.permission',
                 })}
               />
-            ) : query.isError ? (
+            ) : activeQuery.isError ? (
               <ErrorState
                 title={intl.formatMessage({ id: 'receipts.errors.loadTitle' })}
-                description={getApiErrorMessage(query.error)}
-                onRetry={() => void query.refetch()}
+                description={getApiErrorMessage(activeQuery.error)}
+                onRetry={() => void activeQuery.refetch()}
               />
             ) : (
               <ScrollArea className="h-full">
@@ -259,9 +287,9 @@ export function MaterialReceiptsPage() {
             )}
           </CardTable>
           <CardFooter className="justify-between">
-            {(canView || canManage) &&
+            {(canView || canManage || requestableOnly) &&
             !isPermissionsPending &&
-            !query.isError ? (
+            !activeQuery.isError ? (
               <DataGridPagination />
             ) : null}
           </CardFooter>

@@ -80,7 +80,7 @@ export function MaterialModelEditorPage() {
   const isEdit = Boolean(id);
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.view);
+  const canView = true;
   const canManage = hasPermission(MATERIAL_MODEL_PERMISSION_CODES.manage);
   const codePatternsQuery = useCodeGenerationPatternsQuery(
     !isPermissionsPending && canManage,

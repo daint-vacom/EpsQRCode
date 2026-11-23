@@ -5,14 +5,21 @@ import {
   useCustodiansQuery,
   useHandoverCounterpartyOptionsQuery,
 } from '@/project/custodians/hooks/use-custodians';
+import type { Custodian } from '@/project/custodians/model/custodian';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
 import { HandoverPartyCard } from '@/project/handover/components/handover-party-card';
 import { HandoverItemsEditorTable } from '@/project/handover/table/handover-items-editor-table.generated';
 import { useMaterialsByIdsQuery } from '@/project/materials/hooks/use-materials';
 import type { MaterialListFilters } from '@/project/materials/model/material';
+import { useMaterialReceiptQuery } from '@/project/receipts/hooks/use-material-receipts';
+import { WarehouseSelect } from '@/project/warehouses/components/warehouse-select';
+import type { WarehouseSelectItem } from '@/project/warehouses/components/warehouse-select';
+import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
+import { format } from 'date-fns';
 import {
   ArrowRight,
+  Building2,
   CalendarDays,
   FilePlus2,
   FileText,
@@ -57,6 +64,7 @@ import {
 } from '@/components/ui/stepper';
 import { Textarea } from '@/components/ui/textarea';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
+import { loadHandover } from '../api/handovers.api';
 import {
   mapHandoverToFormValues,
   useHandoverForm,
@@ -66,11 +74,14 @@ import {
   useHandoverHistoryQuery,
   useHandoverQuery,
   useSaveHandoverMutation,
+  useSaveWarehouseHandoverMutation,
+  useWarehouseHandoverActionMutation,
 } from '../hooks/use-handovers';
 import type {
   HandoverAttachment,
   HandoverDocument,
   HandoverHistoryEntry,
+  HandoverMode,
   HandoverType,
 } from '../model/handover';
 import type { HandoverFormValues } from '../model/handover-form-schema';
@@ -93,6 +104,26 @@ function isUuid(value: string) {
 
 type HandoverSignatureSide = 'sender' | 'recipient';
 type HandoverSignatureState = 'pending' | 'signed' | 'rejected';
+type WarehouseHandoverMode = Extract<
+  HandoverMode,
+  'warehouse_allocation' | 'warehouse_request'
+>;
+
+function isWarehouseHandoverMode(
+  value: string | null | undefined,
+): value is WarehouseHandoverMode {
+  return value === 'warehouse_allocation' || value === 'warehouse_request';
+}
+
+function representsParty(party: Custodian, userId: string | null) {
+  return Boolean(
+    party.canRepresent ||
+    (userId &&
+      (party.accountUserId === userId ||
+        party.accountUserIds.includes(userId) ||
+        party.representativeUserId === userId)),
+  );
+}
 
 function latestHistoryEntry(
   entries: HandoverHistoryEntry[],
@@ -130,7 +161,9 @@ function getSignatureInfo(
     side === 'sender'
       ? document.mode === 'standard'
         ? (['sent', 'confirmed_offline'] as const)
-        : (['warehouse_approved'] as const)
+        : document.mode === 'warehouse_request'
+          ? (['warehouse_approved'] as const)
+          : (['sent'] as const)
       : document.mode === 'warehouse_request'
         ? (['confirmed', 'sent'] as const)
         : (['confirmed'] as const);
@@ -175,6 +208,9 @@ export function HandoverEditorPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { id = '' } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
+  const requestedMode = searchParams.get('mode');
+  const warehouseIdFromUrl = searchParams.get('warehouseId') ?? '';
+  const recipientPartyIdFromUrl = searchParams.get('recipientPartyId') ?? '';
   const { userId, hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
@@ -186,11 +222,18 @@ export function HandoverEditorPage() {
     isEdit && (canManage || canView),
   );
   const historyEntries = historyQuery.data ?? [];
+  const mode: HandoverMode =
+    document?.mode ??
+    (isWarehouseHandoverMode(requestedMode) ? requestedMode : 'standard');
+  const isWarehouseMode = mode !== 'standard';
+  const receiptId =
+    document?.receiptId ?? searchParams.get('receiptId') ?? null;
+  const receiptQuery = useMaterialReceiptQuery(
+    receiptId ?? '',
+    mode === 'warehouse_request' && Boolean(receiptId),
+  );
   const isReadOnly = Boolean(
-    isEdit &&
-    (!canManage ||
-      document?.status !== 'draft' ||
-      document?.mode !== 'standard'),
+    isEdit && (!canManage || document?.status !== 'draft'),
   );
   const reverseFromHandoverId =
     new URLSearchParams(location.search).get('reverseFrom') ?? '';
@@ -199,10 +242,22 @@ export function HandoverEditorPage() {
     !isEdit && Boolean(reverseFromHandoverId) && canManage,
   );
   const custodiansQuery = useCustodiansQuery(false, canManage || canView);
+  const warehousesQuery = useWarehousesQuery(
+    false,
+    isWarehouseMode && (canManage || canView),
+  );
   const saveMutation = useSaveHandoverMutation();
+  const saveWarehouseMutation = useSaveWarehouseHandoverMutation();
   const actionMutation = useHandoverActionMutation();
+  const warehouseActionMutation = useWarehouseHandoverActionMutation();
   const { mutateAsync: saveHandover, isPending: isSaving } = saveMutation;
+  const { mutateAsync: saveWarehouseHandover, isPending: isSavingWarehouse } =
+    saveWarehouseMutation;
   const { mutateAsync: actOnHandover, isPending: isActing } = actionMutation;
+  const { mutateAsync: actOnWarehouseHandover, isPending: isActingWarehouse } =
+    warehouseActionMutation;
+  const isSavingAny = isSaving || isSavingWarehouse;
+  const isActingAny = isActing || isActingWarehouse;
   const initialMaterialSearch =
     new URLSearchParams(location.search).get('materialId') ?? '';
   const bulkMaterialIds = useMemo(() => {
@@ -248,6 +303,78 @@ export function HandoverEditorPage() {
       ),
     [custodiansQuery.data],
   );
+  const warehouses = useMemo(
+    () => warehousesQuery.data ?? [],
+    [warehousesQuery.data],
+  );
+  const requestWarehouse = receiptQuery.data?.warehouse;
+  const allowedWarehouses = useMemo(() => {
+    const visibleWarehouses = warehouses.filter(
+      (warehouse) =>
+        warehouse.isActive &&
+        (mode === 'warehouse_request' ||
+          warehouse.accountUserIds.includes(userId ?? '')),
+    );
+    if (
+      mode === 'warehouse_request' &&
+      requestWarehouse &&
+      !visibleWarehouses.some(
+        (warehouse) => warehouse.id === requestWarehouse.id,
+      )
+    ) {
+      visibleWarehouses.push({
+        id: requestWarehouse.id,
+        code: requestWarehouse.code,
+        name: requestWarehouse.name,
+        address: '',
+        accountUserIds: [],
+        isActive: true,
+        createdAt: '',
+        updatedAt: '',
+      });
+    }
+    return visibleWarehouses;
+  }, [mode, requestWarehouse, userId, warehouses]);
+  const warehouseSelectItems = useMemo<WarehouseSelectItem[]>(
+    () =>
+      allowedWarehouses.map(({ id: warehouseId, code, name, address }) => ({
+        id: warehouseId,
+        code,
+        name,
+        address,
+      })),
+    [allowedWarehouses],
+  );
+  const warehouseRecipientParties = useMemo(
+    () =>
+      custodianList.filter(
+        (party) =>
+          party.isActive &&
+          (!recipientPartyIdFromUrl || party.id === recipientPartyIdFromUrl) &&
+          (mode === 'warehouse_request'
+            ? representsParty(party, userId)
+            : party.accountUserId !== null ||
+              party.representativeUserId !== null),
+      ),
+    [custodianList, mode, recipientPartyIdFromUrl, userId],
+  );
+  const setWarehouseSender = useCallback(
+    (warehouseId: string, shouldDirty = true) => {
+      const warehouse = allowedWarehouses.find(
+        (item) => item.id === warehouseId,
+      );
+      form.setValue('senderPartyId', warehouseId, { shouldDirty });
+      form.setValue('senderPartyKind', 'warehouse', { shouldDirty });
+      form.setValue('senderPartyCode', warehouse?.code ?? '', { shouldDirty });
+      form.setValue('senderPartyName', warehouse?.name ?? '', { shouldDirty });
+      form.setValue('senderPartyPhone', '', { shouldDirty });
+      form.setValue('senderPartyEmail', '', { shouldDirty });
+      form.setValue('senderRepresentativeName', '', { shouldDirty });
+      form.setValue('senderRepresentativeUserId', null, { shouldDirty });
+      form.setValue('senderPartyScopePartyId', '', { shouldDirty });
+    },
+    [allowedWarehouses, form],
+  );
   const selectedSenderPartyId = form.watch('senderPartyId');
   const selectedSenderPartyName = form.watch('senderPartyName');
   const hasSenderForItems = Boolean(
@@ -260,7 +387,7 @@ export function HandoverEditorPage() {
       : selectedSenderPartyId;
   const counterpartiesQuery = useHandoverCounterpartyOptionsQuery(
     senderCatalogIdForCounterparties,
-    canManage && !isReadOnly,
+    canManage && !isReadOnly && !isWarehouseMode,
   );
   const recipientCatalogParties = useMemo(() => {
     const knownIds = new Set(custodianList.map((party) => party.id));
@@ -296,38 +423,48 @@ export function HandoverEditorPage() {
   const materialFilters: Omit<
     MaterialListFilters,
     'search' | 'page' | 'pageSize'
-  > = {
-    ownerPartyId:
-      handoverType === 'return'
-        ? undefined
-        : form.watch('senderPartyKind') === 'other'
-          ? undefined
-          : form.watch('senderPartyId') || undefined,
-    ownerScopePartyId:
-      handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
-        ? form.watch('senderPartyScopePartyId') || undefined
-        : undefined,
-    ownerName:
-      handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
-        ? form.watch('senderPartyName') || undefined
-        : undefined,
-    borrowerPartyId:
-      handoverType === 'return'
-        ? form.watch('senderPartyKind') === 'other'
-          ? undefined
-          : form.watch('senderPartyId') || undefined
-        : undefined,
-    borrowerScopePartyId:
-      handoverType === 'return' && form.watch('senderPartyKind') === 'other'
-        ? form.watch('senderPartyScopePartyId') || undefined
-        : undefined,
-    borrowerName:
-      handoverType === 'return' && form.watch('senderPartyKind') === 'other'
-        ? form.watch('senderPartyName') || undefined
-        : undefined,
-    status:
-      handoverType === 'return' ? ('loaned' as const) : ('available' as const),
-  };
+  > = isWarehouseMode
+    ? {
+        ownerPartyId: selectedSenderPartyId || undefined,
+        ownerKind: 'warehouse',
+        status: 'available',
+        isActive: true,
+        ...(receiptId ? { receiptId } : {}),
+      }
+    : {
+        ownerPartyId:
+          handoverType === 'return'
+            ? undefined
+            : form.watch('senderPartyKind') === 'other'
+              ? undefined
+              : form.watch('senderPartyId') || undefined,
+        ownerScopePartyId:
+          handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
+            ? form.watch('senderPartyScopePartyId') || undefined
+            : undefined,
+        ownerName:
+          handoverType !== 'return' && form.watch('senderPartyKind') === 'other'
+            ? form.watch('senderPartyName') || undefined
+            : undefined,
+        borrowerPartyId:
+          handoverType === 'return'
+            ? form.watch('senderPartyKind') === 'other'
+              ? undefined
+              : form.watch('senderPartyId') || undefined
+            : undefined,
+        borrowerScopePartyId:
+          handoverType === 'return' && form.watch('senderPartyKind') === 'other'
+            ? form.watch('senderPartyScopePartyId') || undefined
+            : undefined,
+        borrowerName:
+          handoverType === 'return' && form.watch('senderPartyKind') === 'other'
+            ? form.watch('senderPartyName') || undefined
+            : undefined,
+        status:
+          handoverType === 'return'
+            ? ('loaned' as const)
+            : ('available' as const),
+      };
   const materialOptions = useMemo(() => {
     const bulkMaterials = bulkMaterialsQuery.flatMap((result) =>
       result.data ? [result.data] : [],
@@ -358,6 +495,74 @@ export function HandoverEditorPage() {
     lastSenderPartyIdRef.current = values.senderPartyId;
     senderSelectionInitializedRef.current = true;
   }, [document, form]);
+
+  useEffect(() => {
+    if (
+      isEdit ||
+      !isWarehouseMode ||
+      warehousesQuery.isPending ||
+      !warehousesQuery.data ||
+      (mode === 'warehouse_request' &&
+        Boolean(receiptId) &&
+        receiptQuery.isPending)
+    ) {
+      return;
+    }
+    const initialWarehouseId = warehouseIdFromUrl;
+    if (
+      initialWarehouseId &&
+      form.getValues('senderPartyId') !== initialWarehouseId
+    ) {
+      setWarehouseSender(initialWarehouseId, false);
+    }
+    if (!form.getValues('plannedDate')) {
+      form.setValue('plannedDate', format(new Date(), 'yyyy-MM-dd'));
+    }
+    if (mode === 'warehouse_request' && !form.getValues('recipientPartyId')) {
+      const recipient = recipientPartyIdFromUrl
+        ? warehouseRecipientParties.find(
+            (party) => party.id === recipientPartyIdFromUrl,
+          )
+        : warehouseRecipientParties.length === 1
+          ? warehouseRecipientParties[0]
+          : undefined;
+      if (recipient) {
+        form.setValue('recipientPartyId', recipient.id);
+        form.setValue(
+          'recipientPartyKind',
+          recipient.type === 'external' ? 'external' : 'eps',
+        );
+        form.setValue('recipientPartyCode', recipient.code);
+        form.setValue('recipientPartyName', recipient.name);
+        form.setValue('recipientPartyPhone', recipient.phone ?? '');
+        form.setValue('recipientPartyEmail', recipient.email ?? '');
+        form.setValue(
+          'recipientRepresentativeName',
+          recipient.representativeName ??
+            recipient.representativeDisplayName ??
+            '',
+        );
+        form.setValue(
+          'recipientRepresentativeUserId',
+          recipient.representativeUserId ?? null,
+        );
+      }
+    }
+  }, [
+    allowedWarehouses,
+    form,
+    isEdit,
+    isWarehouseMode,
+    mode,
+    receiptId,
+    receiptQuery.isPending,
+    recipientPartyIdFromUrl,
+    warehouseIdFromUrl,
+    warehouseRecipientParties,
+    warehousesQuery.data,
+    warehousesQuery.isPending,
+    setWarehouseSender,
+  ]);
 
   useEffect(() => {
     if (isEdit || !reverseSource) return;
@@ -587,25 +792,44 @@ export function HandoverEditorPage() {
             setIsUploading(false);
           }
         }
-        const persistedId = await saveHandover({
-          id: id || null,
-          values: {
-            ...values,
-            attachmentFileIds,
-            ...(isEdit ? { expectedVersion: document?.version } : {}),
-          },
-        });
+        const persistedId = isWarehouseMode
+          ? await saveWarehouseHandover({
+              id: id || null,
+              values: {
+                mode: mode as WarehouseHandoverMode,
+                warehouseId: values.senderPartyId,
+                recipientPartyId: values.recipientPartyId,
+                receiptId,
+                plannedDate: values.plannedDate,
+                note: values.note,
+                items: values.items,
+                ...(isEdit ? { expectedVersion: document?.version } : {}),
+              },
+            })
+          : await saveHandover({
+              id: id || null,
+              values: {
+                ...values,
+                attachmentFileIds,
+                ...(isEdit ? { expectedVersion: document?.version } : {}),
+              },
+            });
         savedId = persistedId;
         if (sendAfterSave) {
-          const latest: HandoverDocument =
-            await import('../api/handovers.api').then((api) =>
-              api.loadHandover(persistedId),
-            );
-          await actOnHandover({
-            id: persistedId,
-            action: 'send',
-            expectedVersion: latest.version,
-          });
+          const latest: HandoverDocument = await loadHandover(persistedId);
+          if (isWarehouseMode) {
+            await actOnWarehouseHandover({
+              id: persistedId,
+              action: 'send',
+              expectedVersion: latest.version,
+            });
+          } else {
+            await actOnHandover({
+              id: persistedId,
+              action: 'send',
+              expectedVersion: latest.version,
+            });
+          }
           toast.success(
             intl.formatMessage({ id: 'project.handover.toasts.sent' }),
           );
@@ -632,14 +856,19 @@ export function HandoverEditorPage() {
     },
     [
       actOnHandover,
+      actOnWarehouseHandover,
       document?.version,
       id,
       intl,
       isEdit,
+      isWarehouseMode,
+      mode,
       navigate,
       pendingAttachmentFiles,
       form,
+      receiptId,
       saveHandover,
+      saveWarehouseHandover,
       userId,
     ],
   );
@@ -653,17 +882,21 @@ export function HandoverEditorPage() {
       icon: FilePlus2,
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'project.handover.actions.back' }),
-      onBack: () => navigate(ROUTES.PROJECT.HANDOVERS),
+      onBack: () =>
+        navigate(
+          receiptId
+            ? ROUTES.PROJECT.RECEIPT_DETAIL.replace(':id', receiptId)
+            : ROUTES.PROJECT.HANDOVERS,
+        ),
       actions:
         canManage &&
         activeStep === 1 &&
-        (!isEdit ||
-          (document?.status === 'draft' && document.mode === 'standard')) ? (
+        (!isEdit || document?.status === 'draft') ? (
           <Button
             type="button"
             variant="primary"
             size="md"
-            loading={isSaving || isUploading}
+            loading={isSavingAny || isUploading}
             loadingText={intl.formatMessage({
               id: 'project.handover.labels.saving',
             })}
@@ -685,17 +918,16 @@ export function HandoverEditorPage() {
       canManage,
       activeStep,
       document,
-      isSaving,
+      isSavingAny,
       isUploading,
       form,
       onSave,
+      receiptId,
     ],
   );
   useDetailEntryLayoutHeader(
     header,
-    !isEdit ||
-      !document ||
-      (document.status === 'draft' && document.mode === 'standard'),
+    !isEdit || !document || document.status === 'draft',
   );
 
   const handleRemoveAttachment = (fileId: string) => {
@@ -818,27 +1050,109 @@ export function HandoverEditorPage() {
   const overviewCard = (
     <Card className="shrink-0 overflow-hidden">
       <div className="grid grid-cols-1 items-stretch gap-3 p-3 xl:grid-cols-[minmax(0,1fr)_14rem_minmax(0,1fr)]">
-        <HandoverPartyCard
-          title={intl.formatMessage({
-            id: 'project.handover.fields.sender',
-          })}
-          side="sender"
-          form={form}
-          parties={custodianList}
-          readOnly={isReadOnly}
-          statusBadge={
-            isEdit ? renderSignatureBadge(senderSignature.state) : null
-          }
-          notice={
-            representedSenderOptions.length === 0 ? (
-              <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-                {intl.formatMessage({
-                  id: 'project.handover.errors.senderNotConfigured',
-                })}
-              </p>
-            ) : null
-          }
-        />
+        {isWarehouseMode ? (
+          <Card className="flex min-w-0 flex-col border-transparent bg-blue-50/70 dark:border-transparent dark:bg-blue-950/20">
+            <CardHeader className="flex min-h-12 flex-row items-center justify-between gap-2 px-4 py-2.5">
+              <CardTitle className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+                <Building2
+                  className="size-5 shrink-0 text-blue-600"
+                  aria-hidden="true"
+                />
+                {intl.formatMessage({ id: 'project.handover.fields.sender' })}
+              </CardTitle>
+              {isEdit ? renderSignatureBadge(senderSignature.state) : null}
+            </CardHeader>
+            <CardContent className="space-y-3 px-4 pb-4 pt-1">
+              {isReadOnly ? (
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    {form.watch('senderPartyName') || '—'}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {form.watch('senderPartyCode') || '—'}
+                  </p>
+                </div>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="senderPartyId"
+                  render={({ field }) => (
+                    <FormItem variant="compact" className="min-w-0">
+                      <FormLabel className="sr-only">
+                        {intl.formatMessage({
+                          id: 'project.handover.fields.sender',
+                        })}
+                      </FormLabel>
+                      <FormControl>
+                        <WarehouseSelect
+                          sourceMode="options"
+                          warehouses={warehouseSelectItems}
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            setWarehouseSender(value);
+                          }}
+                          disabled={
+                            Boolean(receiptId) || !allowedWarehouses.length
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              {receiptId ? (
+                <p className="text-xs text-muted-foreground">
+                  {intl.formatMessage({ id: 'receipts.handover.stockTitle' })}
+                </p>
+              ) : null}
+              {!isReadOnly &&
+              !warehousesQuery.isError &&
+              !allowedWarehouses.length ? (
+                <p className="text-xs text-warning-foreground">
+                  {intl.formatMessage({
+                    id:
+                      mode === 'warehouse_request'
+                        ? 'receipts.handover.noWarehouse'
+                        : 'receipts.handover.noRepresentedWarehouse',
+                  })}
+                </p>
+              ) : null}
+              {warehousesQuery.isError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'receipts.handover.loadError',
+                  })}
+                  description={getApiErrorMessage(warehousesQuery.error)}
+                  onRetry={() => void warehousesQuery.refetch()}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : (
+          <HandoverPartyCard
+            title={intl.formatMessage({
+              id: 'project.handover.fields.sender',
+            })}
+            side="sender"
+            form={form}
+            parties={custodianList}
+            readOnly={isReadOnly}
+            statusBadge={
+              isEdit ? renderSignatureBadge(senderSignature.state) : null
+            }
+            notice={
+              representedSenderOptions.length === 0 ? (
+                <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                  {intl.formatMessage({
+                    id: 'project.handover.errors.senderNotConfigured',
+                  })}
+                </p>
+              ) : null
+            }
+          />
+        )}
         <div className="flex flex-col items-center justify-center gap-2 rounded-lg py-2 text-center xl:py-0">
           <div className="grid w-full grid-cols-3 items-center text-primary">
             <div className="flex items-center justify-center">
@@ -852,55 +1166,68 @@ export function HandoverEditorPage() {
             </div>
           </div>
           <div className="flex w-full min-w-0 max-w-64 flex-col items-center gap-2">
-            <p className="text-sm font-semibold text-foreground">
-              {intl.formatMessage({
-                id: 'project.handover.labels.transferFlow',
-              })}
-            </p>
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem variant="compact" className="w-full min-w-0 gap-0">
-                  <FormLabel className="sr-only">
-                    {intl.formatMessage({
-                      id: 'project.handover.fields.type',
-                    })}
-                  </FormLabel>
-                  <FormControl>
-                    {isReadOnly ? (
-                      <span className="text-sm font-semibold text-primary">
-                        {
-                          handoverTypeOptions.find(
-                            (option) => option.value === field.value,
-                          )?.label
-                        }
-                      </span>
-                    ) : (
-                      <OptionSelect
-                        ariaLabel={intl.formatMessage({
+            {isWarehouseMode ? (
+              <p className="text-sm font-semibold text-foreground">
+                {intl.formatMessage({
+                  id: `receipts.handover.mode.${mode}`,
+                })}
+              </p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-foreground">
+                  {intl.formatMessage({
+                    id: 'project.handover.labels.transferFlow',
+                  })}
+                </p>
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem
+                      variant="compact"
+                      className="w-full min-w-0 gap-0"
+                    >
+                      <FormLabel className="sr-only">
+                        {intl.formatMessage({
                           id: 'project.handover.fields.type',
                         })}
-                        value={field.value ?? ''}
-                        onChange={field.onChange}
-                        options={handoverTypeOptions}
-                        searchable={false}
-                        size="md"
-                        variant="ghost"
-                        className="mx-auto w-fit justify-center text-primary"
-                        triggerContentClassName="text-center text-sm font-semibold"
-                      />
-                    )}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              {intl.formatMessage({
-                id: `project.handover.typeDescription.${selectedHandoverType}`,
-              })}
-            </p>
+                      </FormLabel>
+                      <FormControl>
+                        {isReadOnly ? (
+                          <span className="text-sm font-semibold text-primary">
+                            {
+                              handoverTypeOptions.find(
+                                (option) => option.value === field.value,
+                              )?.label
+                            }
+                          </span>
+                        ) : (
+                          <OptionSelect
+                            ariaLabel={intl.formatMessage({
+                              id: 'project.handover.fields.type',
+                            })}
+                            value={field.value ?? ''}
+                            onChange={field.onChange}
+                            options={handoverTypeOptions}
+                            searchable={false}
+                            size="md"
+                            variant="ghost"
+                            className="mx-auto w-fit justify-center text-primary"
+                            triggerContentClassName="text-center text-sm font-semibold"
+                          />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {intl.formatMessage({
+                    id: `project.handover.typeDescription.${selectedHandoverType}`,
+                  })}
+                </p>
+              </>
+            )}
           </div>
         </div>
         <HandoverPartyCard
@@ -909,13 +1236,29 @@ export function HandoverEditorPage() {
           })}
           side="recipient"
           form={form}
-          parties={recipientCatalogParties}
+          parties={
+            isWarehouseMode
+              ? warehouseRecipientParties
+              : recipientCatalogParties
+          }
+          allowedKinds={isWarehouseMode ? ['eps', 'external'] : undefined}
           readOnly={isReadOnly}
           statusBadge={
             isEdit ? renderSignatureBadge(recipientSignature.state) : null
           }
           notice={
-            counterpartiesQuery.isError ? (
+            isWarehouseMode ? (
+              !warehouseRecipientParties.length && !isReadOnly ? (
+                <p className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+                  {intl.formatMessage({
+                    id:
+                      mode === 'warehouse_request'
+                        ? 'receipts.handover.noRepresentedUnit'
+                        : 'receipts.handover.noRecipient',
+                  })}
+                </p>
+              ) : null
+            ) : counterpartiesQuery.isError ? (
               <ErrorState
                 title={intl.formatMessage({
                   id: 'project.handover.errors.loadCounterpartiesTitle',
@@ -928,7 +1271,9 @@ export function HandoverEditorPage() {
         />
       </div>
 
-      <CardContent className="grid grid-cols-1 divide-y divide-border border-t border-border p-0 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:divide-y-0">
+      <CardContent
+        className={`grid grid-cols-1 divide-y divide-border border-t border-border p-0 md:grid-cols-2 ${isWarehouseMode ? 'xl:grid-cols-[minmax(0,1fr)_auto]' : 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]'} xl:divide-y-0`}
+      >
         <div className="flex min-w-0 items-center gap-3 px-4 py-3">
           <MetadataIcon>
             <CalendarDays className="size-5" aria-hidden="true" />
@@ -964,43 +1309,45 @@ export function HandoverEditorPage() {
           />
         </div>
 
-        <div className="flex min-w-0 items-center gap-3 px-4 py-3">
-          <MetadataIcon>
-            <CalendarDays
-              className="size-5 text-violet-600"
-              aria-hidden="true"
+        {!isWarehouseMode ? (
+          <div className="flex min-w-0 items-center gap-3 px-4 py-3">
+            <MetadataIcon>
+              <CalendarDays
+                className="size-5 text-violet-600"
+                aria-hidden="true"
+              />
+            </MetadataIcon>
+            <FormField
+              control={form.control}
+              name="dueDate"
+              render={({ field }) => (
+                <FormItem
+                  layout="horizontal"
+                  labelWidth="sm"
+                  variant="compact"
+                  className="min-w-0 flex-1"
+                >
+                  <FormLabel variant="default">
+                    {intl.formatMessage({
+                      id: 'project.handover.fields.dueDate',
+                    })}
+                  </FormLabel>
+                  <FormControl>
+                    <DatePickerInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      readOnly={isReadOnly}
+                      valueMode="iso-date"
+                      variant="md"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </MetadataIcon>
-          <FormField
-            control={form.control}
-            name="dueDate"
-            render={({ field }) => (
-              <FormItem
-                layout="horizontal"
-                labelWidth="sm"
-                variant="compact"
-                className="min-w-0 flex-1"
-              >
-                <FormLabel variant="default">
-                  {intl.formatMessage({
-                    id: 'project.handover.fields.dueDate',
-                  })}
-                </FormLabel>
-                <FormControl>
-                  <DatePickerInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    readOnly={isReadOnly}
-                    valueMode="iso-date"
-                    variant="md"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+          </div>
+        ) : null}
 
         <div className="flex min-w-0 items-center gap-3 px-4 py-3 xl:min-w-48">
           <span
@@ -1069,6 +1416,7 @@ export function HandoverEditorPage() {
           </StepperNav>
           <StepperContent value={1} className="flex min-h-0 flex-1 flex-col">
             {custodiansQuery.isPending ||
+            (isWarehouseMode && warehousesQuery.isPending) ||
             (Boolean(reverseFromHandoverId) && reverseSourceQuery.isPending) ? (
               <div className="h-40 animate-pulse rounded-xl bg-muted" />
             ) : custodiansQuery.isError ? (
@@ -1171,16 +1519,21 @@ export function HandoverEditorPage() {
                           )}
                         />
                       </section>
-                      <HandoverAttachmentsField
-                        attachments={selectedAttachments}
-                        files={pendingAttachmentFiles}
-                        onFilesChange={setPendingAttachmentFiles}
-                        onRemove={handleRemoveAttachment}
-                        disabled={
-                          isReadOnly || isSaving || isActing || isUploading
-                        }
-                        isUploading={isUploading}
-                      />
+                      {!isWarehouseMode ? (
+                        <HandoverAttachmentsField
+                          attachments={selectedAttachments}
+                          files={pendingAttachmentFiles}
+                          onFilesChange={setPendingAttachmentFiles}
+                          onRemove={handleRemoveAttachment}
+                          disabled={
+                            isReadOnly ||
+                            isSavingAny ||
+                            isActingAny ||
+                            isUploading
+                          }
+                          isUploading={isUploading}
+                        />
+                      ) : null}
                     </CardContent>
                   </Card>
                 </div>
@@ -1306,7 +1659,7 @@ export function HandoverEditorPage() {
                       type="button"
                       variant="primary"
                       size="md"
-                      disabled={isUploading || isSaving || isActing}
+                      disabled={isUploading || isSavingAny || isActingAny}
                       onClick={() =>
                         void form.handleSubmit((values) =>
                           onSave(values, true),

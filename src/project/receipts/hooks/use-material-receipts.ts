@@ -6,11 +6,11 @@ import {
   applyMaterialReceiptAdjustment,
   applyMaterialReceiptInlineUpdate,
   importMaterialReceiptFromExcel,
+  loadAvailableMaterialReceiptRequests,
   loadMaterialReceipt,
   loadMaterialReceiptFilterSummary,
   loadMaterialReceiptHistory,
   loadMaterialReceiptItems,
-  loadMaterialReceiptRecipientOptions,
   loadMaterialReceipts,
   previewMaterialReceiptAdjustment,
   previewMaterialReceiptInlineUpdate,
@@ -18,23 +18,23 @@ import {
   saveMaterialReceiptRepresentative,
 } from '../api/material-receipts.api';
 import type { MaterialReceiptExcelImportValues } from '../api/material-receipts.api';
-import type {
-  MaterialReceiptListFilters,
-  MaterialReceiptRecipientOption,
-} from '../model/material-receipt';
+import type { MaterialReceiptListFilters } from '../model/material-receipt';
 
 export const materialReceiptKeys = {
   all: ['project', 'material-receipts'] as const,
   lists: () => [...materialReceiptKeys.all, 'list'] as const,
   list: (filters: MaterialReceiptListFilters) =>
     [...materialReceiptKeys.lists(), filters] as const,
+  requestable: (filters: {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }) => [...materialReceiptKeys.lists(), 'requestable', filters] as const,
   summary: (
     userId: string | null,
     filters: { search?: string; warehouseId?: string },
   ) => [...materialReceiptKeys.all, 'filter-summary', userId, filters] as const,
   detail: (id: string) => [...materialReceiptKeys.all, 'detail', id] as const,
-  recipientOptions: (warehouseId: string | null) =>
-    [...materialReceiptKeys.all, 'recipient-options', warehouseId] as const,
   history: (id: string) => [...materialReceiptKeys.all, 'history', id] as const,
 };
 
@@ -45,6 +45,20 @@ export function useMaterialReceiptsQuery(
   return useQuery({
     queryKey: materialReceiptKeys.list(filters),
     queryFn: ({ signal }) => loadMaterialReceipts(filters, signal),
+    enabled,
+    retry: 0,
+  });
+}
+
+export function useAvailableMaterialReceiptRequestsQuery(
+  filters: { search?: string; page?: number; pageSize?: number } = {},
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: [...materialReceiptKeys.requestable(filters), userId],
+    queryFn: ({ signal }) =>
+      loadAvailableMaterialReceiptRequests(filters, signal),
     enabled,
     retry: 0,
   });
@@ -70,20 +84,6 @@ export function useMaterialReceiptQuery(id: string, enabled = true) {
     queryKey: materialReceiptKeys.detail(id),
     queryFn: ({ signal }) => loadMaterialReceipt(id, signal),
     enabled: Boolean(id) && enabled,
-    retry: 0,
-  });
-}
-
-export function useMaterialReceiptRecipientOptionsQuery(
-  warehouseId: string | null,
-  enabled = true,
-) {
-  const { userId } = useUser();
-  return useQuery<MaterialReceiptRecipientOption[]>({
-    queryKey: [...materialReceiptKeys.recipientOptions(warehouseId), userId],
-    queryFn: ({ signal }) =>
-      loadMaterialReceiptRecipientOptions(warehouseId, signal),
-    enabled,
     retry: 0,
   });
 }

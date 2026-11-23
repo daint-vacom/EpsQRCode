@@ -3,8 +3,6 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.page.description':
     'Lập phiếu, theo dõi xác nhận và lịch sử bàn giao.',
   'project.handover.actions.create': 'Lập phiếu bàn giao',
-  'project.handover.actions.createFromWarehouse': 'Lập phiếu từ kho',
-  'project.handover.actions.requestFromWarehouse': 'Đăng ký nhận từ kho',
   'project.handover.actions.saveDraft': 'Lưu bản nháp',
   'project.handover.actions.saveAndContinue': 'Lưu phiếu',
   'project.handover.actions.send': 'Gửi xác nhận',
@@ -243,8 +241,6 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.page.description':
     'Create handovers and track confirmation and activity.',
   'project.handover.actions.create': 'Create handover',
-  'project.handover.actions.createFromWarehouse': 'Allocate from warehouse',
-  'project.handover.actions.requestFromWarehouse': 'Request from warehouse',
   'project.handover.actions.saveDraft': 'Save draft',
   'project.handover.actions.saveAndContinue': 'Save handover',
   'project.handover.actions.send': 'Send for confirmation',

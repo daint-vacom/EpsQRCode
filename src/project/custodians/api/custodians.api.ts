@@ -64,10 +64,28 @@ export async function loadCustodianAccountOptions(
 export async function loadEpsOrganizations(
   signal?: AbortSignal,
 ): Promise<EpsOrganization[]> {
-  assertSupabaseConfigured();
-  return request(
-    supabaseApi.post('/rpc/list_eps_organizations', {}, { signal }),
-  );
+  const parties = await loadCustodians(true, signal);
+  const partiesById = new Map(parties.map((party) => [party.id, party]));
+  return parties
+    .filter(
+      (party) =>
+        party.sourceType === 'eps_department' ||
+        party.sourceType === 'eps_team',
+    )
+    .map((party) => ({
+      id: party.id,
+      sourceId: party.sourceId ?? '',
+      type: party.type === 'team' ? 'team' : 'department',
+      code: party.code,
+      name: party.name,
+      parentName: party.parentId
+        ? (partiesById.get(party.parentId)?.name ?? null)
+        : null,
+      canManageRepresentatives: party.canManageRepresentatives ?? false,
+      representativeUserIds: party.representativeUserIds ?? [],
+      representativeAccounts: party.representativeAccounts ?? [],
+      representativeOptions: party.representativeOptions ?? [],
+    }));
 }
 
 export async function replaceCustodianRepresentatives(

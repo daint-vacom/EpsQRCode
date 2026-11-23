@@ -31,6 +31,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { MultiSelect } from '@/components/ui/multi-select';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
+import { OptionSelect } from '@/components/ui/option-select';
+import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -42,6 +46,8 @@ import {
 export const materialReceiptDefaultValues: MaterialReceiptFormValues = {
   warehouseId: '',
   note: '',
+  requestRegistrationScope: 'all',
+  requestRegistrationPartyIds: [],
   lines: [],
 };
 
@@ -64,6 +70,8 @@ export function mapMaterialReceiptToFormValues(
   return {
     warehouseId: entity.warehouseId,
     note: entity.note,
+    requestRegistrationScope: entity.requestRegistrationScope ?? 'all',
+    requestRegistrationPartyIds: entity.requestRegistrationPartyIds ?? [],
     lines: entity.lines.flatMap((line) => {
       const activeItems = line.items.filter((item) => item.status === 'active');
       if (activeItems.length === 0) return [];
@@ -103,6 +111,9 @@ interface MaterialReceiptHeaderFormProps {
   warehouses: readonly Warehouse[];
   readOnly?: boolean;
   warehouseName?: string;
+  requestRegistrationScopeOptions: SelectOption[];
+  requestRegistrationPartyIdsOptions: MultiSelectOption[];
+  requestRegistrationReadOnly?: boolean;
 }
 
 export function MaterialReceiptHeaderForm({
@@ -112,6 +123,9 @@ export function MaterialReceiptHeaderForm({
   warehouses,
   readOnly = false,
   warehouseName,
+  requestRegistrationScopeOptions,
+  requestRegistrationPartyIdsOptions,
+  requestRegistrationReadOnly = false,
 }: MaterialReceiptHeaderFormProps) {
   const intl = useIntl();
   return (
@@ -132,7 +146,7 @@ export function MaterialReceiptHeaderForm({
                   <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  {readOnly ? (
+                  {readOnly || requestRegistrationReadOnly ? (
                     <span className="text-sm text-foreground">
                       {warehouseName || '—'}
                     </span>
@@ -149,6 +163,86 @@ export function MaterialReceiptHeaderForm({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="requestRegistrationScope"
+            render={({ field }) => (
+              <FormItem
+                className="md:col-span-12"
+                layout="horizontal"
+                labelWidth="md"
+              >
+                <FormLabel>
+                  {intl.formatMessage({
+                    id: 'receipts.fields.requestRegistrationScope',
+                  })}
+                </FormLabel>
+                <FormControl>
+                  {readOnly ? (
+                    <span className="text-sm text-foreground">
+                      {requestRegistrationScopeOptions.find(
+                        (option) => option.value === field.value,
+                      )?.label ?? '—'}
+                    </span>
+                  ) : (
+                    <OptionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={requestRegistrationScopeOptions}
+                      canDeselect={false}
+                    />
+                  )}
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch('requestRegistrationScope') === 'selected' ? (
+            <FormField
+              control={form.control}
+              name="requestRegistrationPartyIds"
+              render={({ field }) => (
+                <FormItem
+                  className="md:col-span-12"
+                  layout="horizontal"
+                  labelWidth="md"
+                >
+                  <FormLabel>
+                    {intl.formatMessage({
+                      id: 'receipts.fields.requestRegistrationParties',
+                    })}
+                  </FormLabel>
+                  <FormControl>
+                    {readOnly || requestRegistrationReadOnly ? (
+                      <span className="text-sm text-foreground">
+                        {requestRegistrationPartyIdsOptions
+                          .filter((option) =>
+                            field.value.includes(option.value),
+                          )
+                          .map((option) => option.label)
+                          .join(', ') || '—'}
+                      </span>
+                    ) : (
+                      <MultiSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={requestRegistrationPartyIdsOptions}
+                        placeholder={intl.formatMessage({
+                          id: 'receipts.fields.requestRegistrationParties',
+                        })}
+                        searchPlaceholder={intl.formatMessage({
+                          id: 'common.actions.search',
+                        })}
+                      />
+                    )}
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
 
           <FormField
             control={form.control}
@@ -185,6 +279,8 @@ interface MaterialReceiptHeaderFormDialogProps {
   isSaving?: boolean;
   title?: string;
   warehouses: readonly Warehouse[];
+  requestRegistrationScopeOptions: SelectOption[];
+  requestRegistrationPartyIdsOptions: MultiSelectOption[];
 }
 
 export function MaterialReceiptHeaderFormDialog({
@@ -196,6 +292,8 @@ export function MaterialReceiptHeaderFormDialog({
   isSaving = false,
   title,
   warehouses,
+  requestRegistrationScopeOptions,
+  requestRegistrationPartyIdsOptions,
 }: MaterialReceiptHeaderFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -247,6 +345,10 @@ export function MaterialReceiptHeaderFormDialog({
               onSubmit={onSubmit}
               id="materialReceipt-form"
               warehouses={warehouses}
+              requestRegistrationScopeOptions={requestRegistrationScopeOptions}
+              requestRegistrationPartyIdsOptions={
+                requestRegistrationPartyIdsOptions
+              }
             />
           </div>
 

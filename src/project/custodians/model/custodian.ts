@@ -25,6 +25,10 @@ export interface Custodian {
   accountUserIds: string[];
   representativeUserId: string | null;
   representativeDisplayName: string | null;
+  representativeUserIds?: string[];
+  representativeAccounts?: RepresentativeAccount[];
+  representativeOptions?: RepresentativeAccount[];
+  canManageRepresentatives?: boolean;
   representativeName?: string | null;
   phone?: string | null;
   email?: string | null;

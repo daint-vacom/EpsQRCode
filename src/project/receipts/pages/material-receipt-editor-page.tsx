@@ -55,6 +55,7 @@ import {
 } from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
 import { Input } from '@/components/ui/input';
+import type { MultiSelectOption } from '@/components/ui/multi-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -84,7 +85,6 @@ import {
   useMaterialReceiptAdjustmentPreviewMutation,
   useMaterialReceiptInlineUpdatePreviewMutation,
   useMaterialReceiptQuery,
-  useMaterialReceiptRecipientOptionsQuery,
   useSaveMaterialReceiptMutation,
 } from '../hooks/use-material-receipts';
 import type {
@@ -100,6 +100,8 @@ import {
   toMaterialReceiptLineInputs,
 } from '../model/material-receipt';
 import { MaterialReceiptLinesEditorTable } from '../table/material-receipt-lines-editor-table.generated';
+
+const EMPTY_CUSTODIANS: Custodian[] = [];
 
 function getAllocationChartColor(id: string, index: number) {
   let hash = 2166136261;
@@ -170,13 +172,42 @@ export function MaterialReceiptEditorPage() {
     isPermissionsPending || canManage,
   );
   const selectedWarehouseId = form.watch('warehouseId');
-  const recipientOptionsQuery = useMaterialReceiptRecipientOptionsQuery(
-    selectedWarehouseId || null,
-    !isPermissionsPending && canManage,
-  );
   const custodianDirectoryQuery = useCustodiansQuery(
     true,
     isPermissionsPending || canRead,
+  );
+  const requestRegistrationScopeOptions = useMemo<SelectOption[]>(
+    () => [
+      {
+        value: 'all',
+        label: intl.formatMessage({
+          id: 'receipts.requestRegistration.all',
+        }),
+      },
+      {
+        value: 'selected',
+        label: intl.formatMessage({
+          id: 'receipts.requestRegistration.selected',
+        }),
+      },
+    ],
+    [intl],
+  );
+  const requestRegistrationPartyIdsOptions = useMemo<MultiSelectOption[]>(
+    () =>
+      (custodianDirectoryQuery.data ?? [])
+        .filter(
+          (party) =>
+            party.isActive &&
+            party.type === 'department' &&
+            party.sourceType === 'eps_department',
+        )
+        .map((party) => ({
+          value: party.id,
+          label: `${party.name} · ${party.code}`,
+          searchableText: `${party.name} ${party.code}`,
+        })),
+    [custodianDirectoryQuery.data],
   );
   const modelsQuery = useMaterialModelsQuery(isPermissionsPending || canRead);
   const materialGroupsQuery = useMaterialGroupsQuery(
@@ -268,29 +299,15 @@ export function MaterialReceiptEditorPage() {
     onPaginationChange: setHandoverPagination,
   });
   const warehouses = warehousesQuery.data ?? [];
-  const custodians = useMemo<Custodian[]>(
-    () =>
-      recipientOptionsQuery.data
-        ? recipientOptionsQuery.data.map((party) => ({
-            ...party,
-            sourceType: null,
-            sourceId: null,
-            canRepresent: false,
-            canManageMaterial: false,
-            canManageHandover: false,
-            accountUserId: null,
-            accountUserIds: [],
-            representativeUserId: null,
-            representativeDisplayName: null,
-            isActive: true,
-            createdAt: '',
-            updatedAt: '',
-          }))
-        : (custodianDirectoryQuery.data ?? []),
-    [custodianDirectoryQuery.data, recipientOptionsQuery.data],
-  );
+  const custodians = custodianDirectoryQuery.data ?? EMPTY_CUSTODIANS;
   const eligibleReceivingParties = useMemo(
-    () => custodians.filter((party) => party.isActive),
+    () =>
+      custodians.filter(
+        (party) =>
+          party.isActive &&
+          party.type !== 'warehouse' &&
+          party.type !== 'other',
+      ),
     [custodians],
   );
   const receivingPartyOptions = useMemo<SelectOption<Custodian>[]>(
@@ -336,7 +353,7 @@ export function MaterialReceiptEditorPage() {
       new Map(
         Object.entries(representatives).map(([clientId, representative]) => [
           clientId,
-          representative.materialValues.nameOverride.trim(),
+          representative.materialValues.nameOverride?.trim() ?? '',
         ]),
       ),
     [representatives],
@@ -565,6 +582,32 @@ export function MaterialReceiptEditorPage() {
     );
     loadedId.current = receipt.id;
   }, [form, receipt]);
+
+  useEffect(() => {
+    if (
+      id ||
+      receipt ||
+      isAdjustment ||
+      isPermissionsPending ||
+      !canManage ||
+      !warehousesQuery.isFetchedAfterMount ||
+      form.getValues('warehouseId') ||
+      warehousesQuery.data?.length !== 1
+    ) {
+      return;
+    }
+
+    form.setValue('warehouseId', warehousesQuery.data[0].id);
+  }, [
+    canManage,
+    form,
+    id,
+    isAdjustment,
+    isPermissionsPending,
+    receipt,
+    warehousesQuery.data,
+    warehousesQuery.isFetchedAfterMount,
+  ]);
 
   useEffect(() => {
     if (
@@ -806,8 +849,8 @@ export function MaterialReceiptEditorPage() {
       );
     });
     if (
-      !recipientOptionsQuery.isPending &&
-      !recipientOptionsQuery.isError &&
+      !custodianDirectoryQuery.isPending &&
+      !custodianDirectoryQuery.isError &&
       invalidReceiverIndex >= 0
     ) {
       toast.error(
@@ -825,6 +868,11 @@ export function MaterialReceiptEditorPage() {
           values: {
             warehouseId: values.warehouseId,
             note: values.note,
+            requestRegistrationScope: values.requestRegistrationScope,
+            requestRegistrationPartyIds:
+              values.requestRegistrationScope === 'selected'
+                ? values.requestRegistrationPartyIds
+                : [],
             lines: excelLines,
           },
         },
@@ -851,6 +899,11 @@ export function MaterialReceiptEditorPage() {
         values: {
           warehouseId: values.warehouseId,
           note: values.note,
+          requestRegistrationScope: values.requestRegistrationScope,
+          requestRegistrationPartyIds:
+            values.requestRegistrationScope === 'selected'
+              ? values.requestRegistrationPartyIds
+              : [],
           ...(receipt ? { expectedVersion: receipt.version } : {}),
           lines: toMaterialReceiptLineInputs(
             values,
@@ -1025,6 +1078,13 @@ export function MaterialReceiptEditorPage() {
           warehouses={warehouses}
           readOnly={readOnly}
           warehouseName={receipt?.warehouse.name}
+          requestRegistrationScopeOptions={requestRegistrationScopeOptions}
+          requestRegistrationPartyIdsOptions={
+            requestRegistrationPartyIdsOptions
+          }
+          requestRegistrationReadOnly={
+            readOnly || receipt?.status === 'handover'
+          }
         />
       </CardContent>
     </Card>
@@ -1277,10 +1337,10 @@ export function MaterialReceiptEditorPage() {
         onOpenChange={setIsMaterialImportOpen}
         onImportToDraft={handleImportToReceipt}
         receiptRecipientOptions={custodians}
-        receiptRecipientOptionsLoading={recipientOptionsQuery.isFetching}
-        receiptRecipientOptionsError={recipientOptionsQuery.isError}
+        receiptRecipientOptionsLoading={custodianDirectoryQuery.isFetching}
+        receiptRecipientOptionsError={custodianDirectoryQuery.isError}
         onRetryReceiptRecipientOptions={() =>
-          void recipientOptionsQuery.refetch()
+          void custodianDirectoryQuery.refetch()
         }
       />
       <MaterialReceiptRecipientDialog
@@ -1288,13 +1348,13 @@ export function MaterialReceiptEditorPage() {
         onOpenChange={(open) => !open && setActiveReceivingLineClientId(null)}
         value={activeReceivingLine?.receivingPartyId ?? ''}
         options={receivingPartyOptions}
-        loading={recipientOptionsQuery.isFetching}
+        loading={custodianDirectoryQuery.isFetching}
         error={
-          recipientOptionsQuery.isError
-            ? getApiErrorMessage(recipientOptionsQuery.error)
+          custodianDirectoryQuery.isError
+            ? getApiErrorMessage(custodianDirectoryQuery.error)
             : undefined
         }
-        onRetry={() => void recipientOptionsQuery.refetch()}
+        onRetry={() => void custodianDirectoryQuery.refetch()}
         disabled={saveBusy}
         onChange={(receivingPartyId) => {
           if (!activeReceivingLineClientId) return;

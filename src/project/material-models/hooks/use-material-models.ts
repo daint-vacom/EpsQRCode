@@ -42,12 +42,12 @@ export function useMaterialModelsQuery(enabled = true) {
 }
 
 export function useMaterialGroupModelCountsQuery(enabled = true) {
-  const { userId, hasPermission } = useUser();
+  const { userId } = useUser();
 
   return useQuery<MaterialGroupModelCounts>({
     queryKey: materialModelKeys.groupCounts(userId),
     queryFn: ({ signal }) => loadMaterialGroupModelCounts(signal),
-    enabled: enabled && hasPermission('material_catalog:material_model:view'),
+    enabled,
     retry: 0,
   });
 }

@@ -15,6 +15,7 @@ interface HandoverPartyCardProps {
   side: 'sender' | 'recipient';
   form: UseFormReturn<HandoverFormValues>;
   parties: Custodian[];
+  allowedKinds?: readonly HandoverPartyKind[];
   readOnly?: boolean;
   statusBadge?: ReactNode;
   notice?: ReactNode;
@@ -52,6 +53,7 @@ export function HandoverPartyCard({
   side,
   form,
   parties,
+  allowedKinds,
   readOnly = false,
   statusBadge,
   notice,
@@ -222,6 +224,7 @@ export function HandoverPartyCard({
           side={side}
           form={form}
           parties={parties}
+          allowedKinds={allowedKinds}
         />
       ) : null}
     </>

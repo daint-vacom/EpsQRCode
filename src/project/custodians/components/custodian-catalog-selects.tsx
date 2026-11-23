@@ -59,10 +59,14 @@ function CustodianCatalogSelect({
     return source
       .filter((party) => {
         if (!party.isActive) return false;
-        if (kind === 'department') return party.type === 'department';
+        if (kind === 'department')
+          return (
+            party.type === 'department' && party.sourceType === 'eps_department'
+          );
         if (kind === 'team')
           return (
             party.type === 'team' &&
+            party.sourceType === 'eps_team' &&
             (!departmentId || party.parentId === departmentId)
           );
         return party.type === 'external';

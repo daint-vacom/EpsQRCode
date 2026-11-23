@@ -64,7 +64,7 @@ export function MaterialSpecificationsPage() {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView = hasPermission(MATERIAL_SPECIFICATION_PERMISSION_CODES.view);
+  const canView = true;
   const canManage = hasPermission(
     MATERIAL_SPECIFICATION_PERMISSION_CODES.manage,
   );

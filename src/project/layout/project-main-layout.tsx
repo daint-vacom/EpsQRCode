@@ -1,5 +1,4 @@
 import { ROUTES } from '@/constants/routes';
-import { CUSTODIAN_PERMISSION_CODES } from '@/project/custodians/model/custodian-permissions';
 import { HANDOVER_PERMISSION_CODES } from '@/project/handover/model/handover-permissions';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import { MATERIAL_RECEIPT_PERMISSION_CODES } from '@/project/receipts/model/material-receipt';
@@ -36,10 +35,6 @@ const OPERATION_MENU_ACCESS: Record<
     permission: HANDOVER_PERMISSION_CODES.view,
     messageId: 'project.navigation.handovers',
   },
-  [ROUTES.PROJECT.EPS_ORGANIZATIONS]: {
-    permission: CUSTODIAN_PERMISSION_CODES.view,
-    messageId: 'project.navigation.epsOrganizations',
-  },
   [ROUTES.PROJECT.WAREHOUSES]: {
     permission: WAREHOUSE_PERMISSION_CODES.view,
     messageId: 'project.navigation.warehouses',
@@ -72,7 +67,14 @@ export function ProjectMainLayout() {
         const requirement = item.path
           ? OPERATION_MENU_ACCESS[item.path]
           : undefined;
-        return !requirement || hasPermission(requirement.permission);
+        if (!requirement) return true;
+        if (item.path === ROUTES.PROJECT.RECEIPTS) {
+          return (
+            hasPermission(requirement.permission) ||
+            hasPermission(HANDOVER_PERMISSION_CODES.manage)
+          );
+        }
+        return hasPermission(requirement.permission);
       })
       .map((item) => {
         const requirement = item.path

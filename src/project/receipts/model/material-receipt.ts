@@ -23,15 +23,6 @@ export interface MaterialReceiptWarehouseSnapshot {
   type: 'warehouse';
 }
 
-export interface MaterialReceiptRecipientOption {
-  id: string;
-  type: 'department' | 'team' | 'person' | 'external' | 'other';
-  code: string;
-  name: string;
-  parentId: string | null;
-  isActive: true;
-}
-
 export interface MaterialReceiptItem {
   id: string;
   materialId: string | null;
@@ -107,6 +98,8 @@ export interface MaterialReceipt {
   receivedItems: number;
   pendingAllocationItems: number;
   allocationsClosed: boolean;
+  requestRegistrationScope?: 'all' | 'selected';
+  requestRegistrationPartyIds?: string[];
   lines: MaterialReceiptLine[];
 }
 
@@ -165,6 +158,8 @@ export const materialReceiptFormSchema = z
   .object({
     warehouseId: z.string().min(1, 'Vui lòng chọn kho.'),
     note: z.string(),
+    requestRegistrationScope: z.enum(['all', 'selected']).default('all'),
+    requestRegistrationPartyIds: z.array(z.string().uuid()).default([]),
     lines: z.array(
       z
         .object({
@@ -203,6 +198,16 @@ export const materialReceiptFormSchema = z
     ),
   })
   .superRefine((values, context) => {
+    if (
+      values.requestRegistrationScope === 'selected' &&
+      values.requestRegistrationPartyIds.length === 0
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['requestRegistrationPartyIds'],
+        message: 'Vui lòng chọn ít nhất một đối tượng được đăng ký nhận.',
+      });
+    }
     values.lines.forEach((line) => {
       if (
         line.condition === 'damaged' &&
@@ -251,6 +256,13 @@ export interface MaterialReceiptSelectResult {
 }
 
 export interface MaterialReceiptListResult {
+  items: MaterialReceipt[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface MaterialReceiptRequestListResult {
   items: MaterialReceipt[];
   total: number;
   page: number;

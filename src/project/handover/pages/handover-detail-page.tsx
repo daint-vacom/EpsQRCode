@@ -302,11 +302,7 @@ export function HandoverDetailPage({
                 variant="secondary"
                 size="md"
                 onClick={() =>
-                  navigate(
-                    document.mode === 'standard'
-                      ? ROUTES.PROJECT.HANDOVER_EDIT.replace(':id', id)
-                      : `${ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}?mode=${document.mode}&id=${id}`,
-                  )
+                  navigate(ROUTES.PROJECT.HANDOVER_EDIT.replace(':id', id))
                 }
               >
                 <Pencil className="size-4" />
@@ -530,7 +526,10 @@ export function HandoverDetailPage({
     }),
     [document?.code, headerActions, intl, navigate],
   );
-  useDetailEntryLayoutHeader(header);
+  useDetailEntryLayoutHeader(
+    header,
+    !actionsOnly || document?.status !== 'draft',
+  );
 
   if (isPermissionsPending)
     return <div className="h-full animate-pulse bg-muted" />;

@@ -45,38 +45,18 @@ export async function loadMaterialGroupFilterSummary(
 export async function loadAvailableMaterialGroups(
   signal?: AbortSignal,
 ): Promise<MaterialGroup[]> {
-  assertSupabaseConfigured();
-  const rows = await request<MaterialGroupRow[]>(
-    supabaseApi.get('/material_groups', {
-      ...queryParams({
-        select:
-          'id,code,name,parent_id,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
-        is_active: 'eq.true',
-        order: 'name.asc,id.asc',
-      }),
-      signal,
-    }),
-  );
-  return rows.map(mapMaterialGroupRow);
+  return (await loadMaterialGroups(signal)).filter((group) => group.isActive);
 }
 
 export async function loadMaterialGroupById(
   id: string,
   signal?: AbortSignal,
 ): Promise<MaterialGroup> {
-  assertSupabaseConfigured();
-  const rows = await request<MaterialGroupRow[]>(
-    supabaseApi.get('/material_groups', {
-      ...queryParams({
-        select:
-          'id,code,name,parent_id,description,specifications,safety_inspection_checklist,is_active,created_at,updated_at',
-        id: `eq.${id}`,
-      }),
-      signal,
-    }),
+  const group = (await loadMaterialGroups(signal)).find(
+    (item) => item.id === id,
   );
-  if (!rows[0]) throw new Error('Không tìm thấy nhóm vật tư.');
-  return mapMaterialGroupRow(rows[0]);
+  if (!group) throw new Error('Không tìm thấy nhóm vật tư.');
+  return group;
 }
 
 export async function createMaterialGroup(

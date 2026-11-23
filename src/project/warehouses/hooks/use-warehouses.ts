@@ -10,16 +10,18 @@ import type { WarehouseFormValues } from '../model/warehouse';
 
 export const warehouseKeys = {
   all: ['project', 'warehouses'] as const,
-  list: (includeInactive = false) =>
-    [...warehouseKeys.all, 'list', includeInactive] as const,
+  list: (userId: string | null, includeInactive = false) =>
+    [...warehouseKeys.all, 'list', userId, includeInactive] as const,
   accounts: () => [...warehouseKeys.all, 'account-options'] as const,
   filterSummary: (userId: string | null, search: string) =>
     [...warehouseKeys.all, 'filter-summary', userId, search] as const,
 };
 
 export function useWarehousesQuery(includeInactive = false, enabled = true) {
+  const { userId } = useUser();
+
   return useQuery({
-    queryKey: warehouseKeys.list(includeInactive),
+    queryKey: warehouseKeys.list(userId, includeInactive),
     queryFn: ({ signal }) => loadWarehouses(includeInactive, signal),
     enabled,
     retry: 0,

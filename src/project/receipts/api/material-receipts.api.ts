@@ -17,8 +17,8 @@ import type {
   MaterialReceiptLineInput,
   MaterialReceiptListFilters,
   MaterialReceiptListResult,
-  MaterialReceiptRecipientOption,
   MaterialReceiptRepresentativeInput,
+  MaterialReceiptRequestListResult,
   MaterialReceiptSelectResult,
 } from '../model/material-receipt';
 
@@ -40,6 +40,20 @@ export async function loadMaterialReceipts(
   );
 }
 
+export async function loadAvailableMaterialReceiptRequests(
+  filters: { search?: string; page?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+) {
+  assertSupabaseConfigured();
+  return request<MaterialReceiptRequestListResult>(
+    supabaseApi.post(
+      '/rpc/list_available_material_receipt_requests',
+      { p_filters: filters },
+      { signal },
+    ),
+  );
+}
+
 export async function loadMaterialReceiptOptions(
   filters: {
     search?: string;
@@ -54,20 +68,6 @@ export async function loadMaterialReceiptOptions(
     supabaseApi.post(
       '/rpc/list_incomplete_material_receipt_options',
       { p_filters: filters },
-      { signal },
-    ),
-  );
-}
-
-export async function loadMaterialReceiptRecipientOptions(
-  warehouseId: string | null,
-  signal?: AbortSignal,
-): Promise<MaterialReceiptRecipientOption[]> {
-  assertSupabaseConfigured();
-  return request(
-    supabaseApi.post(
-      '/rpc/list_material_receipt_recipient_options',
-      { p_warehouse_id: warehouseId },
       { signal },
     ),
   );
@@ -131,6 +131,8 @@ export async function saveMaterialReceipt(
   values: {
     warehouseId: string;
     note: string;
+    requestRegistrationScope: 'all' | 'selected';
+    requestRegistrationPartyIds: string[];
     expectedVersion?: number;
     lines: MaterialReceiptLineInput[];
   },
@@ -243,6 +245,8 @@ type MaterialReceiptExcelLineInput = MaterialReceiptLineInput & {
 export interface MaterialReceiptExcelImportValues {
   warehouseId: string;
   note: string;
+  requestRegistrationScope: 'all' | 'selected';
+  requestRegistrationPartyIds: string[];
   lines: MaterialReceiptExcelLineInput[];
 }
 
@@ -299,6 +303,8 @@ async function materialReceiptImportFingerprint(
     JSON.stringify({
       warehouseId: values.warehouseId,
       note: values.note,
+      requestRegistrationScope: values.requestRegistrationScope,
+      requestRegistrationPartyIds: values.requestRegistrationPartyIds,
       lines,
     }),
   );

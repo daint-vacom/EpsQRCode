@@ -93,11 +93,12 @@ type ReceiptBulkAction = 'edit' | 'delete' | 'duplicate';
 
 function represents(custodian: Custodian | undefined, userId: string | null) {
   return Boolean(
-    userId &&
     custodian &&
-    (custodian.accountUserId === userId ||
-      custodian.accountUserIds.includes(userId) ||
-      custodian.representativeUserId === userId),
+    (custodian.canRepresent ||
+      (userId &&
+        (custodian.accountUserId === userId ||
+          custodian.accountUserIds.includes(userId) ||
+          custodian.representativeUserId === userId))),
   );
 }
 
@@ -110,20 +111,21 @@ export function MaterialReceiptDetailPage() {
   const canView = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.view);
   const canManage = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.manage);
   const canManageHandover = hasPermission(HANDOVER_PERMISSION_CODES.manage);
+  const canReadReceipt = canView || canManage;
   const query = useMaterialReceiptQuery(
     id,
-    isPermissionsPending || canView || canManage,
+    isPermissionsPending || canReadReceipt || canManageHandover,
   );
   const historyQuery = useMaterialReceiptHistoryQuery(
     id,
-    isPermissionsPending || canView || canManage,
+    isPermissionsPending || canReadReceipt,
   );
   const custodiansQuery = useCustodiansQuery(
     true,
-    isPermissionsPending || canView || canManage,
+    isPermissionsPending || canReadReceipt || canManageHandover,
   );
   const modelsQuery = useMaterialModelsQuery(
-    isPermissionsPending || canView || canManage,
+    isPermissionsPending || canReadReceipt,
   );
   const [itemPagination, setItemPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -173,21 +175,32 @@ export function MaterialReceiptDetailPage() {
     (party) => party.id === receipt?.warehouseId,
   );
   const isWarehouseRepresentative = represents(warehouse, userId);
-  const hasRepresentedUnit = custodians.some(
-    (party) =>
-      party.type !== 'warehouse' && party.isActive && represents(party, userId),
-  );
+  const representedRequestPartyIds = custodians
+    .filter(
+      (party) =>
+        party.type === 'department' &&
+        party.sourceType === 'eps_department' &&
+        party.isActive &&
+        represents(party, userId),
+    )
+    .map((party) => party.id);
   const canAllocate = Boolean(
     canManageHandover &&
     isWarehouseRepresentative &&
     receipt?.status === 'handover',
   );
   const canRequest = Boolean(
-    canManageHandover && hasRepresentedUnit && receipt?.status === 'handover',
+    canManageHandover &&
+    receipt?.status === 'handover' &&
+    representedRequestPartyIds.some(
+      (partyId) =>
+        receipt.requestRegistrationScope !== 'selected' ||
+        receipt.requestRegistrationPartyIds?.includes(partyId),
+    ),
   );
   const handoversQuery = useHandoversQuery(
     { receiptId: id, page: handoverPageIndex + 1, pageSize: handoverPageSize },
-    isPermissionsPending || canView || canManage,
+    isPermissionsPending || canReadReceipt,
   );
   const handoversResult = handoversQuery.data;
   const receiptItems = (receipt?.lines ?? []).filter((line) =>
@@ -483,11 +496,17 @@ export function MaterialReceiptDetailPage() {
         receiptId: receipt.id,
         warehouseId: receipt.warehouseId,
       });
-      navigate(
-        `${ROUTES.PROJECT.WAREHOUSE_HANDOVER_CREATE}?${search.toString()}`,
-      );
+      if (mode === 'warehouse_request') {
+        const partyId = representedRequestPartyIds.find(
+          (candidateId) =>
+            receipt.requestRegistrationScope !== 'selected' ||
+            receipt.requestRegistrationPartyIds?.includes(candidateId),
+        );
+        if (partyId) search.set('recipientPartyId', partyId);
+      }
+      navigate(`${ROUTES.PROJECT.HANDOVER_CREATE}?${search.toString()}`);
     },
-    [navigate, receipt],
+    [navigate, receipt, representedRequestPartyIds],
   );
   const submitAction = () => {
     if (!receipt || !actionDialog) return;
@@ -595,17 +614,6 @@ export function MaterialReceiptDetailPage() {
                   })}
                 </Button>
               ) : null}
-              {canRequest ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={() => navigateToHandover('warehouse_request')}
-                >
-                  <ArrowRightLeft className="size-4" />
-                  {intl.formatMessage({ id: 'receipts.actions.linkedRequest' })}
-                </Button>
-              ) : null}
               {canManage ? (
                 <Button
                   type="button"
@@ -642,7 +650,6 @@ export function MaterialReceiptDetailPage() {
       actionMutation.isPending,
       canAllocate,
       canManage,
-      canRequest,
       id,
       intl,
       navigate,
@@ -671,7 +678,7 @@ export function MaterialReceiptDetailPage() {
         <div className="h-full animate-pulse rounded-xl bg-muted" />
       </div>
     );
-  if (!canView && !canManage)
+  if (!canReadReceipt && !canManageHandover)
     return (
       <div className="p-4">
         <ErrorState
@@ -808,86 +815,111 @@ export function MaterialReceiptDetailPage() {
   const handoversContent = (
     <div className="space-y-4">
       <Card className="min-h-[28rem] min-w-0 overflow-hidden">
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>
             {intl.formatMessage({ id: 'receipts.tabs.handovers' })}
           </CardTitle>
+          {canRequest ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => navigateToHandover('warehouse_request')}
+            >
+              <ArrowRightLeft className="size-4" />
+              {intl.formatMessage({ id: 'receipts.actions.linkedRequest' })}
+            </Button>
+          ) : null}
         </CardHeader>
-        <DataGrid
-          table={handoversTable}
-          recordCount={handoversResult?.total ?? 0}
-          isLoading={handoversQuery.isPending}
-          isFetching={handoversQuery.isFetching}
-          emptyMessage={intl.formatMessage({ id: 'receipts.empty.handovers' })}
-        >
-          <CardTable className="min-h-0 flex-1">
-            {handoversQuery.isError ? (
+        {!canReadReceipt ? (
+          <CardContent className="text-sm text-muted-foreground">
+            {intl.formatMessage({
+              id: 'receipts.requestRegistration.listDescription',
+            })}
+          </CardContent>
+        ) : (
+          <DataGrid
+            table={handoversTable}
+            recordCount={handoversResult?.total ?? 0}
+            isLoading={handoversQuery.isPending}
+            isFetching={handoversQuery.isFetching}
+            emptyMessage={intl.formatMessage({
+              id: 'receipts.empty.handovers',
+            })}
+          >
+            <CardTable className="min-h-0 flex-1">
+              {handoversQuery.isError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'receipts.errors.loadHandoversTitle',
+                  })}
+                  description={getApiErrorMessage(handoversQuery.error)}
+                  onRetry={() => void handoversQuery.refetch()}
+                />
+              ) : (
+                <ScrollArea className="h-full">
+                  <DataGridTable />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              )}
+            </CardTable>
+            <CardFooter className="justify-between">
+              {!handoversQuery.isError ? <DataGridPagination /> : null}
+            </CardFooter>
+          </DataGrid>
+        )}
+      </Card>
+      {canReadReceipt ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {intl.formatMessage({ id: 'receipts.history.title' })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {historyQuery.isError ? (
               <ErrorState
                 title={intl.formatMessage({
-                  id: 'receipts.errors.loadHandoversTitle',
+                  id: 'receipts.history.errors.load',
                 })}
-                description={getApiErrorMessage(handoversQuery.error)}
-                onRetry={() => void handoversQuery.refetch()}
+                description={getApiErrorMessage(historyQuery.error)}
+                onRetry={() => void historyQuery.refetch()}
               />
+            ) : historyQuery.isPending ? (
+              <div className="h-20 animate-pulse rounded bg-muted" />
             ) : (
-              <ScrollArea className="h-full">
-                <DataGridTable />
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              <ol className="space-y-4">
+                {(historyQuery.data ?? []).map((entry) => (
+                  <li key={entry.id} className="flex gap-3">
+                    <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {intl.formatMessage({
+                          id: `receipts.events.${entry.action}`,
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(entry.createdAt).toLocaleString('vi-VN')}
+                        {entry.actorDisplayName
+                          ? ` · ${entry.actorDisplayName}`
+                          : ''}
+                        {entry.reason ? ` · ${entry.reason}` : ''}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             )}
-          </CardTable>
-          <CardFooter className="justify-between">
-            {!handoversQuery.isError ? <DataGridPagination /> : null}
-          </CardFooter>
-        </DataGrid>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {intl.formatMessage({ id: 'receipts.history.title' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {historyQuery.isError ? (
-            <ErrorState
-              title={intl.formatMessage({ id: 'receipts.history.errors.load' })}
-              description={getApiErrorMessage(historyQuery.error)}
-              onRetry={() => void historyQuery.refetch()}
-            />
-          ) : historyQuery.isPending ? (
-            <div className="h-20 animate-pulse rounded bg-muted" />
-          ) : (
-            <ol className="space-y-4">
-              {(historyQuery.data ?? []).map((entry) => (
-                <li key={entry.id} className="flex gap-3">
-                  <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
-                  <div>
-                    <p className="text-sm font-medium">
-                      {intl.formatMessage({
-                        id: `receipts.events.${entry.action}`,
-                      })}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(entry.createdAt).toLocaleString('vi-VN')}
-                      {entry.actorDisplayName
-                        ? ` · ${entry.actorDisplayName}`
-                        : ''}
-                      {entry.reason ? ` · ${entry.reason}` : ''}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-          {!historyQuery.isError &&
-          !historyQuery.isPending &&
-          !historyQuery.data?.length ? (
-            <p className="text-sm text-muted-foreground">
-              {intl.formatMessage({ id: 'receipts.history.empty' })}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+            {!historyQuery.isError &&
+            !historyQuery.isPending &&
+            !historyQuery.data?.length ? (
+              <p className="text-sm text-muted-foreground">
+                {intl.formatMessage({ id: 'receipts.history.empty' })}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 

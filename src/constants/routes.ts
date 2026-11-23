@@ -45,7 +45,6 @@ export const ROUTES = {
     HANDOVER_CREATE: '/phieu-ban-giao/tao-moi',
     HANDOVER_EDIT: '/phieu-ban-giao/:id/chinh-sua',
     HANDOVER_DETAIL: '/phieu-ban-giao/:id',
-    WAREHOUSE_HANDOVER_CREATE: '/phieu-ban-giao/nhan-tu-kho',
     CUSTODIANS: '/chu-the-ban-giao',
     EPS_ORGANIZATIONS: '/don-vi-eps',
     WAREHOUSES: '/kho',

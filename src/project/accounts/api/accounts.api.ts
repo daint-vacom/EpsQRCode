@@ -1,3 +1,4 @@
+import { loadCustodians } from '@/project/custodians/api/custodians.api';
 import {
   assertSupabaseConfigured,
   supabaseApi,
@@ -109,9 +110,19 @@ export async function loadExternalOrganizations(
   includeInactive = false,
 ): Promise<ExternalOrganization[]> {
   assertSupabaseConfigured();
-  return rpc<ExternalOrganization[]>('list_external_organizations', {
-    p_include_inactive: includeInactive,
-  });
+  const parties = await loadCustodians(includeInactive);
+  return parties
+    .filter((party) => party.type === 'external')
+    .map((party) => ({
+      id: party.id,
+      code: party.code,
+      name: party.name,
+      is_active: party.isActive,
+      created_at: party.createdAt,
+      representative_user_ids: party.representativeUserIds ?? [],
+      representative_accounts: party.representativeAccounts ?? [],
+      representative_options: party.representativeOptions ?? [],
+    }));
 }
 
 export async function loadExternalOrganizationFilterSummary(

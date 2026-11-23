@@ -30,6 +30,25 @@ const spec: FormSpec = {
       alignment: 'start',
       rows: 3,
     },
+    {
+      kind: 'select',
+      name: 'requestRegistrationScope',
+      label: 'Đối tượng được đăng ký nhận',
+      labelMessageId: 'receipts.fields.requestRegistrationScope',
+      required: true,
+      layout: 'horizontal',
+      labelWidth: 'md',
+      optionsFrom: 'prop',
+    },
+    {
+      kind: 'multiselect',
+      name: 'requestRegistrationPartyIds',
+      label: 'Đơn vị được phép đăng ký',
+      labelMessageId: 'receipts.fields.requestRegistrationParties',
+      layout: 'horizontal',
+      labelWidth: 'md',
+      optionsFrom: 'prop',
+    },
   ],
 };
 

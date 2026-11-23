@@ -41,11 +41,8 @@ export function EpsOrganizationsPage() {
   const queryClient = useQueryClient();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView =
-    hasPermission(CUSTODIAN_PERMISSION_CODES.view) ||
-    hasPermission(CUSTODIAN_PERMISSION_CODES.manage);
   const canManage = hasPermission(CUSTODIAN_PERMISSION_CODES.manage);
-  const query = useEpsOrganizationsQuery(!isPermissionsPending && canView);
+  const query = useEpsOrganizationsQuery(!isPermissionsPending);
   const representativeMutation = useMutation({
     mutationFn: ({ id, userIds }: { id: string; userIds: string[] }) =>
       replaceCustodianRepresentatives(id, userIds),
@@ -72,12 +69,7 @@ export function EpsOrganizationsPage() {
         title={intl.formatMessage({ id: 'custodians.eps.page.title' })}
         icon={Building2}
       />
-      {!isPermissionsPending && !canView ? (
-        <ErrorState
-          title={intl.formatMessage({ id: 'custodians.eps.page.noView' })}
-          description={intl.formatMessage({ id: 'custodians.eps.page.noView' })}
-        />
-      ) : query.isError ? (
+      {query.isError ? (
         <ErrorState
           title={intl.formatMessage({ id: 'custodians.eps.page.loadError' })}
           description={getApiErrorMessage(query.error)}
@@ -89,7 +81,7 @@ export function EpsOrganizationsPage() {
           <EpsOrganizationTable
             type="department"
             records={query.data ?? EMPTY_ORGANIZATIONS}
-            isLoading={isPermissionsPending || (canView && query.isPending)}
+            isLoading={isPermissionsPending || query.isPending}
             isFetching={query.isFetching}
             canManage={canManage}
             isSaving={representativeMutation.isPending}
@@ -98,7 +90,7 @@ export function EpsOrganizationsPage() {
           <EpsOrganizationTable
             type="team"
             records={query.data ?? EMPTY_ORGANIZATIONS}
-            isLoading={isPermissionsPending || (canView && query.isPending)}
+            isLoading={isPermissionsPending || query.isPending}
             isFetching={query.isFetching}
             canManage={canManage}
             isSaving={representativeMutation.isPending}

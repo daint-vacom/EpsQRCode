@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import { useMaterialGroupMaterialCountsQuery } from '@/project/materials/hooks/use-materials';
+import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import { Folder, Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
@@ -61,8 +62,11 @@ export function MaterialGroupsPage() {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const { isPermissionsPending } = useWorkspace();
-  const canView = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.view);
+  const canView = true;
   const canManage = hasPermission(MATERIAL_GROUP_PERMISSION_CODES.manage);
+  const canViewMaterials =
+    hasPermission(MATERIAL_PERMISSION_CODES.view) ||
+    hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const codePatternsQuery = useCodeGenerationPatternsQuery(
     !isPermissionsPending && canManage,
   );
@@ -71,7 +75,7 @@ export function MaterialGroupsPage() {
       ?.pattern ?? DEFAULT_CODE_GENERATION_PATTERNS.material_group;
   const query = useMaterialGroupsQuery(isPermissionsPending || canView);
   const materialCountsQuery = useMaterialGroupMaterialCountsQuery(
-    !isPermissionsPending && canView,
+    !isPermissionsPending && canViewMaterials,
   );
   const createMutation = useCreateMaterialGroupMutation();
   const updateMutation = useUpdateMaterialGroupMutation();
