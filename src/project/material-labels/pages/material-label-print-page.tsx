@@ -16,6 +16,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -400,7 +401,7 @@ export function MaterialLabelPrintPage() {
       title: intl.formatMessage({
         id: 'project.materialLabels.page.printTitle',
       }),
-      icon: Printer,
+      icon: PROJECT_FEATURE_ICONS.materialLabelTemplates,
       showBackButton: true,
       backLabel: intl.formatMessage({
         id: 'project.materials.actions.back',

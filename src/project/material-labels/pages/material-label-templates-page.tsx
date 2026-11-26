@@ -12,6 +12,7 @@ import { Plus, QrCode } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -130,7 +131,7 @@ export function MaterialLabelTemplatesPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'project.materialLabels.page.title' })}
-        icon={QrCode}
+        icon={PROJECT_FEATURE_ICONS.materialLabelTemplates}
         actions={
           canManage ? (
             <Button

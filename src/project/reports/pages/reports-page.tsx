@@ -1,5 +1,6 @@
 import { BarChart3 } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,7 +13,7 @@ export function ReportsPage() {
       <div className="shrink-0 px-4 pt-4 lg:px-5 lg:pt-5">
         <PageHeader
           title={intl.formatMessage({ id: 'reports.page.title' })}
-          icon={BarChart3}
+          icon={PROJECT_FEATURE_ICONS.reports}
         />
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">

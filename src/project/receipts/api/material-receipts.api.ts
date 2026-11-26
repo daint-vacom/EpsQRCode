@@ -9,7 +9,6 @@ import {
 import { assertSupabaseConfigured, supabaseApi } from '@/lib/supabase';
 import type {
   MaterialReceipt,
-  MaterialReceiptAdjustmentPreview,
   MaterialReceiptFilterSummary,
   MaterialReceiptHistoryEntry,
   MaterialReceiptInlineUpdatePreview,
@@ -526,6 +525,19 @@ export async function actOnMaterialReceipt(input: {
   );
 }
 
+export async function deleteMaterialReceipt(input: {
+  id: string;
+  expectedVersion: number;
+}) {
+  assertSupabaseConfigured();
+  return request<string>(
+    supabaseApi.post('/rpc/delete_material_receipt', {
+      p_id: input.id,
+      p_expected_version: input.expectedVersion,
+    }),
+  );
+}
+
 export async function loadMaterialReceiptHistory(
   id: string,
   signal?: AbortSignal,
@@ -555,42 +567,6 @@ export async function loadMaterialReceiptItems(
       },
       { signal },
     ),
-  );
-}
-
-export async function previewMaterialReceiptAdjustment(input: {
-  id: string;
-  expectedVersion: number;
-  lines: MaterialReceiptLineInput[];
-}) {
-  assertSupabaseConfigured();
-  return request<MaterialReceiptAdjustmentPreview>(
-    supabaseApi.post('/rpc/preview_material_receipt_adjustment', {
-      p_id: input.id,
-      p_expected_version: input.expectedVersion,
-      p_lines: input.lines,
-    }),
-  );
-}
-
-export async function applyMaterialReceiptAdjustment(input: {
-  id: string;
-  expectedVersion: number;
-  previewToken: string;
-  lines: MaterialReceiptLineInput[];
-  reason: string;
-  cancelHandoverIds: string[];
-}) {
-  assertSupabaseConfigured();
-  return request<string>(
-    supabaseApi.post('/rpc/apply_material_receipt_adjustment', {
-      p_id: input.id,
-      p_expected_version: input.expectedVersion,
-      p_preview_token: input.previewToken,
-      p_lines: input.lines,
-      p_reason: input.reason,
-      p_cancel_handover_ids: input.cancelHandoverIds,
-    }),
   );
 }
 

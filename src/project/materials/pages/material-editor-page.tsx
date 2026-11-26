@@ -28,6 +28,7 @@ import type { SubmitErrorHandler, UseFormReturn } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -305,7 +306,7 @@ export function MaterialEditorPage() {
   const header = useMemo(
     () => ({
       title,
-      icon: Boxes,
+      icon: PROJECT_FEATURE_ICONS.materials,
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'project.materials.actions.back' }),
       onBack: back,

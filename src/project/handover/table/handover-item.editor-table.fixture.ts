@@ -12,7 +12,7 @@ const spec: EditorTableSpec = {
   viewport: { mode: 'natural' },
   pagination: { pageSize: 10, sizes: [10, 25, 50] },
   toolbar: {
-    title: 'Danh sách vật tư bàn giao',
+    title: 'Vật tư bàn giao',
     addLabel: 'Thêm vật tư',
   },
   actions: {

@@ -20,6 +20,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useIntl } from 'react-intl';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -191,7 +192,7 @@ export function ProjectDashboardPage() {
     <div className="flex min-h-full flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'project.dashboard.title' })}
-        icon={Boxes}
+        icon={PROJECT_FEATURE_ICONS.overview}
       />
 
       {isPermissionsPending || (canViewMaterials && query.isPending) ? (

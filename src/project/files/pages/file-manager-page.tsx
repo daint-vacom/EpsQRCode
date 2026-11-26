@@ -22,6 +22,7 @@ import {
 import { useDropzone } from 'react-dropzone';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { createSignedStorageUrl } from '@/lib/storage';
 import { cn } from '@/lib/utils';
@@ -75,7 +76,6 @@ import {
   useFileFolderCreateForm,
 } from '../forms/file-folder-create-form.generated';
 import {
-  formatFileSize,
   type FileFolder,
   type FileFolderCreateFormValues,
   type FileManagerItem,
@@ -806,7 +806,7 @@ export function FileManagerPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
         <PageHeader
           title="Tệp lưu trữ"
-          icon={FolderOpen}
+          icon={PROJECT_FEATURE_ICONS.files}
           className="shrink-0"
         />
         <Card className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
@@ -821,7 +821,7 @@ export function FileManagerPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
         <PageHeader
           title="Tệp lưu trữ"
-          icon={FolderOpen}
+          icon={PROJECT_FEATURE_ICONS.files}
           className="shrink-0"
         />
         <ErrorState
@@ -837,7 +837,7 @@ export function FileManagerPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
         <PageHeader
           title="Tệp lưu trữ"
-          icon={FolderOpen}
+          icon={PROJECT_FEATURE_ICONS.files}
           className="shrink-0"
         />
         <Card className="flex min-h-0 flex-1 flex-col">
@@ -860,6 +860,7 @@ export function FileManagerPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
       <PageHeader
         title={<span className="sr-only">Tệp lưu trữ</span>}
+        icon={PROJECT_FEATURE_ICONS.files}
         titleAside={
           <FolderPath
             folders={foldersQuery.data ?? []}

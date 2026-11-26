@@ -365,6 +365,8 @@ export const materialMessagesVi: Record<string, string> = {
     'Giá trị “{value}” không hợp lệ cho thông số “{name}”.',
   'project.materials.spreadsheet.errors.ownerNotFound':
     'Không tìm thấy chủ sở hữu đang hoạt động theo mã đã nhập.',
+  'project.materials.spreadsheet.errors.receiptOwnerNotEps':
+    'Dòng {line}: phiếu nhập chỉ hỗ trợ đơn vị nhận thuộc EPS hoặc kho nhận.',
   'project.materials.spreadsheet.receiptWarehouseOwner':
     'Vật tư nhận vào kho theo phiếu',
   'project.materials.spreadsheet.errors.ownerKind':
@@ -1181,6 +1183,8 @@ export const materialMessagesEn: Record<string, string> = {
     'Value “{value}” is invalid for specification “{name}”.',
   'project.materials.spreadsheet.errors.ownerNotFound':
     'No active owner matches this code.',
+  'project.materials.spreadsheet.errors.receiptOwnerNotEps':
+    'Row {line}: receipt import only supports EPS recipients or the receiving warehouse.',
   'project.materials.spreadsheet.receiptWarehouseOwner':
     'Material retained in the receipt warehouse',
   'project.materials.spreadsheet.errors.ownerKind':

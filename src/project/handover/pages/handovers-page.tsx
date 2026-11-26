@@ -8,9 +8,10 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { ClipboardList, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -110,7 +111,7 @@ export function HandoversPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'project.handover.page.title' })}
-        icon={ClipboardList}
+        icon={PROJECT_FEATURE_ICONS.handovers}
         actions={
           canManage ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -180,7 +181,6 @@ export function HandoversPage() {
                   },
                   ...(
                     [
-                      'awaiting_warehouse_approval',
                       'draft',
                       'pending',
                       'completed',
@@ -192,10 +192,7 @@ export function HandoversPage() {
                     label: intl.formatMessage({
                       id: `project.handover.status.${value}`,
                     }),
-                    count:
-                      value === 'awaiting_warehouse_approval'
-                        ? summary?.awaitingWarehouseApproval
-                        : summary?.[value],
+                    count: summary?.[value],
                   })),
                 ]
               : [

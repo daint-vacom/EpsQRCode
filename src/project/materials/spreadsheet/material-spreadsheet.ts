@@ -557,8 +557,23 @@ export function mapMaterialImportRows(
             email: '',
           };
         } else {
-          const inferredKind = owner.type === 'external' ? 'external' : 'eps';
-          if (importedOwnerKind && importedOwnerKind !== inferredKind) {
+          const isEpsOwner =
+            (owner.type === 'department' &&
+              owner.sourceType === 'eps_department') ||
+            (owner.type === 'team' && owner.sourceType === 'eps_team') ||
+            (owner.type === 'person' && owner.sourceType === 'eps_person');
+          if (!isEpsOwner) {
+            return {
+              rowNumber: row.rowNumber,
+              code,
+              values: null,
+              error: translate(
+                'project.materials.spreadsheet.errors.receiptOwnerNotEps',
+                { line: String(row.rowNumber) },
+              ),
+            };
+          }
+          if (importedOwnerKind && importedOwnerKind !== 'eps') {
             return {
               rowNumber: row.rowNumber,
               code,
@@ -570,7 +585,7 @@ export function mapMaterialImportRows(
           }
           ownerPartyId = owner.id;
           ownerSnapshot = {
-            kind: inferredKind,
+            kind: 'eps',
             code: owner.code,
             name: owner.name,
             representativeName: owner.representativeName ?? '',

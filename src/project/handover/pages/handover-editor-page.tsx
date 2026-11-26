@@ -9,9 +9,11 @@ import type { Custodian } from '@/project/custodians/model/custodian';
 import { uploadFilesToFolder } from '@/project/files/api/file-manager.api';
 import { HandoverAttachmentsField } from '@/project/handover/components/handover-attachments-field';
 import { HandoverPartyCard } from '@/project/handover/components/handover-party-card';
+import { HandoverSignatureInfoRow } from '@/project/handover/components/handover-signature-info-row';
 import { HandoverItemsEditorTable } from '@/project/handover/table/handover-items-editor-table.generated';
 import { useMaterialsByIdsQuery } from '@/project/materials/hooks/use-materials';
 import type { MaterialListFilters } from '@/project/materials/model/material';
+import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
 import { useMaterialReceiptQuery } from '@/project/receipts/hooks/use-material-receipts';
 import { WarehouseSelect } from '@/project/warehouses/components/warehouse-select';
 import type { WarehouseSelectItem } from '@/project/warehouses/components/warehouse-select';
@@ -21,8 +23,6 @@ import {
   ArrowRight,
   Building2,
   CalendarDays,
-  FilePlus2,
-  FileText,
   Package,
   Save,
   Send,
@@ -35,6 +35,8 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
+import { formatDateTime } from '@/lib/date';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -51,6 +53,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { DatePickerInput } from '@/components/ui/inputs/date-picker-input';
+import { PageLoading } from '@/components/ui/loading';
 import { OptionSelect } from '@/components/ui/option-select';
 import {
   Stepper,
@@ -173,32 +176,21 @@ function getSignatureInfo(
   const signedByStatus =
     side === 'sender'
       ? document.mode !== 'standard'
-        ? ['pending', 'completed'].includes(document.status)
-        : ['pending', 'completed', 'rejected'].includes(document.status) ||
-          document.status === 'awaiting_warehouse_approval'
+        ? document.mode === 'warehouse_request'
+          ? currentEntries.some(
+              (entry) => entry.action === 'warehouse_approved',
+            )
+          : ['pending', 'completed'].includes(document.status)
+        : ['pending', 'completed', 'rejected'].includes(document.status)
       : document.mode === 'warehouse_request'
-        ? [
-            'awaiting_warehouse_approval',
-            'pending',
-            'completed',
-            'rejected',
-          ].includes(document.status)
+        ? currentEntries.some((entry) => entry.action === 'sent') ||
+          ['completed', 'rejected'].includes(document.status)
         : document.status === 'completed' &&
           (document.mode !== 'standard' || document.recipientHasQrAccount);
   return {
     state: signedByStatus ? ('signed' as const) : ('pending' as const),
     entry: undefined,
   };
-}
-
-function formatSignatureTimestamp(value: string, locale: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat(locale, {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      }).format(date);
 }
 
 export function HandoverEditorPage() {
@@ -215,6 +207,7 @@ export function HandoverEditorPage() {
   const { isPermissionsPending } = useWorkspace();
   const canManage = hasPermission(HANDOVER_PERMISSION_CODES.manage);
   const canView = hasPermission(HANDOVER_PERMISSION_CODES.view);
+  const canViewMaterials = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const documentQuery = useHandoverQuery(id, isEdit && (canManage || canView));
   const document = documentQuery.data;
   const historyQuery = useHandoverHistoryQuery(
@@ -293,7 +286,7 @@ export function HandoverEditorPage() {
     .filter(isUuid);
   const selectedMaterialsQuery = useMaterialsByIdsQuery(
     [...new Set(selectedMaterialIds)],
-    canManage && !isReadOnly,
+    (canManage && !isReadOnly) || (isReadOnly && canViewMaterials),
   );
   const reverseSource = reverseSourceQuery.data;
   const custodianList = useMemo(
@@ -876,10 +869,14 @@ export function HandoverEditorPage() {
   const header = useMemo(
     () => ({
       title: isEdit
-        ? (document?.code ??
-          intl.formatMessage({ id: 'project.handover.dialogs.editTitle' }))
+        ? document?.code
+          ? intl.formatMessage(
+              { id: 'project.handover.page.titleWithCode' },
+              { code: document.code },
+            )
+          : intl.formatMessage({ id: 'project.handover.page.detailTitle' })
         : intl.formatMessage({ id: 'project.handover.dialogs.createTitle' }),
-      icon: FilePlus2,
+      icon: PROJECT_FEATURE_ICONS.handovers,
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'project.handover.actions.back' }),
       onBack: () =>
@@ -942,7 +939,9 @@ export function HandoverEditorPage() {
   };
 
   if (isPermissionsPending)
-    return <div className="h-full animate-pulse bg-muted" />;
+    return (
+      <PageLoading label={intl.formatMessage({ id: 'common.state.loading' })} />
+    );
   if (!canManage && !isEdit)
     return (
       <div className="p-4">
@@ -971,9 +970,7 @@ export function HandoverEditorPage() {
     );
   if (isEdit && documentQuery.isPending) {
     return (
-      <div className="h-full p-4">
-        <div className="h-full animate-pulse rounded-xl bg-muted" />
-      </div>
+      <PageLoading label={intl.formatMessage({ id: 'common.state.loading' })} />
     );
   }
   if (isEdit && documentQuery.isError) {
@@ -1025,17 +1022,7 @@ export function HandoverEditorPage() {
   );
 
   const renderSignatureBadge = (state: HandoverSignatureState) => (
-    <Badge
-      variant={
-        state === 'signed'
-          ? 'success'
-          : state === 'rejected'
-            ? 'destructive'
-            : 'secondary'
-      }
-      appearance="light"
-      size="sm"
-    >
+    <Badge variant={state === 'signed' ? 'success' : 'destructive'} size="sm">
       {intl.formatMessage({
         id:
           state === 'signed'
@@ -1367,10 +1354,49 @@ export function HandoverEditorPage() {
     </Card>
   );
 
+  const noteAttachmentsCard = (
+    <Card className="h-full min-w-0">
+      <CardHeader>
+        <CardTitle className="text-sm">
+          {intl.formatMessage({ id: 'project.handover.fields.note' })}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <FormField
+          control={form.control}
+          name="note"
+          render={({ field }) => (
+            <FormItem variant="compact" className="min-w-0">
+              <FormLabel className="sr-only">
+                {intl.formatMessage({ id: 'project.handover.fields.note' })}
+              </FormLabel>
+              <FormControl>
+                <Textarea rows={4} {...field} readOnly={isReadOnly} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <HandoverAttachmentsField
+          attachments={selectedAttachments}
+          files={pendingAttachmentFiles}
+          onFilesChange={setPendingAttachmentFiles}
+          onRemove={handleRemoveAttachment}
+          disabled={isReadOnly || isSavingAny || isActingAny || isUploading}
+          isUploading={isUploading}
+          readOnly={isReadOnly}
+        />
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="flex min-h-full flex-col gap-4 p-4 lg:p-5">
       <Form {...form}>
-        {overviewCard}
+        <div className="grid min-w-0 items-stretch gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
+          {overviewCard}
+          {noteAttachmentsCard}
+        </div>
         <Stepper
           value={activeStep}
           onValueChange={(step) => {
@@ -1449,93 +1475,37 @@ export function HandoverEditorPage() {
                 onSubmit={form.handleSubmit((values) => void onSave(values))}
                 className="flex h-full min-h-0 flex-1 flex-col gap-admin-page-section"
               >
-                <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-admin-page-section xl:grid-cols-[minmax(0,2.2fr)_minmax(18rem,1fr)]">
-                  <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
-                    {hasSenderForItems ? (
-                      <>
-                        <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
-                          <HandoverItemsEditorTable
-                            form={form}
-                            materials={[...materialById.values()]}
-                            materialFilters={materialFilters}
-                            initialMaterialSearch={initialMaterialSearch}
-                            allowReservedByHandoverId={id || undefined}
-                            readOnly={isReadOnly}
-                            readOnlyItems={document?.items}
-                            fillHeight
-                          />
-                        </div>
-                        {form.formState.errors.items?.message ? (
-                          <p
-                            className="shrink-0 border-t border-border px-4 py-2 text-xs text-destructive"
-                            role="alert"
-                          >
-                            {form.formState.errors.items.message}
-                          </p>
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
-                        {intl.formatMessage({
-                          id: 'project.handover.empty.chooseSenderForItems',
-                        })}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
+                  {hasSenderForItems ? (
+                    <>
+                      <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+                        <HandoverItemsEditorTable
+                          form={form}
+                          materials={[...materialById.values()]}
+                          materialFilters={materialFilters}
+                          initialMaterialSearch={initialMaterialSearch}
+                          allowReservedByHandoverId={id || undefined}
+                          readOnly={isReadOnly}
+                          readOnlyItems={document?.items}
+                          fillHeight
+                        />
                       </div>
-                    )}
-                  </div>
-
-                  <Card className="h-full min-h-0 min-w-0 overflow-y-auto">
-                    <CardContent className="space-y-6 p-4">
-                      <section className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <FileText
-                            className="size-4 text-primary"
-                            aria-hidden="true"
-                          />
-                          <h2 className="text-sm font-semibold">
-                            {intl.formatMessage({
-                              id: 'project.handover.fields.note',
-                            })}
-                          </h2>
-                        </div>
-                        <FormField
-                          control={form.control}
-                          name="note"
-                          render={({ field }) => (
-                            <FormItem variant="compact" className="min-w-0">
-                              <FormLabel className="sr-only">
-                                {intl.formatMessage({
-                                  id: 'project.handover.fields.note',
-                                })}
-                              </FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  rows={4}
-                                  {...field}
-                                  readOnly={isReadOnly}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </section>
-                      {!isWarehouseMode ? (
-                        <HandoverAttachmentsField
-                          attachments={selectedAttachments}
-                          files={pendingAttachmentFiles}
-                          onFilesChange={setPendingAttachmentFiles}
-                          onRemove={handleRemoveAttachment}
-                          disabled={
-                            isReadOnly ||
-                            isSavingAny ||
-                            isActingAny ||
-                            isUploading
-                          }
-                          isUploading={isUploading}
-                        />
+                      {form.formState.errors.items?.message ? (
+                        <p
+                          className="shrink-0 border-t border-border px-4 py-2 text-xs text-destructive"
+                          role="alert"
+                        >
+                          {form.formState.errors.items.message}
+                        </p>
                       ) : null}
-                    </CardContent>
-                  </Card>
+                    </>
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
+                      {intl.formatMessage({
+                        id: 'project.handover.empty.chooseSenderForItems',
+                      })}
+                    </div>
+                  )}
                 </div>
               </form>
             )}
@@ -1554,11 +1524,6 @@ export function HandoverEditorPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  {intl.formatMessage({
-                    id: 'project.handover.steps.confirmationDescription',
-                  })}
-                </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   {(['sender', 'recipient'] as const).map((side) => {
                     const name =
@@ -1581,21 +1546,26 @@ export function HandoverEditorPage() {
                         key={side}
                         className="rounded-lg border border-border p-4"
                       >
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-semibold text-foreground">
                           {intl.formatMessage({
                             id: `project.handover.fields.${side}`,
                           })}
                         </p>
-                        <p className="mt-2 text-sm">{name || '—'}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-2 text-sm font-semibold text-foreground">
+                          {name || '—'}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {intl.formatMessage({
                             id: 'project.handover.fields.representative',
                           })}
                           : {representative || '—'}
                         </p>
-                        <div className="mt-4 space-y-2 border-t border-dashed border-border pt-3 text-xs">
-                          <p className="font-medium text-foreground">
-                            {intl.formatMessage({
+                        <div className="mt-4 space-y-2 border-t border-dashed border-border pt-3">
+                          <HandoverSignatureInfoRow
+                            label={intl.formatMessage({
+                              id: 'project.handover.fields.status',
+                            })}
+                            value={intl.formatMessage({
                               id:
                                 signature.state === 'signed'
                                   ? 'project.handover.signature.signed'
@@ -1603,36 +1573,40 @@ export function HandoverEditorPage() {
                                     ? 'project.handover.table.rejected'
                                     : 'project.handover.table.pending',
                             })}
-                          </p>
+                            tone={
+                              signature.state === 'signed'
+                                ? 'success'
+                                : 'destructive'
+                            }
+                            solidBadge
+                          />
                           {signature.entry ? (
                             <>
-                              <p className="text-muted-foreground">
-                                {intl.formatMessage({
+                              <HandoverSignatureInfoRow
+                                label={intl.formatMessage({
                                   id: isRejected
                                     ? 'project.handover.signature.rejectedBy'
                                     : 'project.handover.signature.signer',
                                 })}
-                                : {signer || '—'}
-                              </p>
-                              <p className="text-muted-foreground">
-                                {intl.formatMessage({
+                                value={signer || '—'}
+                              />
+                              <HandoverSignatureInfoRow
+                                label={intl.formatMessage({
                                   id: isRejected
                                     ? 'project.handover.signature.rejectedAt'
                                     : 'project.handover.signature.signedAt',
                                 })}
-                                :{' '}
-                                {formatSignatureTimestamp(
+                                value={formatDateTime(
                                   signature.entry.createdAt,
-                                  intl.locale,
                                 )}
-                              </p>
+                              />
                               {isRejected ? (
-                                <p className="text-muted-foreground">
-                                  {intl.formatMessage({
+                                <HandoverSignatureInfoRow
+                                  label={intl.formatMessage({
                                     id: 'project.handover.signature.rejectionReason',
                                   })}
-                                  : {rejectionReason || '—'}
-                                </p>
+                                  value={rejectionReason || '—'}
+                                />
                               ) : null}
                             </>
                           ) : null}

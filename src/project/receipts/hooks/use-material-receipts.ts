@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
   actOnMaterialReceipt,
-  applyMaterialReceiptAdjustment,
   applyMaterialReceiptInlineUpdate,
+  deleteMaterialReceipt,
   importMaterialReceiptFromExcel,
   loadAvailableMaterialReceiptRequests,
   loadMaterialReceipt,
@@ -12,7 +12,6 @@ import {
   loadMaterialReceiptHistory,
   loadMaterialReceiptItems,
   loadMaterialReceipts,
-  previewMaterialReceiptAdjustment,
   previewMaterialReceiptInlineUpdate,
   saveMaterialReceipt,
   saveMaterialReceiptRepresentative,
@@ -171,12 +170,8 @@ export function useMaterialReceiptActionMutation() {
   return useReceiptMutation(actOnMaterialReceipt);
 }
 
-export function useMaterialReceiptAdjustmentPreviewMutation() {
-  return useMutation({ mutationFn: previewMaterialReceiptAdjustment });
-}
-
-export function useApplyMaterialReceiptAdjustmentMutation() {
-  return useReceiptMutation(applyMaterialReceiptAdjustment);
+export function useDeleteMaterialReceiptMutation() {
+  return useReceiptMutation(deleteMaterialReceipt);
 }
 
 export function useMaterialReceiptInlineUpdatePreviewMutation() {

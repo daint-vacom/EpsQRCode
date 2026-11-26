@@ -5,9 +5,10 @@ import { FilterCountChips } from '@/project/shared/filter-count-chips';
 import { ProjectFilterModeSwitcher } from '@/project/shared/project-filter-mode.generated';
 import { WarehouseSelect } from '@/project/warehouses/components/warehouse-select';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { ClipboardPlus, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -123,7 +124,7 @@ export function MaterialReceiptsPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'receipts.page.title' })}
-        icon={ClipboardPlus}
+        icon={PROJECT_FEATURE_ICONS.receipts}
         actions={
           canManage ? (
             <Button

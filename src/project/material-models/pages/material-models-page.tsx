@@ -15,10 +15,11 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Boxes, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -177,7 +178,7 @@ export function MaterialModelsPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'materialModels.page.header' })}
-        icon={Boxes}
+        icon={PROJECT_FEATURE_ICONS.materialModels}
         actions={
           canManage ? (
             <Button

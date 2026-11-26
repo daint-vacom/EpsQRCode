@@ -34,7 +34,6 @@ import {
   type RowSelectionState,
 } from '@tanstack/react-table';
 import {
-  Boxes,
   CheckCircle2,
   CircleAlert,
   Download,
@@ -47,6 +46,7 @@ import {
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -650,7 +650,7 @@ export function MaterialListPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
         <PageHeader
           title={intl.formatMessage({ id: 'project.materials.page.title' })}
-          icon={Boxes}
+          icon={PROJECT_FEATURE_ICONS.materials}
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
               {canView ? (

@@ -3,7 +3,6 @@ import type { MaterialCondition } from '@/project/materials/model/material';
 export type HandoverType = 'transfer' | 'loan' | 'return';
 export type HandoverStatus =
   | 'draft'
-  | 'awaiting_warehouse_approval'
   | 'pending'
   | 'completed'
   | 'rejected'
@@ -76,6 +75,7 @@ export interface HandoverDocument {
   code: string;
   type: HandoverType;
   status: HandoverStatus;
+  warehouseApproved?: boolean;
   mode: HandoverMode;
   receiptId: string | null;
   senderParty: HandoverPartySnapshot;
@@ -200,7 +200,6 @@ export interface HandoverListResult {
 export interface HandoverFilterSummary {
   total: number;
   draft: number;
-  awaitingWarehouseApproval: number;
   pending: number;
   completed: number;
   rejected: number;

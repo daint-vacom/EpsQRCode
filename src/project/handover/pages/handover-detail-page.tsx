@@ -3,12 +3,14 @@ import type { RefObject } from 'react';
 import { ROUTES } from '@/constants/routes';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import { loadFileStorageReference } from '@/project/files/api/file-manager.api';
+import { HandoverSignatureInfoRow } from '@/project/handover/components/handover-signature-info-row';
 import { MATERIAL_RECEIPT_PERMISSION_CODES } from '@/project/receipts/model/material-receipt';
 import { Boxes, CircleCheck, Pencil, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { createSignedStorageUrl } from '@/lib/storage';
 import { useUser } from '@/providers/user-provider';
@@ -25,6 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ErrorState } from '@/components/ui/error-state';
+import { PageLoading } from '@/components/ui/loading';
 import { OptionSelect } from '@/components/ui/option-select';
 import {
   Stepper,
@@ -132,22 +135,33 @@ export function HandoverDetailPage({
       document.recipientParty.isHandoverCustom),
   );
   const isHandoverCreator = Boolean(userId && document?.createdBy === userId);
+  const currentHistory = historyQuery.data ?? [];
+  const lastEditIndex = currentHistory
+    .map((entry) => entry.action)
+    .lastIndexOf('updated');
+  const currentHistoryAfterEdit =
+    lastEditIndex >= 0
+      ? currentHistory.slice(lastEditIndex + 1)
+      : currentHistory;
+  const warehouseApproved = currentHistoryAfterEdit.some(
+    (entry) => entry.action === 'warehouse_approved',
+  );
   const senderSigned = Boolean(
     document &&
-    (document.status === 'pending' ||
+    ((document.mode === 'warehouse_request' && warehouseApproved) ||
+      (document.status === 'pending' &&
+        document.mode !== 'warehouse_request') ||
       document.status === 'completed' ||
-      document.status === 'rejected' ||
-      (document.status === 'awaiting_warehouse_approval' &&
-        document.mode !== 'warehouse_request')),
+      document.status === 'rejected'),
   );
   const recipientSigned = Boolean(
     document &&
     ((document.status === 'completed' &&
       (document.mode !== 'standard' || document.recipientHasQrAccount)) ||
       (document.mode === 'warehouse_request' &&
-        ['awaiting_warehouse_approval', 'pending', 'rejected'].includes(
-          document.status,
-        ))),
+        (currentHistoryAfterEdit.some((entry) => entry.action === 'sent') ||
+          document.status === 'pending' ||
+          document.status === 'rejected'))),
   );
   const canEditOrSend = Boolean(
     canManage &&
@@ -164,12 +178,15 @@ export function HandoverDetailPage({
         (document.mode === 'warehouse_allocation' &&
           document.status === 'draft' &&
           isSender) ||
-        (document.status === 'pending' && isSender)
+        (document.status === 'pending' &&
+          isSender &&
+          (document.mode !== 'warehouse_request' || warehouseApproved))
       : isSender && ['draft', 'pending'].includes(document.status)),
   );
   const canConfirm = Boolean(
     canManage &&
     document?.status === 'pending' &&
+    (document.mode !== 'warehouse_request' || warehouseApproved) &&
     (hasOtherParty
       ? isHandoverCreator && (isSender || isReceiver)
       : isReceiver),
@@ -177,9 +194,13 @@ export function HandoverDetailPage({
   const canReject = Boolean(
     canManage &&
     document?.status === 'pending' &&
-    (hasOtherParty
-      ? isHandoverCreator && (isSender || isReceiver)
-      : isReceiver),
+    (document.mode === 'warehouse_request'
+      ? warehouseApproved
+        ? isReceiver
+        : isSender
+      : hasOtherParty
+        ? isHandoverCreator && (isSender || isReceiver)
+        : isReceiver),
   );
   const canCompleteOffline = Boolean(
     canManage &&
@@ -321,7 +342,9 @@ export function HandoverDetailPage({
             </>
           ) : null}
           {document.mode === 'warehouse_request' &&
-          document.status === 'awaiting_warehouse_approval' &&
+          document.status === 'pending' &&
+          !historyQuery.isPending &&
+          !warehouseApproved &&
           canManage &&
           isSender ? (
             <>
@@ -457,6 +480,8 @@ export function HandoverDetailPage({
       isActionPending,
       canCompleteOffline,
       canCreateReverse,
+      historyQuery.isPending,
+      warehouseApproved,
       navigate,
       runAction,
     ],
@@ -517,8 +542,13 @@ export function HandoverDetailPage({
   }, [actionsOnly, approvalActionsTargetRef]);
   const header = useMemo(
     () => ({
-      title: document?.code ?? 'Chi tiết phiếu bàn giao',
-      icon: Boxes,
+      title: document?.code
+        ? intl.formatMessage(
+            { id: 'project.handover.page.titleWithCode' },
+            { code: document.code },
+          )
+        : intl.formatMessage({ id: 'project.handover.page.detailTitle' }),
+      icon: PROJECT_FEATURE_ICONS.handovers,
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'project.handover.actions.back' }),
       onBack: () => navigate(ROUTES.PROJECT.HANDOVERS),
@@ -532,7 +562,9 @@ export function HandoverDetailPage({
   );
 
   if (isPermissionsPending)
-    return <div className="h-full animate-pulse bg-muted" />;
+    return (
+      <PageLoading label={intl.formatMessage({ id: 'common.state.loading' })} />
+    );
   if (!canViewDocument)
     return (
       <div className="p-4">
@@ -548,9 +580,7 @@ export function HandoverDetailPage({
     );
   if (query.isPending)
     return (
-      <div className="h-full p-4">
-        <div className="h-full animate-pulse rounded-xl bg-muted" />
-      </div>
+      <PageLoading label={intl.formatMessage({ id: 'common.state.loading' })} />
     );
   if (query.isError || !document)
     return (
@@ -841,11 +871,6 @@ export function HandoverDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-sm text-muted-foreground">
-                  {intl.formatMessage({
-                    id: 'project.handover.steps.confirmationDescription',
-                  })}
-                </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   {(
                     [
@@ -860,34 +885,45 @@ export function HandoverDetailPage({
                         representative: document.recipientRepresentative,
                       },
                     ] as const
-                  ).map(({ side, party, representative }) => (
-                    <div
-                      key={side}
-                      className="rounded-lg border border-border p-4"
-                    >
-                      <p className="text-sm font-medium">
-                        {intl.formatMessage({
-                          id: `project.handover.fields.${side}`,
-                        })}
-                      </p>
-                      <p className="mt-2 text-sm">{party.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {intl.formatMessage({
-                          id: 'project.handover.fields.representative',
-                        })}
-                        : {representative?.displayName ?? '—'}
-                      </p>
-                      <p className="mt-4 border-t border-dashed border-border pt-3 text-sm">
-                        {intl.formatMessage({
-                          id: (
-                            side === 'sender' ? senderSigned : recipientSigned
-                          )
-                            ? 'project.handover.table.signed'
-                            : 'project.handover.table.pending',
-                        })}
-                      </p>
-                    </div>
-                  ))}
+                  ).map(({ side, party, representative }) => {
+                    const isSigned =
+                      side === 'sender' ? senderSigned : recipientSigned;
+                    return (
+                      <div
+                        key={side}
+                        className="rounded-lg border border-border p-4"
+                      >
+                        <p className="text-sm font-semibold text-foreground">
+                          {intl.formatMessage({
+                            id: `project.handover.fields.${side}`,
+                          })}
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-foreground">
+                          {party.name}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {intl.formatMessage({
+                            id: 'project.handover.fields.representative',
+                          })}
+                          : {representative?.displayName ?? '—'}
+                        </p>
+                        <div className="mt-4 space-y-2 border-t border-dashed border-border pt-3">
+                          <HandoverSignatureInfoRow
+                            label={intl.formatMessage({
+                              id: 'project.handover.fields.status',
+                            })}
+                            value={intl.formatMessage({
+                              id: isSigned
+                                ? 'project.handover.table.signed'
+                                : 'project.handover.table.pending',
+                            })}
+                            tone={isSigned ? 'success' : 'destructive'}
+                            solidBadge
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-4">
                   <p className="text-sm text-muted-foreground">

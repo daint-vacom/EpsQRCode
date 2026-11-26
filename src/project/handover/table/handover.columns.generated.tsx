@@ -118,11 +118,11 @@ export function useHandoverDocumentColumns(params: {
           const senderStatus: SignatureStatus =
             row.status === 'rejected' && row.mode === 'warehouse_request'
               ? 'rejected'
-              : row.status === 'pending' ||
+              : (row.status === 'pending' &&
+                    (row.mode !== 'warehouse_request' ||
+                      row.warehouseApproved)) ||
                   row.status === 'completed' ||
-                  row.status === 'rejected' ||
-                  (row.status === 'awaiting_warehouse_approval' &&
-                    row.mode !== 'warehouse_request')
+                  row.status === 'rejected'
                 ? 'signed'
                 : 'pending';
           const label = intl.formatMessage({
@@ -156,11 +156,9 @@ export function useHandoverDocumentColumns(params: {
               : (row.status === 'completed' &&
                     (row.mode !== 'standard' || row.recipientHasQrAccount)) ||
                   (row.mode === 'warehouse_request' &&
-                    [
-                      'awaiting_warehouse_approval',
-                      'pending',
-                      'rejected',
-                    ].includes(row.status))
+                    (row.status === 'pending' ||
+                      row.status === 'rejected' ||
+                      row.warehouseApproved))
                 ? 'signed'
                 : 'pending';
           const label = intl.formatMessage({

@@ -31,8 +31,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { MultiSelect } from '@/components/ui/multi-select';
-import type { MultiSelectOption } from '@/components/ui/multi-select';
 import { OptionSelect } from '@/components/ui/option-select';
 import type { SelectOption } from '@/components/ui/option-select';
 import { ShortcutTooltip } from '@/components/ui/shortcut-tooltip';
@@ -112,7 +110,7 @@ interface MaterialReceiptHeaderFormProps {
   readOnly?: boolean;
   warehouseName?: string;
   requestRegistrationScopeOptions: SelectOption[];
-  requestRegistrationPartyIdsOptions: MultiSelectOption[];
+  onEditRequestRegistrationParties: () => void;
   requestRegistrationReadOnly?: boolean;
 }
 
@@ -124,7 +122,7 @@ export function MaterialReceiptHeaderForm({
   readOnly = false,
   warehouseName,
   requestRegistrationScopeOptions,
-  requestRegistrationPartyIdsOptions,
+  onEditRequestRegistrationParties,
   requestRegistrationReadOnly = false,
 }: MaterialReceiptHeaderFormProps) {
   const intl = useIntl();
@@ -172,6 +170,7 @@ export function MaterialReceiptHeaderForm({
                 className="md:col-span-12"
                 layout="horizontal"
                 labelWidth="md"
+                alignment="start"
               >
                 <FormLabel>
                   {intl.formatMessage({
@@ -179,70 +178,62 @@ export function MaterialReceiptHeaderForm({
                   })}
                 </FormLabel>
                 <FormControl>
-                  {readOnly ? (
-                    <span className="text-sm text-foreground">
-                      {requestRegistrationScopeOptions.find(
-                        (option) => option.value === field.value,
-                      )?.label ?? '—'}
-                    </span>
-                  ) : (
-                    <OptionSelect
-                      value={field.value}
-                      onChange={field.onChange}
-                      options={requestRegistrationScopeOptions}
-                      canDeselect={false}
-                    />
-                  )}
+                  <div className="flex w-full flex-col gap-3">
+                    {readOnly ? (
+                      <span className="text-sm text-foreground">
+                        {requestRegistrationScopeOptions.find(
+                          (option) => option.value === field.value,
+                        )?.label ?? '—'}
+                      </span>
+                    ) : (
+                      <OptionSelect
+                        value={field.value}
+                        onChange={field.onChange}
+                        options={requestRegistrationScopeOptions}
+                        canDeselect={false}
+                      />
+                    )}
+                    {field.value === 'selected' ? (
+                      <FormField
+                        control={form.control}
+                        name="requestRegistrationPartyIds"
+                        render={({ field: partyField }) => (
+                          <FormItem className="gap-1.5">
+                            <FormControl>
+                              <div className="flex w-full items-start justify-between gap-4">
+                                <span className="min-w-0 flex-1 text-sm text-foreground">
+                                  {intl.formatMessage(
+                                    {
+                                      id: 'receipts.fields.selectedRegistrationPartyCount',
+                                    },
+                                    { count: partyField.value.length },
+                                  )}
+                                </span>
+                                {!readOnly && !requestRegistrationReadOnly ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="md"
+                                    onClick={onEditRequestRegistrationParties}
+                                  >
+                                    {intl.formatMessage({
+                                      id: 'receipts.actions.chooseRegistrationParties',
+                                    })}
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : null}
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
-          {form.watch('requestRegistrationScope') === 'selected' ? (
-            <FormField
-              control={form.control}
-              name="requestRegistrationPartyIds"
-              render={({ field }) => (
-                <FormItem
-                  className="md:col-span-12"
-                  layout="horizontal"
-                  labelWidth="md"
-                >
-                  <FormLabel>
-                    {intl.formatMessage({
-                      id: 'receipts.fields.requestRegistrationParties',
-                    })}
-                  </FormLabel>
-                  <FormControl>
-                    {readOnly || requestRegistrationReadOnly ? (
-                      <span className="text-sm text-foreground">
-                        {requestRegistrationPartyIdsOptions
-                          .filter((option) =>
-                            field.value.includes(option.value),
-                          )
-                          .map((option) => option.label)
-                          .join(', ') || '—'}
-                      </span>
-                    ) : (
-                      <MultiSelect
-                        value={field.value}
-                        onChange={field.onChange}
-                        options={requestRegistrationPartyIdsOptions}
-                        placeholder={intl.formatMessage({
-                          id: 'receipts.fields.requestRegistrationParties',
-                        })}
-                        searchPlaceholder={intl.formatMessage({
-                          id: 'common.actions.search',
-                        })}
-                      />
-                    )}
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          ) : null}
 
           <FormField
             control={form.control}
@@ -280,7 +271,7 @@ interface MaterialReceiptHeaderFormDialogProps {
   title?: string;
   warehouses: readonly Warehouse[];
   requestRegistrationScopeOptions: SelectOption[];
-  requestRegistrationPartyIdsOptions: MultiSelectOption[];
+  onEditRequestRegistrationParties: () => void;
 }
 
 export function MaterialReceiptHeaderFormDialog({
@@ -293,7 +284,7 @@ export function MaterialReceiptHeaderFormDialog({
   title,
   warehouses,
   requestRegistrationScopeOptions,
-  requestRegistrationPartyIdsOptions,
+  onEditRequestRegistrationParties,
 }: MaterialReceiptHeaderFormDialogProps) {
   const intl = useIntl();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
@@ -346,8 +337,8 @@ export function MaterialReceiptHeaderFormDialog({
               id="materialReceipt-form"
               warehouses={warehouses}
               requestRegistrationScopeOptions={requestRegistrationScopeOptions}
-              requestRegistrationPartyIdsOptions={
-                requestRegistrationPartyIdsOptions
+              onEditRequestRegistrationParties={
+                onEditRequestRegistrationParties
               }
             />
           </div>

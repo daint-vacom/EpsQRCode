@@ -173,16 +173,13 @@ export function HandoverItemsEditorTable({
         }
       >
         <div className="flex min-w-0 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-4">
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="min-w-0">
             <h2 className="text-sm font-semibold text-foreground">
-              {intl.formatMessage({ id: 'project.handover.sections.items' })}
-            </h2>
-            <div className="text-xs text-muted-foreground">
               {intl.formatMessage(
-                { id: 'project.handover.table.materialCount' },
+                { id: 'project.handover.table.materialHandoverCount' },
                 { count: fields.length },
               )}
-            </div>
+            </h2>
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {toolbarContent}
@@ -259,7 +256,7 @@ export function HandoverItemsEditorTable({
                         <TableCell className="px-4 py-2 align-middle text-muted-foreground">
                           {index + 1}
                         </TableCell>
-                        <TableCell className="px-2 py-2 align-middle">
+                        <TableCell className="px-4 py-2 align-middle">
                           <div className="flex min-w-0">
                             {material ? (
                               <MaterialIdentity
@@ -274,14 +271,10 @@ export function HandoverItemsEditorTable({
                                 }
                               />
                             ) : materialSnapshot ? (
-                              <div className="min-w-0">
-                                <span className="font-medium">
-                                  {materialSnapshot.materialCode}
-                                </span>
-                                <span className="block truncate text-xs text-muted-foreground">
-                                  {materialSnapshot.materialName}
-                                </span>
-                              </div>
+                              <MaterialIdentity
+                                name={materialSnapshot.materialName}
+                                code={materialSnapshot.materialCode}
+                              />
                             ) : null}
                             {rowErrors?.materialId?.message ? (
                               <p className="mt-1 text-xs text-destructive">
@@ -290,7 +283,7 @@ export function HandoverItemsEditorTable({
                             ) : null}
                           </div>
                         </TableCell>
-                        <TableCell className="w-32 max-w-32 px-2 py-2 align-middle">
+                        <TableCell className="w-32 max-w-32 px-4 py-2 align-middle">
                           <Controller
                             control={form.control}
                             name={`items.${index}.condition`}
@@ -325,7 +318,7 @@ export function HandoverItemsEditorTable({
                             }
                           />
                         </TableCell>
-                        <TableCell className="px-2 py-2 align-middle">
+                        <TableCell className="px-4 py-2 align-middle">
                           <Controller
                             control={form.control}
                             name={`items.${index}.note`}

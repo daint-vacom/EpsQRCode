@@ -6,9 +6,9 @@ import {
   getMaterialSafetyInspectionChecklist,
 } from '@/project/materials/model/material';
 import { MATERIAL_PERMISSION_CODES } from '@/project/materials/model/material-permissions';
-import { ClipboardPenLine } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -85,7 +85,7 @@ export function MaterialSafetyInspectionCreatePage() {
   const header = useMemo(
     () => ({
       title,
-      icon: ClipboardPenLine,
+      icon: PROJECT_FEATURE_ICONS.safetyInspections,
       showBackButton: true,
       backLabel: intl.formatMessage({
         id: 'project.materials.safetyInspection.actions.back',

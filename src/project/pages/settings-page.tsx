@@ -12,7 +12,6 @@ import {
   FileSpreadsheet,
   Palette,
   Save,
-  Settings,
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -20,6 +19,7 @@ import { useTheme } from 'next-themes';
 import { useIntl } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import {
   useAppSettings,
@@ -169,7 +169,7 @@ export function ProjectSettingsPage() {
       <div className="shrink-0 px-4 pt-4 lg:px-5 lg:pt-5">
         <PageHeader
           title={intl.formatMessage({ id: 'settings.page.title' })}
-          icon={Settings}
+          icon={PROJECT_FEATURE_ICONS.settings}
         />
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="h-full">

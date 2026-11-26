@@ -6,9 +6,10 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Building2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -136,7 +137,7 @@ export function WarehousesPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'warehouses.page.title' })}
-        icon={Building2}
+        icon={PROJECT_FEATURE_ICONS.warehouses}
         actions={
           canManage ? (
             <Button

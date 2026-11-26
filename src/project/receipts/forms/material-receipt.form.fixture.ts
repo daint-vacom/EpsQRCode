@@ -40,15 +40,6 @@ const spec: FormSpec = {
       labelWidth: 'md',
       optionsFrom: 'prop',
     },
-    {
-      kind: 'multiselect',
-      name: 'requestRegistrationPartyIds',
-      label: 'Đơn vị được phép đăng ký',
-      labelMessageId: 'receipts.fields.requestRegistrationParties',
-      layout: 'horizontal',
-      labelWidth: 'md',
-      optionsFrom: 'prop',
-    },
   ],
 };
 

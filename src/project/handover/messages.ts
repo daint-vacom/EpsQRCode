@@ -1,4 +1,6 @@
 export const handoverMessagesVi: Record<string, string> = {
+  'project.handover.page.detailTitle': 'Phiếu bàn giao',
+  'project.handover.page.titleWithCode': 'Phiếu bàn giao: {code}',
   'project.handover.page.title': 'Quản lý bàn giao vật tư',
   'project.handover.page.description':
     'Lập phiếu, theo dõi xác nhận và lịch sử bàn giao.',
@@ -67,7 +69,6 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.fields.itemReceived': 'Đã nhận vật tư này',
   'project.handover.sections.parties': 'Thông tin chung và bên giao nhận',
   'project.handover.sections.notes': 'Ghi chú và tệp đính kèm',
-  'project.handover.sections.items': 'Danh sách vật tư bàn giao',
   'project.handover.columns.code': 'Mã phiếu',
   'project.handover.columns.items': 'Vật tư',
   'project.handover.columns.createdAt': 'Ngày tạo',
@@ -75,8 +76,7 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.tabs.history': 'Diễn biến',
   'project.handover.status.draft': 'Bản nháp',
   'project.handover.status.new': 'Tạo mới',
-  'project.handover.status.awaiting_warehouse_approval': 'Chờ kho duyệt',
-  'project.handover.status.pending': 'Chờ xác nhận',
+  'project.handover.status.pending': 'Chờ ký xác nhận',
   'project.handover.status.completed': 'Hoàn tất',
   'project.handover.status.rejected': 'Đã từ chối',
   'project.handover.status.cancelled': 'Đã hủy',
@@ -92,6 +92,7 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.empty.search': 'Không tìm thấy phiếu phù hợp.',
   'project.handover.empty.items': 'Phiếu chưa có vật tư.',
   'project.handover.empty.editorItems': 'Chưa thêm vật tư vào phiếu.',
+  'project.handover.empty.attachments': 'Không có tệp đính kèm.',
   'project.handover.empty.chooseSenderForItems':
     'Chọn bên giao để xem vật tư đang thuộc đối tượng này.',
   'project.handover.empty.selectSender': 'Chọn đối tượng giao vật tư',
@@ -162,7 +163,7 @@ export const handoverMessagesVi: Record<string, string> = {
     'Xác nhận đã bàn giao trực tiếp phiếu {code}. Thao tác này hoàn tất phiếu mà không cần bên nhận xác nhận trên QRCode.',
   'project.handover.dialogs.reasonRequired': 'Nhập lý do để tiếp tục.',
   'project.handover.toasts.saved': 'Đã lưu bản nháp.',
-  'project.handover.toasts.sent': 'Đã gửi phiếu chờ xác nhận.',
+  'project.handover.toasts.sent': 'Đã gửi phiếu chờ ký xác nhận.',
   'project.handover.toasts.confirmed': 'Đã xác nhận và hoàn tất phiếu.',
   'project.handover.toasts.confirmedOffline':
     'Đã ghi nhận bàn giao trực tiếp và hoàn tất phiếu.',
@@ -180,12 +181,13 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.events.rejected': 'Từ chối phiếu',
   'project.handover.events.cancelled': 'Hủy phiếu',
   'project.handover.table.materialCount': '{count} vật tư',
+  'project.handover.table.materialHandoverCount': '{count} vật tư bàn giao',
   'project.handover.table.signed': 'Đã ký xác nhận',
   'project.handover.table.pending': 'Chưa ký xác nhận',
   'project.handover.table.rejected': 'Từ chối',
-  'project.handover.signature.signed': 'Đã ký nhận',
+  'project.handover.signature.signed': 'Đã ký xác nhận',
   'project.handover.signature.signer': 'Người ký',
-  'project.handover.signature.signedAt': 'Thời gian ký',
+  'project.handover.signature.signedAt': 'Ký lúc',
   'project.handover.signature.rejectedBy': 'Người từ chối',
   'project.handover.signature.rejectedAt': 'Thời gian từ chối',
   'project.handover.signature.rejectionReason': 'Lý do từ chối',
@@ -193,8 +195,6 @@ export const handoverMessagesVi: Record<string, string> = {
   'project.handover.table.paginationInfo': '{from} - {to} / {count} vật tư',
   'project.handover.steps.items': 'Nhập vật tư bàn giao',
   'project.handover.steps.confirmation': 'Ký xác nhận bàn giao',
-  'project.handover.steps.confirmationDescription':
-    'Kiểm tra thông tin các bên và danh sách vật tư trước khi gửi phiếu để xác nhận bàn giao.',
   'project.handover.steps.signaturePlaceholder':
     'Khu vực ký xác nhận sẽ được ghi nhận trong quy trình xác nhận phiếu.',
   'project.handover.errors.loadHistoryTitle':
@@ -237,6 +237,8 @@ export const handoverMessagesVi: Record<string, string> = {
 };
 
 export const handoverMessagesEn: Record<string, string> = {
+  'project.handover.page.detailTitle': 'Handover',
+  'project.handover.page.titleWithCode': 'Handover: {code}',
   'project.handover.page.title': 'Material handovers',
   'project.handover.page.description':
     'Create handovers and track confirmation and activity.',
@@ -305,7 +307,6 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.fields.itemReceived': 'Received this material',
   'project.handover.sections.parties': 'General information and parties',
   'project.handover.sections.notes': 'Notes and attachments',
-  'project.handover.sections.items': 'Materials to hand over',
   'project.handover.columns.code': 'Code',
   'project.handover.columns.items': 'Materials',
   'project.handover.columns.createdAt': 'Created',
@@ -313,9 +314,7 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.tabs.history': 'Activity',
   'project.handover.status.draft': 'Draft',
   'project.handover.status.new': 'New',
-  'project.handover.status.awaiting_warehouse_approval':
-    'Awaiting warehouse approval',
-  'project.handover.status.pending': 'Pending confirmation',
+  'project.handover.status.pending': 'Awaiting signature confirmation',
   'project.handover.status.completed': 'Completed',
   'project.handover.status.rejected': 'Rejected',
   'project.handover.status.cancelled': 'Cancelled',
@@ -331,6 +330,7 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.empty.search': 'No matching handovers found.',
   'project.handover.empty.items': 'This handover has no materials.',
   'project.handover.empty.editorItems': 'No materials added to this handover.',
+  'project.handover.empty.attachments': 'No attachments.',
   'project.handover.empty.chooseSenderForItems':
     'Select the sender to view materials owned by that party.',
   'project.handover.empty.selectSender':
@@ -402,7 +402,7 @@ export const handoverMessagesEn: Record<string, string> = {
     'Confirm that handover {code} was delivered directly. This completes the handover without a receiver confirmation in QRCode.',
   'project.handover.dialogs.reasonRequired': 'Enter a reason to continue.',
   'project.handover.toasts.saved': 'Draft saved.',
-  'project.handover.toasts.sent': 'Handover sent for confirmation.',
+  'project.handover.toasts.sent': 'Handover sent for signature confirmation.',
   'project.handover.toasts.confirmed': 'Handover confirmed and completed.',
   'project.handover.toasts.confirmedOffline':
     'Direct handover recorded and completed.',
@@ -420,10 +420,12 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.events.rejected': 'Rejected',
   'project.handover.events.cancelled': 'Cancelled',
   'project.handover.table.materialCount': '{count} materials',
+  'project.handover.table.materialHandoverCount':
+    '{count} materials to hand over',
   'project.handover.table.signed': 'Confirmation signed',
   'project.handover.table.pending': 'Not signed yet',
   'project.handover.table.rejected': 'Rejected',
-  'project.handover.signature.signed': 'Signed as received',
+  'project.handover.signature.signed': 'Confirmed',
   'project.handover.signature.signer': 'Signed by',
   'project.handover.signature.signedAt': 'Signed at',
   'project.handover.signature.rejectedBy': 'Rejected by',
@@ -433,8 +435,6 @@ export const handoverMessagesEn: Record<string, string> = {
   'project.handover.table.paginationInfo': '{from} - {to} / {count} materials',
   'project.handover.steps.items': 'Enter handover materials',
   'project.handover.steps.confirmation': 'Sign handover confirmation',
-  'project.handover.steps.confirmationDescription':
-    'Review the parties and materials before sending the handover for confirmation.',
   'project.handover.steps.signaturePlaceholder':
     'Signatures are recorded through the handover confirmation workflow.',
   'project.handover.errors.loadHistoryTitle':

@@ -24,6 +24,7 @@ import { Copy, Download, QrCode } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -355,7 +356,7 @@ export function MaterialQrTrackingPage() {
         title={intl.formatMessage({
           id: 'project.materialQrTracking.page.title',
         })}
-        icon={QrCode}
+        icon={PROJECT_FEATURE_ICONS.materialQrTracking}
       />
       <div className="flex min-w-0 flex-wrap items-start gap-2">
         <MaterialGroupFilterToggle

@@ -1,5 +1,6 @@
 export const receiptMessagesVi: Record<string, string> = {
   'receipts.page.title': 'Phiếu nhập vật tư',
+  'receipts.page.titleWithCode': 'Phiếu nhập vật tư: {code}',
   'receipts.page.description':
     'Ghi nhận vật tư nhập kho và theo dõi việc phân bổ.',
   'receipts.actions.create': 'Lập phiếu nhập',
@@ -10,7 +11,8 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.actions.complete': 'Hoàn tất phiếu nhập',
   'receipts.actions.reopen': 'Mở lại phiếu nhập',
   'receipts.actions.cancel': 'Hủy phiếu nhập',
-  'receipts.actions.adjust': 'Hiệu chỉnh vật tư',
+  'receipts.actions.more': 'Tùy chọn phiếu nhập',
+  'receipts.actions.delete': 'Xóa phiếu nhập',
   'receipts.actions.linkedHandover': 'Lập phiếu bàn giao',
   'receipts.actions.linkedRequest': 'Đăng ký nhận',
   'receipts.actions.saveDraft': 'Lưu bản nháp',
@@ -19,8 +21,7 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.actions.recordExcelReceipt': 'Ghi nhận nhập kho',
   'receipts.actions.pendingCount': 'Vật tư chờ nhận',
   'receipts.actions.chooseModels': 'Chọn mẫu VT',
-  'receipts.actions.previewAdjustment': 'Xem trước hiệu chỉnh',
-  'receipts.actions.applyAdjustment': 'Xác nhận hiệu chỉnh',
+  'receipts.actions.chooseRegistrationParties': 'Chọn đơn vị',
   'receipts.actions.back': 'Quay lại danh sách phiếu nhập',
   'receipts.columns.receipt': 'Phiếu nhập',
   'receipts.columns.warehouse': 'Kho',
@@ -30,7 +31,7 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.fields.warehouse': 'Kho nhận',
   'receipts.fields.note': 'Ghi chú',
   'receipts.fields.requestRegistrationScope': 'Đối tượng được đăng ký nhận',
-  'receipts.fields.requestRegistrationParties': 'Đơn vị EPS được phép đăng ký',
+  'receipts.fields.selectedRegistrationPartyCount': 'Đã chọn {count} đơn vị',
   'receipts.fields.material': 'Vật tư',
   'receipts.fields.reason': 'Lý do',
   'receipts.fields.createdAt': 'Ngày tạo',
@@ -62,8 +63,10 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.dialogs.confirmTitle': 'Xác nhận nhập kho',
   'receipts.dialogs.cancelTitle': 'Hủy phiếu nhập',
   'receipts.dialogs.completeTitle': 'Hoàn tất phiếu nhập',
+  'receipts.dialogs.deleteTitle': 'Xóa phiếu nhập?',
+  'receipts.dialogs.deleteDescription':
+    'Phiếu nhập, toàn bộ vật tư trong phiếu và các phiếu bàn giao liên kết sẽ bị xóa. Thao tác này không thể hoàn tác.',
   'receipts.dialogs.reopenTitle': 'Mở lại phiếu nhập',
-  'receipts.dialogs.adjustmentTitle': 'Xác nhận hiệu chỉnh danh sách vật tư',
   'receipts.dialogs.inlineUpdateTitle': 'Kiểm tra thay đổi phiếu nhập',
   'receipts.dialogs.receivingPartyTitle': 'Chọn đơn vị nhận',
   'receipts.dialogs.receivingPartyDescription':
@@ -181,9 +184,9 @@ export const receiptMessagesVi: Record<string, string> = {
   'receipts.toasts.confirmed':
     'Đã tạo vật tư và chuyển phiếu sang trạng thái bàn giao.',
   'receipts.toasts.completed': 'Đã hoàn tất phiếu nhập.',
+  'receipts.toasts.deleted': 'Đã xóa phiếu nhập và dữ liệu liên quan.',
   'receipts.toasts.reopened': 'Đã mở lại phiếu nhập.',
   'receipts.toasts.cancelled': 'Đã hủy phiếu nhập.',
-  'receipts.toasts.adjusted': 'Đã áp dụng hiệu chỉnh phiếu nhập.',
   'receipts.toasts.inlineUpdated':
     'Đã lưu thay đổi phiếu nhập và đồng bộ phân bổ.',
   'receipts.toasts.representativeUpdated':
@@ -222,6 +225,7 @@ export const receiptMessagesVi: Record<string, string> = {
 
 export const receiptMessagesEn: Record<string, string> = {
   'receipts.page.title': 'Material receipts',
+  'receipts.page.titleWithCode': 'Material receipt: {code}',
   'receipts.page.description':
     'Record incoming inventory and track its allocation.',
   'receipts.actions.create': 'Create receipt',
@@ -232,7 +236,8 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.actions.complete': 'Complete receipt',
   'receipts.actions.reopen': 'Reopen receipt',
   'receipts.actions.cancel': 'Cancel receipt',
-  'receipts.actions.adjust': 'Adjust receipt items',
+  'receipts.actions.more': 'Receipt options',
+  'receipts.actions.delete': 'Delete receipt',
   'receipts.actions.linkedHandover': 'Create handover',
   'receipts.actions.linkedRequest': 'Register to receive',
   'receipts.actions.saveDraft': 'Save draft',
@@ -241,8 +246,7 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.actions.recordExcelReceipt': 'Record warehouse receipt',
   'receipts.actions.pendingCount': 'Waiting for receipt',
   'receipts.actions.chooseModels': 'Choose models',
-  'receipts.actions.previewAdjustment': 'Preview adjustment',
-  'receipts.actions.applyAdjustment': 'Apply adjustment',
+  'receipts.actions.chooseRegistrationParties': 'Choose units',
   'receipts.actions.back': 'Back to receipts',
   'receipts.columns.receipt': 'Receipt',
   'receipts.columns.warehouse': 'Warehouse',
@@ -252,7 +256,7 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.fields.warehouse': 'Receiving warehouse',
   'receipts.fields.note': 'Note',
   'receipts.fields.requestRegistrationScope': 'Who can register to receive',
-  'receipts.fields.requestRegistrationParties': 'EPS units allowed to request',
+  'receipts.fields.selectedRegistrationPartyCount': '{count} units selected',
   'receipts.fields.material': 'Material',
   'receipts.fields.reason': 'Reason',
   'receipts.fields.createdAt': 'Created',
@@ -284,8 +288,10 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.dialogs.confirmTitle': 'Confirm warehouse receipt',
   'receipts.dialogs.cancelTitle': 'Cancel receipt',
   'receipts.dialogs.completeTitle': 'Complete receipt',
+  'receipts.dialogs.deleteTitle': 'Delete receipt?',
+  'receipts.dialogs.deleteDescription':
+    'The receipt, all materials in it, and its linked handovers will be deleted. This cannot be undone.',
   'receipts.dialogs.reopenTitle': 'Reopen receipt',
-  'receipts.dialogs.adjustmentTitle': 'Confirm receipt item adjustment',
   'receipts.dialogs.inlineUpdateTitle': 'Review receipt changes',
   'receipts.dialogs.receivingPartyTitle': 'Choose receiving unit',
   'receipts.dialogs.receivingPartyDescription':
@@ -407,9 +413,9 @@ export const receiptMessagesEn: Record<string, string> = {
   'receipts.toasts.confirmed':
     'Materials created and receipt moved to handover.',
   'receipts.toasts.completed': 'Receipt completed.',
+  'receipts.toasts.deleted': 'Receipt and related data deleted.',
   'receipts.toasts.reopened': 'Receipt reopened.',
   'receipts.toasts.cancelled': 'Receipt cancelled.',
-  'receipts.toasts.adjusted': 'Receipt adjustment applied.',
   'receipts.toasts.inlineUpdated': 'Receipt changes and allocations saved.',
   'receipts.toasts.representativeUpdated':
     'Representative material saved and linked materials updated.',

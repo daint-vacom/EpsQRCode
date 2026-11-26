@@ -6,7 +6,6 @@ import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-mater
 import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
 import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
 import {
-  Boxes,
   ClipboardCheck,
   Eye,
   Info,
@@ -17,6 +16,7 @@ import type { SubmitErrorHandler } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -236,7 +236,7 @@ export function MaterialModelEditorPage() {
   const header = useMemo(
     () => ({
       title,
-      icon: Boxes,
+      icon: PROJECT_FEATURE_ICONS.materialModels,
       showBackButton: true,
       backLabel: intl.formatMessage({ id: 'materialModels.actions.back' }),
       onBack: () => navigate(ROUTES.PROJECT.MATERIAL_MODELS),

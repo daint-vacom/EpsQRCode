@@ -9,9 +9,9 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import type { PaginationState } from '@tanstack/react-table';
-import { ClipboardList } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -104,7 +104,7 @@ export function SafetyInspectionsPage() {
         title={intl.formatMessage({
           id: 'project.materials.safetyInspection.list.title',
         })}
-        icon={ClipboardList}
+        icon={PROJECT_FEATURE_ICONS.safetyInspections}
       />
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <ProjectFilterModeSwitcher

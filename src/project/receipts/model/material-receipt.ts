@@ -322,7 +322,7 @@ export interface MaterialReceiptItemsResult {
   pageSize: number;
 }
 
-export interface MaterialReceiptAdjustmentPreview {
+export interface MaterialReceiptPreview {
   receiptId: string;
   receiptVersion: number;
   previewToken: string;
@@ -347,7 +347,7 @@ export interface MaterialReceiptAdjustmentPreview {
   }>;
 }
 
-export interface MaterialReceiptInlineUpdatePreview extends MaterialReceiptAdjustmentPreview {
+export interface MaterialReceiptInlineUpdatePreview extends MaterialReceiptPreview {
   basePreviewToken: string;
   warehouseId: string;
   warehouseChanged: boolean;

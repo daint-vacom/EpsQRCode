@@ -5,9 +5,9 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { Building2 } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -67,7 +67,7 @@ export function EpsOrganizationsPage() {
     <div className="flex h-full min-h-0 flex-col gap-admin-page-section overflow-y-auto p-4 lg:p-5">
       <PageHeader
         title={intl.formatMessage({ id: 'custodians.eps.page.title' })}
-        icon={Building2}
+        icon={PROJECT_FEATURE_ICONS.epsOrganizations}
       />
       {query.isError ? (
         <ErrorState

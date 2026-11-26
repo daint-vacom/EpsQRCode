@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { toast } from 'sonner';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { queryClient } from '@/lib/query-client';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/providers/user-provider';
@@ -477,7 +478,7 @@ export function RolePermissionsPage() {
   const pageHeader = (
     <PageHeader
       title={intl.formatMessage({ id: 'permissions.page.title' })}
-      icon={ShieldCheck}
+      icon={PROJECT_FEATURE_ICONS.rolePermissions}
       className="shrink-0"
     />
   );

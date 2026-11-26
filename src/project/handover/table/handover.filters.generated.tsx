@@ -19,7 +19,7 @@ const HandoverFilterBarTypeOptions: FilterToolbarOption[] = [
 
 const HandoverFilterBarStatusOptions: FilterToolbarOption[] = [
   { value: 'draft', label: 'Bản nháp' },
-  { value: 'pending', label: 'Chờ xác nhận' },
+  { value: 'pending', label: 'Chờ ký xác nhận' },
   { value: 'completed', label: 'Hoàn tất' },
   { value: 'rejected', label: 'Đã từ chối' },
   { value: 'cancelled', label: 'Đã hủy' },

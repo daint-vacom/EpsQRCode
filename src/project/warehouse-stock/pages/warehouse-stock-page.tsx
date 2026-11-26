@@ -41,9 +41,10 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { ArrowLeft, Boxes } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
+import { PROJECT_FEATURE_ICONS } from '@/config/project-feature-icons';
 import { getApiErrorMessage } from '@/lib/errors';
 import { useUser } from '@/providers/user-provider';
 import { useWorkspace } from '@/providers/workspace-provider';
@@ -300,7 +301,7 @@ export function WarehouseStockPage() {
       <div className="flex h-full min-h-0 flex-col gap-admin-page-section p-4 lg:p-5">
         <PageHeader
           title={intl.formatMessage({ id: 'warehouseStock.page.title' })}
-          icon={Boxes}
+          icon={PROJECT_FEATURE_ICONS.warehouseStock}
         />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <MaterialGroupFilterToggle
