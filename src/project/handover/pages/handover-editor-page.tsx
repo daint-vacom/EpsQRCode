@@ -511,12 +511,16 @@ export function HandoverEditorPage() {
     if (!form.getValues('plannedDate')) {
       form.setValue('plannedDate', format(new Date(), 'yyyy-MM-dd'));
     }
-    if (mode === 'warehouse_request' && !form.getValues('recipientPartyId')) {
+    if (
+      mode !== 'standard' &&
+      !form.getValues('recipientPartyId') &&
+      (Boolean(recipientPartyIdFromUrl) || mode === 'warehouse_request')
+    ) {
       const recipient = recipientPartyIdFromUrl
         ? warehouseRecipientParties.find(
             (party) => party.id === recipientPartyIdFromUrl,
           )
-        : warehouseRecipientParties.length === 1
+        : mode === 'warehouse_request' && warehouseRecipientParties.length === 1
           ? warehouseRecipientParties[0]
           : undefined;
       if (recipient) {

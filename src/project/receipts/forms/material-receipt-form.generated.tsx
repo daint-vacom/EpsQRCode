@@ -111,7 +111,7 @@ interface MaterialReceiptHeaderFormProps {
   warehouseName?: string;
   requestRegistrationScopeOptions: SelectOption[];
   onEditRequestRegistrationParties: () => void;
-  requestRegistrationReadOnly?: boolean;
+  warehouseReadOnly?: boolean;
 }
 
 export function MaterialReceiptHeaderForm({
@@ -123,7 +123,7 @@ export function MaterialReceiptHeaderForm({
   warehouseName,
   requestRegistrationScopeOptions,
   onEditRequestRegistrationParties,
-  requestRegistrationReadOnly = false,
+  warehouseReadOnly = false,
 }: MaterialReceiptHeaderFormProps) {
   const intl = useIntl();
   return (
@@ -144,7 +144,7 @@ export function MaterialReceiptHeaderForm({
                   <span className="text-destructive"> *</span>
                 </FormLabel>
                 <FormControl>
-                  {readOnly || requestRegistrationReadOnly ? (
+                  {readOnly || warehouseReadOnly ? (
                     <span className="text-sm text-foreground">
                       {warehouseName || '—'}
                     </span>
@@ -209,7 +209,7 @@ export function MaterialReceiptHeaderForm({
                                     { count: partyField.value.length },
                                   )}
                                 </span>
-                                {!readOnly && !requestRegistrationReadOnly ? (
+                                {!readOnly ? (
                                   <Button
                                     type="button"
                                     variant="outline"

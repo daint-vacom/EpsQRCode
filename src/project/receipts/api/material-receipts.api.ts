@@ -594,18 +594,25 @@ export async function applyMaterialReceiptInlineUpdate(input: {
   warehouseId: string;
   note: string;
   lines: MaterialReceiptLineInput[];
+  requestRegistrationScope: 'all' | 'selected';
+  requestRegistrationPartyIds: string[];
   cancelHandoverIds: string[];
 }) {
   assertSupabaseConfigured();
   return request<string>(
-    supabaseApi.post('/rpc/apply_material_receipt_inline_update', {
-      p_id: input.id,
-      p_expected_version: input.expectedVersion,
-      p_preview_token: input.previewToken,
-      p_warehouse_id: input.warehouseId,
-      p_note: input.note,
-      p_lines: input.lines,
-      p_cancel_handover_ids: input.cancelHandoverIds,
-    }),
+    supabaseApi.post(
+      '/rpc/apply_material_receipt_inline_update_with_registration',
+      {
+        p_id: input.id,
+        p_expected_version: input.expectedVersion,
+        p_preview_token: input.previewToken,
+        p_warehouse_id: input.warehouseId,
+        p_note: input.note,
+        p_lines: input.lines,
+        p_cancel_handover_ids: input.cancelHandoverIds,
+        p_request_registration_scope: input.requestRegistrationScope,
+        p_request_registration_party_ids: input.requestRegistrationPartyIds,
+      },
+    ),
   );
 }

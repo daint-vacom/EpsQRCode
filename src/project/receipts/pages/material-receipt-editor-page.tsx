@@ -4,12 +4,14 @@ import { EpsUnitSelectionDialog } from '@/project/custodians/components/eps-unit
 import type { EpsUnitSelectionItem } from '@/project/custodians/components/eps-unit-selection-dialog';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
 import type { Custodian } from '@/project/custodians/model/custodian';
-import { useHandoversQuery } from '@/project/handover/hooks/use-handovers';
-import { HANDOVER_PERMISSION_CODES } from '@/project/handover/model/handover-permissions';
+import { loadHandovers } from '@/project/handover/api/handovers.api';
 import {
-  HANDOVER_DOCUMENT_COLUMN_PINNING,
-  useHandoverDocumentColumns,
-} from '@/project/handover/table/handover.columns.generated';
+  handoverKeys,
+  useHandoversQuery,
+} from '@/project/handover/hooks/use-handovers';
+import type { HandoverDocument } from '@/project/handover/model/handover';
+import { HANDOVER_PERMISSION_CODES } from '@/project/handover/model/handover-permissions';
+import { useHandoverDocumentColumns } from '@/project/handover/table/handover.columns.generated';
 import { MaterialGroupFilterSidebar } from '@/project/material-groups/components/material-group-filter-tree';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { getMaterialGroupDescendantIds } from '@/project/material-groups/model/material-group-tree';
@@ -22,10 +24,14 @@ import {
 import { MaterialSpreadsheetImportDialog } from '@/project/materials/components/material-spreadsheet-dialog';
 import type { MaterialSpreadsheetImportDraftRow } from '@/project/materials/spreadsheet/material-spreadsheet-import';
 import { useWarehousesQuery } from '@/project/warehouses/hooks/use-warehouses';
+import { useQueries } from '@tanstack/react-query';
 import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import type { PaginationState } from '@tanstack/react-table';
 import {
+  ChevronDown,
+  ChevronRight,
   CircleCheck,
+  CircleDashed,
+  CircleEllipsis,
   LoaderCircle,
   MoreHorizontal,
   Plus,
@@ -57,7 +63,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataGrid } from '@/components/ui/data-grid';
-import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import {
   Dialog,
@@ -76,7 +81,7 @@ import {
 import { ErrorState } from '@/components/ui/error-state';
 import { PageLoading } from '@/components/ui/loading';
 import type { SelectOption } from '@/components/ui/option-select';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Stepper,
@@ -89,6 +94,11 @@ import {
   StepperTrigger,
 } from '@/components/ui/stepper';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useDetailEntryLayoutHeader } from '@/components/layouts/detail-entry-layout';
 import { MaterialReceiptAllocationChart } from '../charts/receipt-allocation.chart.generated';
 import { MaterialReceiptLineMaterialDrawer } from '../components/material-receipt-line-material-drawer';
@@ -121,6 +131,110 @@ import {
 import { MaterialReceiptLinesEditorTable } from '../table/material-receipt-lines-editor-table.generated';
 
 const EMPTY_CUSTODIANS: Custodian[] = [];
+const HANDOVER_GROUP_PAGE_SIZE = 100;
+
+interface ReceiptHandoverGroup {
+  id: string;
+  code: string;
+  name: string;
+  allocatedQuantity: number;
+  handovers: HandoverDocument[];
+}
+
+type ReceiptHandoverGroupStatus = 'completed' | 'confirming' | 'unallocated';
+
+function ReceiptHandoverGroupStatusIcon({
+  status,
+  label,
+}: {
+  status: ReceiptHandoverGroupStatus;
+  label: string;
+}) {
+  const Icon =
+    status === 'completed'
+      ? CircleCheck
+      : status === 'confirming'
+        ? CircleEllipsis
+        : CircleDashed;
+  const colorClassName =
+    status === 'completed'
+      ? 'text-[var(--color-success-accent,var(--color-green-600))]'
+      : status === 'confirming'
+        ? 'text-[var(--color-warning-accent,var(--color-yellow-500))]'
+        : 'text-muted-foreground';
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          aria-label={label}
+          className="inline-flex shrink-0 cursor-help"
+          role="img"
+          tabIndex={0}
+        >
+          <Icon aria-hidden="true" className={`size-5 ${colorClassName}`} />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent
+        variant={
+          status === 'completed'
+            ? 'success'
+            : status === 'confirming'
+              ? 'warning'
+              : 'light'
+        }
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ReceiptHandoverGroupTable({
+  handovers,
+  onView,
+  emptyMessage,
+}: {
+  handovers: HandoverDocument[];
+  onView: (handover: HandoverDocument) => void;
+  emptyMessage: string;
+}) {
+  const columns = useHandoverDocumentColumns({ onView, showViewLabel: true });
+  const table = useReactTable({
+    data: handovers,
+    columns,
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    state: {
+      columnVisibility: {
+        type: false,
+        senderParty: false,
+        recipientParty: false,
+      },
+    },
+  });
+
+  return (
+    <DataGrid
+      table={table}
+      recordCount={handovers.length}
+      emptyMessage=""
+      tableLayout={{
+        headerSticky: false,
+      }}
+    >
+      {handovers.length ? (
+        <div className="overflow-x-auto">
+          <DataGridTable />
+        </div>
+      ) : (
+        <p className="px-3 py-2 text-sm text-muted-foreground">
+          {emptyMessage}
+        </p>
+      )}
+    </DataGrid>
+  );
+}
 
 function getAllocationChartColor(id: string, index: number) {
   let hash = 2166136261;
@@ -247,9 +361,9 @@ export function MaterialReceiptEditorPage() {
     searchParams.get('step') === '2' ? 2 : 1,
   );
   const [confirmStepOpen, setConfirmStepOpen] = useState(false);
-  const [handoverPagination, setHandoverPagination] = useState<PaginationState>(
-    { pageIndex: 0, pageSize: 20 },
-  );
+  const [expandedHandoverGroupIds, setExpandedHandoverGroupIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   const [preview, setPreview] =
     useState<MaterialReceiptInlineUpdatePreview | null>(null);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
@@ -287,36 +401,50 @@ export function MaterialReceiptEditorPage() {
   const handoversQuery = useHandoversQuery(
     {
       receiptId: id || undefined,
-      page: handoverPagination.pageIndex + 1,
-      pageSize: handoverPagination.pageSize,
+      page: 1,
+      pageSize: HANDOVER_GROUP_PAGE_SIZE,
     },
     Boolean(id) && activeStep === 2 && canRead,
   );
-  const handovers = handoversQuery.data?.items ?? [];
+  const handoverPageCount = Math.ceil(
+    (handoversQuery.data?.total ?? 0) / HANDOVER_GROUP_PAGE_SIZE,
+  );
+  const remainingHandoverPages = useQueries({
+    queries: Array.from(
+      { length: Math.max(0, handoverPageCount - 1) },
+      (_, index) => {
+        const filters = {
+          receiptId: id || undefined,
+          page: index + 2,
+          pageSize: HANDOVER_GROUP_PAGE_SIZE,
+        };
+        return {
+          queryKey: handoverKeys.list(filters),
+          queryFn: ({ signal }: { signal: AbortSignal }) =>
+            loadHandovers(filters, signal),
+          enabled: Boolean(id) && activeStep === 2 && canRead,
+          retry: 0,
+        };
+      },
+    ),
+  });
+  const handovers = [
+    ...(handoversQuery.data?.items ?? []),
+    ...remainingHandoverPages.flatMap((page) => page.data?.items ?? []),
+  ];
+  const handoversLoading =
+    handoversQuery.isPending ||
+    remainingHandoverPages.some((page) => page.isPending);
+  const handoversFetching =
+    handoversQuery.isFetching ||
+    remainingHandoverPages.some((page) => page.isFetching);
+  const handoversError =
+    handoversQuery.isError ||
+    remainingHandoverPages.some((page) => page.isError);
   const onViewHandover = useCallback((handover: (typeof handovers)[number]) => {
     const path = ROUTES.PROJECT.HANDOVER_DETAIL.replace(':id', handover.id);
     window.open(toAbsoluteUrl(path), '_blank', 'noopener,noreferrer');
   }, []);
-  const handoverColumns = useHandoverDocumentColumns({
-    onView: onViewHandover,
-    showViewLabel: true,
-  });
-  const handoversTable = useReactTable({
-    data: handovers,
-    columns: handoverColumns,
-    getRowId: (row) => row.id,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    pageCount: Math.ceil(
-      (handoversQuery.data?.total ?? 0) / handoverPagination.pageSize,
-    ),
-    state: {
-      columnPinning: HANDOVER_DOCUMENT_COLUMN_PINNING,
-      columnVisibility: { type: false },
-      pagination: handoverPagination,
-    },
-    onPaginationChange: setHandoverPagination,
-  });
   const warehouses = warehousesQuery.data ?? [];
   const custodians = custodianDirectoryQuery.data ?? EMPTY_CUSTODIANS;
   const warehouseCustodian = custodians.find(
@@ -435,6 +563,50 @@ export function MaterialReceiptEditorPage() {
   );
   const requestRegistrationScope = form.watch('requestRegistrationScope');
   const requestRegistrationPartyIds = form.watch('requestRegistrationPartyIds');
+  const handoverGroups = (() => {
+    const groups = new Map<string, ReceiptHandoverGroup>();
+    const partiesById = new Map(custodians.map((party) => [party.id, party]));
+    const epsUnitsById = new Map(epsUnits.map((unit) => [unit.id, unit]));
+    const ensureGroup = (
+      partyId: string,
+      fallback?: HandoverDocument['recipientParty'],
+    ) => {
+      const party = partiesById.get(partyId);
+      const unit = epsUnitsById.get(partyId);
+      const existing = groups.get(partyId);
+      if (existing) return existing;
+      const group = {
+        id: partyId,
+        code: party?.code ?? unit?.code ?? fallback?.code ?? '',
+        name: party?.name ?? unit?.name ?? fallback?.name ?? partyId,
+        allocatedQuantity: 0,
+        handovers: [],
+      };
+      groups.set(partyId, group);
+      return group;
+    };
+
+    for (const line of watchedLines) {
+      const partyId = line.receivingPartyId;
+      if (!partyId) continue;
+      ensureGroup(partyId).allocatedQuantity += Math.max(
+        0,
+        Number(line.quantity) || 0,
+      );
+    }
+    if (requestRegistrationScope === 'selected') {
+      for (const partyId of requestRegistrationPartyIds) ensureGroup(partyId);
+    }
+    for (const handover of handovers) {
+      const partyId = handover.recipientParty.id;
+      if (!partyId) continue;
+      ensureGroup(partyId, handover.recipientParty).handovers.push(handover);
+    }
+
+    return [...groups.values()].sort((left, right) =>
+      left.name.localeCompare(right.name, 'vi'),
+    );
+  })();
   const allocationChartData = useMemo(() => {
     const quantityByReceivingParty = new Map<string, number>();
     for (const line of watchedLines) {
@@ -537,15 +709,19 @@ export function MaterialReceiptEditorPage() {
     () => navigate(ROUTES.PROJECT.RECEIPTS),
     [navigate],
   );
-  const navigateToAllocationHandover = useCallback(() => {
-    if (!receipt) return;
-    const search = new URLSearchParams({
-      mode: 'warehouse_allocation',
-      receiptId: receipt.id,
-      warehouseId: receipt.warehouseId,
-    });
-    navigate(`${ROUTES.PROJECT.HANDOVER_CREATE}?${search.toString()}`);
-  }, [navigate, receipt]);
+  const navigateToAllocationHandover = useCallback(
+    (recipientPartyId?: string) => {
+      if (!receipt) return;
+      const search = new URLSearchParams({
+        mode: 'warehouse_allocation',
+        receiptId: receipt.id,
+        warehouseId: receipt.warehouseId,
+      });
+      if (recipientPartyId) search.set('recipientPartyId', recipientPartyId);
+      navigate(`${ROUTES.PROJECT.HANDOVER_CREATE}?${search.toString()}`);
+    },
+    [navigate, receipt],
+  );
   const handleImportToReceipt = useCallback(
     (rows: MaterialSpreadsheetImportDraftRow[]) => {
       const importedLines = rows.map(({ values, quantity }) => {
@@ -717,6 +893,7 @@ export function MaterialReceiptEditorPage() {
     lines: MaterialReceiptLineInput[],
   ) => {
     if (!receipt) return;
+    const requestRegistrationScope = form.getValues('requestRegistrationScope');
     inlineApplyMutation.mutate(
       {
         id: receipt.id,
@@ -725,6 +902,11 @@ export function MaterialReceiptEditorPage() {
         warehouseId: result.warehouseId,
         note: form.getValues('note'),
         lines,
+        requestRegistrationScope,
+        requestRegistrationPartyIds:
+          requestRegistrationScope === 'selected'
+            ? form.getValues('requestRegistrationPartyIds')
+            : [],
         cancelHandoverIds: result.affectedHandovers.map(
           (handover) => handover.id,
         ),
@@ -1060,26 +1242,22 @@ export function MaterialReceiptEditorPage() {
       onBack: navigateBack,
       actions: (
         <div className="flex flex-wrap gap-2">
-          {activeStep === 1 ? (
-            !readOnly ? (
-              <Button
-                type="submit"
-                form="materialReceipt-form"
-                variant="primary"
-                size="md"
-                loading={
-                  saveMutation.isPending || excelImportMutation.isPending
-                }
-                loadingText={intl.formatMessage({
-                  id: 'receipts.handover.steps.saveAndContinue',
-                })}
-              >
-                <Save className="size-4" />
-                {intl.formatMessage({
-                  id: 'receipts.handover.steps.saveAndContinue',
-                })}
-              </Button>
-            ) : null
+          {!readOnly && (activeStep === 1 || hasUnsavedChanges) ? (
+            <Button
+              type="submit"
+              form="materialReceipt-form"
+              variant="primary"
+              size="md"
+              loading={saveBusy}
+              loadingText={intl.formatMessage({
+                id: 'receipts.handover.steps.saveAndContinue',
+              })}
+            >
+              <Save className="size-4" />
+              {intl.formatMessage({
+                id: 'receipts.handover.steps.saveAndContinue',
+              })}
+            </Button>
           ) : null}
           {receipt?.status === 'draft' && canManage ? (
             <>
@@ -1178,12 +1356,12 @@ export function MaterialReceiptEditorPage() {
       actionMutation.isPending,
       activeStep,
       canManage,
-      excelImportMutation.isPending,
+      hasUnsavedChanges,
       intl,
       navigateBack,
       readOnly,
       receipt,
-      saveMutation.isPending,
+      saveBusy,
       setDeleteDialogOpen,
       setActionDialog,
       setActionReason,
@@ -1257,9 +1435,7 @@ export function MaterialReceiptEditorPage() {
           readOnly={readOnly}
           warehouseName={receipt?.warehouse.name}
           requestRegistrationScopeOptions={requestRegistrationScopeOptions}
-          requestRegistrationReadOnly={
-            readOnly || receipt?.status === 'handover'
-          }
+          warehouseReadOnly={readOnly || receipt?.status === 'handover'}
           onEditRequestRegistrationParties={() => setEpsUnitSelectionOpen(true)}
         />
       </CardContent>
@@ -1529,18 +1705,6 @@ export function MaterialReceiptEditorPage() {
           setActiveReceivingLineClientId(null);
         }}
       />
-      <EpsUnitSelectionDialog
-        open={epsUnitSelectionOpen}
-        onOpenChange={setEpsUnitSelectionOpen}
-        units={epsUnits}
-        selectedIds={form.watch('requestRegistrationPartyIds')}
-        onConfirm={(selectedIds) =>
-          form.setValue('requestRegistrationPartyIds', selectedIds, {
-            shouldDirty: true,
-            shouldValidate: true,
-          })
-        }
-      />
       <Dialog
         open={previewDialogOpen}
         onOpenChange={(open) => {
@@ -1809,56 +1973,185 @@ export function MaterialReceiptEditorPage() {
         </StepperContent>
         <StepperContent value={2} className="flex min-h-0 flex-1 flex-col">
           <Card className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-            <CardHeader className="flex-row items-center justify-between gap-3">
+            <CardHeader>
               <CardTitle>
                 {intl.formatMessage({ id: 'receipts.tabs.handovers' })}
               </CardTitle>
-              {canAllocate ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="md"
-                  onClick={navigateToAllocationHandover}
-                >
-                  <Plus className="size-4" />
-                  {intl.formatMessage({
-                    id: 'receipts.actions.linkedHandover',
-                  })}
-                </Button>
-              ) : null}
             </CardHeader>
-            <DataGrid
-              table={handoversTable}
-              recordCount={handoversQuery.data?.total ?? 0}
-              isLoading={handoversQuery.isPending}
-              isFetching={handoversQuery.isFetching}
-              emptyMessage={intl.formatMessage({
-                id: 'receipts.empty.handovers',
-              })}
-            >
-              <CardTable className="min-h-0 flex-1">
-                {handoversQuery.isError ? (
-                  <ErrorState
-                    title={intl.formatMessage({
-                      id: 'receipts.errors.loadHandoversTitle',
+            <CardTable className="min-h-0 flex-1">
+              {handoversError ? (
+                <ErrorState
+                  title={intl.formatMessage({
+                    id: 'receipts.errors.loadHandoversTitle',
+                  })}
+                  description={getApiErrorMessage(
+                    handoversQuery.error ??
+                      remainingHandoverPages.find((page) => page.error)?.error,
+                  )}
+                  onRetry={() =>
+                    void Promise.all([
+                      handoversQuery.refetch(),
+                      ...remainingHandoverPages.map((page) => page.refetch()),
+                    ])
+                  }
+                />
+              ) : handoversLoading ? (
+                <div className="space-y-3 p-4">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : (
+                <ScrollArea className="h-full">
+                  <div className="space-y-2 p-3">
+                    {handoverGroups.map((group) => {
+                      const expanded = expandedHandoverGroupIds.has(group.id);
+                      const status: ReceiptHandoverGroupStatus =
+                        group.handovers.length === 0
+                          ? 'unallocated'
+                          : group.handovers.every(
+                                (handover) => handover.status === 'completed',
+                              )
+                            ? 'completed'
+                            : 'confirming';
+                      return (
+                        <Card key={group.id} className="overflow-hidden">
+                          <div className="flex min-w-0 items-center gap-3 p-3">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-7"
+                              aria-label={intl.formatMessage(
+                                { id: 'receipts.handoverGroups.toggle' },
+                                { unit: group.name },
+                              )}
+                              aria-expanded={expanded}
+                              onClick={() =>
+                                setExpandedHandoverGroupIds((current) => {
+                                  const next = new Set(current);
+                                  if (next.has(group.id)) next.delete(group.id);
+                                  else next.add(group.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              {expanded ? (
+                                <ChevronDown className="size-4" />
+                              ) : (
+                                <ChevronRight className="size-4" />
+                              )}
+                            </Button>
+                            <ReceiptHandoverGroupStatusIcon
+                              status={status}
+                              label={intl.formatMessage({
+                                id: `receipts.handoverGroups.status.${status}`,
+                              })}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-baseline gap-2">
+                                <p className="truncate text-sm font-semibold">
+                                  {group.name}
+                                </p>
+                                {group.code ? (
+                                  <span className="shrink-0 text-xs text-muted-foreground">
+                                    {group.code}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                <span>
+                                  {intl.formatMessage(
+                                    {
+                                      id: 'receipts.handoverGroups.allocatedSummary',
+                                    },
+                                    {
+                                      count:
+                                        group.allocatedQuantity.toLocaleString(
+                                          intl.locale,
+                                        ),
+                                    },
+                                  )}
+                                </span>
+                                <span className="text-muted-foreground">·</span>
+                                <span>
+                                  {intl.formatMessage(
+                                    {
+                                      id: 'receipts.handoverGroups.handoverSummary',
+                                    },
+                                    {
+                                      count:
+                                        group.handovers.length.toLocaleString(
+                                          intl.locale,
+                                        ),
+                                    },
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                            {canAllocate ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  navigateToAllocationHandover(group.id)
+                                }
+                              >
+                                <Plus className="size-4" />
+                                {intl.formatMessage({
+                                  id: 'receipts.actions.linkedHandover',
+                                })}
+                              </Button>
+                            ) : null}
+                          </div>
+                          {expanded ? (
+                            <div className="border-t border-border bg-muted/20 px-3 py-3 sm:pl-10">
+                              <div className="overflow-hidden rounded-md border border-border bg-card">
+                                <ReceiptHandoverGroupTable
+                                  handovers={group.handovers}
+                                  onView={onViewHandover}
+                                  emptyMessage={intl.formatMessage({
+                                    id: 'receipts.handoverGroups.empty',
+                                  })}
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+                        </Card>
+                      );
                     })}
-                    description={getApiErrorMessage(handoversQuery.error)}
-                    onRetry={() => void handoversQuery.refetch()}
-                  />
-                ) : (
-                  <ScrollArea className="h-full">
-                    <DataGridTable />
-                    <ScrollBar orientation="horizontal" />
-                  </ScrollArea>
-                )}
-              </CardTable>
-              <CardFooter className="justify-between">
-                {!handoversQuery.isError ? <DataGridPagination /> : null}
+                    {!handoverGroups.length ? (
+                      <p className="py-5 text-center text-sm text-muted-foreground">
+                        {intl.formatMessage({
+                          id: 'receipts.handoverGroups.noUnits',
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                </ScrollArea>
+              )}
+            </CardTable>
+            {handoversFetching && !handoversLoading ? (
+              <CardFooter className="justify-end text-xs text-muted-foreground">
+                {intl.formatMessage({ id: 'common.updating' })}
               </CardFooter>
-            </DataGrid>
+            ) : null}
           </Card>
         </StepperContent>
       </Stepper>
+      <EpsUnitSelectionDialog
+        open={epsUnitSelectionOpen}
+        onOpenChange={setEpsUnitSelectionOpen}
+        units={epsUnits}
+        selectedIds={form.watch('requestRegistrationPartyIds')}
+        onConfirm={(selectedIds) =>
+          form.setValue('requestRegistrationPartyIds', selectedIds, {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }
+      />
       <Dialog
         open={actionDialog !== null}
         onOpenChange={(open) =>
