@@ -1,3 +1,4 @@
+import { pendingDocumentCountsKey } from '@/project/layout/use-my-pending-document-counts';
 import { warehouseStockKeys } from '@/project/warehouse-stock/hooks/use-warehouse-stock';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
@@ -41,8 +42,9 @@ export function useMaterialReceiptsQuery(
   filters: MaterialReceiptListFilters = {},
   enabled = true,
 ) {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: materialReceiptKeys.list(filters),
+    queryKey: [...materialReceiptKeys.list(filters), userId],
     queryFn: ({ signal }) => loadMaterialReceipts(filters, signal),
     enabled,
     retry: 0,
@@ -116,6 +118,9 @@ function useReceiptMutation<TInput, TOutput>(
   return useMutation({
     mutationFn,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: materialReceiptKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({ queryKey: ['project', 'handovers'] });
@@ -156,6 +161,9 @@ export function useSaveMaterialReceiptRepresentativeMutation() {
   return useMutation({
     mutationFn: saveMaterialReceiptRepresentative,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({
         queryKey: materialReceiptKeys.detail(input.receiptId),
       });

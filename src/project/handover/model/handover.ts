@@ -177,6 +177,7 @@ export interface HandoverHistoryEntry {
 }
 
 export interface HandoverListFilters {
+  relationship?: 'relatedToMe' | 'needsAction';
   search?: string;
   type?: HandoverType;
   status?: HandoverStatus;
@@ -198,6 +199,8 @@ export interface HandoverListResult {
 }
 
 export interface HandoverFilterSummary {
+  relatedToMe?: number;
+  needsAction?: number;
   total: number;
   draft: number;
   pending: number;

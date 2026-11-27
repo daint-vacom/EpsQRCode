@@ -55,7 +55,23 @@ export function MaterialLabelTemplatesPage() {
   const [keyword, setKeyword] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
   const [defaultFilter, setDefaultFilter] = useState('');
-  const [filterMode, setFilterMode] = useState<'status' | 'default'>('status');
+  const filterModes = [
+    {
+      value: 'status' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'default' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.defaultTemplate',
+      }),
+    },
+  ];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [deactivatingTemplate, setDeactivatingTemplate] =
     useState<MaterialLabelTemplate | null>(null);
 
@@ -154,25 +170,14 @@ export function MaterialLabelTemplatesPage() {
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'default');
+            setFilterMode(
+              filterModes.find((option) => option.value === value)?.value,
+            );
             setActiveFilter('');
             setDefaultFilter('');
             table.setPageIndex(0);
           }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'default',
-              label: intl.formatMessage({
-                id: 'project.management.filters.defaultTemplate',
-              }),
-            },
-          ]}
+          options={filterModes}
           className="shrink-0"
           disabled={!canView || isPermissionsPending}
         />

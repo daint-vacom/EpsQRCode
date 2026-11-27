@@ -1,3 +1,4 @@
+import { pendingDocumentCountsKey } from '@/project/layout/use-my-pending-document-counts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
@@ -76,8 +77,9 @@ export function useSafetyInspectionListQuery(
   filters: SafetyInspectionListFilters,
   enabled = true,
 ) {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: safetyInspectionKeys.management(filters),
+    queryKey: [...safetyInspectionKeys.management(filters), userId],
     queryFn: ({ signal }) => loadSafetyInspectionList(filters, signal),
     enabled,
     retry: 0,
@@ -137,7 +139,10 @@ export function useStartMaterialSafetyInspectionMutation() {
         input.inspectedAt,
       ),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: safetyInspectionKeys.all }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: pendingDocumentCountsKey }),
+        queryClient.invalidateQueries({ queryKey: safetyInspectionKeys.all }),
+      ]),
   });
 }
 
@@ -154,6 +159,7 @@ export function useSaveMaterialSafetyInspectionMutation() {
     }) => saveMaterialSafetyInspection(input),
     onSuccess: (_result, input) =>
       Promise.all([
+        queryClient.invalidateQueries({ queryKey: pendingDocumentCountsKey }),
         queryClient.invalidateQueries({ queryKey: safetyInspectionKeys.all }),
         queryClient.invalidateQueries({
           queryKey: safetyInspectionKeys.detail(input.inspectionId),

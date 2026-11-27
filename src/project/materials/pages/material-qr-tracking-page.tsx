@@ -87,7 +87,9 @@ export function MaterialQrTrackingPage() {
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
   const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
-  const [filterMode, setFilterMode] = useState<MaterialFilterMode>('scan');
+  const filterModes = ['scan', 'owner'] as const;
+  const [selectedFilterMode, setFilterMode] = useState<MaterialFilterMode>();
+  const filterMode = selectedFilterMode ?? filterModes[0];
   const [scanState, setScanState] = useState<
     'scanned' | 'not_scanned' | undefined
   >();
@@ -369,7 +371,7 @@ export function MaterialQrTrackingPage() {
           <MaterialFilterRow
             mode={filterMode}
             onModeChange={handleFilterModeChange}
-            availableModes={['scan', 'owner']}
+            availableModes={filterModes}
             counts={filterSummary.data}
             isCountsLoading={filterSummary.isPending && !filterSummary.data}
             ownerFilter={filterSummary.data?.ownerFilter}

@@ -229,6 +229,7 @@ export type MaterialReceiptFormValues = z.infer<
 >;
 
 export interface MaterialReceiptListFilters {
+  relationship?: 'relatedToMe' | 'needsAction';
   search?: string;
   status?: MaterialReceiptStatus;
   warehouseId?: string;
@@ -270,6 +271,8 @@ export interface MaterialReceiptRequestListResult {
 }
 
 export interface MaterialReceiptFilterSummary {
+  relatedToMe?: number;
+  needsAction?: number;
   total: number;
   draft: number;
   handover: number;

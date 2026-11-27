@@ -18,12 +18,7 @@ export const materialModelSpecificationSchema = z
     isList: z.boolean(),
     isPublic: z.boolean(),
     valueLabels: z.array(z.string().trim()),
-    values: z
-      .array(z.string().trim())
-      .min(1, 'Mỗi thông số cần ít nhất một giá trị.')
-      .refine((values) => values.some((value) => value.length > 0), {
-        message: 'Vui lòng nhập ít nhất một giá trị.',
-      }),
+    values: z.array(z.string().trim()),
   })
   .superRefine((specification, context) => {
     if (!specification.isList && specification.values.length > 1) {

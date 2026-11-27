@@ -114,6 +114,7 @@ export interface SafetyInspectionListRow {
 }
 
 export interface SafetyInspectionListFilters {
+  relationship?: 'relatedToMe' | 'needsAction';
   search?: string;
   status?: SafetyInspectionStatus;
   overallResult?: SafetyInspectionResult | 'none';
@@ -122,6 +123,8 @@ export interface SafetyInspectionListFilters {
 }
 
 export interface SafetyInspectionListSummary {
+  relatedToMe?: number;
+  needsAction?: number;
   total: number;
   inProgress: number;
   completed: number;

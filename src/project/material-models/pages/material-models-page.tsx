@@ -77,9 +77,23 @@ export function MaterialModelsPage() {
   const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
   const [activeFilter, setActiveFilter] = useState('');
   const [inspectionFilter, setInspectionFilter] = useState('');
-  const [filterMode, setFilterMode] = useState<'status' | 'inspection'>(
-    'status',
-  );
+  const filterModes = [
+    {
+      value: 'status' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'inspection' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.inspection',
+      }),
+    },
+  ];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [pendingAvailabilityIds, setPendingAvailabilityIds] = useState<
     ReadonlySet<string>
   >(() => new Set());
@@ -203,25 +217,14 @@ export function MaterialModelsPage() {
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'inspection');
+            setFilterMode(
+              filterModes.find((option) => option.value === value)?.value,
+            );
             setActiveFilter('');
             setInspectionFilter('');
             table.setPageIndex(0);
           }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'inspection',
-              label: intl.formatMessage({
-                id: 'project.management.filters.inspection',
-              }),
-            },
-          ]}
+          options={filterModes}
           className="shrink-0"
           disabled={!canView || isPermissionsPending}
         />

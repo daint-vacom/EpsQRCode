@@ -77,7 +77,23 @@ export function AccountsPage() {
     status: NO_FILTER,
     organization: NO_FILTER,
   });
-  const [filterMode, setFilterMode] = useState<'status' | 'type'>('status');
+  const filterModes = [
+    {
+      value: 'status' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'type' as const,
+      label: intl.formatMessage({
+        id: 'project.management.filters.accountType',
+      }),
+    },
+  ];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
   const createForm = useAccountForm({ defaultValues: accountDefaultValues });
@@ -300,7 +316,9 @@ export function AccountsPage() {
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'type');
+            setFilterMode(
+              filterModes.find((option) => option.value === value)?.value,
+            );
             setFilters((current) => ({
               ...current,
               status: NO_FILTER,
@@ -308,20 +326,7 @@ export function AccountsPage() {
             }));
             table.setPageIndex(0);
           }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'type',
-              label: intl.formatMessage({
-                id: 'project.management.filters.accountType',
-              }),
-            },
-          ]}
+          options={filterModes}
           className="shrink-0"
           disabled={!canView || isPermissionsPending}
         />

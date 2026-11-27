@@ -53,14 +53,36 @@ export function MaterialReceiptsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MaterialReceiptStatus | ''>('');
   const [warehouseId, setWarehouseId] = useState('');
-  const [filterMode, setFilterMode] = useState<'status' | 'warehouse'>(
-    'status',
-  );
+  const [relationship, setRelationship] = useState('');
+  const filterModes = [
+    {
+      value: 'relationship',
+      label: intl.formatMessage({
+        id: 'project.management.filters.relationship',
+      }),
+    },
+    {
+      value: 'status',
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'warehouse',
+      label: intl.formatMessage({
+        id: 'project.management.filters.warehouse',
+      }),
+    },
+  ] satisfies { value: string; label: string }[];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const query = useMaterialReceiptsQuery(
     {
       search,
+      relationship: relationship || undefined,
       ...(status ? { status } : {}),
       ...(warehouseId ? { warehouseId } : {}),
       page: pageIndex + 1,
@@ -151,25 +173,15 @@ export function MaterialReceiptsPage() {
           <ProjectFilterModeSwitcher
             value={filterMode}
             onValueChange={(value) => {
-              setFilterMode(value as 'status' | 'warehouse');
+              setFilterMode(
+                filterModes.find((option) => option.value === value)?.value,
+              );
+              setRelationship('');
               setStatus('');
               setWarehouseId('');
               setPageIndex(0);
             }}
-            options={[
-              {
-                value: 'status',
-                label: intl.formatMessage({
-                  id: 'project.management.filters.status',
-                }),
-              },
-              {
-                value: 'warehouse',
-                label: intl.formatMessage({
-                  id: 'project.management.filters.warehouse',
-                }),
-              },
-            ]}
+            options={filterModes}
             className="shrink-0"
             disabled={isPermissionsPending || (!canView && !canManage)}
           />
@@ -178,6 +190,41 @@ export function MaterialReceiptsPage() {
             aria-hidden="true"
           />
 
+          {!requestableOnly && filterMode === 'relationship' ? (
+            <FilterCountChips
+              ariaLabel={intl.formatMessage({
+                id: 'project.management.filters.relationship',
+              })}
+              value={relationship}
+              onValueChange={(value) => {
+                setRelationship(value);
+                setPageIndex(0);
+              }}
+              options={[
+                {
+                  value: '',
+                  label: intl.formatMessage({
+                    id: 'project.management.filters.all',
+                  }),
+                  count: summary?.total,
+                },
+                {
+                  value: 'relatedToMe',
+                  label: intl.formatMessage({
+                    id: 'project.management.filters.relatedToMe',
+                  }),
+                  count: summary?.relatedToMe,
+                },
+                {
+                  value: 'needsAction',
+                  label: intl.formatMessage({
+                    id: 'project.management.filters.needsAction',
+                  }),
+                  count: summary?.needsAction,
+                },
+              ]}
+            />
+          ) : null}
           {!requestableOnly && filterMode === 'status' ? (
             <FilterCountChips
               ariaLabel={intl.formatMessage({

@@ -139,8 +139,8 @@ export function SidebarSecondary({
                           <Badge
                             size="sm"
                             shape="circle"
-                            variant={active ? 'primary' : 'secondary'}
-                            appearance={active ? 'default' : 'light'}
+                            variant="destructive"
+                            appearance="default"
                             className="ms-auto shrink-0"
                           >
                             {item.badge}

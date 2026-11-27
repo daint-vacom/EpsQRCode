@@ -69,12 +69,12 @@ function MaterialSpecificationsMaterialMode({
   const [editableRows, setEditableRows] = useState<Record<string, boolean>>({});
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectionAction, setSelectionAction] = useState('delete');
-  const configuredSpecifications = (specifications ?? [])
-    .map((specification) => ({
+  const configuredSpecifications = (specifications ?? []).map(
+    (specification) => ({
       ...specification,
       values: specification.values.filter((value) => value.trim().length > 0),
-    }))
-    .filter((specification) => specification.values.length > 0);
+    }),
+  );
   const selectedRowIds = new Set(selectedRows);
   const selectedCount = configuredSpecifications.filter((specification) =>
     selectedRowIds.has(specification.id),
@@ -86,11 +86,7 @@ function MaterialSpecificationsMaterialMode({
 
   useEffect(() => {
     const specificationIds = new Set(
-      (specifications ?? [])
-        .filter((specification) =>
-          specification.values.some((value) => value.trim().length > 0),
-        )
-        .map((specification) => specification.id),
+      (specifications ?? []).map((specification) => specification.id),
     );
     setSelectedRows((current) => {
       const next = current.filter((id) => specificationIds.has(id));

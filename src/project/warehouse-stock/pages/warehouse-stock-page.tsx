@@ -85,9 +85,23 @@ export function WarehouseStockPage() {
   const canViewReceipts = hasPermission(MATERIAL_RECEIPT_PERMISSION_CODES.view);
   const [search, setSearch] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
-  const [filterMode, setFilterMode] = useState<'warehouse' | 'receipt'>(
-    'warehouse',
-  );
+  const filterModes = [
+    {
+      value: 'warehouse' as const,
+      label: intl.formatMessage({
+        id: 'warehouseStock.filters.mode.warehouse',
+      }),
+    },
+    {
+      value: 'receipt' as const,
+      label: intl.formatMessage({
+        id: 'warehouseStock.filters.mode.receipt',
+      }),
+    },
+  ];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [selectedReceipt, setSelectedReceipt] =
     useState<MaterialReceiptSelectOption>();
   const [groupId, setGroupId] = useState('');
@@ -311,23 +325,12 @@ export function WarehouseStockPage() {
           <ProjectFilterModeSwitcher
             value={filterMode}
             onValueChange={(value) => {
-              setFilterMode(value as 'warehouse' | 'receipt');
+              setFilterMode(
+                filterModes.find((option) => option.value === value)?.value,
+              );
               resetPagination();
             }}
-            options={[
-              {
-                value: 'warehouse',
-                label: intl.formatMessage({
-                  id: 'warehouseStock.filters.mode.warehouse',
-                }),
-              },
-              {
-                value: 'receipt',
-                label: intl.formatMessage({
-                  id: 'warehouseStock.filters.mode.receipt',
-                }),
-              },
-            ]}
+            options={filterModes}
             className="shrink-0"
             disabled={!queryEnabled}
           />

@@ -42,7 +42,30 @@ export function SafetyInspectionsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [overallResult, setOverallResult] = useState('');
-  const [filterMode, setFilterMode] = useState<'status' | 'result'>('status');
+  const [relationship, setRelationship] = useState('');
+  const filterModes = [
+    {
+      value: 'relationship',
+      label: intl.formatMessage({
+        id: 'project.management.filters.relationship',
+      }),
+    },
+    {
+      value: 'status',
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'result',
+      label: intl.formatMessage({
+        id: 'project.management.filters.result',
+      }),
+    },
+  ] satisfies { value: string; label: string }[];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: DEFAULT_PAGE_SIZE,
@@ -50,6 +73,7 @@ export function SafetyInspectionsPage() {
   const filters = useMemo<SafetyInspectionListFilters>(
     () => ({
       search: search.trim() || undefined,
+      relationship: relationship || undefined,
       status: status
         ? (status as SafetyInspectionListFilters['status'])
         : undefined,
@@ -59,7 +83,14 @@ export function SafetyInspectionsPage() {
       page: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
     }),
-    [pagination.pageIndex, pagination.pageSize, search, status, overallResult],
+    [
+      relationship,
+      pagination.pageIndex,
+      pagination.pageSize,
+      search,
+      status,
+      overallResult,
+    ],
   );
   const query = useSafetyInspectionListQuery(
     filters,
@@ -110,25 +141,15 @@ export function SafetyInspectionsPage() {
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'result');
+            setFilterMode(
+              filterModes.find((option) => option.value === value)?.value,
+            );
+            setRelationship('');
             setStatus('');
             setOverallResult('');
             setPagination((current) => ({ ...current, pageIndex: 0 }));
           }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'result',
-              label: intl.formatMessage({
-                id: 'project.management.filters.result',
-              }),
-            },
-          ]}
+          options={filterModes}
           className="shrink-0"
           disabled={!canView || isPermissionsPending}
         />
@@ -137,67 +158,100 @@ export function SafetyInspectionsPage() {
           aria-hidden="true"
         />
 
-        <FilterCountChips
-          ariaLabel={intl.formatMessage({
-            id: `project.management.filters.${filterMode}`,
-          })}
-          value={filterMode === 'status' ? status : overallResult}
-          onValueChange={(value) => {
-            if (filterMode === 'status') setFilter(setStatus)(value);
-            else setFilter(setOverallResult)(value);
-          }}
-          disabled={!canView || isPermissionsPending}
-          options={
-            filterMode === 'status'
-              ? [
-                  {
-                    value: '',
-                    label: intl.formatMessage({
-                      id: 'project.management.filters.all',
-                    }),
-                    count: summary?.total,
-                  },
-                  {
-                    value: 'in_progress',
-                    label: intl.formatMessage({
-                      id: 'project.materials.safetyInspection.status.inProgress',
-                    }),
-                    count: summary?.inProgress,
-                  },
-                  {
-                    value: 'completed',
-                    label: intl.formatMessage({
-                      id: 'project.materials.safetyInspection.status.completed',
-                    }),
-                    count: summary?.completed,
-                  },
-                ]
-              : [
-                  {
-                    value: '',
-                    label: intl.formatMessage({
-                      id: 'project.management.filters.all',
-                    }),
-                    count: summary?.total,
-                  },
-                  ...(['passed', 'failed', 'none'] as const).map((value) => ({
-                    value,
-                    label: intl.formatMessage({
-                      id:
-                        value === 'none'
-                          ? 'project.materials.safetyInspection.results.unassessed'
-                          : `project.materials.safetyInspection.results.${value}`,
-                    }),
-                    count:
-                      value === 'passed'
-                        ? summary?.passed
-                        : value === 'failed'
-                          ? summary?.failed
-                          : summary?.noResult,
-                  })),
-                ]
-          }
-        />
+        {filterMode === 'relationship' ? (
+          <FilterCountChips
+            ariaLabel={intl.formatMessage({
+              id: 'project.management.filters.relationship',
+            })}
+            value={relationship}
+            onValueChange={setFilter(setRelationship)}
+            options={[
+              {
+                value: '',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.all',
+                }),
+                count: summary?.total,
+              },
+              {
+                value: 'relatedToMe',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.relatedToMe',
+                }),
+                count: summary?.relatedToMe,
+              },
+              {
+                value: 'needsAction',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.needsAction',
+                }),
+                count: summary?.needsAction,
+              },
+            ]}
+          />
+        ) : (
+          <FilterCountChips
+            ariaLabel={intl.formatMessage({
+              id: `project.management.filters.${filterMode}`,
+            })}
+            value={filterMode === 'status' ? status : overallResult}
+            onValueChange={(value) => {
+              if (filterMode === 'status') setFilter(setStatus)(value);
+              else setFilter(setOverallResult)(value);
+            }}
+            disabled={!canView || isPermissionsPending}
+            options={
+              filterMode === 'status'
+                ? [
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    {
+                      value: 'in_progress',
+                      label: intl.formatMessage({
+                        id: 'project.materials.safetyInspection.status.inProgress',
+                      }),
+                      count: summary?.inProgress,
+                    },
+                    {
+                      value: 'completed',
+                      label: intl.formatMessage({
+                        id: 'project.materials.safetyInspection.status.completed',
+                      }),
+                      count: summary?.completed,
+                    },
+                  ]
+                : [
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    ...(['passed', 'failed', 'none'] as const).map((value) => ({
+                      value,
+                      label: intl.formatMessage({
+                        id:
+                          value === 'none'
+                            ? 'project.materials.safetyInspection.results.unassessed'
+                            : `project.materials.safetyInspection.results.${value}`,
+                      }),
+                      count:
+                        value === 'passed'
+                          ? summary?.passed
+                          : value === 'failed'
+                            ? summary?.failed
+                            : summary?.noResult,
+                    })),
+                  ]
+            }
+          />
+        )}
       </div>
       <DataGrid
         table={table}

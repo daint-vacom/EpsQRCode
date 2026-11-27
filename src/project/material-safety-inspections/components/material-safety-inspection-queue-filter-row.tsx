@@ -19,7 +19,9 @@ import type {
 } from '../model/safety-inspection';
 import { MaterialSafetyInspectionQueueFilterViewSwitcher } from './material-safety-inspection-queue-filter-view-switcher.generated';
 
-export type MaterialSafetyInspectionQueueFilterMode = 'status' | 'owner';
+export const INSPECTION_QUEUE_FILTER_MODES = ['status', 'owner'] as const;
+export type MaterialSafetyInspectionQueueFilterMode =
+  (typeof INSPECTION_QUEUE_FILTER_MODES)[number];
 export type MaterialSafetyInspectionQueueOwnerType =
   MaterialSafetyInspectionQueueOwnerFilterType;
 
@@ -89,12 +91,11 @@ export function MaterialSafetyInspectionQueueFilterRow({
   const intl = useIntl();
   const modeOptions = useMemo(
     () =>
-      [
-        ['status', 'project.materials.filters.view.status'],
-        ['owner', 'project.materials.filters.view.owner'],
-      ].map(([value, id]) => ({
+      INSPECTION_QUEUE_FILTER_MODES.map((value) => ({
         value,
-        label: intl.formatMessage({ id }),
+        label: intl.formatMessage({
+          id: 'project.materials.filters.view.' + value,
+        }),
       })),
     [intl],
   );

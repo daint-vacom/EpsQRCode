@@ -56,7 +56,30 @@ export function HandoversPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
-  const [filterMode, setFilterMode] = useState<'status' | 'type'>('status');
+  const [relationship, setRelationship] = useState('');
+  const filterModes = [
+    {
+      value: 'relationship',
+      label: intl.formatMessage({
+        id: 'project.management.filters.relationship',
+      }),
+    },
+    {
+      value: 'status',
+      label: intl.formatMessage({
+        id: 'project.management.filters.status',
+      }),
+    },
+    {
+      value: 'type',
+      label: intl.formatMessage({
+        id: 'project.management.filters.type',
+      }),
+    },
+  ] satisfies { value: string; label: string }[];
+  const [selectedFilterMode, setFilterMode] =
+    useState<(typeof filterModes)[number]['value']>();
+  const filterMode = selectedFilterMode ?? filterModes[0].value;
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 20,
@@ -65,12 +88,13 @@ export function HandoversPage() {
   const filters = useMemo<HandoverListFilters>(
     () => ({
       search: search.trim() || undefined,
+      relationship: relationship || undefined,
       status: (status || undefined) as HandoverListFilters['status'],
       type: (type || undefined) as HandoverListFilters['type'],
       page: pageIndex + 1,
       pageSize,
     }),
-    [search, status, type, pageIndex, pageSize],
+    [relationship, search, status, type, pageIndex, pageSize],
   );
   const query = useHandoversQuery(filters, isPermissionsPending || canView);
   const summaryQuery = useHandoverFilterSummaryQuery(
@@ -132,25 +156,15 @@ export function HandoversPage() {
         <ProjectFilterModeSwitcher
           value={filterMode}
           onValueChange={(value) => {
-            setFilterMode(value as 'status' | 'type');
+            setFilterMode(
+              filterModes.find((option) => option.value === value)?.value,
+            );
+            setRelationship('');
             setStatus('');
             setType('');
             setPagination((current) => ({ ...current, pageIndex: 0 }));
           }}
-          options={[
-            {
-              value: 'status',
-              label: intl.formatMessage({
-                id: 'project.management.filters.status',
-              }),
-            },
-            {
-              value: 'type',
-              label: intl.formatMessage({
-                id: 'project.management.filters.type',
-              }),
-            },
-          ]}
+          options={filterModes}
           className="shrink-0"
           disabled={!canView || isPermissionsPending}
         />
@@ -159,60 +173,95 @@ export function HandoversPage() {
           aria-hidden="true"
         />
 
-        <FilterCountChips
-          ariaLabel={intl.formatMessage({
-            id: `project.management.filters.${filterMode}`,
-          })}
-          value={filterMode === 'status' ? status : type}
-          onValueChange={(value) => {
-            if (filterMode === 'status') setFilter(setStatus)(value);
-            else setFilter(setType)(value);
-          }}
-          disabled={!canView || isPermissionsPending}
-          options={
-            filterMode === 'status'
-              ? [
-                  {
-                    value: '',
-                    label: intl.formatMessage({
-                      id: 'project.management.filters.all',
-                    }),
-                    count: summary?.total,
-                  },
-                  ...(
-                    [
-                      'draft',
-                      'pending',
-                      'completed',
-                      'rejected',
-                      'cancelled',
-                    ] as const
-                  ).map((value) => ({
-                    value,
-                    label: intl.formatMessage({
-                      id: `project.handover.status.${value}`,
-                    }),
-                    count: summary?.[value],
-                  })),
-                ]
-              : [
-                  {
-                    value: '',
-                    label: intl.formatMessage({
-                      id: 'project.management.filters.all',
-                    }),
-                    count: summary?.total,
-                  },
-                  ...(['transfer', 'loan', 'return'] as const).map((value) => ({
-                    value,
-                    label: intl.formatMessage({
-                      id: `project.handover.type.${value}`,
-                    }),
-                    count: summary?.[value],
-                  })),
-                ]
-          }
-        />
+        {filterMode === 'relationship' ? (
+          <FilterCountChips
+            ariaLabel={intl.formatMessage({
+              id: 'project.management.filters.relationship',
+            })}
+            value={relationship}
+            onValueChange={setFilter(setRelationship)}
+            options={[
+              {
+                value: '',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.all',
+                }),
+                count: summary?.total,
+              },
+              {
+                value: 'relatedToMe',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.relatedToMe',
+                }),
+                count: summary?.relatedToMe,
+              },
+              {
+                value: 'needsAction',
+                label: intl.formatMessage({
+                  id: 'project.management.filters.needsAction',
+                }),
+                count: summary?.needsAction,
+              },
+            ]}
+          />
+        ) : (
+          <FilterCountChips
+            ariaLabel={intl.formatMessage({
+              id: `project.management.filters.${filterMode}`,
+            })}
+            value={filterMode === 'status' ? status : type}
+            onValueChange={(value) => {
+              if (filterMode === 'status') setFilter(setStatus)(value);
+              else setFilter(setType)(value);
+            }}
+            disabled={!canView || isPermissionsPending}
+            options={
+              filterMode === 'status'
+                ? [
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    ...(
+                      [
+                        'draft',
+                        'pending',
+                        'completed',
+                        'rejected',
+                        'cancelled',
+                      ] as const
+                    ).map((value) => ({
+                      value,
+                      label: intl.formatMessage({
+                        id: `project.handover.status.${value}`,
+                      }),
+                      count: summary?.[value],
+                    })),
+                  ]
+                : [
+                    {
+                      value: '',
+                      label: intl.formatMessage({
+                        id: 'project.management.filters.all',
+                      }),
+                      count: summary?.total,
+                    },
+                    ...(['transfer', 'loan', 'return'] as const).map(
+                      (value) => ({
+                        value,
+                        label: intl.formatMessage({
+                          id: `project.handover.type.${value}`,
+                        }),
+                        count: summary?.[value],
+                      }),
+                    ),
+                  ]
+            }
+          />
+        )}
       </div>
       <DataGrid
         table={table}

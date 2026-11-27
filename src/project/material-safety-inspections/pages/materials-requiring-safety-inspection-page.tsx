@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MaterialSafetyInspectionPlanChart } from '../charts/material-safety-inspection-plan.chart.generated';
 import { MaterialSafetyInspectionStatusChart } from '../charts/material-safety-inspection-status.chart.generated';
 import {
+  INSPECTION_QUEUE_FILTER_MODES,
   MaterialSafetyInspectionQueueFilterRow,
   type MaterialSafetyInspectionQueueFilterMode,
   type MaterialSafetyInspectionQueueOwnerType,
@@ -78,8 +79,9 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
   const [isGroupTreeOpen, setIsGroupTreeOpen] = useState(true);
-  const [filterMode, setFilterMode] =
-    useState<MaterialSafetyInspectionQueueFilterMode>('status');
+  const [selectedFilterMode, setFilterMode] =
+    useState<MaterialSafetyInspectionQueueFilterMode>();
+  const filterMode = selectedFilterMode ?? INSPECTION_QUEUE_FILTER_MODES[0];
   const [status, setStatus] =
     useState<MaterialSafetyInspectionQueueFilters['status']>();
   const [ownerType, setOwnerType] = useState<

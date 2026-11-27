@@ -10,6 +10,7 @@ import { PROJECT_MENU_GROUPS } from '@/config/project-menu.config';
 import { useAppSettings } from '@/providers/app-settings-provider';
 import { useUser } from '@/providers/user-provider';
 import { MainLayout } from '@/components/layouts/main-layout';
+import { useMyPendingDocumentCounts } from './use-my-pending-document-counts';
 
 const OPERATION_MENU_ACCESS: Record<
   string,
@@ -47,6 +48,12 @@ const OPERATION_MENU_ACCESS: Record<
 
 export function ProjectMainLayout() {
   const { hasPermission } = useUser();
+  const { data: counts } = useMyPendingDocumentCounts();
+  const badges: Record<string, number | undefined> = {
+    [ROUTES.PROJECT.SAFETY_INSPECTIONS]: counts?.safetyInspections,
+    [ROUTES.PROJECT.HANDOVERS]: counts?.handovers,
+    [ROUTES.PROJECT.RECEIPTS]: counts?.materialReceipts,
+  };
   const intl = useIntl();
   const { pathname } = useLocation();
   const { appearance } = useAppSettings();
@@ -93,6 +100,12 @@ export function ProjectMainLayout() {
             : item;
       }),
   })).filter((group) => group.items.length > 0);
+  for (const group of menuGroups) {
+    group.items = group.items.map((item) => {
+      const count = item.path ? badges[item.path] : undefined;
+      return count ? { ...item, badge: count } : item;
+    });
+  }
   const menuItems = menuGroups.flatMap((group) => group.items);
   const activeItem = menuItems.find((item) => item.path === pathname);
   const breadcrumbCurrent = activeItem?.label ?? 'Quản lý vật tư';

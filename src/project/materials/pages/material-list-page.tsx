@@ -71,6 +71,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
+  MATERIAL_FILTER_MODES,
   MaterialFilterRow,
   type MaterialFilterMode,
 } from '../components/material-filter-row';
@@ -185,7 +186,8 @@ export function MaterialListPage() {
   const canManage = hasPermission(MATERIAL_PERMISSION_CODES.manage);
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
-  const [filterMode, setFilterMode] = useState<MaterialFilterMode>('status');
+  const [selectedFilterMode, setFilterMode] = useState<MaterialFilterMode>();
+  const filterMode = selectedFilterMode ?? MATERIAL_FILTER_MODES[0];
   const [isActive, setIsActive] = useState<boolean | undefined>();
   const [condition, setCondition] = useState<MaterialCondition | undefined>();
   const [groupingEnabled, setGroupingEnabled] = useState(false);

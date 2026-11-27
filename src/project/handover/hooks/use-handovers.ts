@@ -1,4 +1,5 @@
 import { materialDashboardKeys } from '@/project/dashboard/hooks/use-material-dashboard';
+import { pendingDocumentCountsKey } from '@/project/layout/use-my-pending-document-counts';
 import { warehouseStockKeys } from '@/project/warehouse-stock/hooks/use-warehouse-stock';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
@@ -33,8 +34,9 @@ export function useHandoversQuery(
   filters: HandoverListFilters = {},
   enabled = true,
 ) {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: handoverKeys.list(filters),
+    queryKey: [...handoverKeys.list(filters), userId],
     queryFn: ({ signal }) => loadHandovers(filters, signal),
     enabled,
     retry: 0,
@@ -82,6 +84,9 @@ export function useSaveHandoverMutation() {
       values: HandoverFormValues;
     }) => saveHandover(id, values),
     onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
     },
@@ -93,6 +98,9 @@ export function useSaveWarehouseHandoverMutation() {
   return useMutation({
     mutationFn: saveWarehouseHandover,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({
@@ -111,6 +119,9 @@ export function useHandoverActionMutation() {
   return useMutation({
     mutationFn: actOnHandover,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({
@@ -128,6 +139,9 @@ export function useCompleteHandoverOfflineMutation() {
   return useMutation({
     mutationFn: completeHandoverOffline,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({
@@ -145,6 +159,9 @@ export function useWarehouseHandoverActionMutation() {
   return useMutation({
     mutationFn: actOnWarehouseHandover,
     onSuccess: (_result, input) => {
+      void queryClient.invalidateQueries({
+        queryKey: pendingDocumentCountsKey,
+      });
       queryClient.invalidateQueries({ queryKey: handoverKeys.all });
       queryClient.invalidateQueries({ queryKey: ['project', 'materials'] });
       queryClient.invalidateQueries({ queryKey: warehouseStockKeys.all });

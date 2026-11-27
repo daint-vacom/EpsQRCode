@@ -24,6 +24,8 @@ import type {
 } from '../model/material';
 import { MaterialFilterViewSwitcher } from './material-filter-view-switcher.generated';
 
+export const MATERIAL_FILTER_MODES = ['status', 'condition', 'owner'] as const;
+
 export type MaterialFilterMode = 'status' | 'condition' | 'owner' | 'scan';
 
 const OWNER_TYPE_OPTION_IDS: Record<MaterialOwnerFilterType, string> = {
@@ -78,7 +80,7 @@ export function MaterialFilterRow({
   counts = {},
   isCountsLoading = false,
   ownerFilter,
-  availableModes = ['status', 'condition', 'owner'],
+  availableModes = MATERIAL_FILTER_MODES,
   isActive,
   onIsActiveChange,
   condition,
