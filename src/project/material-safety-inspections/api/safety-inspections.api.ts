@@ -9,6 +9,7 @@ import type {
   MaterialSafetyInspectionPlanResult,
   MaterialSafetyInspectionQueueFilters,
   MaterialSafetyInspectionQueueResult,
+  MaterialSafetyInspectionType,
   SafetyInspection,
   SafetyInspectionAttachment,
   SafetyInspectionFormValues,
@@ -17,18 +18,17 @@ import type {
   SafetyInspectionListResult,
   SafetyInspectionListRow,
   SafetyInspectionListSummary,
+  SafetyInspectionTypeOption,
 } from '../model/safety-inspection';
-import {
-  makeSafetyInspectionFormValues,
-  safetyInspectionFormSchema,
-} from '../model/safety-inspection';
-import type { SafetyInspectionChecklistGroup } from '../model/safety-inspection-checklist';
+import { safetyInspectionFormSchema } from '../model/safety-inspection';
 
 export const MATERIAL_SAFETY_INSPECTIONS_BUCKET = 'material-safety-inspections';
 
 interface SafetyInspectionRow {
   id: string;
   material_id: string;
+  inspection_type_id: string;
+  inspection_type_name_snapshot: string;
   status: 'in_progress' | 'completed';
   inspected_at: string;
   inspected_by: string;
@@ -52,6 +52,8 @@ function mapSafetyInspection(row: SafetyInspectionRow): SafetyInspection {
   return {
     id: row.id,
     materialId: row.material_id,
+    inspectionTypeId: row.inspection_type_id,
+    inspectionTypeName: row.inspection_type_name_snapshot,
     status: row.status,
     inspectedAt: row.inspected_at,
     inspectorUserId: row.inspected_by,
@@ -65,11 +67,12 @@ function mapSafetyInspection(row: SafetyInspectionRow): SafetyInspection {
 }
 
 const inspectionSelect =
-  'id,material_id,status,inspected_at,inspected_by,inspector_name,checklist_result,overall_note,overall_result,attachments,created_at';
+  'id,material_id,inspection_type_id,inspection_type_name_snapshot,status,inspected_at,inspected_by,inspector_name,checklist_result,overall_note,overall_result,attachments,created_at';
 
 export async function loadMaterialSafetyInspections(
   materialId: string,
   signal?: AbortSignal,
+  inspectionTypeId?: string,
 ): Promise<SafetyInspection[]> {
   assertSupabaseConfigured();
   const rows = await request<SafetyInspectionRow[]>(
@@ -77,6 +80,9 @@ export async function loadMaterialSafetyInspections(
       params: {
         select: inspectionSelect,
         material_id: `eq.${materialId}`,
+        ...(inspectionTypeId
+          ? { inspection_type_id: `eq.${inspectionTypeId}` }
+          : {}),
         order: 'inspected_at.desc,id.desc',
       },
       signal,
@@ -128,14 +134,46 @@ export async function loadSafetyInspectionList(
 }
 
 export async function loadSafetyInspectionFilterSummary(
-  search = '',
+  search: string,
+  inspectionTypeId: string,
   signal?: AbortSignal,
 ): Promise<SafetyInspectionListSummary> {
   assertSupabaseConfigured();
   return request(
     supabaseApi.post(
       '/rpc/get_safety_inspection_filter_summary',
-      { p_search: search.trim() || null },
+      {
+        p_search: search.trim() || null,
+        p_inspection_type_id: inspectionTypeId || null,
+      },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialSafetyInspectionTypes(
+  materialId: string,
+  signal?: AbortSignal,
+): Promise<MaterialSafetyInspectionType[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_material_safety_inspection_types_for_material',
+      { p_material_id: materialId },
+      { signal },
+    ),
+  );
+}
+
+export async function loadMaterialSafetyInspectionHistoryTypes(
+  materialId: string,
+  signal?: AbortSignal,
+): Promise<SafetyInspectionTypeOption[]> {
+  assertSupabaseConfigured();
+  return request(
+    supabaseApi.post(
+      '/rpc/list_material_safety_inspection_history_types',
+      { p_material_id: materialId },
       { signal },
     ),
   );
@@ -143,63 +181,19 @@ export async function loadSafetyInspectionFilterSummary(
 
 export async function startMaterialSafetyInspectionDraft(
   materialId: string,
-  checklist: SafetyInspectionChecklistGroup[],
+  inspectionTypeId: string,
   inspectorName: string,
   inspectedAt: string,
 ): Promise<string> {
   assertSupabaseConfigured();
-  if (checklist.length === 0) {
-    throw new Error('Vật tư chưa có bảng kiểm tra an toàn.');
-  }
-
-  const findOpenDraft = async () => {
-    const rows = await request<Array<{ id: string }>>(
-      supabaseApi.get('/material_safety_inspections', {
-        params: {
-          select: 'id',
-          material_id: `eq.${materialId}`,
-          status: 'eq.in_progress',
-          order: 'created_at.asc,id.asc',
-          limit: '1',
-        },
-      }),
-    );
-    return rows[0]?.id;
-  };
-
-  const existingId = await findOpenDraft();
-  if (existingId) return existingId;
-
-  const values = makeSafetyInspectionFormValues(
-    checklist,
-    inspectorName,
-    inspectedAt,
+  return request(
+    supabaseApi.post('/rpc/start_material_safety_inspection_draft', {
+      p_material_id: materialId,
+      p_inspection_type_id: inspectionTypeId,
+      p_inspector_name: inspectorName,
+      p_inspected_at: inspectedAt,
+    }),
   );
-  const inspectionId = crypto.randomUUID();
-  try {
-    await request(
-      supabaseApi.post(
-        '/material_safety_inspections',
-        {
-          id: inspectionId,
-          material_id: materialId,
-          status: 'in_progress',
-          inspected_at: toInspectionTimestamp(values.inspectedAt),
-          inspector_name: values.inspectorName,
-          checklist_result: values.checklistResult,
-          overall_note: values.overallNote,
-          overall_result: null,
-          attachments: [],
-        },
-        { headers: { Prefer: 'return=minimal' } },
-      ),
-    );
-    return inspectionId;
-  } catch (error) {
-    const concurrentDraftId = await findOpenDraft().catch(() => undefined);
-    if (concurrentDraftId) return concurrentDraftId;
-    throw error;
-  }
 }
 
 export async function loadSafetyInspection(

@@ -63,6 +63,15 @@ export function useSafetyInspectionListColumns(
         ),
       }),
       col.text({
+        id: 'inspectionType',
+        header: intl.formatMessage({
+          id: 'project.materials.safetyInspection.type',
+        }),
+        get: (row) => row.inspectionTypeName,
+        size: 200,
+        enableSorting: false,
+      }),
+      col.text({
         id: 'inspectorName',
         header: intl.formatMessage({
           id: 'project.materials.safetyInspection.list.inspector',

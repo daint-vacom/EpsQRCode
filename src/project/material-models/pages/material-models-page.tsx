@@ -123,7 +123,8 @@ export function MaterialModelsPage() {
         (!groupIds || groupIds.includes(model.groupId ?? '')) &&
         (!activeFilter || model.isActive === (activeFilter === 'active')) &&
         (!inspectionFilter ||
-          model.requiresInspection === (inspectionFilter === 'required')) &&
+          model.hasActiveSafetyInspection ===
+            (inspectionFilter === 'required')) &&
         (!normalizedKeyword ||
           [model.code, model.name].some((value) =>
             value.toLocaleLowerCase('vi').includes(normalizedKeyword),

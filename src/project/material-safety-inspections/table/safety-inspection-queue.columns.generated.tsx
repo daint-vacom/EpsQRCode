@@ -5,19 +5,18 @@
  * hand-edit this banner or the generated badge config — that's how review detects a bypassed builder.
  */
 import { useMemo } from 'react';
-import { buildPath, ROUTES } from '@/constants/routes';
+import { ROUTES } from '@/constants/routes';
 import { MaterialQrCode } from '@/project/materials/components/material-qr-code';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ClipboardCheck, ClipboardPenLine } from 'lucide-react';
 import { useIntl } from 'react-intl';
-import { Link } from 'react-router-dom';
 import { formatDate } from '@/lib/date';
-import { Badge } from '@/components/ui/badge';
-import {
-  createColumnHelpers,
-  DataGridActionButton,
-} from '@/components/ui/data-grid-columns';
+import { createColumnHelpers } from '@/components/ui/data-grid-columns';
 import { MaterialIdentity } from '@/components/material-identity';
+import {
+  SafetyInspectionDueDate,
+  SafetyInspectionRowAction,
+  SafetyInspectionStatusBadge,
+} from '../components/safety-inspection-schedule-cells';
 import type { MaterialSafetyInspectionQueueRow } from '../model/safety-inspection';
 
 export interface UseMaterialSafetyInspectionQueueColumnsParams {
@@ -55,6 +54,15 @@ export function useMaterialSafetyInspectionQueueColumns(
         enableSorting: false,
         cell: (row) => <MaterialIdentity name={row.name} code={row.code} />,
       }),
+      col.text({
+        id: 'inspectionType',
+        header: intl.formatMessage({
+          id: 'project.materials.safetyInspection.type',
+        }),
+        get: (row) => row.typeName,
+        size: 200,
+        enableSorting: false,
+      }),
       col.custom({
         id: 'lastInspection',
         header: intl.formatMessage({
@@ -77,36 +85,10 @@ export function useMaterialSafetyInspectionQueueColumns(
         size: 190,
         enableSorting: false,
         cell: (row) => (
-          <div className="space-y-1">
-            <p className="text-sm text-foreground">
-              {formatDate(new Date(`${row.nextDueDate}T00:00:00`))}
-            </p>
-            <p
-              className={
-                row.daysRemaining < 0
-                  ? 'text-xs font-medium text-destructive'
-                  : 'text-xs text-muted-foreground'
-              }
-            >
-              {row.daysRemaining < 0
-                ? intl.formatMessage(
-                    {
-                      id: 'project.materials.safetyInspection.queue.daysOverdue',
-                    },
-                    { days: Math.abs(row.daysRemaining) },
-                  )
-                : row.daysRemaining === 0
-                  ? intl.formatMessage({
-                      id: 'project.materials.safetyInspection.queue.dueToday',
-                    })
-                  : intl.formatMessage(
-                      {
-                        id: 'project.materials.safetyInspection.queue.daysRemaining',
-                      },
-                      { days: row.daysRemaining },
-                    )}
-            </p>
-          </div>
+          <SafetyInspectionDueDate
+            dueDate={row.nextDueDate}
+            daysRemaining={row.daysRemaining}
+          />
         ),
       }),
       col.custom({
@@ -116,21 +98,7 @@ export function useMaterialSafetyInspectionQueueColumns(
         }),
         size: 165,
         enableSorting: false,
-        cell: (row) => (
-          <Badge
-            variant={
-              row.status === 'due'
-                ? 'destructive'
-                : row.status === 'in_progress'
-                  ? 'warning'
-                  : 'success'
-            }
-          >
-            {intl.formatMessage({
-              id: `project.materials.safetyInspection.queue.status.${row.status === 'in_progress' ? 'inProgress' : row.status}`,
-            })}
-          </Badge>
-        ),
+        cell: (row) => <SafetyInspectionStatusBadge status={row.status} />,
       }),
       col.custom({
         id: 'startInspection',
@@ -140,60 +108,16 @@ export function useMaterialSafetyInspectionQueueColumns(
         cellClassName: 'text-right',
         size: 210,
         enableSorting: false,
-        cell: (row) => {
-          const inProgress =
-            row.status === 'in_progress' && row.activeInspectionId !== null;
-          const label = intl.formatMessage({
-            id: inProgress
-              ? 'project.materials.safetyInspection.actions.continue'
-              : 'project.materials.safetyInspection.actions.createNow',
-          });
-          if (!row.hasChecklist || !params.canManage) {
-            return (
-              <DataGridActionButton
-                action="primary"
-                type="button"
-                mode="link"
-                size="sm"
-                disabled
-                title={intl.formatMessage({
-                  id: row.hasChecklist
-                    ? 'project.materials.safetyInspection.queue.noManage'
-                    : 'project.materials.safetyInspection.queue.noChecklist',
-                })}
-              >
-                <ClipboardPenLine />
-                {label}
-              </DataGridActionButton>
-            );
-          }
-          const path = inProgress
-            ? buildPath(ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_DETAIL, {
-                id: row.id,
-                inspectionId: row.activeInspectionId!,
-              })
-            : buildPath(ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_CREATE, {
-                id: row.id,
-              });
-          return (
-            <DataGridActionButton
-              action="primary"
-              asChild
-              mode="link"
-              size="sm"
-            >
-              <Link
-                to={path}
-                state={{
-                  returnTo: ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION,
-                }}
-              >
-                {inProgress ? <ClipboardCheck /> : <ClipboardPenLine />}
-                {label}
-              </Link>
-            </DataGridActionButton>
-          );
-        },
+        cell: (row) => (
+          <SafetyInspectionRowAction
+            materialId={row.id}
+            typeId={row.typeId}
+            activeInspectionId={row.activeInspectionId}
+            hasChecklist={row.hasChecklist}
+            canManage={params.canManage}
+            returnTo={ROUTES.PROJECT.MATERIALS_REQUIRING_INSPECTION}
+          />
+        ),
       }),
     ];
   }, [intl, params.canManage]);

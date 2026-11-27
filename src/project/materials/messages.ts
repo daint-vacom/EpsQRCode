@@ -500,6 +500,51 @@ export const materialMessagesVi: Record<string, string> = {
     'Khôi phục checklist mặc định?',
   'project.materials.safetyInspection.checklist.restoreDialogDescription':
     'Dữ liệu checklist kiểm tra an toàn thiết lập riêng cho vật tư này sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục không?',
+  'project.materials.safetyInspection.typeConfig.title':
+    'Các loại kiểm tra an toàn',
+  'project.materials.safetyInspection.typeConfig.active': 'Đang áp dụng',
+  'project.materials.safetyInspection.typeConfig.inactive': 'Đang tắt',
+  'project.materials.safetyInspection.typeConfig.add': 'Thêm loại kiểm tra',
+  'project.materials.safetyInspection.typeConfig.edit':
+    'Chỉnh sửa loại kiểm tra',
+  'project.materials.safetyInspection.typeConfig.empty':
+    'Chưa cấu hình loại kiểm tra an toàn.',
+  'project.materials.safetyInspection.typeConfig.inherited':
+    'Đang kế thừa từ {source}',
+  'project.materials.safetyInspection.typeConfig.interval': 'Chu kỳ kiểm tra',
+  'project.materials.safetyInspection.typeConfig.enabled':
+    'Áp dụng loại kiểm tra này',
+  'project.materials.safetyInspection.typeConfig.startsOn':
+    'Hạn kiểm tra đầu tiên',
+  'project.materials.safetyInspection.typeConfig.checklist': 'Bảng kiểm',
+  'project.materials.safetyInspection.typeConfig.source.group': 'nhóm vật tư',
+  'project.materials.safetyInspection.typeConfig.source.model': 'mẫu vật tư',
+  'project.materials.safetyInspection.typeConfig.source.material': 'vật tư',
+  'project.materials.safetyInspection.typeConfig.inherit':
+    'Dùng cấu hình được kế thừa',
+  'project.materials.safetyInspection.typeConfig.dialog.title':
+    'Cấu hình loại kiểm tra',
+  'project.materials.safetyInspection.typeConfig.dialog.description':
+    'Cấu hình bảng kiểm, chu kỳ và nguồn áp dụng cho loại kiểm tra này.',
+  'project.materials.safetyInspection.typeConfig.validation.name':
+    'Vui lòng nhập tên loại kiểm tra.',
+  'project.materials.safetyInspection.typeConfig.validation.interval':
+    'Chu kỳ phải là số nguyên dương.',
+  'project.materials.safetyInspection.typeConfig.errors.saveTitle':
+    'Không lưu được cấu hình kiểm tra',
+  'project.materials.safetyInspection.typeConfig.units.day': 'Ngày',
+  'project.materials.safetyInspection.typeConfig.units.month': 'Tháng',
+  'project.materials.safetyInspection.typeConfig.units.quarter': 'Quý',
+  'project.materials.safetyInspection.typeConfig.checklistMode.replace':
+    'Thay thế bảng kiểm được kế thừa',
+  'project.materials.safetyInspection.typeConfig.checklistMode.append':
+    'Bổ sung vào bảng kiểm được kế thừa',
+  'project.materials.safetyInspection.typeConfig.recalculate':
+    'Tính lại hạn hiện tại cho các vật tư áp dụng chu kỳ này',
+  'project.materials.safetyInspection.typeConfig.previewCount':
+    'Xem trước hạn mới của {count} vật tư',
+  'project.materials.safetyInspection.typeConfig.previewError':
+    'Không tải được xem trước lịch kiểm tra',
   'project.materials.fields.group': 'Nhóm vật tư',
   'project.materials.fields.createdAt': 'Ngày tạo',
   'project.materials.fields.updatedAt': 'Cập nhật gần nhất',
@@ -640,9 +685,28 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.history.criteriaCount':
     '{count} nội dung',
   'project.materials.safetyInspection.queue.title': 'Vật tư cần kiểm tra',
-  'project.materials.safetyInspection.queue.recordCountLabel': 'vật tư',
+  'project.materials.safetyInspection.type': 'Loại kiểm tra',
+  'project.materials.safetyInspection.allTypes': 'Tất cả loại kiểm tra',
+  'project.materials.safetyInspection.schedule.title': 'Lịch kiểm tra',
+  'project.materials.safetyInspection.schedule.interval': 'Chu kỳ',
+  'project.materials.safetyInspection.schedule.interval.day':
+    'Mỗi {count} ngày',
+  'project.materials.safetyInspection.schedule.interval.month':
+    'Mỗi {count} tháng',
+  'project.materials.safetyInspection.schedule.interval.quarter':
+    'Mỗi {count} quý',
+  'project.materials.safetyInspection.schedule.source': 'Nguồn',
+  'project.materials.safetyInspection.schedule.disabled': 'Đã tắt',
+  'project.materials.safetyInspection.schedule.empty': 'Chưa có lịch kiểm tra.',
+  'project.materials.safetyInspection.schedule.loadTitle':
+    'Không tải được lịch kiểm tra',
+  'project.materials.safetyInspection.config.saveEntityFirst':
+    'Lưu thông tin trước để thiết lập các loại kiểm tra.',
+  'project.materials.safetyInspection.errors.typeUnavailable':
+    'Vật tư chưa có loại kiểm tra khả dụng. Kiểm tra lại cấu hình và bảng kiểm của vật tư.',
+  'project.materials.safetyInspection.queue.recordCountLabel': 'lượt kiểm tra',
   'project.materials.safetyInspection.queue.groupCount':
-    '{count} vật tư cần kiểm tra',
+    '{count} lượt kiểm tra',
   'project.materials.safetyInspection.queue.search': 'Tìm mã hoặc tên vật tư',
   'project.materials.safetyInspection.queue.filterStatus': 'Lọc trạng thái',
   'project.materials.safetyInspection.queue.allStatuses': 'Tất cả trạng thái',
@@ -656,12 +720,13 @@ export const materialMessagesVi: Record<string, string> = {
   'project.materials.safetyInspection.queue.status.inProgress': 'Đang kiểm tra',
   'project.materials.safetyInspection.queue.chart.statusTitle':
     'Trạng thái kiểm tra',
-  'project.materials.safetyInspection.queue.chart.countLabel': 'Số vật tư',
+  'project.materials.safetyInspection.queue.chart.countLabel':
+    'Số lượt kiểm tra',
   'project.materials.safetyInspection.queue.chart.notInspected':
     'Chưa kiểm tra',
   'project.materials.safetyInspection.queue.chart.inProgress': 'Đang kiểm tra',
   'project.materials.safetyInspection.queue.chart.completed': 'Đã kiểm tra',
-  'project.materials.safetyInspection.queue.chart.total': 'Vật tư cần kiểm tra',
+  'project.materials.safetyInspection.queue.chart.total': 'Lượt kiểm tra',
   'project.materials.safetyInspection.queue.chart.planTitle':
     'Kế hoạch kiểm tra',
   'project.materials.safetyInspection.queue.chart.year': 'Năm',
@@ -1317,6 +1382,53 @@ export const materialMessagesEn: Record<string, string> = {
     'Restore the default checklist?',
   'project.materials.safetyInspection.checklist.restoreDialogDescription':
     'The safety checklist configured for this material will be deleted and cannot be recovered. Do you want to continue?',
+  'project.materials.safetyInspection.typeConfig.title':
+    'Safety inspection types',
+  'project.materials.safetyInspection.typeConfig.active': 'Enabled',
+  'project.materials.safetyInspection.typeConfig.inactive': 'Disabled',
+  'project.materials.safetyInspection.typeConfig.add': 'Add inspection type',
+  'project.materials.safetyInspection.typeConfig.edit': 'Edit inspection type',
+  'project.materials.safetyInspection.typeConfig.empty':
+    'No safety inspection types are configured.',
+  'project.materials.safetyInspection.typeConfig.inherited':
+    'Inherited from {source}',
+  'project.materials.safetyInspection.typeConfig.interval':
+    'Inspection interval',
+  'project.materials.safetyInspection.typeConfig.enabled':
+    'Apply this inspection type',
+  'project.materials.safetyInspection.typeConfig.startsOn':
+    'First inspection due date',
+  'project.materials.safetyInspection.typeConfig.checklist': 'Checklist',
+  'project.materials.safetyInspection.typeConfig.source.group':
+    'material group',
+  'project.materials.safetyInspection.typeConfig.source.model':
+    'material model',
+  'project.materials.safetyInspection.typeConfig.source.material': 'material',
+  'project.materials.safetyInspection.typeConfig.inherit':
+    'Use inherited configuration',
+  'project.materials.safetyInspection.typeConfig.dialog.title':
+    'Configure inspection type',
+  'project.materials.safetyInspection.typeConfig.dialog.description':
+    'Configure the checklist, interval, and source for this inspection type.',
+  'project.materials.safetyInspection.typeConfig.validation.name':
+    'Enter an inspection type name.',
+  'project.materials.safetyInspection.typeConfig.validation.interval':
+    'The interval must be a positive whole number.',
+  'project.materials.safetyInspection.typeConfig.errors.saveTitle':
+    'Could not save inspection configuration',
+  'project.materials.safetyInspection.typeConfig.units.day': 'Days',
+  'project.materials.safetyInspection.typeConfig.units.month': 'Months',
+  'project.materials.safetyInspection.typeConfig.units.quarter': 'Quarters',
+  'project.materials.safetyInspection.typeConfig.checklistMode.replace':
+    'Replace the inherited checklist',
+  'project.materials.safetyInspection.typeConfig.checklistMode.append':
+    'Add to the inherited checklist',
+  'project.materials.safetyInspection.typeConfig.recalculate':
+    'Recalculate current due dates for materials using this interval',
+  'project.materials.safetyInspection.typeConfig.previewCount':
+    'Preview new due dates for {count} materials',
+  'project.materials.safetyInspection.typeConfig.previewError':
+    'Could not load the inspection schedule preview',
   'project.materials.fields.group': 'Material group',
   'project.materials.fields.createdAt': 'Created',
   'project.materials.fields.updatedAt': 'Last updated',
@@ -1456,9 +1568,28 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.history.criteriaCount': '{count} items',
   'project.materials.safetyInspection.queue.title':
     'Materials requiring inspection',
-  'project.materials.safetyInspection.queue.recordCountLabel': 'materials',
-  'project.materials.safetyInspection.queue.groupCount':
-    '{count} materials requiring inspection',
+  'project.materials.safetyInspection.type': 'Inspection type',
+  'project.materials.safetyInspection.allTypes': 'All inspection types',
+  'project.materials.safetyInspection.schedule.title': 'Inspection schedule',
+  'project.materials.safetyInspection.schedule.interval': 'Interval',
+  'project.materials.safetyInspection.schedule.interval.day':
+    'Every {count, plural, one {day} other {# days}}',
+  'project.materials.safetyInspection.schedule.interval.month':
+    'Every {count, plural, one {month} other {# months}}',
+  'project.materials.safetyInspection.schedule.interval.quarter':
+    'Every {count, plural, one {quarter} other {# quarters}}',
+  'project.materials.safetyInspection.schedule.source': 'Source',
+  'project.materials.safetyInspection.schedule.disabled': 'Disabled',
+  'project.materials.safetyInspection.schedule.empty':
+    'No inspection schedules.',
+  'project.materials.safetyInspection.schedule.loadTitle':
+    'Could not load inspection schedules',
+  'project.materials.safetyInspection.config.saveEntityFirst':
+    'Save the record before configuring inspection types.',
+  'project.materials.safetyInspection.errors.typeUnavailable':
+    'This material has no available inspection type. Check its inspection settings and checklists.',
+  'project.materials.safetyInspection.queue.recordCountLabel': 'inspections',
+  'project.materials.safetyInspection.queue.groupCount': '{count} inspections',
   'project.materials.safetyInspection.queue.search':
     'Search material code or name',
   'project.materials.safetyInspection.queue.filterStatus': 'Filter by status',
@@ -1471,13 +1602,12 @@ export const materialMessagesEn: Record<string, string> = {
   'project.materials.safetyInspection.queue.status.inProgress': 'In progress',
   'project.materials.safetyInspection.queue.chart.statusTitle':
     'Inspection status',
-  'project.materials.safetyInspection.queue.chart.countLabel': 'Materials',
+  'project.materials.safetyInspection.queue.chart.countLabel': 'Inspections',
   'project.materials.safetyInspection.queue.chart.notInspected':
     'Not inspected',
   'project.materials.safetyInspection.queue.chart.inProgress': 'In progress',
   'project.materials.safetyInspection.queue.chart.completed': 'Inspected',
-  'project.materials.safetyInspection.queue.chart.total':
-    'Materials requiring inspection',
+  'project.materials.safetyInspection.queue.chart.total': 'Inspections',
   'project.materials.safetyInspection.queue.chart.planTitle': 'Inspection plan',
   'project.materials.safetyInspection.queue.chart.year': 'Year',
   'project.materials.safetyInspection.queue.chart.planLoadTitle':

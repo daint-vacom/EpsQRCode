@@ -3,8 +3,7 @@ import { ROUTES } from '@/constants/routes';
 import { useCodeGenerationPatternsQuery } from '@/project/code-generation/hooks/use-code-generation-patterns';
 import { DEFAULT_CODE_GENERATION_PATTERNS } from '@/project/code-generation/model/code-pattern-example';
 import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
-import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
-import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import { SafetyInspectionTypeConfigs } from '@/project/material-safety-inspections/components/safety-inspection-type-configs';
 import {
   ClipboardCheck,
   Eye,
@@ -25,26 +24,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ErrorState } from '@/components/ui/error-state';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { InputSelect } from '@/components/ui/input-select';
 import { Label } from '@/components/ui/label';
 import { PageLoading } from '@/components/ui/loading';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
@@ -107,22 +88,9 @@ export function MaterialModelEditorPage() {
       DEFAULT_MATERIAL_PUBLIC_DISPLAY_SETTINGS,
     );
   const [activeTab, setActiveTab] = useState('general');
-  const requiresInspection = form.watch('requiresInspection');
   const specificationCount =
     (groupQuery.data?.specifications.length ?? 0) +
     (form.watch('specifications')?.length ?? 0);
-  const inspectionChecklist = form.watch('safetyInspectionChecklist') ?? [];
-  const useGroupSafetyInspectionChecklist = form.watch(
-    'useGroupSafetyInspectionChecklist',
-  );
-  const inspectionChecklistCount = requiresInspection
-    ? mergeSafetyInspectionChecklists(
-        useGroupSafetyInspectionChecklist
-          ? groupQuery.data?.safetyInspectionChecklist
-          : undefined,
-        inspectionChecklist,
-      ).reduce((count, group) => count + group.criteria.length, 0)
-    : 0;
   const specificationErrorCount = countFormErrors(
     form.formState.errors.specifications,
   );
@@ -332,7 +300,7 @@ export function MaterialModelEditorPage() {
                 <SlidersHorizontal className="size-4" aria-hidden="true" />
                 {intl.formatMessage({ id: 'materialModels.tabs.technical' })}
               </TabsTrigger>
-              <TabsTrigger value="inspection" count={inspectionChecklistCount}>
+              <TabsTrigger value="inspection">
                 <ClipboardCheck className="size-4" aria-hidden="true" />
                 {intl.formatMessage({ id: 'materialModels.tabs.inspection' })}
               </TabsTrigger>
@@ -435,168 +403,18 @@ export function MaterialModelEditorPage() {
               value="inspection"
               className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain"
             >
-              <Card className="min-w-0 shrink-0">
-                <CardContent className="p-5">
-                  <Form {...form}>
-                    <div className="flex flex-col gap-4">
-                      <FormField
-                        control={form.control}
-                        name="requiresInspection"
-                        render={({ field }) => (
-                          <FormItem
-                            layout="horizontal"
-                            labelWidth="md"
-                            alignment="center"
-                          >
-                            <FormLabel>
-                              {intl.formatMessage({
-                                id: 'materialModels.fields.requiresInspection',
-                              })}
-                            </FormLabel>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                onBlur={field.onBlur}
-                                name={field.name}
-                                ref={field.ref}
-                                aria-label={intl.formatMessage({
-                                  id: 'materialModels.fields.requiresInspection',
-                                })}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      {requiresInspection ? (
-                        <>
-                          <FormField
-                            control={form.control}
-                            name="inspectionIntervalValue"
-                            render={({ field }) => (
-                              <FormItem
-                                layout="horizontal"
-                                labelWidth="md"
-                                alignment="center"
-                              >
-                                <FormLabel htmlFor="material-model-inspection-interval">
-                                  {intl.formatMessage({
-                                    id: 'materialModels.fields.inspectionInterval',
-                                  })}
-                                </FormLabel>
-                                <FormControl>
-                                  <InputSelect
-                                    input={
-                                      <Input
-                                        {...field}
-                                        id="material-model-inspection-interval"
-                                        type="number"
-                                        min={1}
-                                        step={1}
-                                        aria-label={intl.formatMessage({
-                                          id: 'materialModels.fields.inspectionInterval',
-                                        })}
-                                        onChange={(event) =>
-                                          field.onChange(
-                                            event.target.value === ''
-                                              ? ''
-                                              : Number(event.target.value),
-                                          )
-                                        }
-                                      />
-                                    }
-                                    select={
-                                      <Select
-                                        value={form.watch(
-                                          'inspectionIntervalUnit',
-                                        )}
-                                        onValueChange={(value) => {
-                                          if (
-                                            value === 'day' ||
-                                            value === 'month'
-                                          ) {
-                                            form.setValue(
-                                              'inspectionIntervalUnit',
-                                              value,
-                                              { shouldDirty: true },
-                                            );
-                                          }
-                                        }}
-                                      >
-                                        <SelectTrigger
-                                          size="sm"
-                                          aria-label={intl.formatMessage({
-                                            id: 'materialModels.fields.inspectionIntervalUnit',
-                                          })}
-                                        >
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="day">
-                                            {intl.formatMessage({
-                                              id: 'materialModels.inspectionIntervalUnits.day',
-                                            })}
-                                          </SelectItem>
-                                          <SelectItem value="month">
-                                            {intl.formatMessage({
-                                              id: 'materialModels.inspectionIntervalUnits.month',
-                                            })}
-                                          </SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    }
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="skipInitialInspection"
-                            render={({ field }) => (
-                              <FormItem
-                                layout="horizontal"
-                                labelWidth="md"
-                                alignment="center"
-                              >
-                                <FormLabel>
-                                  {intl.formatMessage({
-                                    id: 'materialModels.fields.skipInitialInspection',
-                                  })}
-                                </FormLabel>
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                    onBlur={field.onBlur}
-                                    name={field.name}
-                                    ref={field.ref}
-                                    aria-label={intl.formatMessage({
-                                      id: 'materialModels.fields.skipInitialInspection',
-                                    })}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </>
-                      ) : null}
-                    </div>
-                  </Form>
-                </CardContent>
-              </Card>
-              {requiresInspection ? (
-                <SafetyInspectionChecklistEditor
-                  groups={inspectionChecklist}
-                  onChange={(groups) =>
-                    form.setValue('safetyInspectionChecklist', groups, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
+              {editingModel ? (
+                <SafetyInspectionTypeConfigs
+                  scopeKind="model"
+                  scopeId={editingModel.id}
                 />
-              ) : null}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {intl.formatMessage({
+                    id: 'project.materials.safetyInspection.config.saveEntityFirst',
+                  })}
+                </p>
+              )}
             </TabsContent>
           </Tabs>
         </form>

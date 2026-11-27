@@ -24,6 +24,14 @@ const spec: TableSpec = {
     },
     {
       kind: 'text',
+      id: 'inspectionType',
+      field: 'inspectionTypeName',
+      header: 'Loại kiểm tra',
+      headerMessageId: 'project.materials.safetyInspection.type',
+      size: 200,
+    },
+    {
+      kind: 'text',
       id: 'inspectorName',
       field: 'inspectorName',
       header: 'Người thực hiện',

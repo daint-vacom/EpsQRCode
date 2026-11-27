@@ -520,6 +520,7 @@ export function buildMaterialModelImportProposals(
         externalCodes: linkedCodes.map((item) => item.value),
         linkedCodes,
         requiresInspection: false,
+        hasActiveSafetyInspection: false,
         inspectionIntervalValue: 1,
         inspectionIntervalUnit: 'month',
         skipInitialInspection: false,

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useCustodiansQuery } from '@/project/custodians/hooks/use-custodians';
-import { useMaterialGroupQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
 import { MaterialModelGalleryCard } from '@/project/material-models/forms/material-model-gallery-card';
 import type {
@@ -13,7 +12,7 @@ import {
   mapPublicSpecificationSettings,
 } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
-import { mergeSafetyInspectionChecklists } from '@/project/material-safety-inspections/model/safety-inspection-checklist';
+import { SafetyInspectionTypeConfigs } from '@/project/material-safety-inspections/components/safety-inspection-type-configs';
 import { MATERIAL_IMAGES_BUCKET } from '@/project/materials/api/materials.api';
 import { MaterialOwnerCard } from '@/project/materials/components/material-owner-card';
 import {
@@ -25,13 +24,8 @@ import type { MaterialFormSchemaValues } from '@/project/materials/forms/materia
 import { useMaterialCapitalSourcesQuery } from '@/project/materials/hooks/use-material-capital-sources';
 import type {
   MaterialImageDraft,
-  MaterialModelSafetyInspectionConfig,
   MaterialOwnerSnapshotDraft,
 } from '@/project/materials/model/material';
-import {
-  MaterialInspectionScheduleCard,
-  MaterialSafetyChecklistSection,
-} from '@/project/materials/pages/material-editor-page';
 import { ClipboardCheck, Eye, Info, SlidersHorizontal } from 'lucide-react';
 import type { FieldPath } from 'react-hook-form';
 import { useIntl } from 'react-intl';
@@ -111,30 +105,6 @@ export function MaterialReceiptLineMaterialDrawer({
     (party) => party.id === warehouseId,
   );
   const currentModel = model ?? undefined;
-  const groupQuery = useMaterialGroupQuery(
-    currentModel?.groupId ?? '',
-    open && Boolean(currentModel?.useGroupSafetyInspectionChecklist),
-  );
-  const modelChecklist = useMemo(
-    () =>
-      mergeSafetyInspectionChecklists(
-        currentModel?.useGroupSafetyInspectionChecklist
-          ? groupQuery.data?.safetyInspectionChecklist
-          : undefined,
-        currentModel?.safetyInspectionChecklist,
-      ),
-    [currentModel, groupQuery.data?.safetyInspectionChecklist],
-  );
-  const inspectionConfig = useMemo<MaterialModelSafetyInspectionConfig>(
-    () => ({
-      requiresInspection: currentModel?.requiresInspection ?? false,
-      inspectionIntervalValue: currentModel?.inspectionIntervalValue ?? 12,
-      inspectionIntervalUnit: currentModel?.inspectionIntervalUnit ?? 'month',
-      skipInitialInspection: currentModel?.skipInitialInspection ?? false,
-      safetyInspectionChecklist: modelChecklist,
-    }),
-    [currentModel, modelChecklist],
-  );
   const snapshotSpecifications =
     currentModel?.specifications.filter(
       (specification) => !hiddenSpecificationIds.includes(specification.id),
@@ -508,42 +478,11 @@ export function MaterialReceiptLineMaterialDrawer({
                     value="inspection"
                     className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"
                   >
-                    {groupQuery.isPending && groupQuery.isFetching ? (
-                      <PageLoading
-                        label={intl.formatMessage({
-                          id: 'common.state.loading',
-                        })}
-                      />
-                    ) : groupQuery.isError ? (
-                      <ErrorState
-                        title={intl.formatMessage({
-                          id: 'materialGroups.errors.loadTitle',
-                        })}
-                        description={getApiErrorMessage(groupQuery.error)}
-                        onRetry={() => void groupQuery.refetch()}
-                      />
-                    ) : (
-                      <MaterialInspectionScheduleCard
-                        form={form}
-                        modelName={model.name}
-                        modelSafetyInspectionConfig={inspectionConfig}
-                      />
-                    )}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>
-                          {intl.formatMessage({
-                            id: 'project.materials.tabs.safetyChecklist',
-                          })}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <MaterialSafetyChecklistSection
-                          form={form}
-                          modelChecklist={modelChecklist}
-                        />
-                      </CardContent>
-                    </Card>
+                    <SafetyInspectionTypeConfigs
+                      scopeKind="model"
+                      scopeId={model.id}
+                      readOnly
+                    />
                   </TabsContent>
                 ) : null}
               </Tabs>

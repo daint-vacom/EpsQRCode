@@ -390,6 +390,7 @@ export function MaterialGroupsPage() {
         title={intl.formatMessage({ id: 'materialGroups.dialogs.editTitle' })}
         codePattern={codePattern}
         resetKey={editingGroup?.id ?? 'edit'}
+        inspectionScopeId={editingGroup?.id}
         parentIdOptions={editParentIdOptions}
       />
       <ConfirmDialog

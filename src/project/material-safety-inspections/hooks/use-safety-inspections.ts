@@ -1,10 +1,13 @@
+import { materialDashboardKeys } from '@/project/dashboard/hooks/use-material-dashboard';
 import { pendingDocumentCountsKey } from '@/project/layout/use-my-pending-document-counts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/providers/user-provider';
 import {
+  loadMaterialSafetyInspectionHistoryTypes,
   loadMaterialSafetyInspectionPlan,
   loadMaterialSafetyInspectionQueue,
   loadMaterialSafetyInspections,
+  loadMaterialSafetyInspectionTypes,
   loadSafetyInspection,
   loadSafetyInspectionFilterSummary,
   loadSafetyInspectionList,
@@ -18,7 +21,6 @@ import type {
   SafetyInspectionFormValues,
   SafetyInspectionListFilters,
 } from '../model/safety-inspection';
-import type { SafetyInspectionChecklistGroup } from '../model/safety-inspection-checklist';
 
 export const safetyInspectionKeys = {
   all: ['project', 'material-safety-inspections'] as const,
@@ -30,12 +32,17 @@ export const safetyInspectionKeys = {
     [...safetyInspectionKeys.all, 'plan', userId, filters] as const,
   management: (filters: SafetyInspectionListFilters) =>
     [...safetyInspectionKeys.all, 'management', filters] as const,
-  managementSummary: (userId: string | null, search: string) =>
+  managementSummary: (
+    userId: string | null,
+    search: string,
+    inspectionTypeId: string,
+  ) =>
     [
       ...safetyInspectionKeys.all,
       'management-summary',
       userId,
       search,
+      inspectionTypeId,
     ] as const,
   list: (materialId: string) =>
     [...safetyInspectionKeys.all, 'material', materialId] as const,
@@ -88,13 +95,19 @@ export function useSafetyInspectionListQuery(
 
 export function useSafetyInspectionFilterSummaryQuery(
   search: string,
+  inspectionTypeId: string,
   enabled = true,
 ) {
   const { userId } = useUser();
 
   return useQuery({
-    queryKey: safetyInspectionKeys.managementSummary(userId, search),
-    queryFn: ({ signal }) => loadSafetyInspectionFilterSummary(search, signal),
+    queryKey: safetyInspectionKeys.managementSummary(
+      userId,
+      search,
+      inspectionTypeId,
+    ),
+    queryFn: ({ signal }) =>
+      loadSafetyInspectionFilterSummary(search, inspectionTypeId, signal),
     enabled,
     placeholderData: (previousData, previousQuery) =>
       previousQuery?.queryKey[3] === userId ? previousData : undefined,
@@ -105,10 +118,17 @@ export function useSafetyInspectionFilterSummaryQuery(
 export function useMaterialSafetyInspectionsQuery(
   materialId: string,
   enabled = true,
+  inspectionTypeId?: string,
 ) {
+  const { userId } = useUser();
   return useQuery({
-    queryKey: safetyInspectionKeys.list(materialId),
-    queryFn: ({ signal }) => loadMaterialSafetyInspections(materialId, signal),
+    queryKey: [
+      ...safetyInspectionKeys.list(materialId),
+      userId,
+      inspectionTypeId,
+    ],
+    queryFn: ({ signal }) =>
+      loadMaterialSafetyInspections(materialId, signal, inspectionTypeId),
     enabled: Boolean(materialId) && enabled,
     retry: 0,
   });
@@ -123,23 +143,55 @@ export function useSafetyInspectionQuery(inspectionId: string, enabled = true) {
   });
 }
 
+export function useMaterialSafetyInspectionTypesQuery(
+  materialId: string,
+  enabled = true,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: [...safetyInspectionKeys.all, 'types', materialId, userId],
+    queryFn: ({ signal }) =>
+      loadMaterialSafetyInspectionTypes(materialId, signal),
+    enabled: Boolean(materialId) && enabled,
+    retry: 0,
+  });
+}
+
+export function useMaterialSafetyInspectionHistoryTypesQuery(
+  materialId: string,
+) {
+  const { userId } = useUser();
+  return useQuery({
+    queryKey: [
+      ...safetyInspectionKeys.list(materialId),
+      'history-types',
+      userId,
+    ],
+    queryFn: ({ signal }) =>
+      loadMaterialSafetyInspectionHistoryTypes(materialId, signal),
+    enabled: Boolean(materialId),
+    retry: 0,
+  });
+}
+
 export function useStartMaterialSafetyInspectionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: {
       materialId: string;
-      checklist: SafetyInspectionChecklistGroup[];
+      inspectionTypeId: string;
       inspectorName: string;
       inspectedAt: string;
     }) =>
       startMaterialSafetyInspectionDraft(
         input.materialId,
-        input.checklist,
+        input.inspectionTypeId,
         input.inspectorName,
         input.inspectedAt,
       ),
     onSuccess: () =>
       Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialDashboardKeys.all }),
         queryClient.invalidateQueries({ queryKey: pendingDocumentCountsKey }),
         queryClient.invalidateQueries({ queryKey: safetyInspectionKeys.all }),
       ]),
@@ -159,6 +211,7 @@ export function useSaveMaterialSafetyInspectionMutation() {
     }) => saveMaterialSafetyInspection(input),
     onSuccess: (_result, input) =>
       Promise.all([
+        queryClient.invalidateQueries({ queryKey: materialDashboardKeys.all }),
         queryClient.invalidateQueries({ queryKey: pendingDocumentCountsKey }),
         queryClient.invalidateQueries({ queryKey: safetyInspectionKeys.all }),
         queryClient.invalidateQueries({

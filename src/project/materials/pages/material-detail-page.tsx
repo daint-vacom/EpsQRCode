@@ -31,6 +31,7 @@ import { buildPath, ROUTES } from '@/constants/routes';
 import { useMaterialGroupsQuery } from '@/project/material-groups/hooks/use-material-groups';
 import { useMaterialLabelPrintSnapshotQuery } from '@/project/material-labels/hooks/use-material-label-templates';
 import { MATERIAL_MODEL_IMAGES_BUCKET } from '@/project/material-models/api/material-models.api';
+import { MaterialSafetyInspectionSchedules } from '@/project/material-safety-inspections/components/material-safety-inspection-schedules';
 import { MaterialSafetyInspectionsPanel } from '@/project/material-safety-inspections/components/material-safety-inspections-panel';
 import { useMaterialSafetyInspectionsQuery } from '@/project/material-safety-inspections/hooks/use-safety-inspections';
 import { useIntl } from 'react-intl';
@@ -60,12 +61,7 @@ import {
   useMaterialQuery,
   usePublicMaterialDetailQuery,
 } from '../hooks/use-materials';
-import {
-  getMaterialInspectionSettings,
-  getMaterialSafetyInspectionChecklist,
-  type Material,
-  type MaterialPublicDetail,
-} from '../model/material';
+import type { Material, MaterialPublicDetail } from '../model/material';
 import { MATERIAL_PERMISSION_CODES } from '../model/material-permissions';
 import '@/project/material-labels/pages/material-label-print.css';
 
@@ -375,18 +371,17 @@ export function MaterialDetailPage({
                     className="mt-0"
                   >
                     {tab.value === 'safety' && !publicMode && material ? (
-                      <MaterialSafetyInspectionsPanel
-                        materialId={material.id}
-                        canManage={canManage}
-                        hasChecklist={
-                          getMaterialSafetyInspectionChecklist(material)
-                            .length > 0
-                        }
-                        requiresInspection={
-                          getMaterialInspectionSettings(material)
-                            .requiresInspection
-                        }
-                      />
+                      <div className="space-y-4">
+                        <MaterialSafetyInspectionSchedules
+                          materialId={material.id}
+                          canManage={canManage}
+                        />
+                        <MaterialSafetyInspectionsPanel
+                          key={material.id}
+                          materialId={material.id}
+                          canManage={canManage}
+                        />
+                      </div>
                     ) : null}
                   </TabsContent>
                 ))}

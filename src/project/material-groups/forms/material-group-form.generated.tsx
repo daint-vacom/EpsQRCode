@@ -11,7 +11,7 @@ import { useMemo, useState, type KeyboardEvent } from 'react';
 import { CodeInputField } from '@/project/code-generation/components/code-input-field';
 import type { MaterialModelFormValues } from '@/project/material-models/model/material-model';
 import { MaterialSpecificationsTable } from '@/project/material-models/table/material-specifications-table';
-import { SafetyInspectionChecklistEditor } from '@/project/material-safety-inspections/components/safety-inspection-checklist-editor';
+import { SafetyInspectionTypeConfigs } from '@/project/material-safety-inspections/components/safety-inspection-type-configs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ClipboardCheck, Info, SlidersHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -106,6 +106,7 @@ interface MaterialGroupFormProps {
   mode: 'create' | 'edit';
   codePattern: string;
   resetKey: string;
+  inspectionScopeId?: string;
   parentIdOptions: SelectOption<MaterialGroup>[];
 }
 
@@ -116,6 +117,7 @@ export function MaterialGroupForm({
   mode,
   codePattern,
   resetKey,
+  inspectionScopeId,
   parentIdOptions,
 }: MaterialGroupFormProps) {
   const intl = useIntl();
@@ -300,18 +302,20 @@ export function MaterialGroupForm({
           </TabsContent>
           <TabsContent
             value="inspection"
-            className="mt-0 min-h-0 flex-1 overflow-hidden px-6 pb-5 pt-4"
+            className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 pb-5 pt-4"
           >
-            <SafetyInspectionChecklistEditor
-              groups={form.watch('safetyInspectionChecklist') ?? []}
-              fillHeight
-              onChange={(groups) =>
-                form.setValue('safetyInspectionChecklist', groups, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+            {inspectionScopeId ? (
+              <SafetyInspectionTypeConfigs
+                scopeKind="group"
+                scopeId={inspectionScopeId}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {intl.formatMessage({
+                  id: 'project.materials.safetyInspection.config.saveEntityFirst',
+                })}
+              </p>
+            )}
           </TabsContent>
         </Tabs>
       </form>
@@ -329,6 +333,7 @@ interface MaterialGroupFormDialogProps {
   title?: string;
   codePattern: string;
   resetKey: string;
+  inspectionScopeId?: string;
   parentIdOptions: SelectOption<MaterialGroup>[];
 }
 
@@ -342,6 +347,7 @@ export function MaterialGroupFormDialog({
   title,
   codePattern,
   resetKey,
+  inspectionScopeId,
   parentIdOptions,
 }: MaterialGroupFormDialogProps) {
   const intl = useIntl();
@@ -404,6 +410,7 @@ export function MaterialGroupFormDialog({
               mode={mode}
               codePattern={codePattern}
               resetKey={resetKey}
+              inspectionScopeId={inspectionScopeId}
               parentIdOptions={parentIdOptions}
             />
           </DialogBody>

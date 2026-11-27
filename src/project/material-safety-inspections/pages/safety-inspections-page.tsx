@@ -22,6 +22,7 @@ import { DataGridPagination } from '@/components/ui/data-grid-pagination';
 import { DataGridTable } from '@/components/ui/data-grid-table';
 import { ErrorState } from '@/components/ui/error-state';
 import { SearchInput } from '@/components/ui/inputs/search-input';
+import { OptionSelect } from '@/components/ui/option-select';
 import { PageHeader } from '@/components/ui/page-header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import {
@@ -40,6 +41,7 @@ export function SafetyInspectionsPage() {
   const { isPermissionsPending } = useWorkspace();
   const canView = hasPermission(MATERIAL_PERMISSION_CODES.view);
   const [search, setSearch] = useState('');
+  const [inspectionTypeId, setInspectionTypeId] = useState('');
   const [status, setStatus] = useState('');
   const [overallResult, setOverallResult] = useState('');
   const [relationship, setRelationship] = useState('');
@@ -73,7 +75,11 @@ export function SafetyInspectionsPage() {
   const filters = useMemo<SafetyInspectionListFilters>(
     () => ({
       search: search.trim() || undefined,
-      relationship: relationship || undefined,
+      inspectionTypeId: inspectionTypeId || undefined,
+      relationship:
+        relationship === 'relatedToMe' || relationship === 'needsAction'
+          ? relationship
+          : undefined,
       status: status
         ? (status as SafetyInspectionListFilters['status'])
         : undefined,
@@ -84,6 +90,7 @@ export function SafetyInspectionsPage() {
       pageSize: pagination.pageSize,
     }),
     [
+      inspectionTypeId,
       relationship,
       pagination.pageIndex,
       pagination.pageSize,
@@ -98,6 +105,7 @@ export function SafetyInspectionsPage() {
   );
   const summaryQuery = useSafetyInspectionFilterSummaryQuery(
     search.trim(),
+    inspectionTypeId,
     !isPermissionsPending && canView,
   );
   const summary = summaryQuery.data;
@@ -270,7 +278,7 @@ export function SafetyInspectionsPage() {
               id: 'project.materials.safetyInspection.list.recordCountLabel',
             })}
             stats={
-              <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <SearchInput
                   aria-label={intl.formatMessage({
                     id: 'project.materials.safetyInspection.list.search',
@@ -281,6 +289,24 @@ export function SafetyInspectionsPage() {
                   value={search}
                   className="w-72 shrink-0"
                   onSearch={setFilter(setSearch)}
+                />
+                <OptionSelect
+                  ariaLabel={intl.formatMessage({
+                    id: 'project.materials.safetyInspection.type',
+                  })}
+                  value={inspectionTypeId}
+                  onChange={setFilter(setInspectionTypeId)}
+                  placeholder={intl.formatMessage({
+                    id: 'project.materials.safetyInspection.allTypes',
+                  })}
+                  options={(summary?.inspectionTypes ?? []).map((type) => ({
+                    value: type.id,
+                    label: type.name,
+                  }))}
+                  canDeselect
+                  disabled={
+                    !canView || isPermissionsPending || summaryQuery.isPending
+                  }
                 />
               </div>
             }

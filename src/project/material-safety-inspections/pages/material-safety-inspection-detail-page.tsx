@@ -172,6 +172,12 @@ export function MaterialSafetyInspectionDetailPage() {
               />
               <DetailValue
                 label={intl.formatMessage({
+                  id: 'project.materials.safetyInspection.type',
+                })}
+                value={inspection.inspectionTypeName}
+              />
+              <DetailValue
+                label={intl.formatMessage({
                   id: 'project.materials.safetyInspection.fields.inspectedAt',
                 })}
                 value={new Intl.DateTimeFormat(intl.locale, {

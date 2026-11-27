@@ -77,6 +77,8 @@ export interface SafetyInspectionAttachment {
 export interface SafetyInspection {
   id: string;
   materialId: string;
+  inspectionTypeId: string;
+  inspectionTypeName: string;
   status: SafetyInspectionStatus;
   inspectedAt: string;
   inspectorUserId: string;
@@ -90,8 +92,38 @@ export interface SafetyInspection {
 
 export type SafetyInspectionStatus = 'in_progress' | 'completed';
 
+export interface MaterialSafetyInspectionType {
+  typeId: string;
+  typeName: string;
+  checklist: SafetyInspectionChecklistGroup[];
+  enabled: boolean;
+  intervalValue: number | null;
+  intervalUnit: 'day' | 'month' | 'quarter' | null;
+  startsOn: string | null;
+  dueDate: string | null;
+  daysRemaining: number | null;
+  lastInspectedAt: string | null;
+  activeInspectionId: string | null;
+  status: MaterialSafetyInspectionQueueRow['status'] | null;
+  sourceKind: 'group' | 'model' | 'material';
+  sourceId: string;
+}
+
+export function canStartMaterialSafetyInspection(
+  type: MaterialSafetyInspectionType,
+) {
+  return (
+    type.enabled &&
+    type.intervalValue !== null &&
+    type.intervalUnit !== null &&
+    type.checklist.length > 0
+  );
+}
+
 export interface MaterialSafetyInspectionQueueRow {
   id: string;
+  typeId: string;
+  typeName: string;
   code: string;
   name: string;
   lastInspectedAt: string | null;
@@ -105,6 +137,8 @@ export interface MaterialSafetyInspectionQueueRow {
 export interface SafetyInspectionListRow {
   id: string;
   materialId: string;
+  inspectionTypeId: string;
+  inspectionTypeName: string;
   materialCode: string;
   materialName: string;
   inspectedAt: string;
@@ -116,6 +150,7 @@ export interface SafetyInspectionListRow {
 export interface SafetyInspectionListFilters {
   relationship?: 'relatedToMe' | 'needsAction';
   search?: string;
+  inspectionTypeId?: string;
   status?: SafetyInspectionStatus;
   overallResult?: SafetyInspectionResult | 'none';
   page?: number;
@@ -123,6 +158,7 @@ export interface SafetyInspectionListFilters {
 }
 
 export interface SafetyInspectionListSummary {
+  inspectionTypes: SafetyInspectionTypeOption[];
   relatedToMe?: number;
   needsAction?: number;
   total: number;
@@ -131,6 +167,11 @@ export interface SafetyInspectionListSummary {
   passed: number;
   failed: number;
   noResult: number;
+}
+
+export interface SafetyInspectionTypeOption {
+  id: string;
+  name: string;
 }
 
 export interface MaterialSafetyInspectionQueueFilters {

@@ -172,7 +172,7 @@ export async function loadMaterialModels(
   while (true) {
     const page = await request<MaterialModelRow[]>(
       supabaseApi.post(
-        '/rpc/list_material_models_page',
+        '/rpc/list_material_models_with_inspection_status_page',
         {
           ...cursor,
           p_page_size: MATERIAL_MODEL_CATALOG_PAGE_SIZE,

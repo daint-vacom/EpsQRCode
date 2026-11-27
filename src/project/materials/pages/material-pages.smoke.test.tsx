@@ -1,13 +1,7 @@
 import type { ReactNode } from 'react';
 import { vi as messagesVi } from '@/i18n/messages/vi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -21,6 +15,23 @@ const mocks = vi.hoisted(() => ({
     Promise.resolve('https://example.test/signed-image'),
   ),
 }));
+
+vi.mock(
+  '@/project/material-safety-inspections/components/safety-inspection-type-configs',
+  () => ({
+    SafetyInspectionTypeConfigs: ({
+      scopeKind,
+      scopeId,
+    }: {
+      scopeKind: string;
+      scopeId: string;
+    }) => (
+      <div data-testid="inspection-config-scope">
+        {scopeKind}/{scopeId}
+      </div>
+    ),
+  }),
+);
 
 vi.mock('@/lib/storage', () => ({
   createSignedStorageUrl: mocks.createSignedStorageUrl,
@@ -136,6 +147,14 @@ vi.mock('../hooks/use-materials', () => ({
     mutate: vi.fn(),
   }),
 }));
+vi.mock('../hooks/use-material-capital-sources', () => ({
+  useMaterialCapitalSourcesQuery: () => ({
+    data: [],
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
 vi.mock('@/project/handover/hooks/use-handovers', () => ({
   useHandoversQuery: () => ({
     data: { items: [], total: 0, page: 1, pageSize: 100 },
@@ -155,6 +174,11 @@ const sample: Material = {
     name: 'Máy đo',
     groupId: null,
     description: 'Thiết bị đo',
+    externalCodes: [],
+    linkedCodes: [],
+    manufacturer: '',
+    unit: 'Cái',
+    unitPriceDefault: null,
     requiresInspection: false,
     inspectionIntervalValue: 1,
     inspectionIntervalUnit: 'month',
@@ -206,6 +230,11 @@ const sample: Material = {
   specificationOverrideLabels: {},
   publicSpecificationSettings: { 'spec-1': false },
   serialNumber: 'SER-1',
+  linkedCodes: [],
+  placedIntoServiceDate: null,
+  capitalSourceId: null,
+  capitalSourceName: null,
+  unitPriceOverride: null,
   ownerPartyId: 'party-1',
   ownerSnapshot: {
     kind: 'eps',
@@ -454,83 +483,15 @@ describe('production material pages', () => {
     ).not.toBeInTheDocument();
   }, 15000);
 
-  it('shows the model checklist and toggles inspection schedule overrides immediately', async () => {
+  it('opens inspection type configuration at the current material scope', async () => {
     const user = userEvent.setup();
     const { MaterialEditorPage } = await import('./material-editor-page');
     renderPage('/materials/material-1', <MaterialEditorPage />);
 
     await user.click(screen.getByRole('tab', { name: /Kiểm tra an toàn/ }));
-
-    expect(screen.getByText('Kiểm tra vỏ ngoài')).toBeInTheDocument();
-    expect(screen.getByText('1.1').closest('td')).toHaveClass('text-left');
-    expect(screen.getByText('1.1').closest('tbody')).toHaveClass(
-      '[&_tr:last-child]:!border-b',
+    expect(screen.getByTestId('inspection-config-scope')).toHaveTextContent(
+      'material/material-1',
     );
-    expect(
-      screen.getByRole('columnheader', { name: 'STT' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Thêm nhóm' }),
-    ).not.toBeInTheDocument();
-    const requiresInspectionToggle = screen.getByRole('switch', {
-      name: 'Kiểm tra định kỳ',
-    });
-    expect(requiresInspectionToggle).not.toBeChecked();
-    expect(requiresInspectionToggle).toBeDisabled();
-    const modelStatusAlert = screen.getByRole('alert');
-    expect(modelStatusAlert).toHaveTextContent(
-      'Đang sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
-    );
-    expect(within(modelStatusAlert).getByText('Máy đo')).toHaveClass(
-      'font-semibold',
-    );
-
-    const editConfigurationButton = screen.getByRole('button', {
-      name: 'Sửa cấu hình',
-    });
-    expect(editConfigurationButton.querySelector('svg')).toBeInTheDocument();
-    await user.click(editConfigurationButton);
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Đang không sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
-    );
-    const restoreDefaultsButton = screen.getByRole('button', {
-      name: 'Khôi phục mặc định',
-    });
-    expect(restoreDefaultsButton.querySelector('svg')).toBeInTheDocument();
-    expect(requiresInspectionToggle).toBeEnabled();
-    await user.click(requiresInspectionToggle);
-
-    expect(screen.getByRole('spinbutton', { name: 'Thời hạn' })).toHaveValue(1);
-    expect(
-      screen.getByRole('combobox', { name: 'Đơn vị thời hạn kiểm tra' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('checkbox', { name: 'Bỏ qua kiểm tra lần đầu' }),
-    ).toBeDisabled();
-
-    await user.click(
-      screen.getByRole('button', { name: 'Khôi phục mặc định' }),
-    );
-    const restoreDialog = screen.getByRole('alertdialog');
-    expect(
-      within(restoreDialog).getByText(
-        'Dữ liệu kiểm tra an toàn được thiết lập riêng cho vật tư này sẽ bị xóa và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục không?',
-      ),
-    ).toBeInTheDocument();
-    expect(requiresInspectionToggle).toBeChecked();
-    await user.click(
-      within(restoreDialog).getByRole('button', {
-        name: 'Khôi phục mặc định',
-      }),
-    );
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Đang sử dụng cấu hình kiểm tra an toàn theo mẫu vật tư Máy đo',
-    );
-    expect(requiresInspectionToggle).not.toBeChecked();
-    expect(requiresInspectionToggle).toBeDisabled();
-    expect(
-      screen.queryByRole('spinbutton', { name: 'Thời hạn' }),
-    ).not.toBeInTheDocument();
   });
 
   it('keeps the selected gallery image when switching detail tabs', async () => {

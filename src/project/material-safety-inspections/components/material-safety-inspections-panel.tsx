@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { buildPath, ROUTES } from '@/constants/routes';
 import {
   CircleCheck,
@@ -23,22 +24,33 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { CardLoading } from '@/components/ui/loading';
-import { useMaterialSafetyInspectionsQuery } from '../hooks/use-safety-inspections';
+import { OptionSelect } from '@/components/ui/option-select';
+import {
+  useMaterialSafetyInspectionHistoryTypesQuery,
+  useMaterialSafetyInspectionsQuery,
+  useMaterialSafetyInspectionTypesQuery,
+} from '../hooks/use-safety-inspections';
+import { canStartMaterialSafetyInspection } from '../model/safety-inspection';
 
 export function MaterialSafetyInspectionsPanel({
   materialId,
   canManage,
-  hasChecklist,
-  requiresInspection,
 }: {
   materialId: string;
   canManage: boolean;
-  hasChecklist: boolean;
-  requiresInspection: boolean;
 }) {
   const intl = useIntl();
   const navigate = useNavigate();
-  const query = useMaterialSafetyInspectionsQuery(materialId);
+  const [typeId, setTypeId] = useState('');
+  const query = useMaterialSafetyInspectionsQuery(
+    materialId,
+    true,
+    typeId || undefined,
+  );
+  const types = useMaterialSafetyInspectionTypesQuery(materialId, canManage);
+  const hasAvailableType = types.data?.some(canStartMaterialSafetyInspection);
+  const historicalTypes =
+    useMaterialSafetyInspectionHistoryTypesQuery(materialId);
   const newInspectionPath = buildPath(
     ROUTES.PROJECT.MATERIAL_SAFETY_INSPECTION_CREATE,
     { id: materialId },
@@ -66,7 +78,7 @@ export function MaterialSafetyInspectionsPanel({
           <Button
             type="button"
             size="md"
-            disabled={!requiresInspection || !hasChecklist}
+            disabled={!hasAvailableType}
             onClick={() =>
               navigate(newInspectionPath, { state: { returnTo: materialPath } })
             }
@@ -79,6 +91,29 @@ export function MaterialSafetyInspectionsPanel({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-3">
+        {(historicalTypes.data?.length ?? 0) > 1 || historicalTypes.isError ? (
+          <OptionSelect
+            ariaLabel={intl.formatMessage({
+              id: 'project.materials.safetyInspection.type',
+            })}
+            value={typeId}
+            onChange={setTypeId}
+            placeholder={intl.formatMessage({
+              id: 'project.materials.safetyInspection.allTypes',
+            })}
+            options={(historicalTypes.data ?? []).map((type) => ({
+              value: type.id,
+              label: type.name,
+            }))}
+            errorMessage={
+              historicalTypes.isError
+                ? getApiErrorMessage(historicalTypes.error)
+                : undefined
+            }
+            onRetry={() => void historicalTypes.refetch()}
+            canDeselect
+          />
+        ) : null}
         {query.isPending ? (
           <CardLoading
             label={intl.formatMessage({ id: 'common.state.loading' })}
@@ -137,7 +172,7 @@ export function MaterialSafetyInspectionsPanel({
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-foreground">
-                          {inspectedAt}
+                          {inspection.inspectionTypeName} · {inspectedAt}
                         </span>
                         <Badge
                           variant={
@@ -207,17 +242,10 @@ export function MaterialSafetyInspectionsPanel({
             })}
           </div>
         )}
-        {canManage && !requiresInspection ? (
+        {canManage && types.isSuccess && !hasAvailableType ? (
           <p className="text-sm text-muted-foreground">
             {intl.formatMessage({
-              id: 'project.materials.safetyInspection.errors.notRequired',
-            })}
-          </p>
-        ) : null}
-        {canManage && requiresInspection && !hasChecklist ? (
-          <p className="text-sm text-muted-foreground">
-            {intl.formatMessage({
-              id: 'project.materials.safetyInspection.errors.noChecklist',
+              id: 'project.materials.safetyInspection.errors.typeUnavailable',
             })}
           </p>
         ) : null}

@@ -23,6 +23,14 @@ const spec: TableSpec = {
       headerClassName: 'min-w-[260px]',
     },
     {
+      kind: 'text',
+      id: 'inspectionType',
+      field: 'typeName',
+      header: 'Loại kiểm tra',
+      headerMessageId: 'project.materials.safetyInspection.type',
+      size: 200,
+    },
+    {
       kind: 'custom',
       id: 'lastInspection',
       header: 'Kiểm tra lần cuối',

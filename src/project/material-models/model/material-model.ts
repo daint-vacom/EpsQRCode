@@ -107,6 +107,7 @@ export interface MaterialModel {
   externalCodes: string[];
   linkedCodes: LinkedCode[];
   requiresInspection: boolean;
+  hasActiveSafetyInspection: boolean;
   inspectionIntervalValue: number;
   inspectionIntervalUnit: MaterialModelInspectionIntervalUnit;
   skipInitialInspection: boolean;
@@ -159,6 +160,7 @@ export interface MaterialModelRow {
   external_codes: string[];
   linked_codes: LinkedCode[];
   requires_inspection: boolean;
+  has_active_safety_inspection: boolean;
   inspection_interval_value: number;
   inspection_interval_unit: MaterialModelInspectionIntervalUnit;
   skip_initial_inspection: boolean;
@@ -189,6 +191,7 @@ export function mapMaterialModelRow(
     externalCodes: row.external_codes ?? [],
     linkedCodes: row.linked_codes ?? [],
     requiresInspection: row.requires_inspection,
+    hasActiveSafetyInspection: row.has_active_safety_inspection,
     inspectionIntervalValue: row.inspection_interval_value,
     inspectionIntervalUnit: row.inspection_interval_unit,
     skipInitialInspection: row.skip_initial_inspection,

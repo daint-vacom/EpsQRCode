@@ -198,7 +198,7 @@ export function MaterialsRequiringSafetyInspectionPage() {
   const table = useReactTable({
     data: items,
     columns,
-    getRowId: (row) => row.id,
+    getRowId: (row) => `${row.id}:${row.typeId}`,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,

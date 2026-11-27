@@ -106,6 +106,7 @@ describe('receipt Excel mapping', () => {
     externalCodes: [],
     linkedCodes: [],
     requiresInspection: false,
+    hasActiveSafetyInspection: false,
     inspectionIntervalValue: 1,
     inspectionIntervalUnit: 'month',
     skipInitialInspection: false,
